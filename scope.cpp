@@ -1,0 +1,125 @@
+#include "stdafx.h"
+#include "cxx_core.h"
+#include "cxx_impl.h"
+#include "yy.h"
+#include "cxx_y.h"
+
+cxx_compiler::scope cxx_compiler::scope::root;
+cxx_compiler::scope* cxx_compiler::scope::current = &cxx_compiler::scope::root;
+
+
+std::map<std::pair<__int64,__int64>,cxx_compiler::constant<long double>*> cxx_compiler::constant<long double>::table;
+
+#ifdef _DEBUG
+namespace cxx_compiler { namespace expressions { namespace primary { namespace literal { namespace floating {
+  struct sweeper {
+    ~sweeper()
+    {
+      using namespace std;
+      if ( generator::long_double ){
+        typedef pair<__int64,__int64> K;
+        typedef constant<long double> V;
+        map<K,V*>& m = constant<long double>::table;
+        typedef map<K,V*>::const_iterator IT;
+        for ( IT p = m.begin() ; p != m.end() ; ++p ){
+          V* v = p->second;
+          delete[] v->b;
+        }
+      }
+    }
+  } sweeper;
+} } } } } // end of namespace floating, literal, primary, expressions and cxx_compiler
+#endif // _DEBUG
+
+namespace cxx_compiler { namespace parameter {
+  misc::pvector<tag> tags;
+  tag* conv(const std::pair<std::string,tag*>& p)
+  {
+    tag* T = p.second;
+    T->m_parent = &scope::root;
+    return T;
+  }
+} } // end of namespace parameter and cxx_compiler
+
+cxx_compiler::scope::~scope()
+{
+  using namespace std;
+  using namespace parameter;
+
+  for_each(m_usrs.begin(),m_usrs.end(),misc::deleter3<string,usr>());
+  for_each(m_children.begin(),m_children.end(),misc::deleter<scope>());
+  if (m_id == PARAM) {
+    transform(m_tags.begin(),m_tags.end(),back_inserter(tags),conv);
+    m_tags.clear();
+  }
+  else
+    for_each(m_tags.begin(),m_tags.end(),misc::deleter2<string,tag>());
+}
+
+std::string cxx_compiler::tag::keyword(kind_t kind)
+{
+  switch ( kind ){
+  case CLASS: return "class";
+  case STRUCT: return "struct";
+  case UNION:  return "union";
+  default: return "enum";
+  }
+}
+
+cxx_compiler::block::~block()
+{
+  using namespace std;
+  for_each(m_vars.begin(),m_vars.end(),misc::deleter<var>());
+}
+
+std::string cxx_compiler::usr::keyword(flag_t f)
+{
+  using namespace std;
+  ostringstream os;
+  if ( f & TYPEDEF )
+    os << "typedef";
+  else if ( f & EXTERN ){
+    os << "extern";
+    if ( f & INLINE )
+      os << " inline";
+  }
+  else if ( f & STATIC ){
+    os << "static";
+    if ( f & INLINE )
+      os << " inline";
+  }
+  else if ( f & AUTO )
+    os << "auto";
+  else if ( f & REGISTER )
+    os << "register";
+  else if ( f & INLINE )
+    os << "inline";
+  else if ( f & VIRTUAL )
+    os << "virtual";
+  else if ( f & NAMESPACE )
+    os << "namespace";
+  return os.str();
+}
+
+cxx_compiler::tag::~tag()
+{
+  delete m_types.first;
+  delete m_types.second;
+  if ( m_bases ){
+    std::for_each(m_bases->begin(),m_bases->end(),misc::deleter<base>());
+    delete m_bases;
+  }
+}
+
+void cxx_compiler::original_namespace_definition(var* v)
+{
+  using namespace std;
+  usr* u = static_cast<usr*>(v);
+  auto_ptr<usr> sweeper(u);
+  string name = u->m_name;
+  map<string, vector<usr*> >& usrs = scope::current->m_usrs;
+  name_space* ptr = new name_space(name,parse::position);
+  usrs[name].push_back(ptr);
+  ptr->m_parent = scope::current;
+  scope::current = ptr;
+}

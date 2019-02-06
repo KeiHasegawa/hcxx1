@@ -1,0 +1,3 @@
+#b cxx_compiler::declarations::initializers::action
+run sample.txt --no-generator --cxx-compiler-debug
+

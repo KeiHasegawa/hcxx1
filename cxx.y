@@ -1,0 +1,1469 @@
+%{
+#include "cxx_core.h"
+#include "cxx_impl.h"
+
+%}
+
+%token ORIGINAL_NAMESPACE_NAME_LEX NAMESPACE_ALIAS_LEX IDENTIFIER_LEX
+%token INTEGER_LITERAL_LEX CHARACTER_LITERAL_LEX FLOATING_LITERAL_LEX STRING_LITERAL_LEX
+%token TYPEDEF_KW AUTO_KW REGISTER_KW STATIC_KW EXTERN_KW MUTABLE_KW
+%token INLINE_KW VIRTUAL_KW EXPLICIT_KW FRIEND_KW
+
+%token VOID_KW CHAR_KW WCHAR_T_KW BOOL_KW INT_KW FLOAT_KW DOUBLE_KW
+%token SHORT_KW LONG_KW
+%token SIGNED_KW UNSIGNED_KW
+%token TYPEDEF_NAME_LEX CLASS_NAME_LEX TEMPLATE_NAME_LEX ENUM_NAME_LEX
+
+%token CONST_KW VOLATILE_KW RESTRICT_KW
+%token COLONCOLON_MK
+%token TEMPLATE_KW
+%token ENUM_KW
+%token TYPENAME_KW
+%token NAMESPACE_KW
+
+%token USING_KW
+%token ASM_KW
+%token DOTS_MK
+
+%token CLASS_KW STRUCT_KW UNION_KW
+%token PRIVATE_KW PROTECTED_KW PUBLIC_KW
+%token EXPORT_KW
+
+%token MUL_ASSIGN_MK DIV_ASSIGN_MK MOD_ASSIGN_MK ADD_ASSIGN_MK SUB_ASSIGN_MK RSH_ASSIGN_MK
+%token LSH_ASSIGN_MK AND_ASSIGN_MK XOR_ASSIGN_MK  OR_ASSIGN_MK OROR_MK ANDAND_MK
+%token EQUAL_MK NOTEQ_MK LESSEQ_MK GREATEREQ_MK LSH_MK RSH_MK DOTASTER_MK ARROWASTER_MK
+%token SIZEOF_KW PLUSPLUS_MK MINUSMINUS_MK
+
+%token NEW_KW DELETE_KW
+
+%token DYNAMIC_CAST_KW STATIC_CAST_KW REINTERPRET_CAST_KW CONST_CAST_KW
+%token TYPEID_KW
+
+%token ARROW_MK
+%token THIS_KW
+%token TRY_KW
+%token BREAK_KW
+%token FOR_KW
+%token SWITCH_KW
+%token DEFAULT_KW
+%token WHILE_KW
+%token CONTINUE_KW
+%token GOTO_KW
+%token CASE_KW
+%token DO_KW
+%token ELSE_KW
+%token RETURN_KW
+%token IF_KW
+%token THROW_KW
+%token CATCH_KW
+%token OPERATOR_KW
+
+%token FALSE_KW TRUE_KW
+%token BUILTIN_VA_ARG BUILTIN_VA_START
+
+%union {
+  int m_ival;
+  cxx_compiler::usr* m_usr;
+  std::vector<cxx_compiler::usr*>* m_usrs;
+  cxx_compiler::var* m_var;
+  const cxx_compiler::type* m_type;
+  cxx_compiler::declarations::type_specifier* m_type_specifier;
+  cxx_compiler::declarations::type_specifier_seq::info_t* m_type_specifier_seq;
+  cxx_compiler::declarations::specifier* m_specifier;
+  cxx_compiler::declarations::specifier_seq::info_t* m_specifier_seq;
+  std::vector<const cxx_compiler::type*>* m_types;
+  cxx_compiler::expressions::base* m_expression;
+  std::vector<cxx_compiler::expressions::base*>* m_expressions;
+  cxx_compiler::statements::base* m_statement;
+  std::vector<int>* m_vi;
+  std::vector<cxx_compiler::statements::base*>* m_statements;
+  cxx_compiler::scope* m_scope;
+  cxx_compiler::declarations::initializers::info_t* m_initializer;
+  cxx_compiler::declarations::initializers::clause::info_t* m_clause;
+  std::vector<cxx_compiler::declarations::initializers::element*>* m_list;
+  std::vector<cxx_compiler::declarations::initializers::designator::info_t*>* m_designation;
+  cxx_compiler::declarations::initializers::designator::info_t* m_designator;
+  cxx_compiler::expressions::postfix::member::info_t* m_member;
+  cxx_compiler::tag* m_tag;
+  cxx_compiler::file_t* m_file;
+  std::vector<cxx_compiler::base*>* m_base_clause;
+  cxx_compiler::base* m_base_specifier;
+  cxx_compiler::name_space* m_name_space;
+}
+
+%type<m_var> IDENTIFIER_LEX unqualified_id id_expression declarator_id direct_declarator declarator enumerator
+%type<m_var> qualified_id
+%type<m_usr> INTEGER_LITERAL_LEX CHARACTER_LITERAL_LEX FLOATING_LITERAL_LEX TYPEDEF_NAME_LEX init_declarator
+%type<m_usr> boolean_literal
+%type<m_usrs> block_declaration simple_declaration init_declarator_list
+%type<m_usrs> asm_definition
+%type<m_type> ptr_operator parameter_declaration abstract_declarator direct_abstract_declarator class_specifier
+%type<m_type> elaborated_type_specifier type_id enum_specifier
+%type<m_type_specifier> simple_type_specifier type_specifier type_name
+%type<m_type_specifier_seq> type_specifier_seq
+%type<m_specifier> decl_specifier
+%type<m_specifier_seq> decl_specifier_seq
+%type<m_types> parameter_declaration_clause parameter_declaration_list
+%type<m_expression> primary_expression postfix_expression unary_expression cast_expression
+%type<m_expression> pm_expression multiplicative_expression additive_expression shift_expression
+%type<m_expression> relational_expression equality_expression and_expression exclusive_or_expression
+%type<m_expression> inclusive_or_expression logical_and_expression logical_or_expression conditional_expression
+%type<m_expression> assignment_expression expression constant_expression constant_initializer
+%type<m_expression> condition new_expression delete_expression
+%type<m_member> member_access_begin
+%type<m_statement> labeled_statement expression_statement compound_statement selection_statement iteration_statement
+%type<m_statement> jump_statement declaration_statement try_block function_body statement for_init_statement
+%type<m_ival> cvr_qualifier storage_class_specifier function_specifier class_key enum_key unary_operator
+%type<m_ival> assignment_operator access_specifier
+%type<m_vi> cvr_qualifier_seq
+%type<m_statements> statement_seq
+%type<m_var> literal string_literal STRING_LITERAL_LEX
+%type<m_expressions> expression_list
+%type<m_scope> enter_block
+%type<m_clause> initializer_clause
+%type<m_list> initializer_list
+%type<m_designation> designation designator_list
+%type<m_designator> designator
+%type<m_tag> enum_specifier_begin CLASS_NAME_LEX ENUM_NAME_LEX class_name
+%type<m_file> DEFAULT_KW
+%type<m_base_clause> base_clause base_specifier_list
+%type<m_base_specifier> base_specifier
+%type<m_name_space> ORIGINAL_NAMESPACE_NAME_LEX NAMESPACE_ALIAS_LEX namespace_name
+%type<m_type> new_type_id
+%type<m_initializer> initializer
+
+%%
+
+translation_unit
+  : declaration_seq
+  |
+  ;
+
+declaration_seq
+  : declaration                 { cxx_compiler::declarations::destroy(); }
+  | declaration_seq declaration { cxx_compiler::declarations::destroy(); }
+  ;
+
+declaration
+  : block_declaration  { delete $1; }
+  | function_definition
+  | template_declaration
+  | explicit_instantiation
+  | explicit_specialization
+  | linkage_specification
+  | namespace_definition
+  ;
+
+block_declaration
+  : simple_declaration
+  | asm_definition
+  | namespace_alias_definition { throw int(); }
+  | using_declaration { throw int(); }
+  | using_directive { throw int(); }
+  ;
+
+simple_declaration
+  : decl_specifier_seq init_declarator_list ';'
+    {
+      using namespace cxx_compiler;
+      delete $1;
+      parse::identifier::flag = parse::identifier::look;
+      $$ = $2;
+    }
+  |                    init_declarator_list ';'
+  | decl_specifier_seq                      ';'
+    {
+      using namespace cxx_compiler;
+      if ( !$1->m_tag )
+        error::declarations::empty(parse::position);
+      delete $1;
+      parse::identifier::flag = parse::identifier::look;
+      $$ = 0;
+    }
+  |                                         ';' { $$ = 0; }
+  ;
+
+decl_specifier
+  : storage_class_specifier { $$ = new cxx_compiler::declarations::specifier($1); }
+  | type_specifier          { $$ = new cxx_compiler::declarations::specifier($1); }
+  | function_specifier      { $$ = new cxx_compiler::declarations::specifier($1); }
+  | FRIEND_KW               { $$ = new cxx_compiler::declarations::specifier(FRIEND_KW); }
+  | TYPEDEF_KW              { $$ = new cxx_compiler::declarations::specifier(TYPEDEF_KW); }
+  ;
+
+decl_specifier_seq
+  : decl_specifier_seq decl_specifier { $$ = new cxx_compiler::declarations::specifier_seq::info_t($1,$2); }
+  |                    decl_specifier { $$ = new cxx_compiler::declarations::specifier_seq::info_t( 0,$1); }
+  ;
+
+storage_class_specifier
+  : AUTO_KW      { $$ = AUTO_KW; }
+  | REGISTER_KW  { $$ = REGISTER_KW; }
+  | STATIC_KW    { $$ = STATIC_KW; }
+  | EXTERN_KW    { $$ = EXTERN_KW; }
+  | MUTABLE_KW   { $$ = MUTABLE_KW; }
+  ;
+
+function_specifier
+  : INLINE_KW    { $$ = INLINE_KW; }
+  | VIRTUAL_KW   { $$ = VIRTUAL_KW; }
+  | EXPLICIT_KW  { $$ = EXPLICIT_KW; }
+  ;
+
+type_specifier
+  : simple_type_specifier
+  | class_specifier { $$ = new cxx_compiler::declarations::type_specifier($1); }
+  | enum_specifier { $$ = new cxx_compiler::declarations::type_specifier($1); }
+  | elaborated_type_specifier { $$ = new cxx_compiler::declarations::type_specifier($1); }
+  | cvr_qualifier
+    { $$ = new cxx_compiler::declarations::type_specifier($1); }
+  ;
+
+simple_type_specifier
+  : COLONCOLON_MK move_to_root nested_name_specifier type_name { throw int(); }
+  | COLONCOLON_MK move_to_root                       type_name { throw int(); }
+  |                            nested_name_specifier type_name { $$ = $2; cxx_compiler::class_or_namespace_name::after(); }
+  |                                                  type_name
+  | COLONCOLON_MK move_to_root nested_name_specifier TEMPLATE_KW template_id { throw int(); }
+  |                            nested_name_specifier TEMPLATE_KW template_id { throw int(); }
+  | CHAR_KW { $$ = new cxx_compiler::declarations::type_specifier(CHAR_KW); }
+  | WCHAR_T_KW { $$ = new cxx_compiler::declarations::type_specifier(WCHAR_T_KW); }
+  | BOOL_KW { $$ = new cxx_compiler::declarations::type_specifier(BOOL_KW); }
+  | SHORT_KW { $$ = new cxx_compiler::declarations::type_specifier(SHORT_KW); }
+  | INT_KW { $$ = new cxx_compiler::declarations::type_specifier(INT_KW); }
+  | LONG_KW { $$ = new cxx_compiler::declarations::type_specifier(LONG_KW); }
+  | SIGNED_KW { $$ = new cxx_compiler::declarations::type_specifier(SIGNED_KW); }
+  | UNSIGNED_KW { $$ = new cxx_compiler::declarations::type_specifier(UNSIGNED_KW); }
+  | FLOAT_KW { $$ = new cxx_compiler::declarations::type_specifier(FLOAT_KW); }
+  | DOUBLE_KW { $$ = new cxx_compiler::declarations::type_specifier(DOUBLE_KW); }
+  | VOID_KW { $$ = new cxx_compiler::declarations::type_specifier(VOID_KW); }
+  ;
+
+type_name
+  : class_name       { $$ = new cxx_compiler::declarations::type_specifier($1); }
+  | ENUM_NAME_LEX    { $$ = new cxx_compiler::declarations::type_specifier($1); }
+  | TYPEDEF_NAME_LEX { $$ = new cxx_compiler::declarations::type_specifier($1); }
+  ;
+
+elaborated_type_specifier
+  : class_key COLONCOLON_MK move_to_root nested_name_specifier IDENTIFIER_LEX { throw int(); }
+  | class_key               nested_name_specifier IDENTIFIER_LEX { throw int(); }
+  | class_key COLONCOLON_MK move_to_root IDENTIFIER_LEX { throw int(); }
+  | class_key                                     IDENTIFIER_LEX { $$ = cxx_compiler::declarations::elaborated::action($1,$2); }
+  | class_key COLONCOLON_MK move_to_root nested_name_specifier TEMPLATE_KW template_id { throw int(); }
+  | class_key               nested_name_specifier TEMPLATE_KW template_id { throw int(); }
+  | class_key COLONCOLON_MK move_to_root                       TEMPLATE_KW template_id { throw int(); }
+  | class_key COLONCOLON_MK move_to_root nested_name_specifier             template_id { throw int(); }
+  | class_key                                     TEMPLATE_KW template_id { throw int(); }
+  | class_key COLONCOLON_MK move_to_root                                   template_id { throw int(); }
+  | class_key               nested_name_specifier             template_id { throw int(); }
+  | class_key                                                 template_id { throw int(); }
+  | enum_key COLONCOLON_MK move_to_root nested_name_specifier IDENTIFIER_LEX { throw int(); }
+  | enum_key               nested_name_specifier IDENTIFIER_LEX { throw int(); }
+  | enum_key COLONCOLON_MK move_to_root                       IDENTIFIER_LEX { throw int(); }
+  | enum_key                                     IDENTIFIER_LEX { $$ = cxx_compiler::declarations::elaborated::action($1,$2); }
+  | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier IDENTIFIER_LEX { throw int(); }
+  | TYPENAME_KW               nested_name_specifier IDENTIFIER_LEX { throw int(); }
+  | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier TEMPLATE_KW template_id { throw int(); }
+  | TYPENAME_KW               nested_name_specifier TEMPLATE_KW template_id { throw int(); }
+  | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier             template_id { throw int(); }
+  | TYPENAME_KW               nested_name_specifier             template_id { throw int(); }
+  ;
+
+enum_specifier
+  : enum_specifier_begin enumerator_list '}'     { $$ = cxx_compiler::declarations::enumeration::end($1); }
+  | enum_specifier_begin enumerator_list ',' '}' { $$ = cxx_compiler::declarations::enumeration::end($1); }
+  | enum_specifier_begin                 '}'     { $$ = cxx_compiler::declarations::enumeration::end($1); }
+  ;
+
+enum_specifier_begin
+  : enum_key IDENTIFIER_LEX '{' { $$ = cxx_compiler::declarations::enumeration::begin($2); }
+  | enum_key                '{' { $$ = cxx_compiler::declarations::enumeration::begin(0); }
+  ;
+
+enum_key
+  : ENUM_KW { $$ = ENUM_KW; cxx_compiler::parse::identifier::flag = cxx_compiler::parse::identifier::new_obj; }
+  ;
+
+enumerator_list
+  : enumerator_definition
+  | enumerator_list ',' enumerator_definition
+  ;
+
+enumerator_definition
+  : enumerator                         { cxx_compiler::declarations::enumeration::definition($1,0); }
+  | enumerator '=' { cxx_compiler::parse::identifier::flag = cxx_compiler::parse::identifier::look; }
+    constant_expression
+    {
+      cxx_compiler::declarations::enumeration::definition($1,$4);
+      cxx_compiler::parse::identifier::flag = cxx_compiler::parse::identifier::new_obj;
+    }
+  ;
+
+enumerator
+  : IDENTIFIER_LEX
+  ;
+
+namespace_definition
+  : named_namespace_definition
+  | unnamed_namespace_definition
+  ;
+
+named_namespace_definition
+  : original_namespace_definition
+  | extension_namespace_definition
+  ;
+
+unnamed_namespace_definition
+  : NAMESPACE_KW '{' namespace_body '}'
+  ;
+
+namespace_body
+  : declaration_seq
+  |
+  ;
+
+extension_namespace_definition
+  : NAMESPACE_KW ORIGINAL_NAMESPACE_NAME_LEX '{' namespace_body '}'
+  ;
+
+original_namespace_definition
+  : NAMESPACE_KW IDENTIFIER_LEX '{' { cxx_compiler::original_namespace_definition($2); }
+    namespace_body '}' { cxx_compiler::scope::current = cxx_compiler::scope::current->m_parent; }
+  ;
+
+namespace_name
+  : ORIGINAL_NAMESPACE_NAME_LEX
+  | NAMESPACE_ALIAS_LEX
+  ;
+
+
+namespace_alias_definition
+  : NAMESPACE_KW IDENTIFIER_LEX '=' qualified_namespace_specifier ';'
+  ;
+
+qualified_namespace_specifier
+  : COLONCOLON_MK move_to_root nested_name_specifier namespace_name
+  |               nested_name_specifier namespace_name
+  | COLONCOLON_MK move_to_root          namespace_name
+  |                                     namespace_name
+  ;
+
+using_declaration
+  : USING_KW TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier unqualified_id ';'
+  | USING_KW             COLONCOLON_MK move_to_root nested_name_specifier unqualified_id ';'
+  | USING_KW TYPENAME_KW               nested_name_specifier unqualified_id ';'
+  | USING_KW                           nested_name_specifier unqualified_id ';'
+  | USING_KW COLONCOLON_MK move_to_root unqualified_id ';'
+  ;
+
+using_directive
+  : USING_KW NAMESPACE_KW COLONCOLON_MK move_to_root nested_name_specifier namespace_name ';'
+  | USING_KW NAMESPACE_KW               nested_name_specifier namespace_name ';'
+  | USING_KW NAMESPACE_KW COLONCOLON_MK move_to_root                       namespace_name ';'
+  | USING_KW NAMESPACE_KW                                     namespace_name ';'
+  ;
+
+asm_definition
+  : ASM_KW '(' string_literal ')' ';'
+   {
+     $$ = new std::vector<cxx_compiler::usr*>;
+     $$->push_back(new cxx_compiler::declarations::asm_definition::info_t($3));
+   }
+  | ASM_KW '(' string_literal asm_operand_list ')' ';'
+  {
+     $$ = new std::vector<cxx_compiler::usr*>;
+     $$->push_back(new cxx_compiler::declarations::asm_definition::info_t($3));
+  }
+  ;
+
+asm_operand_list : ':' asm_operands ':' asm_operands ':' reg_list
+                 | ':' asm_operands ':' asm_operands
+                 | ':' asm_operands ':'              ':' reg_list
+                 | ':' asm_operands
+                 | ':'              ':' asm_operands ':' reg_list
+                 | ':'              ':' asm_operands
+                 | ':'              ':'              ':' reg_list
+                 | ':'              ':'              ':'
+                 ;
+
+asm_operands : asm_operand
+             | asm_operands ',' asm_operand
+             ;
+
+asm_operand : string_literal '(' expression ')'
+            ;
+
+reg_list : string_literal
+         | reg_list ',' string_literal
+         ;
+
+linkage_specification
+  : linkage_specification_begin declaration_seq '}' { --cxx_compiler::declarations::linkage::depth; }
+  | linkage_specification_begin                 '}' { --cxx_compiler::declarations::linkage::depth; }
+  | EXTERN_KW STRING_LITERAL_LEX { cxx_compiler::declarations::linkage::action($2); } declaration { --cxx_compiler::declarations::linkage::depth; }
+  ;
+
+linkage_specification_begin
+  : EXTERN_KW STRING_LITERAL_LEX '{' { cxx_compiler::declarations::linkage::action($2); }
+  ;
+
+init_declarator_list
+  : init_declarator
+    { $$ = new std::vector<cxx_compiler::usr*>; $$->push_back($1); }
+  | init_declarator_list ','
+    { cxx_compiler::parse::identifier::flag = cxx_compiler::parse::identifier::new_obj; }
+    init_declarator
+    { $$ = $1; $$->push_back($4); }
+  ;
+
+init_declarator
+  : declarator { $1 = cxx_compiler::declarations::action1($1,true,false); }
+    initializer { cxx_compiler::declarations::initializers::action($1,$3); }
+  | declarator { $$ = cxx_compiler::declarations::action1($1,false,false); }
+  ;
+
+declarator
+  : direct_declarator
+  | ptr_operator declarator
+    { $$ = $2; $$->m_type = cxx_compiler::declarations::declarators::pointer::action($1,$2->m_type); }
+  ;
+
+direct_declarator
+  : declarator_id
+  | direct_declarator '(' enter_parameter parameter_declaration_clause leave_parameter ')' cvr_qualifier_seq exception_specification
+    { throw int(); }
+  | direct_declarator '(' enter_parameter parameter_declaration_clause leave_parameter ')'                   exception_specification
+    { throw int(); }
+  | direct_declarator '(' enter_parameter parameter_declaration_clause leave_parameter ')' cvr_qualifier_seq
+    {
+      $$ = $1;
+      $$->m_type = cxx_compiler::declarations::declarators::function::action($1->m_type,$4,$1,$7);
+    }
+  | direct_declarator '(' enter_parameter parameter_declaration_clause leave_parameter ')'
+    {
+      $$ = $1;
+      $$->m_type = cxx_compiler::declarations::declarators::function::action($1->m_type,$4,$1,0);
+    }
+  | direct_declarator begin_array assignment_expression end_array
+    {
+      $$ = $1;
+      $$->m_type = cxx_compiler::declarations::declarators::array::action($1->m_type,$3,false,$1);
+    }
+  | direct_declarator begin_array end_array
+    {
+      $$ = $1;
+      $$->m_type = cxx_compiler::declarations::declarators::array::action($1->m_type,0,false,$1);
+    }
+  | direct_declarator begin_array '*' end_array
+    {
+      $$ = $1;
+      $$->m_type = cxx_compiler::declarations::declarators::array::action($1->m_type,0,true,$1);
+    }
+  | '(' declarator ')'
+    {
+      $$ = $2;
+    }
+  ;
+
+ptr_operator
+  : '*' cvr_qualifier_seq
+    { $$ = cxx_compiler::declarations::declarators::pointer::action($2); }
+  | '*'
+    { $$ = cxx_compiler::declarations::declarators::pointer::action(0); }
+  | '&'
+    { $$ = cxx_compiler::declarations::declarators::reference::action(); }
+  | COLONCOLON_MK move_to_root nested_name_specifier '*' cvr_qualifier_seq
+    { throw int(); }
+  |                            nested_name_specifier '*' cvr_qualifier_seq
+    { throw int(); }
+  | COLONCOLON_MK move_to_root nested_name_specifier '*'
+    { throw int(); }
+  |                            nested_name_specifier '*'
+    { throw int(); }
+  ;
+
+cvr_qualifier_seq
+  : cvr_qualifier cvr_qualifier_seq
+    { $$ = $2; $$->push_back($1); }
+  | cvr_qualifier
+    { $$ = new std::vector<int>; $$->push_back($1); }
+  ;
+
+cvr_qualifier
+  : CONST_KW     { $$ = CONST_KW; }
+  | VOLATILE_KW  { $$ = VOLATILE_KW; }
+  | RESTRICT_KW  { $$ = RESTRICT_KW; }
+  ;
+
+declarator_id
+  : id_expression
+  | COLONCOLON_MK move_to_root nested_name_specifier type_name { throw int(); }
+  |                            nested_name_specifier type_name { throw int(); }
+  | COLONCOLON_MK move_to_root                       type_name { throw int(); }
+  ;
+
+parameter_declaration_clause
+  : parameter_declaration_list DOTS_MK
+    { $$ = $1; $$->push_back(cxx_compiler::ellipsis_type::create()); }
+  |                            DOTS_MK
+    { $$ = new std::vector<const cxx_compiler::type*>; $$->push_back(cxx_compiler::ellipsis_type::create()); }
+  | parameter_declaration_list
+  | { $$ = 0; cxx_compiler::declarations::specifier_seq::info_t::s_stack.pop(); }
+  | parameter_declaration_list ',' DOTS_MK
+    { $$ = $1; $$->push_back(cxx_compiler::ellipsis_type::create()); cxx_compiler::declarations::specifier_seq::info_t::s_stack.pop(); }
+  ;
+
+parameter_declaration_list
+  : parameter_declaration
+    { $$ = new std::vector<const cxx_compiler::type*>; $$->push_back($1); }
+  | parameter_declaration_list ',' parameter_declaration
+    { $$ = $1; $$->push_back($3); }
+  ;
+
+parameter_declaration
+  : decl_specifier_seq declarator
+    {
+      $$ = cxx_compiler::declarations::declarators::function::parameter($1,$2);
+    }
+  | decl_specifier_seq declarator '=' assignment_expression
+    { throw int(); }
+  | decl_specifier_seq abstract_declarator
+    {
+      $$ = cxx_compiler::declarations::declarators::function::parameter($1,$2);
+    }
+  | decl_specifier_seq
+    {
+      cxx_compiler::usr* zero = 0;
+      $$ = cxx_compiler::declarations::declarators::function::parameter($1,zero);
+    }
+  | decl_specifier_seq abstract_declarator '=' assignment_expression
+    { throw int(); }
+  | decl_specifier_seq  '=' assignment_expression
+    { throw int(); }
+  ;
+
+abstract_declarator
+  : ptr_operator abstract_declarator
+    { $$ = $2->patch($1,0); }
+  | ptr_operator
+  | direct_abstract_declarator
+  ;
+
+direct_abstract_declarator
+  : direct_abstract_declarator '(' enter_parameter parameter_declaration_clause leave_parameter ')' cvr_qualifier_seq exception_specification
+    { throw int(); }
+  | direct_abstract_declarator '(' enter_parameter parameter_declaration_clause leave_parameter ')'                   exception_specification
+    { throw int(); }
+  | direct_abstract_declarator '(' enter_parameter parameter_declaration_clause leave_parameter ')' cvr_qualifier_seq
+    { throw int(); }
+  | direct_abstract_declarator '(' enter_parameter parameter_declaration_clause leave_parameter ')'
+    {
+      $$ = cxx_compiler::declarations::declarators::function::action($1,$4,0,0);
+    }
+  |                            '(' enter_parameter parameter_declaration_clause leave_parameter ')' cvr_qualifier_seq exception_specification
+    { throw int(); }
+  |                            '(' enter_parameter parameter_declaration_clause leave_parameter ')'                   exception_specification
+    { throw int(); }
+  |                            '(' enter_parameter parameter_declaration_clause leave_parameter ')' cvr_qualifier_seq
+    { throw int(); }
+  | '(' enter_parameter parameter_declaration_clause leave_parameter ')'
+    {
+      $$ = cxx_compiler::declarations::declarators::function::action(cxx_compiler::backpatch_type::create(),$3,0,0);
+    }
+  | direct_abstract_declarator begin_array assignment_expression end_array
+    {
+      $$ = cxx_compiler::declarations::declarators::array::action($1,$3,false,0);
+    }
+  |                            begin_array assignment_expression end_array
+    {
+      $$ = cxx_compiler::declarations::declarators::array::action(cxx_compiler::backpatch_type::create(),$2,false,0);
+    }
+  | direct_abstract_declarator begin_array end_array
+    {
+      $$ = cxx_compiler::declarations::declarators::array::action($1,0,false,0);
+    }
+  |                            begin_array end_array
+    {
+      $$ = cxx_compiler::declarations::declarators::array::action(cxx_compiler::backpatch_type::create(),0,false,0);
+    }
+  | direct_abstract_declarator begin_array '*' end_array
+    {
+      $$ = cxx_compiler::declarations::declarators::array::action($1,0,true,0);
+    }
+  |                            begin_array '*' end_array
+    {
+      $$ = cxx_compiler::declarations::declarators::array::action(cxx_compiler::backpatch_type::create(),0,true,0);
+    }
+  | '(' abstract_declarator ')' { $$ = $2; }
+  ;
+
+begin_array
+  : '['
+    {
+      using namespace cxx_compiler::parse::identifier;
+      flag = look;
+    }
+  ;
+
+end_array
+  : ']'
+    {
+      using namespace cxx_compiler::parse::identifier;
+      flag = new_obj;
+    }
+  ;
+
+exception_specification
+  : THROW_KW '(' type_id_list ')'
+    { throw int(); }
+  | THROW_KW '('              ')'
+    { throw int(); }
+  ;
+
+type_id_list
+  : type_id { throw int(); }
+  | type_id_list ',' type_id { throw int(); }
+  ;
+
+initializer
+  : '=' initializer_clause   { $$ = new cxx_compiler::declarations::initializers::info_t($2); }
+  | '(' expression_list ')'  { $$ = new cxx_compiler::declarations::initializers::info_t($2); }
+  ;
+
+initializer_clause
+  : assignment_expression         { $$ = new cxx_compiler::declarations::initializers::clause::info_t($1); }
+  | '{' initializer_list ',' '}'  { $$ = new cxx_compiler::declarations::initializers::clause::info_t($2); }
+  | '{' initializer_list     '}'  { $$ = new cxx_compiler::declarations::initializers::clause::info_t($2); }
+  | '{'                      '}'  { $$ = new cxx_compiler::declarations::initializers::clause::info_t((std::vector<cxx_compiler::declarations::initializers::element*>*)0); }
+  ;
+
+initializer_list
+  :                                  initializer_clause
+    {
+      $$ = new std::vector<cxx_compiler::declarations::initializers::element*>;
+      $$->push_back(new cxx_compiler::declarations::initializers::element(0,$1));
+    }
+  |                      designation initializer_clause
+    {
+      $$ = new std::vector<cxx_compiler::declarations::initializers::element*>;
+      $$->push_back(new cxx_compiler::declarations::initializers::element($1,$2));
+    }
+  | initializer_list ','             initializer_clause
+    {
+      $$ = $1;
+      $$->push_back(new cxx_compiler::declarations::initializers::element(0,$3));
+    }
+  | initializer_list ',' designation initializer_clause
+    {
+      $$ = $1;
+      $$->push_back(new cxx_compiler::declarations::initializers::element($3,$4));
+    }
+  ;
+
+designation
+  : designator_list '='
+  ;
+
+designator_list
+  : designator
+    { $$ = new std::vector<cxx_compiler::declarations::initializers::designator::info_t*>; $$->push_back($1); }
+  | designator_list designator
+    { $$ = $1; $$->push_back($2); }
+  ;
+
+designator
+  : '[' constant_expression ']' { $$ = new cxx_compiler::declarations::initializers::designator::info_t($2,0); }
+  | '.' { cxx_compiler::parse::identifier::flag = cxx_compiler::parse::identifier::new_obj; }
+    IDENTIFIER_LEX
+    {
+      $$ = new cxx_compiler::declarations::initializers::designator::info_t(0,$3);
+      cxx_compiler::parse::identifier::flag = cxx_compiler::parse::identifier::look;
+    }
+  ;
+
+type_id
+  : type_specifier_seq abstract_declarator
+    {
+      $$ = cxx_compiler::declarations::declarators::type_id::action($2);
+      cxx_compiler::parse::identifier::flag = cxx_compiler::parse::identifier::look;
+      delete $1;
+    }
+  | type_specifier_seq
+    {
+      $$ = cxx_compiler::declarations::declarators::type_id::action(0);
+      cxx_compiler::parse::identifier::flag = cxx_compiler::parse::identifier::look;
+      delete $1;
+    }
+  ;
+
+type_specifier_seq
+  : type_specifier type_specifier_seq { $$ = new cxx_compiler::declarations::type_specifier_seq::info_t($1,$2); }
+  | type_specifier { $$ = new cxx_compiler::declarations::type_specifier_seq::info_t($1,0); }
+  ;
+
+class_name
+  : CLASS_NAME_LEX
+  | template_id { throw int(); }
+  ;
+
+class_key
+  : CLASS_KW   { cxx_compiler::parse::identifier::flag = cxx_compiler::parse::identifier::new_obj; $$ = CLASS_KW; }
+  | STRUCT_KW  { cxx_compiler::parse::identifier::flag = cxx_compiler::parse::identifier::new_obj; $$ = STRUCT_KW; }
+  | UNION_KW   { cxx_compiler::parse::identifier::flag = cxx_compiler::parse::identifier::new_obj; $$ = UNION_KW; }
+  ;
+
+class_specifier
+  : class_specifier_begin member_specification '}' { $$ = cxx_compiler::classes::specifier::action(); }
+  | class_specifier_begin                      '}' { $$ = cxx_compiler::classes::specifier::action(); }
+  ;
+
+class_specifier_begin
+  : class_head '{'
+  | class_key IDENTIFIER_LEX '{' { cxx_compiler::classes::specifier::begin($1,$2,0); }
+  ;
+
+class_head
+  : class_key IDENTIFIER_LEX base_clause { cxx_compiler::classes::specifier::begin($1,$2,$3); }
+  | class_key                base_clause { cxx_compiler::classes::specifier::begin($1,0,$2); }
+  | class_key                            { cxx_compiler::classes::specifier::begin($1,0,0); }
+  | class_key nested_name_specifier IDENTIFIER_LEX base_clause { throw int(); }
+  | class_key nested_name_specifier CLASS_NAME_LEX             { cxx_compiler::classes::specifier::begin2($1,$3); }
+  | class_key nested_name_specifier template_id base_clause { throw int(); }
+  | class_key                       template_id base_clause { throw int(); }
+  ;
+
+member_specification
+  : member_declaration member_specification { }
+  | member_declaration { }
+  | access_specifier ':' member_specification { }
+  | access_specifier ':' { }
+  ;
+
+member_declaration
+  : decl_specifier_seq member_declarator_list ';' { delete $1; cxx_compiler::parse::identifier::flag = cxx_compiler::parse::identifier::look; }
+  | decl_specifier_seq                        ';' { delete $1; cxx_compiler::parse::identifier::flag = cxx_compiler::parse::identifier::look; }
+  |                    member_declarator_list ';'
+  | function_definition ';'
+  | function_definition
+  | COLONCOLON_MK move_to_root nested_name_specifier TEMPLATE_KW unqualified_id ';'
+  | COLONCOLON_MK move_to_root nested_name_specifier             unqualified_id ';'
+  |               nested_name_specifier TEMPLATE_KW unqualified_id ';'
+  |               nested_name_specifier             unqualified_id ';'
+  | using_declaration
+  | template_declaration
+  ;
+
+member_declarator_list
+  : member_declarator
+  | member_declarator_list ',' member_declarator
+  ;
+
+member_declarator
+  : declarator
+    { cxx_compiler::classes::members::action($1,0); }
+  | declarator constant_initializer
+    { cxx_compiler::classes::members::action($1,$2); }
+  | IDENTIFIER_LEX ':'
+    {
+      using namespace cxx_compiler::parse;
+      identifier::flag = identifier::look;
+    }
+    constant_expression
+    {
+      using namespace cxx_compiler;
+      classes::members::bit_field($1,$4);
+      using namespace parse;
+      identifier::flag = identifier::new_obj;
+    }
+  |                ':' { cxx_compiler::parse::identifier::flag = cxx_compiler::parse::identifier::look; } constant_expression
+    { cxx_compiler::classes::members::bit_field(0,$3); cxx_compiler::parse::identifier::flag = cxx_compiler::parse::identifier::new_obj; }
+  ;
+
+constant_initializer
+  : '=' { cxx_compiler::parse::identifier::flag = cxx_compiler::parse::identifier::look; }
+    constant_expression { $$ = $3; }
+  ;
+
+base_clause
+  : ':' { cxx_compiler::parse::identifier::flag = cxx_compiler::parse::identifier::look; } base_specifier_list { $$ = $3; }
+  ;
+
+base_specifier_list
+  : base_specifier { $$ = new std::vector<cxx_compiler::base*>; $$->push_back($1); }
+  | base_specifier_list ',' base_specifier { $$ = $1; $$->push_back($3); }
+  ;
+
+base_specifier
+  : COLONCOLON_MK move_to_root nested_name_specifier class_name { throw int(); }
+  | COLONCOLON_MK move_to_root                       class_name { throw int(); }
+  |               nested_name_specifier class_name { throw int(); }
+  |                                     class_name { $$ = new cxx_compiler::base(0,false,$1); }
+  | VIRTUAL_KW access_specifier COLONCOLON_MK move_to_root nested_name_specifier class_name { throw int(); }
+  | VIRTUAL_KW access_specifier COLONCOLON_MK move_to_root                       class_name { throw int(); }
+  | VIRTUAL_KW access_specifier               nested_name_specifier class_name { throw int(); }
+  | VIRTUAL_KW access_specifier                                     class_name { throw int(); }
+  | VIRTUAL_KW                  COLONCOLON_MK move_to_root nested_name_specifier class_name { throw int(); }
+  | VIRTUAL_KW                  COLONCOLON_MK move_to_root                       class_name { throw int(); }
+  | VIRTUAL_KW                                nested_name_specifier class_name { throw int(); }
+  | VIRTUAL_KW                                                      class_name { $$ = new cxx_compiler::base(0,true,$2); }
+  | access_specifier VIRTUAL_KW COLONCOLON_MK move_to_root nested_name_specifier class_name { throw int(); }
+  | access_specifier VIRTUAL_KW COLONCOLON_MK move_to_root                       class_name { throw int(); }
+  | access_specifier VIRTUAL_KW               nested_name_specifier class_name { throw int(); }
+  | access_specifier VIRTUAL_KW                                     class_name { throw int(); }
+  | access_specifier            COLONCOLON_MK move_to_root nested_name_specifier class_name { throw int(); }
+  | access_specifier            COLONCOLON_MK move_to_root                       class_name { throw int(); }
+  | access_specifier                          nested_name_specifier class_name { throw int(); }
+  | access_specifier                                                class_name
+    { $$ = new cxx_compiler::base($1,false,$2); }
+  ;
+
+access_specifier
+  : PRIVATE_KW  { $$ = PRIVATE_KW; }
+  | PROTECTED_KW { $$ = PROTECTED_KW; }
+  | PUBLIC_KW { $$ = PUBLIC_KW; }
+  ;
+
+ctor_initializer
+  : ':' mem_initializer_list
+  ;
+
+mem_initializer_list
+  : mem_initializer
+  | mem_initializer ',' mem_initializer_list
+  ;
+
+mem_initializer
+  : mem_initializer_id '(' expression_list ')'
+  | mem_initializer_id '('                 ')'
+  ;
+
+mem_initializer_id
+  : COLONCOLON_MK move_to_root nested_name_specifier class_name
+  | COLONCOLON_MK move_to_root                       class_name
+  |               nested_name_specifier class_name
+  |                                     class_name
+    { throw int(); }
+  | IDENTIFIER_LEX
+  ;
+
+conversion_function_id
+  : OPERATOR_KW conversion_type_id
+  ;
+
+conversion_type_id
+  : type_specifier_seq conversion_declarator
+    { throw int(); }
+  | type_specifier_seq
+    { throw int(); }
+  ;
+
+conversion_declarator
+  : ptr_operator conversion_declarator
+    { throw int(); }
+  | ptr_operator
+    { throw int(); }
+  ;
+
+operator_function_id
+  : OPERATOR_KW operator
+  | OPERATOR_KW operator '<' template_argument_list '>'
+  | OPERATOR_KW operator '<'                        '>'
+  ;
+
+operator
+  : NEW_KW
+  | DELETE_KW
+  | NEW_KW '[' ']'
+  | DELETE_KW '[' ']'
+  | '+'
+  | '-'
+  | '*'
+  | '/'
+  | '%'
+  | '^'
+  | '&'
+  | '|'
+  | '~'
+  | '!'
+  | '='
+  | '<'
+  | '>'
+  | ADD_ASSIGN_MK
+  | SUB_ASSIGN_MK
+  | MUL_ASSIGN_MK
+  | DIV_ASSIGN_MK
+  | MOD_ASSIGN_MK
+  | XOR_ASSIGN_MK
+  | AND_ASSIGN_MK
+  | OR_ASSIGN_MK
+  | LSH_MK
+  | RSH_MK
+  | LSH_ASSIGN_MK
+  | RSH_ASSIGN_MK
+  | EQUAL_MK
+  | NOTEQ_MK
+  | LESSEQ_MK
+  | GREATEREQ_MK
+  | ANDAND_MK
+  | OROR_MK
+  | PLUSPLUS_MK
+  | MINUSMINUS_MK
+  | ','
+  | ARROWASTER_MK
+  | ARROW_MK
+  | '(' ')'
+  | '[' ']'
+  ;
+
+template_declaration
+  : EXPORT_KW TEMPLATE_KW '<' template_parameter_list '>' declaration
+  |           TEMPLATE_KW '<' template_parameter_list '>' declaration
+  ;
+
+template_parameter_list
+  : template_parameter
+  | template_parameter_list ',' template_parameter
+  ;
+
+template_parameter
+  : type_parameter
+  | parameter_declaration
+    { throw int(); }
+  ;
+
+type_parameter
+  : CLASS_KW IDENTIFIER_LEX
+  | CLASS_KW
+  | CLASS_KW IDENTIFIER_LEX '=' type_id
+  | CLASS_KW                '=' type_id
+  | TYPENAME_KW IDENTIFIER_LEX
+  | TYPENAME_KW
+  | TYPENAME_KW IDENTIFIER_LEX '=' type_id
+  | TYPENAME_KW                '=' type_id
+  | TEMPLATE_KW '<' template_parameter_list '>' CLASS_KW IDENTIFIER_LEX
+  | TEMPLATE_KW '<' template_parameter_list '>' CLASS_KW
+  | TEMPLATE_KW '<' template_parameter_list '>' CLASS_KW IDENTIFIER_LEX '=' id_expression
+  | TEMPLATE_KW '<' template_parameter_list '>' CLASS_KW                '=' id_expression
+  ;
+
+template_id
+  : TEMPLATE_NAME_LEX '<' template_argument_list '>'
+  | TEMPLATE_NAME_LEX '<'                        '>'
+  ;
+
+template_argument_list
+  : template_argument
+  | template_argument_list ',' template_argument
+  ;
+
+template_argument
+  : assignment_expression
+    { throw int(); }
+  | type_id
+    { throw int(); }
+  | id_expression
+    { throw int(); }
+  ;
+
+explicit_instantiation
+  : TEMPLATE_KW declaration
+  ;
+
+explicit_specialization
+  : TEMPLATE_KW '<' '>' declaration
+  ;
+
+try_block
+  : TRY_KW compound_statement handler_seq { throw int(); }
+  ;
+
+throw_expression
+  : THROW_KW assignment_expression
+  | THROW_KW
+  ;
+
+primary_expression
+  : literal              { $$ = new cxx_compiler::expressions::primary::info_t($1); }
+  | THIS_KW              { $$ = new cxx_compiler::expressions::primary::info_t(); }
+  | '(' expression ')'   { $$ = new cxx_compiler::expressions::primary::info_t($2); }
+  | id_expression        { $$ = new cxx_compiler::expressions::primary::info_t($1); }
+  ;
+
+literal
+  : INTEGER_LITERAL_LEX { $$ = $1; }
+  | CHARACTER_LITERAL_LEX { $$ = $1; }
+  | FLOATING_LITERAL_LEX { $$ = $1; }
+  | string_literal
+  | boolean_literal { $$ = $1; }
+  ;
+
+string_literal
+  : STRING_LITERAL_LEX
+  | string_literal STRING_LITERAL_LEX
+    { $$ = cxx_compiler::expressions::primary::literal::stringa::create($1,$2); }
+  ;
+
+boolean_literal
+  : FALSE_KW { $$ = cxx_compiler::expressions::primary::literal::boolean::create(false); }
+  | TRUE_KW  { $$ = cxx_compiler::expressions::primary::literal::boolean::create(true); }
+  ;
+
+id_expression
+  : unqualified_id
+  | qualified_id { cxx_compiler::class_or_namespace_name::after(); }
+  ;
+
+unqualified_id
+  : IDENTIFIER_LEX  { $$ = cxx_compiler::unqualified_id::action($1); }
+  | operator_function_id { throw int(); }
+  | conversion_function_id { throw int(); }
+  | '~' class_name { $$ = cxx_compiler::unqualified_id::dtor($2); }
+  | template_id { throw int(); }
+  ;
+
+qualified_id
+  : COLONCOLON_MK move_to_root nested_name_specifier TEMPLATE_KW unqualified_id { throw int(); }
+  | COLONCOLON_MK move_to_root nested_name_specifier             unqualified_id { throw int(); }
+  |                            nested_name_specifier TEMPLATE_KW unqualified_id { throw int(); }
+  |                            nested_name_specifier             unqualified_id { $$ = $2; }
+  | COLONCOLON_MK move_to_root IDENTIFIER_LEX { $$ = $3; cxx_compiler::class_or_namespace_name::after(); }
+  | COLONCOLON_MK move_to_root operator_function_id { throw int(); }
+  | COLONCOLON_MK move_to_root template_id { throw int(); }
+  ;
+
+move_to_root
+  : { cxx_compiler::class_or_namespace_name::action(&cxx_compiler::scope::root); }
+  ;
+
+nested_name_specifier
+  : class_or_namespace_name COLONCOLON_MK nested_name_specifier
+  | class_or_namespace_name COLONCOLON_MK
+  | class_or_namespace_name COLONCOLON_MK TEMPLATE_KW nested_name_specifier { throw int(); }
+  ;
+
+class_or_namespace_name
+  : class_name { cxx_compiler::class_or_namespace_name::action($1); }
+  | namespace_name { cxx_compiler::class_or_namespace_name::action($1); }
+  ;
+
+postfix_expression
+  : primary_expression
+  | postfix_expression '[' expression ']' { $$ = new cxx_compiler::expressions::binary::info_t($1,'[',$3); }
+  | postfix_expression '(' expression_list ')' { $$ = new cxx_compiler::expressions::postfix::call($1,$3); }
+  | postfix_expression '('                 ')' { $$ = new cxx_compiler::expressions::postfix::call($1,0); }
+  | simple_type_specifier '(' expression_list ')' { $$ = new cxx_compiler::expressions::postfix::fcast($1,$3); }
+  | simple_type_specifier '('                 ')' { $$ = new cxx_compiler::expressions::postfix::fcast($1,0); }
+  | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier IDENTIFIER_LEX '(' expression_list ')' { throw int(); }
+  | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier IDENTIFIER_LEX '('                 ')' { throw int(); }
+  | TYPENAME_KW               nested_name_specifier IDENTIFIER_LEX '(' expression_list ')' { throw int(); }
+  | TYPENAME_KW               nested_name_specifier IDENTIFIER_LEX '('                 ')' { throw int(); }
+  | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier TEMPLATE_KW template_id '(' expression_list ')' { throw int(); }
+  | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier TEMPLATE_KW template_id '('                 ')' { throw int(); }
+  | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier             template_id '(' expression_list ')' { throw int(); }
+  | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier             template_id '('                 ')' { throw int(); }
+  | TYPENAME_KW               nested_name_specifier TEMPLATE_KW template_id '(' expression_list ')' { throw int(); }
+  | TYPENAME_KW               nested_name_specifier TEMPLATE_KW template_id '('                 ')' { throw int(); }
+  | TYPENAME_KW               nested_name_specifier             template_id '(' expression_list ')' { throw int(); }
+  | TYPENAME_KW               nested_name_specifier             template_id '('                 ')' { throw int(); }
+  | member_access_begin TEMPLATE_KW id_expression  { $$ = cxx_compiler::expressions::postfix::member::end($1,$3); }
+  | member_access_begin             id_expression  { $$ = cxx_compiler::expressions::postfix::member::end($1,$2); }
+  | member_access_begin pseudo_destructor_name     { $$ = cxx_compiler::expressions::postfix::member::end($1,0); }
+  | postfix_expression PLUSPLUS_MK    { $$ = new cxx_compiler::expressions::postfix::ppmm($1,true); }
+  | postfix_expression MINUSMINUS_MK  { $$ = new cxx_compiler::expressions::postfix::ppmm($1,false); }
+  | DYNAMIC_CAST_KW     '<' type_id '>' '(' expression ')' { throw int(); }
+  | STATIC_CAST_KW      '<' type_id '>' '(' expression ')' { throw int(); }
+  | REINTERPRET_CAST_KW '<' type_id '>' '(' expression ')' { throw int(); }
+  | CONST_CAST_KW       '<' type_id '>' '(' expression ')' { throw int(); }
+  | TYPEID_KW '(' expression ')' { throw int(); }
+  | TYPEID_KW '(' type_id ')' { throw int(); }
+  | '(' type_id ')' '{' initializer_list '}' { $$ = new cxx_compiler::expressions::compound::info_t($2,$5); }
+  | '(' type_id ')' '{' initializer_list ',' '}' { $$ = new cxx_compiler::expressions::compound::info_t($2,$5); }
+  ;
+
+member_access_begin
+  : postfix_expression '.'       { $$ = cxx_compiler::expressions::postfix::member::begin($1,true); }
+  | postfix_expression ARROW_MK  { $$ = cxx_compiler::expressions::postfix::member::begin($1,false); }
+  ;
+
+expression_list
+  : assignment_expression
+    { $$ = new std::vector<cxx_compiler::expressions::base*>; $$->push_back($1); }
+  | expression_list ',' assignment_expression
+    { $$ = $1; $$->push_back($3); }
+  ;
+
+pseudo_destructor_name
+  : COLONCOLON_MK move_to_root nested_name_specifier type_name COLONCOLON_MK '~' type_name
+  | COLONCOLON_MK move_to_root                       type_name COLONCOLON_MK '~' type_name
+  |               nested_name_specifier type_name COLONCOLON_MK '~' type_name
+  |                                     type_name COLONCOLON_MK '~' type_name
+    { throw int(); }
+  | COLONCOLON_MK move_to_root nested_name_specifier TEMPLATE_KW template_id COLONCOLON_MK '.' type_name
+  |               nested_name_specifier TEMPLATE_KW template_id COLONCOLON_MK '.' type_name
+  | COLONCOLON_MK move_to_root nested_name_specifier '~' type_name
+  | COLONCOLON_MK                       '~' type_name
+  |               nested_name_specifier '~' type_name
+  |                                     '~' type_name
+  ;
+
+unary_expression
+  : postfix_expression
+  | PLUSPLUS_MK cast_expression { $$ = new cxx_compiler::expressions::unary::ppmm(true,$2); }
+  | MINUSMINUS_MK cast_expression { $$ = new cxx_compiler::expressions::unary::ppmm(false,$2); }
+  | unary_operator cast_expression { $$ = new cxx_compiler::expressions::unary::Operator($1,$2); }
+  | SIZEOF_KW unary_expression { $$ = new cxx_compiler::expressions::unary::Sizeof($2); }
+  | SIZEOF_KW '(' type_id ')'
+    {
+      using namespace cxx_compiler;
+      $$ = new expressions::unary::Sizeof($3);
+      parse::identifier::flag = parse::identifier::look;
+    }
+  | new_expression
+  | delete_expression
+  ;
+
+unary_operator
+  : '*'  { $$ = '*'; }
+  | '&'  { $$ = '&'; }
+  | '+'  { $$ = '+'; }
+  | '-'  { $$ = '-'; }
+  | '!'  { $$ = '!'; }
+  | '~'  { $$ = '~'; }
+  ;
+
+new_expression
+  : COLONCOLON_MK move_to_root NEW_KW new_placement new_type_id new_initializer { throw int(); }
+  | COLONCOLON_MK move_to_root NEW_KW new_placement new_type_id { throw int(); }
+  | COLONCOLON_MK move_to_root NEW_KW               new_type_id new_initializer { throw int(); }
+  | COLONCOLON_MK move_to_root NEW_KW               new_type_id { throw int(); }
+  |                            NEW_KW new_placement new_type_id new_initializer { throw int(); }
+  |                            NEW_KW new_placement new_type_id { throw int(); }
+  |                            NEW_KW               new_type_id new_initializer { throw int(); }
+  |                            NEW_KW               new_type_id
+    { $$ = new cxx_compiler::expressions::unary::New($2, cxx_compiler::parse::position); }
+  | COLONCOLON_MK move_to_root NEW_KW new_placement '(' type_id ')' new_initializer { throw int(); }
+  | COLONCOLON_MK move_to_root NEW_KW new_placement '(' type_id ')' { throw int(); }
+  | COLONCOLON_MK move_to_root NEW_KW               '(' type_id ')' new_initializer { throw int(); }
+  | COLONCOLON_MK move_to_root NEW_KW               '(' type_id ')' { throw int(); }
+  |                            NEW_KW new_placement '(' type_id ')' new_initializer { throw int(); }
+  |                            NEW_KW new_placement '(' type_id ')' { throw int(); }
+  |                            NEW_KW '(' type_id ')' new_initializer { throw int(); }
+  |                            NEW_KW '(' type_id ')' { throw int(); }
+  ;
+
+new_placement
+  : '(' expression_list ')'
+  ;
+
+new_initializer
+  : '(' expression_list ')'
+  | '('                 ')'
+  ;
+
+new_type_id
+  : type_specifier_seq new_declarator
+    { throw int(); }
+  | type_specifier_seq
+    { $$ = cxx_compiler::declarations::new_type_id::action($1); }
+  ;
+
+new_declarator
+  : ptr_operator new_declarator
+    { throw int(); }
+  | ptr_operator
+    { throw int(); }
+  | direct_new_declarator
+  ;
+
+direct_new_declarator
+  : '[' expression ']'
+  | direct_new_declarator '[' constant_expression ']'
+  ;
+
+
+delete_expression
+  : COLONCOLON_MK move_to_root DELETE_KW         cast_expression { throw int(); }
+  |                            DELETE_KW         cast_expression { $$ = new cxx_compiler::expressions::unary::Delete($2); }
+  | COLONCOLON_MK move_to_root DELETE_KW '[' ']' cast_expression { throw int(); }
+  |                            DELETE_KW '[' ']' cast_expression { throw int(); }
+  ;
+
+cast_expression
+  : unary_expression
+  | '(' type_id ')' { cxx_compiler::parse::identifier::flag = cxx_compiler::parse::identifier::look; }
+    cast_expression { $$ = new cxx_compiler::expressions::cast::info_t($2,$5); }
+  | BUILTIN_VA_START '(' cast_expression ',' cast_expression ')'
+    { $$ = new cxx_compiler::expressions::_va_start::info_t($3,$5); }
+  | BUILTIN_VA_ARG '(' cast_expression ',' type_id ')'
+    { $$ = new cxx_compiler::expressions::_va_arg::info_t($3,$5); }
+  ;
+
+pm_expression
+  : cast_expression
+  | pm_expression DOTASTER_MK cast_expression
+    { $$ = new cxx_compiler::expressions::binary::info_t($1,DOTASTER_MK,$3); }
+  | pm_expression ARROWASTER_MK cast_expression
+    { $$ = new cxx_compiler::expressions::binary::info_t($1,ARROWASTER_MK,$3); }
+  ;
+
+multiplicative_expression
+  : pm_expression
+  | multiplicative_expression '*' pm_expression
+    { $$ = new cxx_compiler::expressions::binary::info_t($1,'*',$3); }
+  | multiplicative_expression '/' pm_expression
+    { $$ = new cxx_compiler::expressions::binary::info_t($1,'/',$3); }
+  | multiplicative_expression '%' pm_expression
+    { $$ = new cxx_compiler::expressions::binary::info_t($1,'%',$3); }
+  ;
+
+additive_expression
+  : multiplicative_expression
+  | additive_expression '+' multiplicative_expression
+    { $$ = new cxx_compiler::expressions::binary::info_t($1,'+',$3); }
+  | additive_expression '-' multiplicative_expression
+    { $$ = new cxx_compiler::expressions::binary::info_t($1,'-',$3); }
+  ;
+
+shift_expression
+  : additive_expression
+  | shift_expression LSH_MK additive_expression
+    { $$ = new cxx_compiler::expressions::binary::info_t($1,LSH_MK,$3); }
+  | shift_expression RSH_MK additive_expression
+    { $$ = new cxx_compiler::expressions::binary::info_t($1,RSH_MK,$3); }
+  ;
+
+relational_expression
+  : shift_expression
+  | relational_expression '<' shift_expression
+    { $$ = new cxx_compiler::expressions::binary::info_t($1,'<',$3); }
+  | relational_expression '>' shift_expression
+    { $$ = new cxx_compiler::expressions::binary::info_t($1,'>',$3); }
+  | relational_expression LESSEQ_MK shift_expression
+    { $$ = new cxx_compiler::expressions::binary::info_t($1,LESSEQ_MK,$3); }
+  | relational_expression GREATEREQ_MK shift_expression
+    { $$ = new cxx_compiler::expressions::binary::info_t($1,GREATEREQ_MK,$3); }
+  ;
+
+equality_expression
+  : relational_expression
+  | equality_expression EQUAL_MK relational_expression
+    { $$ = new cxx_compiler::expressions::binary::info_t($1,EQUAL_MK,$3); }
+  | equality_expression NOTEQ_MK relational_expression
+    { $$ = new cxx_compiler::expressions::binary::info_t($1,NOTEQ_MK,$3); }
+  ;
+
+and_expression
+  : equality_expression
+  | and_expression '&' equality_expression
+    { $$ = new cxx_compiler::expressions::binary::info_t($1,'&',$3); }
+  ;
+
+exclusive_or_expression
+  : and_expression
+  | exclusive_or_expression '^' and_expression
+    { $$ = new cxx_compiler::expressions::binary::info_t($1,'^',$3); }
+  ;
+
+inclusive_or_expression
+  : exclusive_or_expression
+  | inclusive_or_expression '|' exclusive_or_expression
+    { $$ = new cxx_compiler::expressions::binary::info_t($1,'|',$3); }
+  ;
+
+logical_and_expression
+  : inclusive_or_expression
+  | logical_and_expression ANDAND_MK inclusive_or_expression
+    { $$ = new cxx_compiler::expressions::binary::info_t($1,ANDAND_MK,$3); }
+  ;
+
+logical_or_expression
+  : logical_and_expression
+  | logical_or_expression OROR_MK logical_and_expression
+    { $$ = new cxx_compiler::expressions::binary::info_t($1,OROR_MK,$3); }
+  ;
+
+conditional_expression
+  : logical_or_expression
+  | logical_or_expression '?' expression ':' assignment_expression
+    { $$ = new cxx_compiler::expressions::conditional::info_t($1,$3,$5); }
+  ;
+
+assignment_expression
+  : conditional_expression
+  | logical_or_expression assignment_operator assignment_expression
+    { $$ = new cxx_compiler::expressions::binary::info_t($1,$2,$3); }
+  | throw_expression { throw int(); }
+  ;
+
+assignment_operator
+  : '='            { $$ = '='; }
+  | MUL_ASSIGN_MK  { $$ = MUL_ASSIGN_MK; }
+  | DIV_ASSIGN_MK  { $$ = DIV_ASSIGN_MK; }
+  | MOD_ASSIGN_MK  { $$ = MOD_ASSIGN_MK; }
+  | ADD_ASSIGN_MK  { $$ = ADD_ASSIGN_MK; }
+  | SUB_ASSIGN_MK  { $$ = SUB_ASSIGN_MK; }
+  | RSH_ASSIGN_MK  { $$ = RSH_ASSIGN_MK; }
+  | LSH_ASSIGN_MK  { $$ = LSH_ASSIGN_MK; }
+  | AND_ASSIGN_MK  { $$ = AND_ASSIGN_MK; }
+  | XOR_ASSIGN_MK  { $$ = XOR_ASSIGN_MK; }
+  |  OR_ASSIGN_MK  { $$ =  OR_ASSIGN_MK; }
+  ;
+
+expression
+  : assignment_expression
+  | expression ',' assignment_expression
+    { $$ = new cxx_compiler::expressions::binary::info_t($1,',',$3); }
+  ;
+
+constant_expression
+  : conditional_expression
+  ;
+
+function_definition_begin1
+  :                    declarator                  { cxx_compiler::declarations::declarators::function::definition::begin(0,$1); }
+  |                    declarator ctor_initializer { cxx_compiler::declarations::declarators::function::definition::begin(0,$1); }
+  | decl_specifier_seq declarator                  { cxx_compiler::declarations::declarators::function::definition::begin($1,$2); }
+  | decl_specifier_seq declarator ctor_initializer { cxx_compiler::declarations::declarators::function::definition::begin($1,$2); }
+  ;
+
+function_definition_begin2
+  :                    declarator
+    { throw int(); }
+  | decl_specifier_seq declarator
+    { throw int(); }
+  ;
+
+function_definition
+  : function_definition_begin1 function_body       { cxx_compiler::declarations::declarators::function::definition::action($2); }
+  | function_definition_begin2 function_try_block
+  ;
+
+function_body
+  : compound_statement
+  ;
+
+function_try_block
+  : TRY_KW ctor_initializer function_body handler_seq
+  | TRY_KW                  function_body handler_seq
+  ;
+
+handler_seq
+  : handler handler_seq
+  | handler
+  ;
+
+handler
+  : CATCH_KW '(' exception_declaration ')' compound_statement
+  ;
+
+exception_declaration
+  : type_specifier_seq declarator
+    { throw int(); }
+  | type_specifier_seq abstract_declarator
+    { throw int(); }
+  | type_specifier_seq
+    { throw int(); }
+  | DOTS_MK
+  ;
+
+statement
+  : labeled_statement
+  | expression_statement
+  | compound_statement
+  | selection_statement
+  | iteration_statement
+  | jump_statement
+  | declaration_statement
+  | try_block
+  ;
+
+labeled_statement
+  : IDENTIFIER_LEX ':' statement
+    { $$ = new cxx_compiler::statements::label::info_t($1,$3); }
+  | CASE_KW constant_expression ':' statement { $$ = new cxx_compiler::statements::_case::info_t($2,$4); }
+  | DEFAULT_KW ':' statement { $$ = new cxx_compiler::statements::_default::info_t($1,$3); }
+  ;
+
+expression_statement
+  : expression ';' { $$ = new cxx_compiler::statements::expression::info_t($1); }
+  ;
+
+compound_statement
+  : '{' enter_block statement_seq leave_block '}' { $$ = new cxx_compiler::statements::compound::info_t($3,$2); }
+  | '{' enter_block               leave_block '}' { $$ = new cxx_compiler::statements::compound::info_t(0,$2); }
+  ;
+
+statement_seq
+  : statement
+    { $$ = new std::vector<cxx_compiler::statements::base*>; $$->push_back($1); }
+  | statement_seq statement
+    { $$ = $1; $$->push_back($2); }
+  ;
+
+selection_statement
+  : IF_KW '(' condition ')' statement { $$ = new cxx_compiler::statements::if_stmt::info_t($3,$5,0); }
+  | IF_KW '(' condition ')' statement ELSE_KW statement { $$ = new cxx_compiler::statements::if_stmt::info_t($3,$5,$7); }
+  | SWITCH_KW '(' condition ')' statement { $$ = new cxx_compiler::statements::switch_stmt::info_t($3,$5); }
+  ;
+
+condition
+  : expression
+  | type_specifier_seq declarator '=' assignment_expression { $$ = $4; }
+  ;
+
+iteration_statement
+  : WHILE_KW '(' condition ')' statement { $$ = new cxx_compiler::statements::while_stmt::info_t($3,$5); }
+  | DO_KW statement WHILE_KW '(' expression ')' ';' { $$ = new cxx_compiler::statements::do_stmt::info_t($2,$5); }
+  | FOR_KW '(' for_init_statement condition ';' expression ')' statement leave_block
+    { $$ = new cxx_compiler::statements::for_stmt::info_t($3,$4,$6,$8); }
+  | FOR_KW '(' for_init_statement condition ';'            ')' statement leave_block
+    { $$ = new cxx_compiler::statements::for_stmt::info_t($3,$4,0,$7); }
+  | FOR_KW '(' for_init_statement           ';' expression ')' statement leave_block
+    { $$ = new cxx_compiler::statements::for_stmt::info_t($3,0,$5,$7); }
+  | FOR_KW '(' for_init_statement           ';'            ')' statement leave_block
+    { $$ = new cxx_compiler::statements::for_stmt::info_t($3,0,0,$6); }
+  ;
+
+for_init_statement
+  : enter_block expression_statement
+    { $$ = $2; }
+  | enter_block simple_declaration
+    { $$ = new cxx_compiler::statements::declaration::info_t($2,true); }
+  ;
+
+jump_statement
+  : BREAK_KW ';' { $$ = new cxx_compiler::statements::break_stmt::info_t; }
+  | CONTINUE_KW ';' { $$ = new cxx_compiler::statements::continue_stmt::info_t; }
+  | RETURN_KW expression ';' { $$ = new cxx_compiler::statements::return_stmt::info_t($2); }
+  | RETURN_KW            ';' { $$ = new cxx_compiler::statements::return_stmt::info_t(0); }
+  | GOTO_KW
+    { cxx_compiler::parse::identifier::flag = cxx_compiler::parse::identifier::new_obj; }
+    IDENTIFIER_LEX ';'
+    {
+      cxx_compiler::parse::identifier::flag = cxx_compiler::parse::identifier::look;
+      $$ = new cxx_compiler::statements::goto_stmt::info_t($3);
+    }
+  ;
+
+declaration_statement
+  : block_declaration { $$ = new cxx_compiler::statements::declaration::info_t($1,false); }
+  ;
+
+enter_parameter
+  : { cxx_compiler::parse::parameter::enter(); }
+  ;
+
+leave_parameter
+  : { cxx_compiler::parse::parameter::leave(); }
+  ;
+
+enter_block
+  : { cxx_compiler::parse::block::enter(); $$ = cxx_compiler::scope::current; }
+  ;
+
+leave_block
+  : { cxx_compiler::parse::block::leave(); }
+  ;
+
+%%

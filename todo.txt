@@ -1,0 +1,105 @@
+C++ の構文解析
+文法をやはり yacc で記述する. うまくバックトラックを起こせるように yacc や bison に
+代わるものを作成したい. 果たしてこれがうまくいくかどうかは別だが, C++ の構文解析が
+あまりにも複雑すぎるので見た目簡単にする必要がある.
+----------------------------------------------------------------------------------------
+sample.txt --generator c:\home\khasegaw\lang\30_intel\src\DebugCXX\intelxx.dll --output-medium --generator-option ( --debug ) --simple-medium --optimize 1 --output-optinfo
+sample.txt --generator c:\home\khasegaw\lang\30_intel\src\DebugCXX\intelxx.dll --output-medium --generator-option ( --debug ) --simple-medium
+sample.txt --no-generator --output-medium --simple-medium
+sample.txt --generator c:\home\khasegaw\lang\30_intel\src\DebugCXX\intelxx.dll --output-medium --simple-medium
+----------------------------------------------------------------------------------------
+o ~/lang/41_ISO_IEC_9899/6_Language/5_Declarations/2_Type_specifiers/2_Enumeration_specifiers/1_ok/test003.c
+  test003.exe の実行時にエラーが起こる.
+
+	void test01(enum E { a, b }* pe)
+	{
+	  ...
+	}
+
+	上に対して a, b, pe を記号表の scope::m_order に
+	追加しているので, 函数内で pe をアクセスすると
+	8 バイト分づれたところを見ている.
+	C++ の仕様通りエラーとするのが一番簡単.
+
+o fedora, debian, redhat, vine, turbo, cent4, cent5 で hcxx1.exe が
+  lang/42_C2nd/test030.c -> 確実にランタイムエラー
+  lang/42_C2nd/test116.c -> 確実にランタイムエラー
+  /usr/include/math.h に例外指定の函数があるのでいまのところはしょうがない
+
+~/lang/43_ISO_IEC_14882/7_Declarations/3_Namespaces/0_Namespaces
+~/lang/43_ISO_IEC_14882/8_Declarators/5_Initializers/0_Initializers
+~/lang/43_ISO_IEC_14882/9_Classes/3_Member_functions/0_Member_functions
+~/lang/43_ISO_IEC_14882/10_Derived_classes/0_Derived_classes
+~/lang/43_ISO_IEC_14882/12_Special_member_functions/0_Special_member_functions
+~/lang/43_ISO_IEC_14882/13_Overloading/0_Overloading
+~/lang/43_ISO_IEC_14882/14_Templates/0_Templates
+
+
+------------------------------------------
+2008.04.24 08:57
+(1) rule.10 のパッチが正しく動作していない. bison_conv.pl の
+
+    print "#include \"rule.10\"\n";
+
+をコメントアウトすると rule.10 のパッチがはずれる.
+
+rule.10 のパッチを入れた状態では以下のものが構文エラーになってしまう
+
+typedef int T;
+void f(T*);
+
+rule.10 のパッチを入れた状態では
+
+struct S { S(int); };
+void f(){ S s(1); }
+
+も構文解析できていない.
+
+とりあえず
+
+bison_conv.pl の
+
+  if ( /goto yydefault;/ ){
+  ...
+  }
+
+では 2 箇所に適用されるが...
+
+----------------------------------------------------
+  if ( yystate == 80 ){
+    using namespace std;
+    int n = (cxx_compiler_char == YYEMPTY) ? cxx_compiler::parse::peek() : cxx_compiler_char;
+    if ( n == '(' ){
+      cxx_compiler::parse::identifier::flag = cxx_compiler::parse::identifier::look;
+      n = cxx_compiler::parse::get_token();
+      if ( n == INTEGER_LITERAL_LEX ){
+        cxx_compiler::parse::g_read.m_token.push_front(make_pair(n,cxx_compiler::parse::position));
+		cxx_compiler::parse::g_read.m_lval.push_front(cxx_compiler_lval.m_usr);
+        yyn = 133 + 1;
+        goto yyreduce;
+      }
+      else {
+        cxx_compiler::parse::g_read.m_token.push_front(make_pair(n,cxx_compiler::parse::position));
+		switch ( n ) {
+		case IDENTIFIER_LEX:
+		case INTEGER_LITERAL_LEX:
+		case CHARACTER_LITERAL_LEX:
+		case FLOATING_LITERAL_LEX:
+		case TYPEDEF_NAME_LEX:
+		case STRING_LITERAL_LEX:
+		case CLASS_NAME_LEX:
+		case ENUM_NAME_LEX:
+		case DEFAULT_KW:
+		case ORIGINAL_NAMESPACE_NAME_LEX:
+		case NAMESPACE_ALIAS_LEX:
+			cxx_compiler::parse::g_read.m_lval.push_front(cxx_compiler_lval.m_usr);
+			break;
+		}
+      }
+    }
+  }
+
+
+
+
+      default:

@@ -1,0 +1,15 @@
+#! /bin/csh -f
+
+set path = ( /bin /usr/bin )
+setenv LANG C
+#bison -v -p cxx_compiler_ -d $argv[1] |& perl filter_vc.pl
+bison -V | perl bison_version.pl
+bison --no-line -v -p cxx_compiler_ -d $argv[1] |& perl filter_vc.pl
+if ( $status != 0 ) then
+  exit 1
+endif
+mv cxx.tab.c "$argv[1]:r"_y.cpp
+mv cxx.tab.h "$argv[1]:r"_y.h
+mv cxx.output cxx_y.output
+perl bison_conv.pl "$argv[1]:r"_y.cpp >> "$argv[1]:r"_y.cpp.$$
+mv "$argv[1]:r"_y.cpp.$$ "$argv[1]:r"_y.cpp

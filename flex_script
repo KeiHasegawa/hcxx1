@@ -1,0 +1,14 @@
+#! /bin/csh -f
+
+set path = ( /bin /usr/bin )
+
+flex -t -Pcxx_compiler_ $argv[1] > "$argv[1]:r"_l.cpp
+if ( $status != 0 ) then
+  rm -f "$argv[1]:r"_l.cpp
+  exit 1
+endif
+echo '#include "stdafx.h"' > "$argv[1]:r"_l.cpp.$$
+echo '#include "yy.h"' >> "$argv[1]:r"_l.cpp.$$
+cat "$argv[1]:r"_l.cpp >> "$argv[1]:r"_l.cpp.$$
+unalias mv
+mv "$argv[1]:r"_l.cpp.$$ "$argv[1]:r"_l.cpp
