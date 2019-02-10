@@ -18,6 +18,8 @@ while ( <> ){
 
 label:
 print <<EOF
-  if ( yystate == $xxx && cxx_compiler::parse::identifier::g_peek_coloncolon )
+  if ( yystate == $xxx && cxx_compiler::parse::identifier::g_peek_coloncolon ) {
+    YYDPRINTF((stderr, "rule.06 is applied\\n"));
     yyn = $zzz + 1;
+  }
 EOF

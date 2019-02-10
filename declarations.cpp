@@ -7,16 +7,19 @@
 void cxx_compiler::declarations::destroy()
 {
   using namespace std;
-  for_each(code.begin(),code.end(),misc::deleter<tac>());
+  for (auto p : code)
+    delete p;
   code.clear();
-  for_each(garbage.begin(),garbage.end(),misc::deleter<var>());
+  for (auto p : garbage)
+    delete p;
   garbage.clear();
   vector<scope*>& children = scope::current->m_children;
-  for_each(children.begin(),children.end(),misc::deleter<scope>());
+  for (auto p : children)
+    delete p;
   children.clear();
   error::headered = false;
-  type::destroy_temporary();
-  declarators::function::definition::static_inline::todo::action();
+  if (!generator::last)
+    type::destroy_tmp();
   constant<void*>::destroy_temporary();
   if ( cmdline::simple_medium )
     dump::names::reset();
@@ -474,14 +477,15 @@ namespace cxx_compiler { namespace declarations {
   extern usr* action2(usr*, bool);
 } } // end of namespace declarations ans cxx_compiler
 
-cxx_compiler::usr* cxx_compiler::declarations::action1(var* v, bool ini, bool lookuped)
+cxx_compiler::usr*
+cxx_compiler::declarations::action1(var* v, bool ini, bool lookuped)
 {
   using namespace std;
   using namespace error::declarations::specifier_seq::type;
   usr* u = v->usr_cast();
-	if ( cxx_compiler_char == '+' ){  // Žb’è
-		return u;
-	}
+  if ( cxx_compiler_char == '+' ){  // Žb’è
+    return u;
+  }
   if ( !u ){
     /*
      Definition like
@@ -523,6 +527,18 @@ cxx_compiler::usr* cxx_compiler::declarations::action1(var* v, bool ini, bool lo
     assert(u->m_type->m_id == type::FUNC);
     u->m_type = u->m_type->patch(0,u);
   }
+  if (u->m_flag & usr::TYPEDEF) {
+    type_def* tmp = new type_def(*u);
+    if (u->m_flag & usr::VL) {
+      vector<usr*>& v = statements::label::vm;
+      typedef vector<usr*>::reverse_iterator IT;
+      IT p = find(rbegin(v), rend(v), u);
+      assert(p != rend(v));
+      *p = tmp;
+    }
+    delete u;
+    u = tmp;
+  }
   if ( ini ){
     parse::identifier::flag = parse::identifier::look;
     if ( duration::_static(u) ){
@@ -558,24 +574,6 @@ cxx_compiler::usr* cxx_compiler::declarations::action1(var* v, bool ini, bool lo
       }
       flag = usr::flag_t(flag & ~usr::EXTERN);
     }
-    if ( flag & usr::FUNCTION ){
-      using namespace declarators::function;
-      const type* T = u->m_type;
-      typedef const func_type FUNC;
-      FUNC* func = static_cast<FUNC*>(T);
-      const vector<const type*>& param = func->param();
-      scope* ptr = u->m_scope;
-      if ( ptr->m_id == scope::BLOCK )
-        ptr = &scope::root;
-      KEY key(make_pair(name,ptr),&param);
-      map<KEY,definition::static_inline::info_t*>::const_iterator p =
-        definition::static_inline::skipped.find(key);
-      if ( p != definition::static_inline::skipped.end() ){
-        usr::flag_t& flag = p->second->m_fundef->m_usr->m_flag;
-        flag = usr::flag_t(flag | usr::EXTERN);
-        definition::static_inline::todo::lists.insert(key);
-      }
-    }
   }
   else if ( flag & usr::FUNCTION ){
     usr::flag_t mask = usr::flag_t(usr::STATIC | usr::AUTO | usr::REGISTER);
@@ -596,7 +594,7 @@ cxx_compiler::usr* cxx_compiler::declarations::action1(var* v, bool ini, bool lo
     if ( flag & mask ){
       if ( fundef::current->m_usr->m_flag & usr::INLINE ){
         using namespace error::declarations::specifier_seq::function;
-        Inline::static_storage(u);
+        func_spec::static_storage(u);
         fundef::current->m_usr->m_flag = usr::flag_t(fundef::current->m_usr->m_flag & ~usr::INLINE);
       }
     }
@@ -608,24 +606,7 @@ cxx_compiler::usr* cxx_compiler::declarations::action1(var* v, bool ini, bool lo
     else {
       string name = u->m_name;
       if ( u->m_name == "main" )
-        Inline::main(u);
-      const type* T = u->m_type;
-      typedef const func_type FUNC;
-      FUNC* func = static_cast<FUNC*>(T);
-      const vector<const type*>& param = func->param();
-      using namespace declarators::function;
-      scope* ptr = u->m_scope;
-      if ( ptr->m_id == scope::BLOCK )
-        ptr = &scope::root;
-      KEY key(make_pair(name,ptr),&param);
-      if ( cxx_compiler_text[0] == ';' )
-        Inline::decled[key].push_back(u);
-      else {
-        typedef map<KEY, vector<usr*> >::iterator IT;
-        IT p = Inline::decled.find(key);
-        if ( p != Inline::decled.end() )
-          Inline::decled.erase(p);
-      }
+        func_spec::main(u);
     }
   }
   if ( b ){
@@ -648,6 +629,7 @@ cxx_compiler::usr* cxx_compiler::declarations::action1(var* v, bool ini, bool lo
       invalid_storage(parse::position);
       flag = usr::flag_t(flag & ~mask);
     }
+    u->m_type = u->m_type->vla2a();
   }
   if ( b && u->m_type->m_id == type::RECORD ){
     typedef const record_type REC;
@@ -661,19 +643,16 @@ cxx_compiler::usr* cxx_compiler::declarations::action1(var* v, bool ini, bool lo
       usr* ctor = v.back();
       const func_type* ft = static_cast<const func_type*>(ctor->m_type);
       vector<var*> arg;
-      declarations::declarators::function::definition::static_inline::info_t* inline_info = 0;
+      call_impl::common(ft,ctor,&arg,false,u);
       usr::flag_t flag = ctor->m_flag;
-      if ( flag & usr::INLINE ){
-        using namespace declarations::declarators::function;
-        using namespace declarations::declarators::function::definition::static_inline;
-        const vector<const type*>& param = ft->param();
-        scope* ptr = ctor->m_scope;
-        KEY key(make_pair(name,ptr),&param);
-        map<KEY, info_t*>::const_iterator p = skipped.find(key);
-        assert(p != definition::static_inline::skipped.end());
-        inline_info = p->second;
+      if (!error::counter) {
+	if (flag & usr::INLINE) {
+	  using namespace declarations::declarators::function::definition::static_inline::skip;
+	  table_t::const_iterator p = table.find(ctor);
+	  if (p != table.end())
+	    substitute(code, code.size()-1, p->second);
+	}
       }
-      call_impl::common(ft,ctor,&arg,inline_info,false,u);
     }
   }
   return action2(u,lookuped);
@@ -770,8 +749,9 @@ namespace cxx_compiler { namespace declarations {
 bool cxx_compiler::declarations::conflict(usr::flag_t x, usr::flag_t y)
 {
   using namespace std;
-  x = usr::flag_t(x & (usr::TYPEDEF | usr::EXTERN | usr::STATIC | usr::AUTO | usr::REGISTER));
-  y = usr::flag_t(y & (usr::TYPEDEF | usr::EXTERN | usr::STATIC | usr::AUTO | usr::REGISTER));
+  usr::flag_t mask = usr::flag_t(usr::TYPEDEF|usr::EXTERN|usr::STATIC|usr::AUTO|usr::REGISTER);
+  x = usr::flag_t(x & mask);
+  y = usr::flag_t(y & mask);
   pair<usr::flag_t, usr::flag_t> key(x,y);
   if ( scope::current == &scope::root )
     return m_table.m_root[key];
@@ -802,7 +782,7 @@ cxx_compiler::declarations::table::table()
 
 bool cxx_compiler::declarations::conflict(const type* prev, const type* curr)
 {
-  if ( prev->compatible(curr) )
+  if (compatible(prev, curr))
     return false;
   if ( prev->m_id != type::FUNC )
     return true;
@@ -825,8 +805,6 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
       b = usr::EXTERN;
     else if ( a & usr::STATIC )
       b = usr::flag_t(b | usr::STATIC);
-    else if ( (a & usr::EXTERN) && (b & usr::STATIC) )
-      b = usr::flag_t(b | usr::EXTSTATIC);
     else if ( a & usr::INLINE )
       b = usr::flag_t(b | usr::INLINE);
   }
@@ -1040,7 +1018,7 @@ void cxx_compiler::declarations::specifier_seq::function::Inline::check(var* v)
   if ( v ){
     if ( usr* u = v->usr_cast() ){
       if ( internal_linkage(u) ){
-        error::declarations::specifier_seq::function::Inline::internal_linkage(parse::position,u);
+        error::declarations::specifier_seq::function::func_spec::internal_linkage(parse::position,u);
         usr::flag_t& flag = fundef::current->m_usr->m_flag;
         flag = usr::flag_t(flag & ~usr::INLINE);
       }

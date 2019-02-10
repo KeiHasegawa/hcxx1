@@ -31,11 +31,14 @@ const cxx_compiler::type* cxx_compiler::conversion::arithmetic::match(const type
 {
   const type* Ty = (*y)->m_type;
   const type* Tz = (*z)->m_type;
-  if ( Tx->compatible(Ty) ){
+  Tx = Tx->unqualified();
+  Ty = Ty->unqualified();
+  Tz = Tz->unqualified();
+  if (Tx == Ty) {
     *z = (*z)->cast(Tx);
     return Tx;
   }
-  if ( Tx->compatible(Tz) ){
+  if (Tx == Tz) {
     *y = (*y)->cast(Tx);
     return Tx;
   }
@@ -46,9 +49,11 @@ const cxx_compiler::type* cxx_compiler::conversion::arithmetic::match(var** y, v
 {
   const type* Ty = (*y)->m_type;
   const type* Tz = (*z)->m_type;
+  Ty = Ty->unqualified();
+  Tz = Tz->unqualified();
   const type* Ta = long_type::create();
   const type* Tb = uint_type::create();
-  if ( Ta->compatible(Ty) && Tb->compatible(Tz) ){
+  if (Ty->m_id == type::LONG && Tz->m_id == type::UINT) {
     if ( Ta->size() >= 2 * Tb->size() ){
       *z = (*z)->cast(Ta);
       return Ta;
@@ -60,7 +65,7 @@ const cxx_compiler::type* cxx_compiler::conversion::arithmetic::match(var** y, v
       return Tx;
     }
   }
-  if ( Ta->compatible(Tz) && Tb->compatible(Ty) ){
+  if (Tz->m_id == type::LONG && Ty->m_id == type::UINT) {
     if ( Ta->size() >= 2 * Tb->size() ){
       *y = (*y)->cast(Ta);
       return Ta;

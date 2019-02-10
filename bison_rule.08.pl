@@ -15,6 +15,8 @@ while ( <> ){
 label:
 print <<EOF
   if ( cxx_compiler::parse::member_function_body::g_restore.m_saved &&
-       yystate == $xxx )
+       yystate == $xxx ) {
+    YYDPRINTF((stderr "rule.08 is applied\n"));
     return 0;
+  }
 EOF

@@ -67,7 +67,9 @@ while ( <> ){
 
 print <<EOF
   if ( yystate == $xxx ){
-    if ( cxx_compiler::parse::identifier::flag != cxx_compiler::parse::identifier::new_obj )
+    if ( cxx_compiler::parse::identifier::flag != cxx_compiler::parse::identifier::new_obj ) {
+      YYDPRINTF((stderr, "rule.00 is applied\\n"));
       yystate = $yyy;
+    }
   }
 EOF

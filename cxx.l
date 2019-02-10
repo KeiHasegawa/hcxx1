@@ -224,37 +224,11 @@ while               { return WHILE_KW; }
 
 %%
 
-int yywrap()
-{
-  using namespace std;
-  using namespace cxx_compiler;
-  if ( parse::is_last_decl ){
-    if ( cmdline::output_medium ){
-      cout << '\n';
-      dump::scope();
-    }
-    if ( !error::counter ){
-      if ( generator::generate ){
-        generator::interface_t tmp = {
-          &scope::root,
-        };
-        generator::generate(&tmp);
-      }
-    }
-  }
-  cxx_compiler::declarations::declarators::function::Inline::resolve::action();
-  {
-    using namespace declarations::declarators::function;
-    const map<KEY, pair<file_t,usr::flag_t> >& v = definition::static_inline::refed;
-    for_each(v.begin(),v.end(),definition::static_inline::blame);
-  }
-  {
-    using namespace declarations::declarators::function;
-    const map<KEY, vector<usr*> >& m = Inline::decled;
-    for_each(m.begin(),m.end(),Inline::nodef);
-  }
 #ifdef _DEBUG
+void cxx_compiler::parse::delete_buffer()
+{
   yy_delete_buffer(YY_CURRENT_BUFFER);
-#endif // _DEBUG
-  return 1;
 }
+#endif // _DEBUG
+
+int yywrap(){ return 1; }

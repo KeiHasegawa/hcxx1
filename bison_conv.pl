@@ -23,6 +23,13 @@ while ( <> ){
     print "#include \"rule.08\"\n";
     $rule08_done = 1;
   }
+  if ( /^yydestruct \(const char \*yymsg, int yytype, YYSTYPE \*yyvaluep\)$/ ){
+      $yydestruct = 1;
+  }
+  if ( $yydestruct == 1 && /^\}$/) {
+      print "#include \"rule.11\"\n";
+      $yydestruct = 0;
+  }
   print $_,"\n";
   if ( /yystate = 0/ ){
     print "#include \"rule.07\"\n";
@@ -42,14 +49,6 @@ while ( <> ){
   }
   if ( /yyn.*=.*yydefact\[yystate\];/ ){
     print "#include \"rule.06\"\n";
-  }
-  if ( /^yydestruct \(const char \*yymsg, int yytype, YYSTYPE \*yyvaluep\)$/ ){
-      $yydestruct = 1;
-      next;
-  }
-  if ( $yydestruct == 1 && /^    \{$/) {
-#     print "#include \"rule.11\"\n";
-      $yydestruct = 0;
   }
   if ( /YYPOPSTACK \(1\)/ ) {
       $backtrack = 1;

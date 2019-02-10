@@ -29,8 +29,10 @@ label:
 print <<EOF
   if ( yystate == $xxx ){
     cxx_compiler::parse::peek();
-    if ( !cxx_compiler::parse::identifier::g_peek_coloncolon )
+    if ( !cxx_compiler::parse::identifier::g_peek_coloncolon ) {
+      YYDPRINTF((stderr, "rule.09 is applied\\n"));
       goto yydefault;
+    }
   }
 EOF
 

@@ -75,13 +75,12 @@ int cxx_compiler::usr::initialize()
 {
   declarations::initializers::gencode(this);
   block* b = scope::current->m_id == scope::BLOCK ? static_cast<block*>(scope::current) : 0;
-  if ( b && m_type->temporary(true) ){
+  if ( b && m_type->variably_modified() ){
     if ( m_flag & usr::EXTERN ){
       using namespace error::declarations::declarators::vm;
       invalid_linkage(this);
       m_flag = usr::flag_t(m_flag & ~usr::EXTERN);
     }
-    m_type->decide();
   }
   if ( m_flag & usr::VL ){
     using namespace declarations::declarators::array;
@@ -745,8 +744,8 @@ cxx_compiler::declarations::initializers::info_t::~info_t()
   using namespace std;
   delete m_clause;
   if ( m_exprs ){
-    vector<expressions::base*>& v = *m_exprs;
-    for_each(v.begin(),v.end(),misc::deleter<expressions::base>());
+    for (auto p : *m_exprs)
+      delete p;
     delete m_exprs;
   }
 }
@@ -756,8 +755,8 @@ cxx_compiler::declarations::initializers::clause::info_t::~info_t()
   using namespace std;
   delete m_expr;
   if ( m_list ){
-    vector<element*>& v = *m_list;
-    for_each(v.begin(),v.end(),misc::deleter<element>());
+    for (auto p : *m_list)
+      delete p;
     delete m_list;
   }
 }
@@ -766,8 +765,8 @@ cxx_compiler::declarations::initializers::element::~element()
 {
   using namespace std;
   if ( m_designation ){
-    vector<designator::info_t*>& v = *m_designation;
-    for_each(v.begin(),v.end(),misc::deleter<designator::info_t>());
+    for (auto p : *m_designation)
+      delete p;
     delete m_designation;
   }
   delete m_clause;
@@ -819,7 +818,7 @@ void cxx_compiler::declarations::initializers::initialize_code(with_initial* x)
   }
 
   if ( !error::counter )
-    optimize::action(code);
+    optimize::action(fundef::current, code);
 
   if ( cmdline::output_medium ){
     usr* u = fundef::current->m_usr;

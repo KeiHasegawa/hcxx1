@@ -139,11 +139,9 @@
     <ClCompile Include="expr07.cpp" />
     <ClCompile Include="expr08.cpp" />
     <ClCompile Include="expr10.cpp" />
-    <ClCompile Include="expr13.cpp" />
     <ClCompile Include="expr14.cpp" />
     <ClCompile Include="expr15.cpp" />
     <ClCompile Include="expr16.cpp" />
-    <ClCompile Include="expr17.cpp" />
     <ClCompile Include="generator.cpp" />
     <ClCompile Include="initializers.cpp" />
     <ClCompile Include="main.cpp" />

@@ -7,36 +7,21 @@ using namespace std;
 extern vector<tac*> code;
 
 namespace misc {
-  template<class C> struct deleter {
-    void operator()(C* p) const { delete p; }
-  };
-  template<class K, class V> struct deleter2 {
-    void operator()(const pair<K,V*>& p) const { delete p.second; }
-  };
-  template<class K, class V > struct deleter3 {
-    void operator()(const pair<K,vector<V*> >& p) const
-    { 
-      using namespace std;
-      const vector<V*>& v = p.second;
-      for_each(v.begin(),v.end(),deleter<V>());
-    }
-  };
-  template<class K, class V> struct get1st {
-    K operator()(const pair<K,V>& p){ return p.first; }
-  };
-
-  template<class K, class V> struct get2nd {
-    V operator()(const pair<K,V>& p){ return p.second; }
-  };
   template<class C> class pvector : public vector<C*> {
   public:
-    ~pvector(){ for_each(vector<C*>::begin(),vector<C*>::end(),deleter<C>()); }
+    ~pvector()
+      {
+	for ( auto p : *this )
+	  delete p;
+      }
   };
   template<class K, class V> struct pmap : std::map<K,V*> {
 #ifdef _DEBUG
     ~pmap()
     {
-      for_each(map<K,V*>::begin(),map<K,V*>::end(),deleter2<K,V>()); }
+      for ( auto p : *this )
+        delete p.second;
+    }
 #endif // _DEBUG
   };
   inline int update(goto3ac* go, to3ac* to)
@@ -102,6 +87,13 @@ namespace parse {
   };
 } // end of namespace parse
 
+typedef pair<const fundef*, vector<tac*> > FUNCS_ELEMENT_TYPE;
+extern vector<FUNCS_ELEMENT_TYPE> funcs;
+inline scope* get_pm(FUNCS_ELEMENT_TYPE& elem)
+{
+  return elem.first->m_param;
+}
+
 namespace error {
   enum LANG { jpn, other };
   extern LANG lang;
@@ -117,12 +109,11 @@ namespace error {
     namespace specifier_seq {
       namespace function {
         extern void not_function(const usr*);
-        namespace Inline {
+        namespace func_spec {
           extern void main(const usr*);
           extern void static_storage(const usr*);
           extern void internal_linkage(const file_t&, const usr*);
-          extern void no_definition(const usr*);
-        } // end of namespace Inline
+        } // end of namespace func_spec
       } // end of namespace function
       namespace type {
         extern void multiple(const file_t&, const cxx_compiler::type*, const cxx_compiler::type*);
@@ -148,7 +139,8 @@ namespace error {
           extern void invalid_return(const usr*, const type*);
           extern void typedefed(const file_t&);
           namespace static_inline {
-            extern void nodef(const file_t&, string, const file_t&);
+            extern void nodef(const file_t& decl, usr::flag_t flag,
+                              std::string name, const file_t& use);
           } // end of namespace static_inline
         } // end of namespace definition
         namespace parameter {
@@ -352,12 +344,9 @@ namespace warning {
   namespace generator {
     extern void open(string);
     extern void seed(string);
-	  extern void seed(string, pair<int,int>);
+    extern void seed(string, pair<int,int>);
     extern void option(string);
     extern void option(string, int, string);
-    extern void open_file(string);
-    extern void generate(string);
-    extern void close_file(string);
   }
   namespace declarations {
     namespace initializers {
@@ -389,6 +378,13 @@ namespace generator {
   extern int (*close_file)();
   extern void terminate();
   extern long_double_t* long_double;
+  extern type::id_t sizeof_type;
+  extern type::id_t ptrdiff_type;
+  namespace wchar {
+    extern type::id_t id;
+    extern const cxx_compiler::type* type;
+  } // end of namespace wchar
+  extern void (*last)(const last_interface_t*);
 } // end of namespace generator
 
 namespace dump {
@@ -475,70 +471,68 @@ namespace declarations {
       extern const type* action(const type*, vector<const type*>*, var*, vector<int>*);
       extern const type* parameter(specifier_seq::info_t*, var*);
       extern const type* parameter(specifier_seq::info_t*, const type*);
-      typedef pair<pair<string, scope*>,const vector<const type*>*> KEY;
       namespace definition {
         extern void begin(declarations::specifier_seq::info_t*, var*);
         extern void action(statements::base*);
-        extern void action(vector<tac*>&, bool);
-        typedef map<KEY,usr*> TABLE;
-        extern TABLE table;
+        extern void action(fundef* fdef, vector<tac*>&);
+	typedef pair<pair<string, scope*>,const vector<const type*>*> KEY;
+        typedef map<KEY,usr*> table_t;
+        extern table_t table;
         namespace static_inline {
-          struct info_t {
-            fundef* m_fundef;
-            vector<tac*> m_code;
-            var* m_ret;
-            vector<tac*> m_expanded;
-            block* m_param;
-            bool m_delete;
-            info_t(){}
-            info_t(fundef* f, const vector<tac*>& c)
-              : m_fundef(f), m_code(c), m_ret(0), m_param(0), m_delete(true)
-            {
-              usr* u = m_fundef->m_usr;
-              if ( u->m_scope->m_id == scope::TAG )
-                m_delete = false;
-            }
-            ~info_t();
-          };
-          struct skipped_t : map<KEY,info_t*> {
+	  struct info_t {
+	    fundef* m_fundef;
+	    vector<tac*> m_code;
+	    vector<const type*> m_tmp;
+            info_t(fundef* f, const vector<tac*>& c,
+                   const vector<const type*>& t)
+            : m_fundef(f), m_code(c), m_tmp(t) {}
+	    ~info_t();
+	  };
+	  void substitute(vector<tac*>& vt, int pos, info_t* info);
+	  namespace skip {
+	    struct table_t : map<usr*, info_t*> {
 #ifdef _DEBUG
-            ~skipped_t(){ for_each(begin(),end(),misc::deleter2<KEY,info_t>()); }
+	      ~table_t(){ for (auto p : *this) delete p.second; }
 #endif // _DEBUG
-          };
-          extern skipped_t skipped;
-          namespace todo {
-            extern set<KEY> lists;
-            extern void action();
-          } // end of namespace todo
-          extern map<KEY, pair<file_t,usr::flag_t> > refed;
+	    };
+	    extern table_t table;
+	    void add(fundef* fdef, vector<tac*>& vc, bool b);
+	    struct chk_t {
+	      int m_pos;
+	      bool m_wait_inline;
+	      fundef* m_fundef;
+              chk_t(fundef* f) : m_pos(-1), m_wait_inline(false), m_fundef(f) {}
+	    };
+	    void check(tac* ptac, chk_t* arg);
+	  } // end of namespace skip
           extern void gencode(info_t*);
-          extern void blame(const pair<KEY, pair<file_t,usr::flag_t> >&);
-          namespace expand { extern void action(info_t*); }
+	  namespace defer {
+	    struct ref_t {
+	      string m_name;
+	      usr::flag_t m_flag;
+	      file_t m_def;
+	      file_t m_use;
+	      ref_t(string name, usr::flag_t flag, const file_t& def,
+		    const file_t& use)
+	      : m_name(name), m_flag(flag), m_def(def), m_use(use) {}
+	    };
+	    extern map<string, vector<ref_t> > refs;
+
+	    // inline function -> callers
+	    extern map<string, set<usr*> > callers;
+
+	    // caller -> position at caller
+	    extern map<usr*, vector<int> > positions;
+	    
+	    void last();
+	  } // end of namespace defer
         } // end of namespace static_inline
       } // end of namespace definition
-      namespace Inline {
-        extern map<KEY, vector<usr*> > decled;
-        extern void nodef(const pair<KEY, vector<usr*> >&);
-        struct after : var {
-          usr* m_func;
-          vector<var*> m_arg;
-          scope* m_scope;
-          tac* m_point;
-          static vector<after*> lists;
-          after(const type*, usr*, const vector<var*>&, tac*);
-          bool expand(KEY, vector<tac*>&);
-        };
-        namespace resolve {
-          extern void action();
-          extern bool flag;
-        } // end of namespace resolve
-      } // end of namespace Inline
     } // end of namespace function
     namespace array {
       extern const type* action(const type*, expressions::base*, bool, var*);
       namespace variable_length {
         extern const type* action(const type*, var*, usr*);
-        extern const type* action(const type*, var*, const vector<tac*>&, usr*);
         extern void allocate(usr*);
       } // end of namespace variable_length
     } // end of namespace array
@@ -664,6 +658,7 @@ namespace expressions {
         usr* create(char);
         usr* create(signed char);
         usr* create(unsigned char);
+        usr* create(wchar_t);
         usr* create(short int);
         usr* create(unsigned short int);
         usr* create(int);
@@ -695,9 +690,9 @@ namespace expressions {
       namespace stringa {
         var* create(string);
         var* create(var*, var*);
-      } // end of namespace string
+      } // end of namespace stringa
       namespace pointer {
-        usr* create(const type*, void*);
+        template<class V> usr* create(const type*, V);
       } // end of namespace pointer
       namespace boolean {
         usr* create(bool);
@@ -879,6 +874,7 @@ namespace statements {
     extern void check();
     extern void clear();
     extern void mark_vm(usr*);
+	extern std::vector<usr*> vm;
   } // end of namespace label
   namespace _case {
     struct info_t : base {
@@ -1063,12 +1059,12 @@ struct generated : virtual var {
   var* assign(var*);
   ~generated()
   {
-    for_each(m_code.begin(),m_code.end(),misc::deleter<tac>());
+    for (auto p : m_code)
+      delete p;
   }
 };
 
 struct genaddr : generated, addrof {
-  void mark();
   genaddr(const pointer_type*, const type*, var*, int);
   var* rvalue();
   var* subscripting(var*);
@@ -1118,12 +1114,43 @@ struct refbit : refaddr {
   static usr* mask(int, int);
 };
 
-struct refimm : ref {
-  void* m_addr;
-  refimm(const pointer_type* pt, void* addr) : ref(pt), m_addr(addr) {}
-  var* rvalue();
-  var* address();
-  var* assign(var*);
+template<class V> struct refimm : ref {
+  V m_addr;
+  var* common();
+  refimm(const pointer_type* pt, V addr) : ref(pt), m_addr(addr) {}
+  var* rvalue()
+  {
+    using namespace std;
+    if (scope::current->m_id == scope::BLOCK) {
+      vector<var*>& v = garbage;
+      vector<var*>::reverse_iterator p = find(v.rbegin(),v.rend(),this);
+      assert(p != v.rend());
+      v.erase(p.base()-1);
+      block* b = static_cast<block*>(scope::current);
+      b->m_vars.push_back(this);
+      code.push_back(new assign3ac(this, common()));
+    }
+    return ref::rvalue();
+  }
+  var* address()
+  {
+    using namespace expressions::primary::literal;
+    return pointer::create(m_type, m_addr);
+  }
+  var* assign(var* op)
+  {
+    using namespace std;
+    if ( scope::current->m_id == scope::BLOCK ){
+      vector<var*>& v = garbage;
+      vector<var*>::reverse_iterator p = find(v.rbegin(),v.rend(),this);
+      assert(p != v.rend());
+      v.erase(p.base()-1);
+      block* b = static_cast<block*>(scope::current);
+      b->m_vars.push_back(this);
+      code.push_back(new assign3ac(this, common()));
+    }
+    return ref::assign(op);
+  }
 };
 
 struct refsomewhere : ref {
@@ -1174,8 +1201,10 @@ struct opposite_t : map<goto3ac::op,goto3ac::op> {
 extern opposite_t opposite;
 
 namespace optimize {
-  extern void action(vector<tac*>&);
-  extern void remember_action(const vector<tac*>&);
+  void action(fundef*, vector<tac*>&);
+  namespace basic_block {
+    void create(std::vector<tac*>&, std::vector<info_t*>&);
+  } // end of namespace basic_block
 } // end of namespace optimize
 
 struct overload : usr {
@@ -1205,7 +1234,6 @@ namespace call_impl {
   var* common(const func_type* ft,
               var* func,
               vector<var*>* arg,
-              declarations::declarators::function::definition::static_inline::info_t* inline_info = 0,
               bool trial = false,
               var* obj = 0);
 } // end of namespace call_impl
@@ -1221,6 +1249,10 @@ inline const type* composite(const type* x, const type* y)
 {
   return x->composite(y);
 }
+
+namespace SUB_CONST_LONG_impl {
+  const type* propagation(const usr* y, const usr* z);
+} // end of namespace SUB_CONST_LONG_impl
  
 } // end of namespace cxx_compiler
 

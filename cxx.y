@@ -1335,7 +1335,11 @@ function_definition_begin2
   ;
 
 function_definition
-  : function_definition_begin1 function_body       { cxx_compiler::declarations::declarators::function::definition::action($2); }
+  : function_definition_begin1 function_body
+    {
+      cxx_compiler::declarations::declarators::
+      function::definition::action($2);
+    }
   | function_definition_begin2 function_try_block
   ;
 

@@ -110,6 +110,7 @@ struct var {
   virtual var* mulr(constant<char>*);
   virtual var* mulr(constant<signed char>*);
   virtual var* mulr(constant<unsigned char>*);
+  virtual var* mulr(constant<wchar_t>*);
   virtual var* mulr(constant<short int>*);
   virtual var* mulr(constant<unsigned short int>*);
   virtual var* mulr(constant<int>*);
@@ -126,6 +127,7 @@ struct var {
   virtual var* divr(constant<char>*);
   virtual var* divr(constant<signed char>*);
   virtual var* divr(constant<unsigned char>*);
+  virtual var* divr(constant<wchar_t>*);
   virtual var* divr(constant<short int>*);
   virtual var* divr(constant<unsigned short int>*);
   virtual var* divr(constant<int>*);
@@ -142,6 +144,7 @@ struct var {
   virtual var* modr(constant<char>*);
   virtual var* modr(constant<signed char>*);
   virtual var* modr(constant<unsigned char>*);
+  virtual var* modr(constant<wchar_t>*);
   virtual var* modr(constant<short int>*);
   virtual var* modr(constant<unsigned short int>*);
   virtual var* modr(constant<int>*);
@@ -155,6 +158,7 @@ struct var {
   virtual var* addr(constant<char>*);
   virtual var* addr(constant<signed char>*);
   virtual var* addr(constant<unsigned char>*);
+  virtual var* addr(constant<wchar_t>*);
   virtual var* addr(constant<short int>*);
   virtual var* addr(constant<unsigned short int>*);
   virtual var* addr(constant<int>*);
@@ -173,6 +177,7 @@ struct var {
   virtual var* subr(constant<char>*);
   virtual var* subr(constant<signed char>*);
   virtual var* subr(constant<unsigned char>*);
+  virtual var* subr(constant<wchar_t>*);
   virtual var* subr(constant<short int>*);
   virtual var* subr(constant<unsigned short int>*);
   virtual var* subr(constant<int>*);
@@ -191,6 +196,7 @@ struct var {
   virtual var* lshr(constant<char>*);
   virtual var* lshr(constant<signed char>*);
   virtual var* lshr(constant<unsigned char>*);
+  virtual var* lshr(constant<wchar_t>*);
   virtual var* lshr(constant<short int>*);
   virtual var* lshr(constant<unsigned short int>*);
   virtual var* lshr(constant<int>*);
@@ -204,6 +210,7 @@ struct var {
   virtual var* rshr(constant<char>*);
   virtual var* rshr(constant<signed char>*);
   virtual var* rshr(constant<unsigned char>*);
+  virtual var* rshr(constant<wchar_t>*);
   virtual var* rshr(constant<short int>*);
   virtual var* rshr(constant<unsigned short int>*);
   virtual var* rshr(constant<int>*);
@@ -217,6 +224,7 @@ struct var {
   virtual var* ltr(constant<char>*);
   virtual var* ltr(constant<signed char>*);
   virtual var* ltr(constant<unsigned char>*);
+  virtual var* ltr(constant<wchar_t>*);
   virtual var* ltr(constant<short int>*);
   virtual var* ltr(constant<unsigned short int>*);
   virtual var* ltr(constant<int>*);
@@ -235,6 +243,7 @@ struct var {
   virtual var* gtr(constant<char>*);
   virtual var* gtr(constant<signed char>*);
   virtual var* gtr(constant<unsigned char>*);
+  virtual var* gtr(constant<wchar_t>*);
   virtual var* gtr(constant<short int>*);
   virtual var* gtr(constant<unsigned short int>*);
   virtual var* gtr(constant<int>*);
@@ -253,6 +262,7 @@ struct var {
   virtual var* ler(constant<char>*);
   virtual var* ler(constant<signed char>*);
   virtual var* ler(constant<unsigned char>*);
+  virtual var* ler(constant<wchar_t>*);
   virtual var* ler(constant<short int>*);
   virtual var* ler(constant<unsigned short int>*);
   virtual var* ler(constant<int>*);
@@ -271,6 +281,7 @@ struct var {
   virtual var* ger(constant<char>*);
   virtual var* ger(constant<signed char>*);
   virtual var* ger(constant<unsigned char>*);
+  virtual var* ger(constant<wchar_t>*);
   virtual var* ger(constant<short int>*);
   virtual var* ger(constant<unsigned short int>*);
   virtual var* ger(constant<int>*);
@@ -289,6 +300,7 @@ struct var {
   virtual var* eqr(constant<char>*);
   virtual var* eqr(constant<signed char>*);
   virtual var* eqr(constant<unsigned char>*);
+  virtual var* eqr(constant<wchar_t>*);
   virtual var* eqr(constant<short int>*);
   virtual var* eqr(constant<unsigned short int>*);
   virtual var* eqr(constant<int>*);
@@ -307,6 +319,7 @@ struct var {
   virtual var* ner(constant<char>*);
   virtual var* ner(constant<signed char>*);
   virtual var* ner(constant<unsigned char>*);
+  virtual var* ner(constant<wchar_t>*);
   virtual var* ner(constant<short int>*);
   virtual var* ner(constant<unsigned short int>*);
   virtual var* ner(constant<int>*);
@@ -325,6 +338,7 @@ struct var {
   virtual var* bit_andr(constant<char>*);
   virtual var* bit_andr(constant<signed char>*);
   virtual var* bit_andr(constant<unsigned char>*);
+  virtual var* bit_andr(constant<wchar_t>*);
   virtual var* bit_andr(constant<short int>*);
   virtual var* bit_andr(constant<unsigned short int>*);
   virtual var* bit_andr(constant<int>*);
@@ -338,6 +352,7 @@ struct var {
   virtual var* bit_xorr(constant<char>*);
   virtual var* bit_xorr(constant<signed char>*);
   virtual var* bit_xorr(constant<unsigned char>*);
+  virtual var* bit_xorr(constant<wchar_t>*);
   virtual var* bit_xorr(constant<short int>*);
   virtual var* bit_xorr(constant<unsigned short int>*);
   virtual var* bit_xorr(constant<int>*);
@@ -351,6 +366,7 @@ struct var {
   virtual var* bit_orr(constant<char>*);
   virtual var* bit_orr(constant<signed char>*);
   virtual var* bit_orr(constant<unsigned char>*);
+  virtual var* bit_orr(constant<wchar_t>*);
   virtual var* bit_orr(constant<short int>*);
   virtual var* bit_orr(constant<unsigned short int>*);
   virtual var* bit_orr(constant<int>*);
@@ -398,7 +414,6 @@ struct usr : var {
     WITH_INI    = 1 << 12,
     SUB_CONST_LONG = 1 << 13,
     
-    EXTSTATIC   = 1 << 14,
     VIRTUAL     = 1 << 15,
     EXPLICIT    = 1 << 16,
     FRIEND      = 1 << 17,
@@ -433,11 +448,14 @@ struct constant : usr {
   T m_value;
   static std::map<T, constant<T>*> table;
   bool lvalue() const { return false; }
+  var* offref(const type*, var*);
+  var* indirection();
   var* mul(var* z){ return z->mulr(this); }
   var* mulr(constant<bool>*);
   var* mulr(constant<char>*);
   var* mulr(constant<signed char>*);
   var* mulr(constant<unsigned char>*);
+  var* mulr(constant<wchar_t>*);
   var* mulr(constant<short int>*);
   var* mulr(constant<unsigned short int>*);
   var* mulr(constant<int>*);
@@ -454,6 +472,7 @@ struct constant : usr {
   var* divr(constant<char>*);
   var* divr(constant<signed char>*);
   var* divr(constant<unsigned char>*);
+  var* divr(constant<wchar_t>*);
   var* divr(constant<short int>*);
   var* divr(constant<unsigned short int>*);
   var* divr(constant<int>*);
@@ -470,6 +489,7 @@ struct constant : usr {
   var* modr(constant<char>*);
   var* modr(constant<signed char>*);
   var* modr(constant<unsigned char>*);
+  var* modr(constant<wchar_t>*);
   var* modr(constant<short int>*);
   var* modr(constant<unsigned short int>*);
   var* modr(constant<int>*);
@@ -483,6 +503,7 @@ struct constant : usr {
   var* addr(constant<char>*);
   var* addr(constant<signed char>*);
   var* addr(constant<unsigned char>*);
+  var* addr(constant<wchar_t>*);
   var* addr(constant<short int>*);
   var* addr(constant<unsigned short int>*);
   var* addr(constant<int>*);
@@ -501,6 +522,7 @@ struct constant : usr {
   var* subr(constant<char>*);
   var* subr(constant<signed char>*);
   var* subr(constant<unsigned char>*);
+  var* subr(constant<wchar_t>*);
   var* subr(constant<short int>*);
   var* subr(constant<unsigned short int>*);
   var* subr(constant<int>*);
@@ -519,6 +541,7 @@ struct constant : usr {
   var* lshr(constant<char>*);
   var* lshr(constant<signed char>*);
   var* lshr(constant<unsigned char>*);
+  var* lshr(constant<wchar_t>*);
   var* lshr(constant<short int>*);
   var* lshr(constant<unsigned short int>*);
   var* lshr(constant<int>*);
@@ -532,6 +555,7 @@ struct constant : usr {
   var* rshr(constant<char>*);
   var* rshr(constant<signed char>*);
   var* rshr(constant<unsigned char>*);
+  var* rshr(constant<wchar_t>*);
   var* rshr(constant<short int>*);
   var* rshr(constant<unsigned short int>*);
   var* rshr(constant<int>*);
@@ -545,6 +569,7 @@ struct constant : usr {
   var* ltr(constant<char>*);
   var* ltr(constant<signed char>*);
   var* ltr(constant<unsigned char>*);
+  var* ltr(constant<wchar_t>*);
   var* ltr(constant<short int>*);
   var* ltr(constant<unsigned short int>*);
   var* ltr(constant<int>*);
@@ -561,6 +586,7 @@ struct constant : usr {
   var* gtr(constant<char>*);
   var* gtr(constant<signed char>*);
   var* gtr(constant<unsigned char>*);
+  var* gtr(constant<wchar_t>*);
   var* gtr(constant<short int>*);
   var* gtr(constant<unsigned short int>*);
   var* gtr(constant<int>*);
@@ -577,6 +603,7 @@ struct constant : usr {
   var* ler(constant<char>*);
   var* ler(constant<signed char>*);
   var* ler(constant<unsigned char>*);
+  var* ler(constant<wchar_t>*);
   var* ler(constant<short int>*);
   var* ler(constant<unsigned short int>*);
   var* ler(constant<int>*);
@@ -593,6 +620,7 @@ struct constant : usr {
   var* ger(constant<char>*);
   var* ger(constant<signed char>*);
   var* ger(constant<unsigned char>*);
+  var* ger(constant<wchar_t>*);
   var* ger(constant<short int>*);
   var* ger(constant<unsigned short int>*);
   var* ger(constant<int>*);
@@ -609,6 +637,7 @@ struct constant : usr {
   var* eqr(constant<char>*);
   var* eqr(constant<signed char>*);
   var* eqr(constant<unsigned char>*);
+  var* eqr(constant<wchar_t>*);
   var* eqr(constant<short int>*);
   var* eqr(constant<unsigned short int>*);
   var* eqr(constant<int>*);
@@ -626,6 +655,7 @@ struct constant : usr {
   var* ner(constant<char>*);
   var* ner(constant<signed char>*);
   var* ner(constant<unsigned char>*);
+  var* ner(constant<wchar_t>*);
   var* ner(constant<short int>*);
   var* ner(constant<unsigned short int>*);
   var* ner(constant<int>*);
@@ -643,6 +673,7 @@ struct constant : usr {
   var* bit_andr(constant<char>*);
   var* bit_andr(constant<signed char>*);
   var* bit_andr(constant<unsigned char>*);
+  var* bit_andr(constant<wchar_t>*);
   var* bit_andr(constant<short int>*);
   var* bit_andr(constant<unsigned short int>*);
   var* bit_andr(constant<int>*);
@@ -656,6 +687,7 @@ struct constant : usr {
   var* bit_xorr(constant<char>*);
   var* bit_xorr(constant<signed char>*);
   var* bit_xorr(constant<unsigned char>*);
+  var* bit_xorr(constant<wchar_t>*);
   var* bit_xorr(constant<short int>*);
   var* bit_xorr(constant<unsigned short int>*);
   var* bit_xorr(constant<int>*);
@@ -669,6 +701,7 @@ struct constant : usr {
   var* bit_orr(constant<char>*);
   var* bit_orr(constant<signed char>*);
   var* bit_orr(constant<unsigned char>*);
+  var* bit_orr(constant<wchar_t>*);
   var* bit_orr(constant<short int>*);
   var* bit_orr(constant<unsigned short int>*);
   var* bit_orr(constant<int>*);
@@ -680,8 +713,10 @@ struct constant : usr {
   var* logic1(bool, int, var*);
   var* logic2(bool, const type*);
   var* cond(int, int, var*, var*);
-
-  var* plus(){ return promotion(); }
+  var* plus()
+  {
+    return (m_flag & CONST_PTR) ? var::plus() : promotion();
+  }
   var* minus();
   var* tilde();
   var* cast(const type*);
@@ -710,6 +745,7 @@ template<> struct constant<float> : usr {
   var* mulr(constant<char>*);
   var* mulr(constant<signed char>*);
   var* mulr(constant<unsigned char>*);
+  var* mulr(constant<wchar_t>*);
   var* mulr(constant<short int>*);
   var* mulr(constant<unsigned short int>*);
   var* mulr(constant<int>*);
@@ -726,6 +762,7 @@ template<> struct constant<float> : usr {
   var* divr(constant<char>*);
   var* divr(constant<signed char>*);
   var* divr(constant<unsigned char>*);
+  var* divr(constant<wchar_t>*);
   var* divr(constant<short int>*);
   var* divr(constant<unsigned short int>*);
   var* divr(constant<int>*);
@@ -742,6 +779,7 @@ template<> struct constant<float> : usr {
   var* addr(constant<char>*);
   var* addr(constant<signed char>*);
   var* addr(constant<unsigned char>*);
+  var* addr(constant<wchar_t>*);
   var* addr(constant<short int>*);
   var* addr(constant<unsigned short int>*);
   var* addr(constant<int>*);
@@ -758,6 +796,7 @@ template<> struct constant<float> : usr {
   var* subr(constant<char>*);
   var* subr(constant<signed char>*);
   var* subr(constant<unsigned char>*);
+  var* subr(constant<wchar_t>*);
   var* subr(constant<short int>*);
   var* subr(constant<unsigned short int>*);
   var* subr(constant<int>*);
@@ -774,6 +813,7 @@ template<> struct constant<float> : usr {
   var* ltr(constant<char>*);
   var* ltr(constant<signed char>*);
   var* ltr(constant<unsigned char>*);
+  var* ltr(constant<wchar_t>*);
   var* ltr(constant<short int>*);
   var* ltr(constant<unsigned short int>*);
   var* ltr(constant<int>*);
@@ -790,6 +830,7 @@ template<> struct constant<float> : usr {
   var* gtr(constant<char>*);
   var* gtr(constant<signed char>*);
   var* gtr(constant<unsigned char>*);
+  var* gtr(constant<wchar_t>*);
   var* gtr(constant<short int>*);
   var* gtr(constant<unsigned short int>*);
   var* gtr(constant<int>*);
@@ -806,6 +847,7 @@ template<> struct constant<float> : usr {
   var* ler(constant<char>*);
   var* ler(constant<signed char>*);
   var* ler(constant<unsigned char>*);
+  var* ler(constant<wchar_t>*);
   var* ler(constant<short int>*);
   var* ler(constant<unsigned short int>*);
   var* ler(constant<int>*);
@@ -822,6 +864,7 @@ template<> struct constant<float> : usr {
   var* ger(constant<char>*);
   var* ger(constant<signed char>*);
   var* ger(constant<unsigned char>*);
+  var* ger(constant<wchar_t>*);
   var* ger(constant<short int>*);
   var* ger(constant<unsigned short int>*);
   var* ger(constant<int>*);
@@ -838,6 +881,7 @@ template<> struct constant<float> : usr {
   var* eqr(constant<char>*);
   var* eqr(constant<signed char>*);
   var* eqr(constant<unsigned char>*);
+  var* eqr(constant<wchar_t>*);
   var* eqr(constant<short int>*);
   var* eqr(constant<unsigned short int>*);
   var* eqr(constant<int>*);
@@ -854,6 +898,7 @@ template<> struct constant<float> : usr {
   var* ner(constant<char>*);
   var* ner(constant<signed char>*);
   var* ner(constant<unsigned char>*);
+  var* ner(constant<wchar_t>*);
   var* ner(constant<short int>*);
   var* ner(constant<unsigned short int>*);
   var* ner(constant<int>*);
@@ -893,6 +938,7 @@ template<> struct constant<double> : usr {
   var* mulr(constant<char>*);
   var* mulr(constant<signed char>*);
   var* mulr(constant<unsigned char>*);
+  var* mulr(constant<wchar_t>*);
   var* mulr(constant<short int>*);
   var* mulr(constant<unsigned short int>*);
   var* mulr(constant<int>*);
@@ -909,6 +955,7 @@ template<> struct constant<double> : usr {
   var* divr(constant<char>*);
   var* divr(constant<signed char>*);
   var* divr(constant<unsigned char>*);
+  var* divr(constant<wchar_t>*);
   var* divr(constant<short int>*);
   var* divr(constant<unsigned short int>*);
   var* divr(constant<int>*);
@@ -925,6 +972,7 @@ template<> struct constant<double> : usr {
   var* addr(constant<char>*);
   var* addr(constant<signed char>*);
   var* addr(constant<unsigned char>*);
+  var* addr(constant<wchar_t>*);
   var* addr(constant<short int>*);
   var* addr(constant<unsigned short int>*);
   var* addr(constant<int>*);
@@ -941,6 +989,7 @@ template<> struct constant<double> : usr {
   var* subr(constant<char>*);
   var* subr(constant<signed char>*);
   var* subr(constant<unsigned char>*);
+  var* subr(constant<wchar_t>*);
   var* subr(constant<short int>*);
   var* subr(constant<unsigned short int>*);
   var* subr(constant<int>*);
@@ -957,6 +1006,7 @@ template<> struct constant<double> : usr {
   var* ltr(constant<char>*);
   var* ltr(constant<signed char>*);
   var* ltr(constant<unsigned char>*);
+  var* ltr(constant<wchar_t>*);
   var* ltr(constant<short int>*);
   var* ltr(constant<unsigned short int>*);
   var* ltr(constant<int>*);
@@ -973,6 +1023,7 @@ template<> struct constant<double> : usr {
   var* gtr(constant<char>*);
   var* gtr(constant<signed char>*);
   var* gtr(constant<unsigned char>*);
+  var* gtr(constant<wchar_t>*);
   var* gtr(constant<short int>*);
   var* gtr(constant<unsigned short int>*);
   var* gtr(constant<int>*);
@@ -989,6 +1040,7 @@ template<> struct constant<double> : usr {
   var* ler(constant<char>*);
   var* ler(constant<signed char>*);
   var* ler(constant<unsigned char>*);
+  var* ler(constant<wchar_t>*);
   var* ler(constant<short int>*);
   var* ler(constant<unsigned short int>*);
   var* ler(constant<int>*);
@@ -1005,6 +1057,7 @@ template<> struct constant<double> : usr {
   var* ger(constant<char>*);
   var* ger(constant<signed char>*);
   var* ger(constant<unsigned char>*);
+  var* ger(constant<wchar_t>*);
   var* ger(constant<short int>*);
   var* ger(constant<unsigned short int>*);
   var* ger(constant<int>*);
@@ -1021,6 +1074,7 @@ template<> struct constant<double> : usr {
   var* eqr(constant<char>*);
   var* eqr(constant<signed char>*);
   var* eqr(constant<unsigned char>*);
+  var* eqr(constant<wchar_t>*);
   var* eqr(constant<short int>*);
   var* eqr(constant<unsigned short int>*);
   var* eqr(constant<int>*);
@@ -1037,6 +1091,7 @@ template<> struct constant<double> : usr {
   var* ner(constant<char>*);
   var* ner(constant<signed char>*);
   var* ner(constant<unsigned char>*);
+  var* ner(constant<wchar_t>*);
   var* ner(constant<short int>*);
   var* ner(constant<unsigned short int>*);
   var* ner(constant<int>*);
@@ -1077,6 +1132,7 @@ template<> struct constant<long double> : usr {
   var* mulr(constant<char>*);
   var* mulr(constant<signed char>*);
   var* mulr(constant<unsigned char>*);
+  var* mulr(constant<wchar_t>*);
   var* mulr(constant<short int>*);
   var* mulr(constant<unsigned short int>*);
   var* mulr(constant<int>*);
@@ -1093,6 +1149,7 @@ template<> struct constant<long double> : usr {
   var* divr(constant<char>*);
   var* divr(constant<signed char>*);
   var* divr(constant<unsigned char>*);
+  var* divr(constant<wchar_t>*);
   var* divr(constant<short int>*);
   var* divr(constant<unsigned short int>*);
   var* divr(constant<int>*);
@@ -1109,6 +1166,7 @@ template<> struct constant<long double> : usr {
   var* addr(constant<char>*);
   var* addr(constant<signed char>*);
   var* addr(constant<unsigned char>*);
+  var* addr(constant<wchar_t>*);
   var* addr(constant<short int>*);
   var* addr(constant<unsigned short int>*);
   var* addr(constant<int>*);
@@ -1125,6 +1183,7 @@ template<> struct constant<long double> : usr {
   var* subr(constant<char>*);
   var* subr(constant<signed char>*);
   var* subr(constant<unsigned char>*);
+  var* subr(constant<wchar_t>*);
   var* subr(constant<short int>*);
   var* subr(constant<unsigned short int>*);
   var* subr(constant<int>*);
@@ -1141,6 +1200,7 @@ template<> struct constant<long double> : usr {
   var* ltr(constant<char>*);
   var* ltr(constant<signed char>*);
   var* ltr(constant<unsigned char>*);
+  var* ltr(constant<wchar_t>*);
   var* ltr(constant<short int>*);
   var* ltr(constant<unsigned short int>*);
   var* ltr(constant<int>*);
@@ -1157,6 +1217,7 @@ template<> struct constant<long double> : usr {
   var* gtr(constant<char>*);
   var* gtr(constant<signed char>*);
   var* gtr(constant<unsigned char>*);
+  var* gtr(constant<wchar_t>*);
   var* gtr(constant<short int>*);
   var* gtr(constant<unsigned short int>*);
   var* gtr(constant<int>*);
@@ -1173,6 +1234,7 @@ template<> struct constant<long double> : usr {
   var* ler(constant<char>*);
   var* ler(constant<signed char>*);
   var* ler(constant<unsigned char>*);
+  var* ler(constant<wchar_t>*);
   var* ler(constant<short int>*);
   var* ler(constant<unsigned short int>*);
   var* ler(constant<int>*);
@@ -1189,6 +1251,7 @@ template<> struct constant<long double> : usr {
   var* ger(constant<char>*);
   var* ger(constant<signed char>*);
   var* ger(constant<unsigned char>*);
+  var* ger(constant<wchar_t>*);
   var* ger(constant<short int>*);
   var* ger(constant<unsigned short int>*);
   var* ger(constant<int>*);
@@ -1205,6 +1268,7 @@ template<> struct constant<long double> : usr {
   var* eqr(constant<char>*);
   var* eqr(constant<signed char>*);
   var* eqr(constant<unsigned char>*);
+  var* eqr(constant<wchar_t>*);
   var* eqr(constant<short int>*);
   var* eqr(constant<unsigned short int>*);
   var* eqr(constant<int>*);
@@ -1221,6 +1285,7 @@ template<> struct constant<long double> : usr {
   var* ner(constant<char>*);
   var* ner(constant<signed char>*);
   var* ner(constant<unsigned char>*);
+  var* ner(constant<wchar_t>*);
   var* ner(constant<short int>*);
   var* ner(constant<unsigned short int>*);
   var* ner(constant<int>*);
@@ -1259,6 +1324,7 @@ template<> struct constant<void*> : usr {
   var* addr(constant<char>*);
   var* addr(constant<signed char>*);
   var* addr(constant<unsigned char>*);
+  var* addr(constant<wchar_t>*);
   var* addr(constant<short int>*);
   var* addr(constant<unsigned short int>*);
   var* addr(constant<int>*);
@@ -1282,6 +1348,7 @@ template<> struct constant<void*> : usr {
   var* eqr(constant<char>*);
   var* eqr(constant<signed char>*);
   var* eqr(constant<unsigned char>*);
+  var* eqr(constant<wchar_t>*);
   var* eqr(constant<short int>*);
   var* eqr(constant<unsigned short int>*);
   var* eqr(constant<int>*);
@@ -1296,6 +1363,7 @@ template<> struct constant<void*> : usr {
   var* ner(constant<char>*);
   var* ner(constant<signed char>*);
   var* ner(constant<unsigned char>*);
+  var* ner(constant<wchar_t>*);
   var* ner(constant<short int>*);
   var* ner(constant<unsigned short int>*);
   var* ner(constant<int>*);
@@ -1356,6 +1424,7 @@ struct addrof : virtual var {
   var* addr(constant<char>*);
   var* addr(constant<signed char>*);
   var* addr(constant<unsigned char>*);
+  var* addr(constant<wchar_t>*);
   var* addr(constant<short int>*);
   var* addr(constant<unsigned short int>*);
   var* addr(constant<int>*);
@@ -1383,17 +1452,6 @@ struct addrof : virtual var {
   bool isconstant(bool b) const { return b; }
   addrof* addrof_cast(){ return this; }
 };
-
-class reference_type;
-class array_type;
-class func_type;
-class volatile_type;
-class restrict_type;
-class record_type;
-class bit_field_type;
-class ellipsis_type;
-class incomplete_tagged_type;
-class varray_type;
 
 struct type {
   enum id_t {
@@ -1424,8 +1482,7 @@ struct type {
   virtual bool modifiable() const { return true; }
   virtual const type* promotion() const { return this; }
   virtual const type* varg() const { return promotion(); }
-  virtual const type* _signed() const { return 0; }
-  virtual const type* _unsigned() const { return 0; }
+  virtual bool _signed() const { return false; }
   virtual tag* get_tag() const { return 0; }
   virtual const type* complete_type() const { return this; }
   virtual const pointer_type* ptr_gen() const { return 0; }
@@ -1435,11 +1492,13 @@ struct type {
   virtual std::pair<int, const type*> current(int) const;
   virtual const type* unqualified(int* cvr = 0) const { return this; }
   virtual bool aggregate() const { return false; }
-  virtual bool temporary(bool) const { return false; }
-  virtual void decide() const {}
+  virtual bool tmp() const { return false; }
+  virtual bool variably_modified() const { return false; }
+  virtual const type* vla2a() const { return this; }
   virtual var* vsize() const { return 0; }
   virtual ~type(){}
-  static void destroy_temporary();
+  static void destroy_tmp();
+  static void collect_tmp(std::vector<const type*>&);
 };
 
 inline bool is_external_declaration(var* v)
@@ -1482,7 +1541,7 @@ public:
   void encode(std::ostream&) const;
   int size() const { return 1; }
   const type* promotion() const;
-  const type* _unsigned() const;
+  bool _signed() const { return true; }
   static const char_type* create(){ return &obj; }
 };
 
@@ -1494,7 +1553,7 @@ public:
   void encode(std::ostream&) const;
   int size() const { return 1; }
   const type* promotion() const;
-  const type* _unsigned() const;
+  bool _signed() const { return true; }
   static const schar_type* create(){ return &obj; }
 };
 
@@ -1506,7 +1565,6 @@ public:
   void encode(std::ostream&) const;
   int size() const { return 1; }
   const type* promotion() const;
-  const type* _signed() const;
   static const uchar_type* create(){ return &obj; }
 };
 
@@ -1516,13 +1574,9 @@ class wchar_type : public type {
 public:
   void decl(std::ostream&, std::string) const;
   void encode(std::ostream&) const;
-#if defined(WIN32) || defined(__CYGWIN__)
-  int size() const { return 2; }
-#else // defined(WIN32) || defined(__CYGWIN__)
-  int size() const { return 4; }
-#endif // defined(WIN32) || defined(__CYGWIN__)
+  int size() const;
   const type* promotion() const;
-  const type* _signed() const;
+  bool _signed() const { return true; }
   static const wchar_type* create(){ return &obj; }
 };
 
@@ -1545,7 +1599,7 @@ public:
   void encode(std::ostream&) const;
   int size() const;
   const type* promotion() const;
-  const type* _unsigned() const;
+  bool _signed() const { return true; }
   static const short_type* create(){ return &obj; }
 };
 
@@ -1557,7 +1611,6 @@ public:
   void encode(std::ostream&) const;
   int size() const;
   const type* promotion() const;
-  const type* _signed() const;
   static const ushort_type* create(){ return &obj; }
 };
 
@@ -1568,7 +1621,7 @@ public:
   void decl(std::ostream&, std::string) const;
   void encode(std::ostream&) const;
   int size() const;
-  const type* _unsigned() const;
+  bool _signed() const { return true; }
   static const int_type* create(){ return &obj; }
 };
 
@@ -1579,7 +1632,6 @@ public:
   void decl(std::ostream&, std::string) const;
   void encode(std::ostream&) const;
   int size() const;
-  const type* _signed() const;
   static const uint_type* create(){ return &obj; }
 };
 
@@ -1590,7 +1642,7 @@ public:
   void decl(std::ostream&, std::string) const;
   void encode(std::ostream&) const;
   int size() const;
-  const type* _unsigned() const;
+  bool _signed() const { return true; }
   static const long_type* create(){ return &obj; }
 };
 
@@ -1601,7 +1653,6 @@ public:
   void decl(std::ostream&, std::string) const;
   void encode(std::ostream&) const;
   int size() const;
-  const type* _signed() const;
   static const ulong_type* create(){ return &obj; }
 };
 
@@ -1612,7 +1663,7 @@ public:
   void decl(std::ostream&, std::string) const;
   void encode(std::ostream&) const;
   int size() const;
-  const type* _unsigned() const;
+  bool _signed() const { return true; }
   static const long_long_type* create(){ return &obj; }
 };
 
@@ -1623,7 +1674,6 @@ public:
   void decl(std::ostream&, std::string) const;
   void encode(std::ostream&) const;
   int size() const;
-  const type* _signed() const;
   static const ulong_long_type* create(){ return &obj; }
 };
 
@@ -1674,11 +1724,16 @@ public:
   static const backpatch_type* create(){ return &obj; }
 };
 
+class volatile_type;
+class restrict_type;
+
 class const_type : public type {
-  struct table_t;
-  static table_t table;
+  typedef std::map<const type*, const const_type*> table_t;
+  static table_t tmp_tbl, pmt_tbl;
   const type* m_T;
   const_type(const type* T) : type(CONST), m_T(T) {}
+  friend class volatile_type;
+  friend class restrict_type;
 public:
   void decl(std::ostream&, std::string) const;
   void encode(std::ostream&) const;
@@ -1695,21 +1750,25 @@ public:
   bool modifiable() const { return false; }
   const type* promotion() const { return create(m_T->promotion()); }
   const type* varg() const { return create(m_T->varg()); }
-  const type* _signed() const { const type* T = m_T->_signed(); return T ? create(T) : 0; }
-  const type* _unsigned() const { const type* T = m_T->_unsigned(); return T ? create(T) : 0; }
+  bool _signed() const { return m_T->_signed(); }
   std::pair<int, const type*> current(int nth) const { return m_T->current(nth); }
   bool aggregate() const { return m_T->aggregate(); }
-  bool temporary(bool b) const { return m_T->temporary(b); }
+  bool tmp() const { return m_T->tmp(); }
   const type* qualified(int) const;
+  bool variably_modified() const { return m_T->variably_modified(); }
+  const type* vla2a() const { return create(m_T->vla2a()); }
   tag* get_tag() const { return m_T->get_tag(); }
-  static const const_type* create(const type*);
+  static const type* create(const type*);
+  static void destroy_tmp();
+  static void collect_tmp(std::vector<const type*>&);
 };
 
 class volatile_type : public type {
-  struct table_t;
-  static table_t table;
+  typedef std::map<const type*, const volatile_type*> table_t;
+  static table_t tmp_tbl, pmt_tbl;
   const type* m_T;
   volatile_type(const type* T) : type(VOLATILE), m_T(T) {}
+  friend class restrict_type;
 public:
   void decl(std::ostream&, std::string) const;
   void encode(std::ostream&) const;
@@ -1726,19 +1785,22 @@ public:
   bool modifiable() const { return m_T->modifiable(); }
   const type* promotion() const { return create(m_T->promotion()); }
   const type* varg() const { return create(m_T->varg()); }
-  const type* _signed() const { const type* T = m_T->_signed(); return T ? create(T) : 0; }
-  const type* _unsigned() const { const type* T = m_T->_unsigned(); return T ? create(T) : 0; }
+  bool _signed() const { return m_T->_signed(); }
   std::pair<int, const type*> current(int nth) const { return m_T->current(nth); }
   bool aggregate() const { return m_T->aggregate(); }
-  bool temporary(bool b) const { return m_T->temporary(b); }
+  bool tmp() const { return m_T->tmp(); }
+  bool variably_modified() const { return m_T->variably_modified(); }
+  const type* vla2a() const { return create(m_T->vla2a()); }
   const type* qualified(int) const;
   tag* get_tag() const { return m_T->get_tag(); }
-  static const volatile_type* create(const type*);
+  static const type* create(const type*);
+  static void destroy_tmp();
+  static void collect_tmp(std::vector<const type*>&);
 };
 
 class restrict_type : public type {
-  struct table_t;
-  static table_t table;
+  typedef std::map<const type*, const restrict_type*> table_t;
+  static table_t tmp_tbl, pmt_tbl;
   const type* m_T;
   restrict_type(const type* T) : type(RESTRICT), m_T(T) {}
 public:
@@ -1757,19 +1819,22 @@ public:
   bool modifiable() const { return m_T->modifiable(); }
   const type* promotion() const { return create(m_T->promotion()); }
   const type* varg() const { return create(m_T->varg()); }
-  const type* _signed() const { const type* T = m_T->_signed(); return T ? create(T) : 0; }
-  const type* _unsigned() const { const type* T = m_T->_unsigned(); return T ? create(T) : 0; }
+  bool _signed() const { return m_T->_signed(); }
   std::pair<int, const type*> current(int nth) const { return m_T->current(nth); }
   bool aggregate() const { return m_T->aggregate(); }
-  bool temporary(bool b) const { return m_T->temporary(b); }
+  bool tmp() const { return m_T->tmp(); }
+  bool variably_modified() const { return m_T->variably_modified(); }
+  const type* vla2a() const { return create(m_T->vla2a()); }
   const type* qualified(int) const;
   tag* get_tag() const { return m_T->get_tag(); }
-  static const restrict_type* create(const type*);
+  static const type* create(const type*);
+  static void destroy_tmp();
+  static void collect_tmp(std::vector<const type*>&);
 };
 
 class func_type : public type {
   struct table_t;
-  static table_t table;
+  static table_t tmp_tbl, pmt_tbl;
   const type* m_T;
   std::vector<const type*> m_param;
   func_type(const type* T, const std::vector<const type*>& param) : type(FUNC), m_T(T), m_param(param) {}
@@ -1789,14 +1854,18 @@ public:
   const pointer_type* ptr_gen() const;
   const type* return_type() const { return m_T; }
   const std::vector<const type*>& param() const { return m_param; }
-  bool temporary(bool) const;
+  bool tmp() const;
+  bool variably_modified() const;
+  const type* vla2a() const;
   bool overloadable(const func_type*) const;
   static const func_type* create(const type*, const std::vector<const type*>&);
+  static void destroy_tmp();
+  static void collect_tmp(std::vector<const type*>&);
 };
 
 class array_type : public type {
   struct table_t;
-  static table_t table;
+  static table_t tmp_tbl, pmt_tbl;
   const type* m_T;
   int m_dim;;
   array_type(const type* T, int dim) : type(ARRAY), m_T(T), m_dim(dim) {}
@@ -1820,15 +1889,18 @@ public:
   int dim() const { return m_dim; }
   std::pair<int, const type*> current(int) const;
   bool aggregate() const { return true; }
-  bool temporary(bool b) const { return m_T->temporary(b); }
-  void decide() const { m_T->decide(); }
+  bool tmp() const { return m_T->tmp(); }
+  bool variably_modified() const { return m_T->variably_modified(); }
+  const type* vla2a() const { return create(m_T->vla2a(), m_dim); }
   var* vsize() const;
   static const array_type* create(const type*, int);
+  static void destroy_tmp();
+  static void collect_tmp(std::vector<const type*>&);
 };
 
 class pointer_type : public type {
-  struct table_t;
-  static table_t table;
+  typedef std::map<const type*, const pointer_type*> table_t;
+  static table_t tmp_tbl, pmt_tbl;
   const type* m_T;
   pointer_type(const type* T) : type(POINTER), m_T(T) {}
 public:
@@ -1842,14 +1914,17 @@ public:
   int size() const;
   bool integer() const { return false; }
   const type* complete_type() const;
-  bool temporary(bool b) const { return m_T->temporary(b); }
-  void decide() const { m_T->decide(); }
+  bool tmp() const { return m_T->tmp(); }
+  bool variably_modified() const { return m_T->variably_modified(); }
+  const type* vla2a() const { return create(m_T->vla2a()); }
   static const pointer_type* create(const type*);
+  static void destroy_tmp();
+  static void collect_tmp(std::vector<const type*>&);
 };
 
 class reference_type : public type {
-  struct table_t;
-  static table_t table;
+  typedef std::map<const type*, const reference_type*> table_t;
+  static table_t tmp_tbl, pmt_tbl;
   const type* m_T;
   reference_type(const type* T) : type(REFERENCE), m_T(T) {}
 public:
@@ -1863,9 +1938,10 @@ public:
   int size() const;
   bool integer() const { return false; }
   const type* complete_type() const;
-  bool temporary(bool b) const { return m_T->temporary(b); }
-  void decide() const { m_T->decide(); }
+  bool tmp() const { return m_T->tmp(); }
   static const reference_type* create(const type*);
+  static void destroy_tmp();
+  static void collect_tmp(std::vector<const type*>&);
 };
 
 class ellipsis_type : public type {
@@ -1881,6 +1957,8 @@ public:
 
 class incomplete_tagged_type : public type {
   tag* m_tag;
+  typedef std::set<const incomplete_tagged_type*> table_t;
+  static table_t tmp_tbl;
   incomplete_tagged_type(tag* tag) : type(INCOMPLETE_TAGGED), m_tag(tag) {}
 public:
   void decl(std::ostream&, std::string) const;
@@ -1891,8 +1969,10 @@ public:
   bool scalar() const { return false; }
   tag* get_tag() const { return m_tag; }
   const type* complete_type() const;
-  bool temporary(bool) const;
+  bool tmp() const;
   static const incomplete_tagged_type* create(tag*);
+  static void destroy_tmp();
+  static void collect_tmp(std::vector<const type*>&);
 };
 
 class record_type : public type {
@@ -1903,6 +1983,9 @@ class record_type : public type {
   int m_align;
   bool m_modifiable;
   tag* m_tag;
+  typedef std::set<const record_type*> table_t;
+  static table_t tmp_tbl;
+  
   with_initial* m_vbtbl;
   std::vector<base*> m_vbtbl_contents;
   with_initial* m_vftbl;
@@ -1923,28 +2006,35 @@ public:
   const std::vector<usr*> member() const { return m_member; }
   tag* get_tag() const { return m_tag; }
   bool aggregate() const { return true; }
-  bool temporary(bool) const;
+  bool tmp() const;
   usr* vbtbl() const { return m_vbtbl; }
   const std::vector<base*>& vbtbl_contents() const { return m_vbtbl_contents; }
   usr* vftbl() const { return m_vftbl; }
   const std::vector<usr*>& vftbl_contents() const { return m_vftbl_contents; }
   static const record_type* create(tag*);
+  static void destroy_tmp();
+  static void collect_tmp(std::vector<const type*>&);
 };
 
 class enum_type : public type {
   tag* m_tag;
   const type* m_integer;
- enum_type(tag* tag, const type* integer) : type(ENUM), m_tag(tag), m_integer(integer) {}
+  typedef std::set<const enum_type*> table_t;
+  static table_t tmp_tbl;
+  enum_type(tag* tag, const type* integer) : type(ENUM), m_tag(tag), m_integer(integer) {}
 public:
   void decl(std::ostream&, std::string) const;
   void encode(std::ostream&) const;
   bool compatible(const type*) const;
   const type* composite(const type*) const;
   int size() const { return m_integer->size(); }
+  bool _signed() const { return m_integer->_signed(); }
   tag* get_tag() const { return m_tag; }
-  bool temporary(bool) const;
+  bool tmp() const;
   const type* get_integer() const { return m_integer; }  
   static const enum_type* create(tag*, const type*);
+  static void destroy_tmp();
+  static void collect_tmp(std::vector<const type*>&);
 };
 
 class bit_field_type : public type {
@@ -1958,19 +2048,18 @@ public:
   void decl(std::ostream&, std::string) const;
   void encode(std::ostream&) const { assert(0); }
   int size() const { return 0; }
+  bool _signed() const { return m_integer->_signed(); }
   const type* patch(const type*, usr*) const;
   int bit() const { return m_bit; }
   static const bit_field_type* create(int, const type*);
 };
 
 class varray_type : public type {
-  mutable const type* m_T;
-  std::pair<var*, var*> m_dim;
-  mutable bool m_decided;
-  mutable std::vector<tac*> m_code;
-  varray_type(const type*, var*);
-  varray_type(const type*, var*, const std::vector<tac*>&);
-  ~varray_type();
+  const type* m_T;
+  var* m_dim;
+  struct table_t;
+  static table_t table;
+  varray_type(const type* T, var* dim) : type(VARRAY), m_T(T), m_dim(dim) {}
 public:
   void decl(std::ostream&, std::string) const;
   void encode(std::ostream&) const;
@@ -1989,21 +2078,22 @@ public:
   const pointer_type* ptr_gen() const;
   const type* element_type() const { return m_T; }
   bool aggregate() const { return true; }
-  bool temporary(bool) const { return true; }
-  void decide() const;
+  bool tmp() const { return true; }
+  bool variably_modified() const { return true; }
+  const type* vla2a() const { return array_type::create(m_T->vla2a(), 0); }
   var* vsize() const;
   static const varray_type* create(const type*, var*);
-  static const varray_type* create(const type*, var*, const std::vector<tac*>&);
+  static void destroy_tmp();
+  static void collect_tmp(std::vector<const type*>&);
 };
 
 class pointer_member_type : public type {
   const tag* m_tag;
   const type* m_T;
-  typedef std::pair<const tag*, const type*> KEY;
   pointer_member_type(const tag* tag, const type* T)
     : type(POINTER_MEMBER), m_tag(tag), m_T(T) {}
-  struct table_t;
-  static table_t table;
+  typedef std::map<std::pair<const tag*, const type*>, const pointer_member_type*> table_t;
+  static table_t tmp_tbl, pmt_tbl;
 public:
   void decl(std::ostream&, std::string) const;
   void encode(std::ostream&) const;
@@ -2022,8 +2112,9 @@ public:
   const type* composite(const type*) const;
   bool include_qualifier(const pointer_member_type*) const;
   static const pointer_member_type* create(const tag*, const type*);
+  static void destroy_tmp();
+  static void collect_tmp(std::vector<const type*>&);
 };
-
 
 struct fundef {
   usr* m_usr;

@@ -109,7 +109,7 @@ namespace cxx_compiler { namespace constant_impl {
           binary::invalid(parse::position,
 			  ANDAND ? ANDAND_MK : OROR_MK,y->m_type,Tz);
         }
-        for_each(code.begin()+n,code.end(),misc::deleter<tac>());
+        for_each(code.begin()+n,code.end(),[](tac* p){ delete p; });
         code.resize(n);
         return expressions::primary::literal::integer::create(0);
       }
@@ -125,7 +125,7 @@ namespace cxx_compiler { namespace constant_impl {
           binary::invalid(parse::position,
 			  ANDAND ? ANDAND_MK : OROR_MK,y->m_type,Tz);
         }
-        for_each(code.begin()+n,code.end(),misc::deleter<tac>());
+        for_each(code.begin()+n,code.end(),[](tac* p){ delete p; });
         code.resize(n);
         return expressions::primary::literal::integer::create(1);
       }
@@ -168,6 +168,15 @@ namespace cxx_compiler {
   { return constant_impl::logic1(ANDAND,n,this,z); }
   template<>
   var* constant<unsigned char>::logic2(bool, const type*)
+  {
+    return zero() ? expressions::primary::literal::integer::create(0) : expressions::primary::literal::integer::create(1);
+  }
+
+  template<>
+  var* constant<wchar_t>::logic1(bool ANDAND, int n, var* z)
+  { return constant_impl::logic1(ANDAND,n,this,z); }
+  template<>
+  var* constant<wchar_t>::logic2(bool, const type*)
   {
     return zero() ? expressions::primary::literal::integer::create(0) : expressions::primary::literal::integer::create(1);
   }
@@ -289,56 +298,64 @@ const cxx_compiler::file_t& cxx_compiler::expressions::conditional::info_t::file
   return m_expr1->file();
 }
 
-namespace cxx_compiler { namespace cond_impl {
-  struct sweeper {
-    int n;
-    sweeper() : n(cxx_compiler::code.size()) {}
-    ~sweeper()
+namespace cxx_compiler {
+  namespace cond_impl {
+    const type* valid(var* expr2, var* expr3)
     {
       using namespace std;
-      using namespace cxx_compiler;
-      for_each(code.begin()+n,code.end(),misc::deleter<tac>());
-      code.resize(n);
-    }
-  };
-  const type* valid(var*, var*);
-} } // end of namespace cond_impl and cxx_compiler
+      const type* T2 = expr2->m_type;
+      const type* T3 = expr3->m_type;
+      if ( T2->arithmetic() && T3->arithmetic() ){
+	var* v2 = new var(T2); auto_ptr<var> sweeper2(v2);
+	var* v3 = new var(T3); auto_ptr<var> sweeper3(v3);
+	struct sweeper {
+	  int n;
+	  sweeper() : n(cxx_compiler::code.size()) {}
+	  ~sweeper()
+	  {
+	    using namespace std;
+	    using namespace cxx_compiler;
+	    for_each(code.begin()+n,code.end(),[](tac* p){ delete p; });
+	    code.resize(n);
+	  }
+	} sweeper;
+	return conversion::arithmetic::gen(&v2,&v3);
+      }
+      T2 = T2->unqualified();
+      T3 = T3->unqualified();
+      T2 = T2->complete_type();
+      if (compatible(T2, T3))
+	return T2;
 
-const cxx_compiler::type*
-cxx_compiler::cond_impl::valid(var* expr2, var* expr3)
-{
-  using namespace std;
-  const type* T2 = expr2->m_type;
-  const type* T3 = expr3->m_type;
-  if ( T2->arithmetic() && T3->arithmetic() ){
-    var* v2 = new var(T2); auto_ptr<var> sweeper2(v2);
-    var* v3 = new var(T3); auto_ptr<var> sweeper3(v3);
-    sweeper obj;
-    return conversion::arithmetic::gen(&v2,&v3);
-  }
-  T2 = T2->complete_type();
-  if ( T2->compatible(T3) )
-    return T2->composite(T3);
-  typedef const pointer_type PT;
-  const type* pv = pointer_type::create(void_type::create());
-  T2 = T2->unqualified();
-  if ( T2->m_id == type::POINTER ){
-    PT* pt = static_cast<PT*>(T2);
-    if ( T3->integer() && expr3->zero() )
-      return pt;
-    if ( T3->compatible(pv) )
-      return pt;
-  }
-  T3 = T3->unqualified();
-  if ( T3->m_id == type::POINTER ){
-    PT* pt = static_cast<PT*>(T3);
-    if ( T2->integer() && expr2->zero() )
-      return pt;
-    if ( T2->compatible(pv) )
-      return pt;
-  }
-  return 0;
-}
+      if (T2->m_id == type::POINTER && T3->m_id == type::POINTER) {
+	typedef const pointer_type PT;
+	PT* p2 = static_cast<PT*>(T2);
+	PT* p3 = static_cast<PT*>(T3);
+	const type* R2 = p2->referenced_type();
+	const type* R3 = p3->referenced_type();
+	int cvr2 = 0, cvr3 = 0;
+	const type* R2u = R2->unqualified(&cvr2);
+	const type* R3u = R3->unqualified(&cvr3);
+	if (compatible(R2u, R3u))
+	  return pointer_type::create(R2->qualified(cvr3));
+	if (R2u->m_id == type::VOID)
+	  return p3;
+	if (R3u->m_id == type::VOID)
+	  return p2;
+      }
+
+      if (T2->m_id == type::POINTER) {
+	if (T3->integer() && expr3->zero())
+	  return T2;
+      }
+      if (T3->m_id == type::POINTER) {
+	if (T2->integer() && expr2->zero())
+	  return T3;
+      }
+      return 0;
+    }
+  } // end of namespace cond_impl
+} // end of namespace cxx_compiler
 
 namespace cxx_compiler { namespace var_impl {
   var* cond(var*, int, var*, int, var*);
@@ -386,14 +403,13 @@ cxx_compiler::var* cxx_compiler::var_impl::cond(var* expr1, int y, var* expr2, i
   }
   var* ret = new var(T);
   block* b = scope::current->m_id == scope::BLOCK ? static_cast<block*>(scope::current) : 0;
-  bool v = T->compatible(void_type::create());
-  if ( b && !v )
+  if (b && T->m_id != type::VOID)
     b->m_vars.push_back(ret);
   else
     garbage.push_back(ret);
   if ( T->scalar() )
     expr2 = expr2->cast(T);
-  if ( !v )
+  if ( T->m_id != type::VOID )
     code.push_back(new assign3ac(ret,expr2));
   goto3ac* goto2 = new goto3ac;
   code.push_back(goto2);
@@ -404,7 +420,7 @@ cxx_compiler::var* cxx_compiler::var_impl::cond(var* expr1, int y, var* expr2, i
   copy(code3.begin(),code3.end(),back_inserter(code));
   if ( T->scalar() )
     expr3 = expr3->cast(T);
-  if ( !v )
+  if (T->m_id != type::VOID)
     code.push_back(new assign3ac(ret,expr3));
   to3ac* to2 = new to3ac;
   code.push_back(to2);
@@ -423,14 +439,14 @@ namespace cxx_compiler { namespace constant_impl {
     const type* T = cond_impl::valid(y,z);
     if ( T ){
       if ( x->zero() ){
-        for_each(code.begin()+n,code.begin()+m,misc::deleter<tac>());
+        for_each(code.begin()+n,code.begin()+m,[](tac* p){ delete p; });
         vector<tac*>::iterator p = code.begin() + n;
         vector<tac*>::iterator q = code.begin() + m;
         code.erase(p,q);
         return z->cast(T);
       }
       else {
-        for_each(code.begin()+m,code.end(),misc::deleter<tac>());
+        for_each(code.begin()+m,code.end(),[](tac* p){ delete p; });
         code.resize(m);
         return y->cast(T);
       }
@@ -455,6 +471,10 @@ namespace cxx_compiler {
   
   template<>
   var* constant<unsigned char>::cond(int n, int m, var* expr2, var* expr3)
+  { return constant_impl::cond(this,n,expr2,m,expr3); }
+
+  template<>
+  var* constant<wchar_t>::cond(int n, int m, var* expr2, var* expr3)
   { return constant_impl::cond(this,n,expr2,m,expr3); }
   
   template<>
@@ -544,8 +564,7 @@ cxx_compiler::var* cxx_compiler::var01::cond(int y, int x, var* expr2, var* expr
   }
   var* ret = new var(T);
   block* b = scope::current->m_id == scope::BLOCK ? static_cast<block*>(scope::current) : 0;
-  bool v = T->compatible(void_type::create());
-  if ( b && !v )
+  if (b && T->m_id != type::VOID)
     b->m_vars.push_back(ret);
   else
     garbage.push_back(ret);
@@ -565,7 +584,7 @@ cxx_compiler::var* cxx_compiler::var01::cond(int y, int x, var* expr2, var* expr
       code.resize(n);
     }
   }
-  if ( !v ){
+  if (T->m_id != type::VOID){
     code2.push_back(new assign3ac(ret,expr2));
     code3.push_back(new assign3ac(ret,expr3));
   }

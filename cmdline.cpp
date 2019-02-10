@@ -37,14 +37,16 @@ namespace cxx_compiler {
 	else {
 	  if ( input.empty() ){
 	    input = *argv;
-	    output = input;
-	    string::size_type pos = output.find_last_of(separator);
-	    if ( pos != string::npos )
-	      output.erase(0,pos+1);
-	    pos = output.find_last_of('.');
-	    if ( pos != string::npos )
-	      output.erase(pos);
-	    output += ".s";
+	    if (output.empty()) {
+	      output = input;
+	      string::size_type pos = output.find_last_of(separator);
+	      if ( pos != string::npos )
+		output.erase(0,pos+1);
+	      pos = output.find_last_of('.');
+	      if ( pos != string::npos )
+		output.erase(pos);
+	      output += ".s";
+	    }
 	  }
 	  else
 	    warning::cmdline::input(*argv);
@@ -281,7 +283,7 @@ int cxx_compiler::cmdline::version_option(char** argv)
   return 0;
 }
 
-int cxx_compiler::cmdline::optimize_level;
+int cxx_compiler::cmdline::optimize_level = 1;
 
 int cxx_compiler::cmdline::optimize_option(char** argv)
 {

@@ -49,6 +49,7 @@ cxx_compiler::var* cxx_compiler::var::bit_andr(constant<bool>* y){ return var_im
 cxx_compiler::var* cxx_compiler::var::bit_andr(constant<char>* y){ return var_impl::bit_and(y,this); }
 cxx_compiler::var* cxx_compiler::var::bit_andr(constant<signed char>* y){ return var_impl::bit_and(y,this); }
 cxx_compiler::var* cxx_compiler::var::bit_andr(constant<unsigned char>* y){ return var_impl::bit_and(y,this); }
+cxx_compiler::var* cxx_compiler::var::bit_andr(constant<wchar_t>* y){ return var_impl::bit_and(y,this); }
 cxx_compiler::var* cxx_compiler::var::bit_andr(constant<short int>* y){ return var_impl::bit_and(y,this); }
 cxx_compiler::var* cxx_compiler::var::bit_andr(constant<unsigned short int>* y){ return var_impl::bit_and(y,this); }
 cxx_compiler::var* cxx_compiler::var::bit_andr(constant<int>* y){ return var_impl::bit_and(y,this); }
@@ -62,7 +63,16 @@ namespace cxx_compiler { namespace constant_impl {
   template<class A, class B> var* bit_and(constant<A>* y, constant<B>* z)
   {
     using namespace expressions::primary::literal;
-    return integer::create(y->m_value & z->m_value);
+    usr::flag_t fy = y->m_flag;
+    if (fy & usr::CONST_PTR)
+      return var_impl::bit_and(y,z);
+    usr::flag_t fz = z->m_flag;
+    if (fz & usr::CONST_PTR)
+      return var_impl::bit_and(y,z);
+    usr* ret = integer::create(y->m_value & z->m_value);
+    if (const type* T = SUB_CONST_LONG_impl::propagation(y, z))
+      ret->m_type = T, ret->m_flag = usr::SUB_CONST_LONG;
+    return ret;
   }
 } } // end of namespace constant_impl and cxx_compiler
 
@@ -78,6 +88,9 @@ namespace cxx_compiler {
   { return constant_impl::bit_and(y,this); }
   template<>
   var* constant<bool>::bit_andr(constant<unsigned char>* y)
+  { return constant_impl::bit_and(y,this); }
+  template<>
+  var* constant<bool>::bit_andr(constant<wchar_t>* y)
   { return constant_impl::bit_and(y,this); }
   template<>
   var* constant<bool>::bit_andr(constant<short int>* y)
@@ -116,6 +129,9 @@ namespace cxx_compiler {
   var* constant<char>::bit_andr(constant<unsigned char>* y)
   { return constant_impl::bit_and(y,this); }
   template<>
+  var* constant<char>::bit_andr(constant<wchar_t>* y)
+  { return constant_impl::bit_and(y,this); }
+  template<>
   var* constant<char>::bit_andr(constant<short int>* y)
   { return constant_impl::bit_and(y,this); }
   template<>
@@ -150,6 +166,9 @@ namespace cxx_compiler {
   { return constant_impl::bit_and(y,this); }
   template<>
   var* constant<signed char>::bit_andr(constant<unsigned char>* y)
+  { return constant_impl::bit_and(y,this); }
+  template<>
+  var* constant<signed char>::bit_andr(constant<wchar_t>* y)
   { return constant_impl::bit_and(y,this); }
   template<>
   var* constant<signed char>::bit_andr(constant<short int>* y)
@@ -188,6 +207,9 @@ namespace cxx_compiler {
   var* constant<unsigned char>::bit_andr(constant<unsigned char>* y)
   { return constant_impl::bit_and(y,this); }
   template<>
+  var* constant<unsigned char>::bit_andr(constant<wchar_t>* y)
+  { return constant_impl::bit_and(y,this); }
+  template<>
   var* constant<unsigned char>::bit_andr(constant<short int>* y)
   { return constant_impl::bit_and(y,this); }
   template<>
@@ -212,6 +234,45 @@ namespace cxx_compiler {
   var* constant<unsigned char>::bit_andr(constant<unsigned __int64>* y)
   { return constant_impl::bit_and(y,this); }
   template<>
+  var* constant<wchar_t>::bit_andr(constant<bool>* y)
+  { return constant_impl::bit_and(y,this); }
+  template<>
+  var* constant<wchar_t>::bit_andr(constant<char>* y)
+  { return constant_impl::bit_and(y,this); }
+  template<>
+  var* constant<wchar_t>::bit_andr(constant<signed char>* y)
+  { return constant_impl::bit_and(y,this); }
+  template<>
+  var* constant<wchar_t>::bit_andr(constant<unsigned char>* y)
+  { return constant_impl::bit_and(y,this); }
+  template<>
+  var* constant<wchar_t>::bit_andr(constant<wchar_t>* y)
+  { return constant_impl::bit_and(y,this); }
+  template<>
+  var* constant<wchar_t>::bit_andr(constant<short int>* y)
+  { return constant_impl::bit_and(y,this); }
+  template<>
+  var* constant<wchar_t>::bit_andr(constant<unsigned short int>* y)
+  { return constant_impl::bit_and(y,this); }
+  template<>
+  var* constant<wchar_t>::bit_andr(constant<int>* y)
+  { return constant_impl::bit_and(y,this); }
+  template<>
+  var* constant<wchar_t>::bit_andr(constant<unsigned int>* y)
+  { return constant_impl::bit_and(y,this); }
+  template<>
+  var* constant<wchar_t>::bit_andr(constant<long int>* y)
+  { return constant_impl::bit_and(y,this); }
+  template<>
+  var* constant<wchar_t>::bit_andr(constant<unsigned long int>* y)
+  { return constant_impl::bit_and(y,this); }
+  template<>
+  var* constant<wchar_t>::bit_andr(constant<__int64>* y)
+  { return constant_impl::bit_and(y,this); }
+  template<>
+  var* constant<wchar_t>::bit_andr(constant<unsigned __int64>* y)
+  { return constant_impl::bit_and(y,this); }
+  template<>
   var* constant<short int>::bit_andr(constant<bool>* y)
   { return constant_impl::bit_and(y,this); }
   template<>
@@ -222,6 +283,9 @@ namespace cxx_compiler {
   { return constant_impl::bit_and(y,this); }
   template<>
   var* constant<short int>::bit_andr(constant<unsigned char>* y)
+  { return constant_impl::bit_and(y,this); }
+  template<>
+  var* constant<short int>::bit_andr(constant<wchar_t>* y)
   { return constant_impl::bit_and(y,this); }
   template<>
   var* constant<short int>::bit_andr(constant<short int>* y)
@@ -260,6 +324,9 @@ namespace cxx_compiler {
   var* constant<unsigned short int>::bit_andr(constant<unsigned char>* y)
   { return constant_impl::bit_and(y,this); }
   template<>
+  var* constant<unsigned short int>::bit_andr(constant<wchar_t>* y)
+  { return constant_impl::bit_and(y,this); }
+  template<>
   var* constant<unsigned short int>::bit_andr(constant<short int>* y)
   { return constant_impl::bit_and(y,this); }
   template<>
@@ -294,6 +361,9 @@ namespace cxx_compiler {
   { return constant_impl::bit_and(y,this); }
   template<>
   var* constant<int>::bit_andr(constant<unsigned char>* y)
+  { return constant_impl::bit_and(y,this); }
+  template<>
+  var* constant<int>::bit_andr(constant<wchar_t>* y)
   { return constant_impl::bit_and(y,this); }
   template<>
   var* constant<int>::bit_andr(constant<short int>* y)
@@ -332,6 +402,9 @@ namespace cxx_compiler {
   var* constant<unsigned int>::bit_andr(constant<unsigned char>* y)
   { return constant_impl::bit_and(y,this); }
   template<>
+  var* constant<unsigned int>::bit_andr(constant<wchar_t>* y)
+  { return constant_impl::bit_and(y,this); }
+  template<>
   var* constant<unsigned int>::bit_andr(constant<short int>* y)
   { return constant_impl::bit_and(y,this); }
   template<>
@@ -366,6 +439,9 @@ namespace cxx_compiler {
   { return constant_impl::bit_and(y,this); }
   template<>
   var* constant<long int>::bit_andr(constant<unsigned char>* y)
+  { return constant_impl::bit_and(y,this); }
+  template<>
+  var* constant<long int>::bit_andr(constant<wchar_t>* y)
   { return constant_impl::bit_and(y,this); }
   template<>
   var* constant<long int>::bit_andr(constant<short int>* y)
@@ -404,6 +480,9 @@ namespace cxx_compiler {
   var* constant<unsigned long int>::bit_andr(constant<unsigned char>* y)
   { return constant_impl::bit_and(y,this); }
   template<>
+  var* constant<unsigned long int>::bit_andr(constant<wchar_t>* y)
+  { return constant_impl::bit_and(y,this); }
+  template<>
   var* constant<unsigned long int>::bit_andr(constant<short int>* y)
   { return constant_impl::bit_and(y,this); }
   template<>
@@ -440,6 +519,9 @@ namespace cxx_compiler {
   var* constant<__int64>::bit_andr(constant<unsigned char>* y)
   { return constant_impl::bit_and(y,this); }
   template<>
+  var* constant<__int64>::bit_andr(constant<wchar_t>* y)
+  { return constant_impl::bit_and(y,this); }
+  template<>
   var* constant<__int64>::bit_andr(constant<short int>* y)
   { return constant_impl::bit_and(y,this); }
   template<>
@@ -474,6 +556,9 @@ namespace cxx_compiler {
   { return constant_impl::bit_and(y,this); }
   template<>
   var* constant<unsigned __int64>::bit_andr(constant<unsigned char>* y)
+  { return constant_impl::bit_and(y,this); }
+  template<>
+  var* constant<unsigned __int64>::bit_andr(constant<wchar_t>* y)
   { return constant_impl::bit_and(y,this); }
   template<>
   var* constant<unsigned __int64>::bit_andr(constant<short int>* y)
@@ -515,6 +600,7 @@ cxx_compiler::var* cxx_compiler::var::bit_xorr(constant<bool>* y){ return var_im
 cxx_compiler::var* cxx_compiler::var::bit_xorr(constant<char>* y){ return var_impl::bit_xor(y,this); }
 cxx_compiler::var* cxx_compiler::var::bit_xorr(constant<signed char>* y){ return var_impl::bit_xor(y,this); }
 cxx_compiler::var* cxx_compiler::var::bit_xorr(constant<unsigned char>* y){ return var_impl::bit_xor(y,this); }
+cxx_compiler::var* cxx_compiler::var::bit_xorr(constant<wchar_t>* y){ return var_impl::bit_xor(y,this); }
 cxx_compiler::var* cxx_compiler::var::bit_xorr(constant<short int>* y){ return var_impl::bit_xor(y,this); }
 cxx_compiler::var* cxx_compiler::var::bit_xorr(constant<unsigned short int>* y){ return var_impl::bit_xor(y,this); }
 cxx_compiler::var* cxx_compiler::var::bit_xorr(constant<int>* y){ return var_impl::bit_xor(y,this); }
@@ -528,7 +614,16 @@ namespace cxx_compiler { namespace constant_impl {
   template<class A, class B> var* bit_xor(constant<A>* y, constant<B>* z)
   {
     using namespace expressions::primary::literal;
-    return integer::create(y->m_value ^ z->m_value);
+    usr::flag_t fy = y->m_flag;
+    if (fy & usr::CONST_PTR)
+      return var_impl::bit_xor(y,z);
+    usr::flag_t fz = z->m_flag;
+    if (fz & usr::CONST_PTR)
+      return var_impl::bit_xor(y,z);
+    usr* ret = integer::create(y->m_value ^ z->m_value);
+    if (const type* T = SUB_CONST_LONG_impl::propagation(y, z))
+      ret->m_type = T, ret->m_flag = usr::SUB_CONST_LONG;
+    return ret;
   }
 } } // end of namespace constant_impl and cxx_compiler
 
@@ -544,6 +639,9 @@ namespace cxx_compiler {
   { return constant_impl::bit_xor(y,this); }
   template<>
   var* constant<bool>::bit_xorr(constant<unsigned char>* y)
+  { return constant_impl::bit_xor(y,this); }
+  template<>
+  var* constant<bool>::bit_xorr(constant<wchar_t>* y)
   { return constant_impl::bit_xor(y,this); }
   template<>
   var* constant<bool>::bit_xorr(constant<short int>* y)
@@ -582,6 +680,9 @@ namespace cxx_compiler {
   var* constant<char>::bit_xorr(constant<unsigned char>* y)
   { return constant_impl::bit_xor(y,this); }
   template<>
+  var* constant<char>::bit_xorr(constant<wchar_t>* y)
+  { return constant_impl::bit_xor(y,this); }
+  template<>
   var* constant<char>::bit_xorr(constant<short int>* y)
   { return constant_impl::bit_xor(y,this); }
   template<>
@@ -616,6 +717,9 @@ namespace cxx_compiler {
   { return constant_impl::bit_xor(y,this); }
   template<>
   var* constant<signed char>::bit_xorr(constant<unsigned char>* y)
+  { return constant_impl::bit_xor(y,this); }
+  template<>
+  var* constant<signed char>::bit_xorr(constant<wchar_t>* y)
   { return constant_impl::bit_xor(y,this); }
   template<>
   var* constant<signed char>::bit_xorr(constant<short int>* y)
@@ -654,6 +758,9 @@ namespace cxx_compiler {
   var* constant<unsigned char>::bit_xorr(constant<unsigned char>* y)
   { return constant_impl::bit_xor(y,this); }
   template<>
+  var* constant<unsigned char>::bit_xorr(constant<wchar_t>* y)
+  { return constant_impl::bit_xor(y,this); }
+  template<>
   var* constant<unsigned char>::bit_xorr(constant<short int>* y)
   { return constant_impl::bit_xor(y,this); }
   template<>
@@ -678,6 +785,45 @@ namespace cxx_compiler {
   var* constant<unsigned char>::bit_xorr(constant<unsigned __int64>* y)
   { return constant_impl::bit_xor(y,this); }
   template<>
+  var* constant<wchar_t>::bit_xorr(constant<bool>* y)
+  { return constant_impl::bit_xor(y,this); }
+  template<>
+  var* constant<wchar_t>::bit_xorr(constant<char>* y)
+  { return constant_impl::bit_xor(y,this); }
+  template<>
+  var* constant<wchar_t>::bit_xorr(constant<signed char>* y)
+  { return constant_impl::bit_xor(y,this); }
+  template<>
+  var* constant<wchar_t>::bit_xorr(constant<unsigned char>* y)
+  { return constant_impl::bit_xor(y,this); }
+  template<>
+  var* constant<wchar_t>::bit_xorr(constant<wchar_t>* y)
+  { return constant_impl::bit_xor(y,this); }
+  template<>
+  var* constant<wchar_t>::bit_xorr(constant<short int>* y)
+  { return constant_impl::bit_xor(y,this); }
+  template<>
+  var* constant<wchar_t>::bit_xorr(constant<unsigned short int>* y)
+  { return constant_impl::bit_xor(y,this); }
+  template<>
+  var* constant<wchar_t>::bit_xorr(constant<int>* y)
+  { return constant_impl::bit_xor(y,this); }
+  template<>
+  var* constant<wchar_t>::bit_xorr(constant<unsigned int>* y)
+  { return constant_impl::bit_xor(y,this); }
+  template<>
+  var* constant<wchar_t>::bit_xorr(constant<long int>* y)
+  { return constant_impl::bit_xor(y,this); }
+  template<>
+  var* constant<wchar_t>::bit_xorr(constant<unsigned long int>* y)
+  { return constant_impl::bit_xor(y,this); }
+  template<>
+  var* constant<wchar_t>::bit_xorr(constant<__int64>* y)
+  { return constant_impl::bit_xor(y,this); }
+  template<>
+  var* constant<wchar_t>::bit_xorr(constant<unsigned __int64>* y)
+  { return constant_impl::bit_xor(y,this); }
+  template<>
   var* constant<short int>::bit_xorr(constant<bool>* y)
   { return constant_impl::bit_xor(y,this); }
   template<>
@@ -688,6 +834,9 @@ namespace cxx_compiler {
   { return constant_impl::bit_xor(y,this); }
   template<>
   var* constant<short int>::bit_xorr(constant<unsigned char>* y)
+  { return constant_impl::bit_xor(y,this); }
+  template<>
+  var* constant<short int>::bit_xorr(constant<wchar_t>* y)
   { return constant_impl::bit_xor(y,this); }
   template<>
   var* constant<short int>::bit_xorr(constant<short int>* y)
@@ -726,6 +875,9 @@ namespace cxx_compiler {
   var* constant<unsigned short int>::bit_xorr(constant<unsigned char>* y)
   { return constant_impl::bit_xor(y,this); }
   template<>
+  var* constant<unsigned short int>::bit_xorr(constant<wchar_t>* y)
+  { return constant_impl::bit_xor(y,this); }
+  template<>
   var* constant<unsigned short int>::bit_xorr(constant<short int>* y)
   { return constant_impl::bit_xor(y,this); }
   template<>
@@ -760,6 +912,9 @@ namespace cxx_compiler {
   { return constant_impl::bit_xor(y,this); }
   template<>
   var* constant<int>::bit_xorr(constant<unsigned char>* y)
+  { return constant_impl::bit_xor(y,this); }
+  template<>
+  var* constant<int>::bit_xorr(constant<wchar_t>* y)
   { return constant_impl::bit_xor(y,this); }
   template<>
   var* constant<int>::bit_xorr(constant<short int>* y)
@@ -798,6 +953,9 @@ namespace cxx_compiler {
   var* constant<unsigned int>::bit_xorr(constant<unsigned char>* y)
   { return constant_impl::bit_xor(y,this); }
   template<>
+  var* constant<unsigned int>::bit_xorr(constant<wchar_t>* y)
+  { return constant_impl::bit_xor(y,this); }
+  template<>
   var* constant<unsigned int>::bit_xorr(constant<short int>* y)
   { return constant_impl::bit_xor(y,this); }
   template<>
@@ -832,6 +990,9 @@ namespace cxx_compiler {
   { return constant_impl::bit_xor(y,this); }
   template<>
   var* constant<long int>::bit_xorr(constant<unsigned char>* y)
+  { return constant_impl::bit_xor(y,this); }
+  template<>
+  var* constant<long int>::bit_xorr(constant<wchar_t>* y)
   { return constant_impl::bit_xor(y,this); }
   template<>
   var* constant<long int>::bit_xorr(constant<short int>* y)
@@ -870,6 +1031,9 @@ namespace cxx_compiler {
   var* constant<unsigned long int>::bit_xorr(constant<unsigned char>* y)
   { return constant_impl::bit_xor(y,this); }
   template<>
+  var* constant<unsigned long int>::bit_xorr(constant<wchar_t>* y)
+  { return constant_impl::bit_xor(y,this); }
+  template<>
   var* constant<unsigned long int>::bit_xorr(constant<short int>* y)
   { return constant_impl::bit_xor(y,this); }
   template<>
@@ -906,6 +1070,9 @@ namespace cxx_compiler {
   var* constant<__int64>::bit_xorr(constant<unsigned char>* y)
   { return constant_impl::bit_xor(y,this); }
   template<>
+  var* constant<__int64>::bit_xorr(constant<wchar_t>* y)
+  { return constant_impl::bit_xor(y,this); }
+  template<>
   var* constant<__int64>::bit_xorr(constant<short int>* y)
   { return constant_impl::bit_xor(y,this); }
   template<>
@@ -940,6 +1107,9 @@ namespace cxx_compiler {
   { return constant_impl::bit_xor(y,this); }
   template<>
   var* constant<unsigned __int64>::bit_xorr(constant<unsigned char>* y)
+  { return constant_impl::bit_xor(y,this); }
+  template<>
+  var* constant<unsigned __int64>::bit_xorr(constant<wchar_t>* y)
   { return constant_impl::bit_xor(y,this); }
   template<>
   var* constant<unsigned __int64>::bit_xorr(constant<short int>* y)
@@ -981,6 +1151,7 @@ cxx_compiler::var* cxx_compiler::var::bit_orr(constant<bool>* y){ return var_imp
 cxx_compiler::var* cxx_compiler::var::bit_orr(constant<char>* y){ return var_impl::bit_or(y,this); }
 cxx_compiler::var* cxx_compiler::var::bit_orr(constant<signed char>* y){ return var_impl::bit_or(y,this); }
 cxx_compiler::var* cxx_compiler::var::bit_orr(constant<unsigned char>* y){ return var_impl::bit_or(y,this); }
+cxx_compiler::var* cxx_compiler::var::bit_orr(constant<wchar_t>* y){ return var_impl::bit_or(y,this); }
 cxx_compiler::var* cxx_compiler::var::bit_orr(constant<short int>* y){ return var_impl::bit_or(y,this); }
 cxx_compiler::var* cxx_compiler::var::bit_orr(constant<unsigned short int>* y){ return var_impl::bit_or(y,this); }
 cxx_compiler::var* cxx_compiler::var::bit_orr(constant<int>* y){ return var_impl::bit_or(y,this); }
@@ -994,7 +1165,16 @@ namespace cxx_compiler { namespace constant_impl {
   template<class A, class B> var* bit_or(constant<A>* y, constant<B>* z)
   {
     using namespace expressions::primary::literal;
-    return integer::create(y->m_value | z->m_value);
+    usr::flag_t fy = y->m_flag;
+    if (fy & usr::CONST_PTR)
+      return var_impl::bit_or(y,z);
+    usr::flag_t fz = z->m_flag;
+    if (fz & usr::CONST_PTR)
+      return var_impl::bit_or(y,z);
+    usr* ret = integer::create(y->m_value | z->m_value);
+    if (const type* T = SUB_CONST_LONG_impl::propagation(y, z))
+      ret->m_type = T, ret->m_flag = usr::SUB_CONST_LONG;
+    return ret;
   }
 } } // end of namespace constant_impl and cxx_compiler
 
@@ -1010,6 +1190,9 @@ namespace cxx_compiler {
   { return constant_impl::bit_or(y,this); }
   template<>
   var* constant<bool>::bit_orr(constant<unsigned char>* y)
+  { return constant_impl::bit_or(y,this); }
+  template<>
+  var* constant<bool>::bit_orr(constant<wchar_t>* y)
   { return constant_impl::bit_or(y,this); }
   template<>
   var* constant<bool>::bit_orr(constant<short int>* y)
@@ -1048,6 +1231,9 @@ namespace cxx_compiler {
   var* constant<char>::bit_orr(constant<unsigned char>* y)
   { return constant_impl::bit_or(y,this); }
   template<>
+  var* constant<char>::bit_orr(constant<wchar_t>* y)
+  { return constant_impl::bit_or(y,this); }
+  template<>
   var* constant<char>::bit_orr(constant<short int>* y)
   { return constant_impl::bit_or(y,this); }
   template<>
@@ -1082,6 +1268,9 @@ namespace cxx_compiler {
   { return constant_impl::bit_or(y,this); }
   template<>
   var* constant<signed char>::bit_orr(constant<unsigned char>* y)
+  { return constant_impl::bit_or(y,this); }
+  template<>
+  var* constant<signed char>::bit_orr(constant<wchar_t>* y)
   { return constant_impl::bit_or(y,this); }
   template<>
   var* constant<signed char>::bit_orr(constant<short int>* y)
@@ -1120,6 +1309,9 @@ namespace cxx_compiler {
   var* constant<unsigned char>::bit_orr(constant<unsigned char>* y)
   { return constant_impl::bit_or(y,this); }
   template<>
+  var* constant<unsigned char>::bit_orr(constant<wchar_t>* y)
+  { return constant_impl::bit_or(y,this); }
+  template<>
   var* constant<unsigned char>::bit_orr(constant<short int>* y)
   { return constant_impl::bit_or(y,this); }
   template<>
@@ -1144,6 +1336,45 @@ namespace cxx_compiler {
   var* constant<unsigned char>::bit_orr(constant<unsigned __int64>* y)
   { return constant_impl::bit_or(y,this); }
   template<>
+  var* constant<wchar_t>::bit_orr(constant<bool>* y)
+  { return constant_impl::bit_or(y,this); }
+  template<>
+  var* constant<wchar_t>::bit_orr(constant<char>* y)
+  { return constant_impl::bit_or(y,this); }
+  template<>
+  var* constant<wchar_t>::bit_orr(constant<signed char>* y)
+  { return constant_impl::bit_or(y,this); }
+  template<>
+  var* constant<wchar_t>::bit_orr(constant<unsigned char>* y)
+  { return constant_impl::bit_or(y,this); }
+  template<>
+  var* constant<wchar_t>::bit_orr(constant<wchar_t>* y)
+  { return constant_impl::bit_or(y,this); }
+  template<>
+  var* constant<wchar_t>::bit_orr(constant<short int>* y)
+  { return constant_impl::bit_or(y,this); }
+  template<>
+  var* constant<wchar_t>::bit_orr(constant<unsigned short int>* y)
+  { return constant_impl::bit_or(y,this); }
+  template<>
+  var* constant<wchar_t>::bit_orr(constant<int>* y)
+  { return constant_impl::bit_or(y,this); }
+  template<>
+  var* constant<wchar_t>::bit_orr(constant<unsigned int>* y)
+  { return constant_impl::bit_or(y,this); }
+  template<>
+  var* constant<wchar_t>::bit_orr(constant<long int>* y)
+  { return constant_impl::bit_or(y,this); }
+  template<>
+  var* constant<wchar_t>::bit_orr(constant<unsigned long int>* y)
+  { return constant_impl::bit_or(y,this); }
+  template<>
+  var* constant<wchar_t>::bit_orr(constant<__int64>* y)
+  { return constant_impl::bit_or(y,this); }
+  template<>
+  var* constant<wchar_t>::bit_orr(constant<unsigned __int64>* y)
+  { return constant_impl::bit_or(y,this); }
+  template<>
   var* constant<short int>::bit_orr(constant<bool>* y)
   { return constant_impl::bit_or(y,this); }
   template<>
@@ -1154,6 +1385,9 @@ namespace cxx_compiler {
   { return constant_impl::bit_or(y,this); }
   template<>
   var* constant<short int>::bit_orr(constant<unsigned char>* y)
+  { return constant_impl::bit_or(y,this); }
+  template<>
+  var* constant<short int>::bit_orr(constant<wchar_t>* y)
   { return constant_impl::bit_or(y,this); }
   template<>
   var* constant<short int>::bit_orr(constant<short int>* y)
@@ -1192,6 +1426,9 @@ namespace cxx_compiler {
   var* constant<unsigned short int>::bit_orr(constant<unsigned char>* y)
   { return constant_impl::bit_or(y,this); }
   template<>
+  var* constant<unsigned short int>::bit_orr(constant<wchar_t>* y)
+  { return constant_impl::bit_or(y,this); }
+  template<>
   var* constant<unsigned short int>::bit_orr(constant<short int>* y)
   { return constant_impl::bit_or(y,this); }
   template<>
@@ -1226,6 +1463,9 @@ namespace cxx_compiler {
   { return constant_impl::bit_or(y,this); }
   template<>
   var* constant<int>::bit_orr(constant<unsigned char>* y)
+  { return constant_impl::bit_or(y,this); }
+  template<>
+  var* constant<int>::bit_orr(constant<wchar_t>* y)
   { return constant_impl::bit_or(y,this); }
   template<>
   var* constant<int>::bit_orr(constant<short int>* y)
@@ -1264,6 +1504,9 @@ namespace cxx_compiler {
   var* constant<unsigned int>::bit_orr(constant<unsigned char>* y)
   { return constant_impl::bit_or(y,this); }
   template<>
+  var* constant<unsigned int>::bit_orr(constant<wchar_t>* y)
+  { return constant_impl::bit_or(y,this); }
+  template<>
   var* constant<unsigned int>::bit_orr(constant<short int>* y)
   { return constant_impl::bit_or(y,this); }
   template<>
@@ -1298,6 +1541,9 @@ namespace cxx_compiler {
   { return constant_impl::bit_or(y,this); }
   template<>
   var* constant<long int>::bit_orr(constant<unsigned char>* y)
+  { return constant_impl::bit_or(y,this); }
+  template<>
+  var* constant<long int>::bit_orr(constant<wchar_t>* y)
   { return constant_impl::bit_or(y,this); }
   template<>
   var* constant<long int>::bit_orr(constant<short int>* y)
@@ -1336,6 +1582,9 @@ namespace cxx_compiler {
   var* constant<unsigned long int>::bit_orr(constant<unsigned char>* y)
   { return constant_impl::bit_or(y,this); }
   template<>
+  var* constant<unsigned long int>::bit_orr(constant<wchar_t>* y)
+  { return constant_impl::bit_or(y,this); }
+  template<>
   var* constant<unsigned long int>::bit_orr(constant<short int>* y)
   { return constant_impl::bit_or(y,this); }
   template<>
@@ -1370,6 +1619,9 @@ namespace cxx_compiler {
   { return constant_impl::bit_or(y,this); }
   template<>
   var* constant<__int64>::bit_orr(constant<unsigned char>* y)
+  { return constant_impl::bit_or(y,this); }
+  template<>
+  var* constant<__int64>::bit_orr(constant<wchar_t>* y)
   { return constant_impl::bit_or(y,this); }
   template<>
   var* constant<__int64>::bit_orr(constant<short int>* y)
@@ -1408,6 +1660,9 @@ namespace cxx_compiler {
   var* constant<unsigned __int64>::bit_orr(constant<unsigned char>* y)
   { return constant_impl::bit_or(y,this); }
   template<>
+  var* constant<unsigned __int64>::bit_orr(constant<wchar_t>* y)
+  { return constant_impl::bit_or(y,this); }
+  template<>
   var* constant<unsigned __int64>::bit_orr(constant<short int>* y)
   { return constant_impl::bit_or(y,this); }
   template<>
@@ -1432,3 +1687,40 @@ namespace cxx_compiler {
   var* constant<unsigned __int64>::bit_orr(constant<unsigned __int64>* y)
   { return constant_impl::bit_or(y,this); }
 } // end of namespace cxx_compiler
+
+namespace cxx_compiler { namespace SUB_CONST_LONG_impl {
+  const type* propagation(const usr* y, const usr* z)
+  {
+    usr::flag_t fy = y->m_flag;
+    usr::flag_t fz = z->m_flag;
+    if (!(fy & usr::SUB_CONST_LONG) && !(fz & usr::SUB_CONST_LONG))
+      return 0;
+
+    const type* Ty = y->m_type;
+    const type* Tz = z->m_type;
+    const type* Tyq = Ty->unqualified();
+    const type* Tzq = Tz->unqualified();
+    type::id_t iy = Tyq->m_id;
+    type::id_t iz = Tzq->m_id;
+
+    if ((fy & usr::SUB_CONST_LONG) && (fz & usr::SUB_CONST_LONG)) {
+      if (iy == type::ULONG)
+        return Ty;
+      if (iz == type::ULONG)
+        return Tz;
+      assert(iy == type::LONG && iz == type::LONG);
+      return Ty;
+    }
+    
+    if (fz & usr::SUB_CONST_LONG)
+      return propagation(z, y);
+    
+    assert(fy & usr::SUB_CONST_LONG);
+    assert(!(fz & usr::SUB_CONST_LONG));
+    assert(Tz->integer());
+    if (iz == type::ULONGLONG || iz == type::LONGLONG)
+      return 0;
+    assert(iz != type::ULONG && iz != type::LONG);
+    return Ty;
+  }
+} } // end of namespace SUB_CONST_LONG_impl and cxx_compiler

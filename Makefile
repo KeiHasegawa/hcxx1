@@ -40,11 +40,9 @@ SRCS =	classes.cpp \
 	expr07.cpp \
 	expr08.cpp \
 	expr10.cpp \
-	expr13.cpp \
 	expr14.cpp \
 	expr15.cpp \
 	expr16.cpp \
-	expr17.cpp \
 	generator.cpp \
 	initializers.cpp \
 	main.cpp \

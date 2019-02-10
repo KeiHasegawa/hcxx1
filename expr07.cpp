@@ -38,6 +38,7 @@ cxx_compiler::var* cxx_compiler::var::lshr(constant<bool>* y){ return var_impl::
 cxx_compiler::var* cxx_compiler::var::lshr(constant<char>* y){ return var_impl::lsh(y,this); }
 cxx_compiler::var* cxx_compiler::var::lshr(constant<signed char>* y){ return var_impl::lsh(y,this); }
 cxx_compiler::var* cxx_compiler::var::lshr(constant<unsigned char>* y){ return var_impl::lsh(y,this); }
+cxx_compiler::var* cxx_compiler::var::lshr(constant<wchar_t>* y){ return var_impl::lsh(y,this); }
 cxx_compiler::var* cxx_compiler::var::lshr(constant<short int>* y){ return var_impl::lsh(y,this); }
 cxx_compiler::var* cxx_compiler::var::lshr(constant<unsigned short int>* y){ return var_impl::lsh(y,this); }
 cxx_compiler::var* cxx_compiler::var::lshr(constant<int>* y){ return var_impl::lsh(y,this); }
@@ -51,7 +52,18 @@ namespace cxx_compiler { namespace constant_impl {
   template<class A, class B> var* lsh(constant<A>* y, constant<B>* z)
   {
     using namespace expressions::primary::literal;
-    return integer::create(y->m_value << (int)z->m_value); 
+    usr::flag_t fy = y->m_flag;
+    if (fy & usr::CONST_PTR)
+      return var_impl::lsh(y, z);
+    usr::flag_t fz = z->m_flag;
+    if (fz & usr::CONST_PTR)
+      return var_impl::lsh(y, z);
+    usr* ret = integer::create(y->m_value << (int)z->m_value);
+    if (fy & usr::SUB_CONST_LONG) {
+      ret->m_type = y->m_type;
+      ret->m_flag = usr::SUB_CONST_LONG;
+    }
+    return ret; 
   }
 } } // end of namespace constant_impl and cxx_compiler
 
@@ -67,6 +79,9 @@ namespace cxx_compiler {
   { return constant_impl::lsh(y,this); }
   template<>
   var* constant<bool>::lshr(constant<unsigned char>* y)
+  { return constant_impl::lsh(y,this); }
+  template<>
+  var* constant<bool>::lshr(constant<wchar_t>* y)
   { return constant_impl::lsh(y,this); }
   template<>
   var* constant<bool>::lshr(constant<short int>* y)
@@ -105,6 +120,9 @@ namespace cxx_compiler {
   var* constant<char>::lshr(constant<unsigned char>* y)
   { return constant_impl::lsh(y,this); }
   template<>
+  var* constant<char>::lshr(constant<wchar_t>* y)
+  { return constant_impl::lsh(y,this); }
+  template<>
   var* constant<char>::lshr(constant<short int>* y)
   { return constant_impl::lsh(y,this); }
   template<>
@@ -139,6 +157,9 @@ namespace cxx_compiler {
   { return constant_impl::lsh(y,this); }
   template<>
   var* constant<signed char>::lshr(constant<unsigned char>* y)
+  { return constant_impl::lsh(y,this); }
+  template<>
+  var* constant<signed char>::lshr(constant<wchar_t>* y)
   { return constant_impl::lsh(y,this); }
   template<>
   var* constant<signed char>::lshr(constant<short int>* y)
@@ -177,6 +198,9 @@ namespace cxx_compiler {
   var* constant<unsigned char>::lshr(constant<unsigned char>* y)
   { return constant_impl::lsh(y,this); }
   template<>
+  var* constant<unsigned char>::lshr(constant<wchar_t>* y)
+  { return constant_impl::lsh(y,this); }
+  template<>
   var* constant<unsigned char>::lshr(constant<short int>* y)
   { return constant_impl::lsh(y,this); }
   template<>
@@ -201,6 +225,45 @@ namespace cxx_compiler {
   var* constant<unsigned char>::lshr(constant<unsigned __int64>* y)
   { return constant_impl::lsh(y,this); }
   template<>
+  var* constant<wchar_t>::lshr(constant<bool>* y)
+  { return constant_impl::lsh(y,this); }
+  template<>
+  var* constant<wchar_t>::lshr(constant<char>* y)
+  { return constant_impl::lsh(y,this); }
+  template<>
+  var* constant<wchar_t>::lshr(constant<signed char>* y)
+  { return constant_impl::lsh(y,this); }
+  template<>
+  var* constant<wchar_t>::lshr(constant<unsigned char>* y)
+  { return constant_impl::lsh(y,this); }
+  template<>
+  var* constant<wchar_t>::lshr(constant<wchar_t>* y)
+  { return constant_impl::lsh(y,this); }
+  template<>
+  var* constant<wchar_t>::lshr(constant<short int>* y)
+  { return constant_impl::lsh(y,this); }
+  template<>
+  var* constant<wchar_t>::lshr(constant<unsigned short int>* y)
+  { return constant_impl::lsh(y,this); }
+  template<>
+  var* constant<wchar_t>::lshr(constant<int>* y)
+  { return constant_impl::lsh(y,this); }
+  template<>
+  var* constant<wchar_t>::lshr(constant<unsigned int>* y)
+  { return constant_impl::lsh(y,this); }
+  template<>
+  var* constant<wchar_t>::lshr(constant<long int>* y)
+  { return constant_impl::lsh(y,this); }
+  template<>
+  var* constant<wchar_t>::lshr(constant<unsigned long int>* y)
+  { return constant_impl::lsh(y,this); }
+  template<>
+  var* constant<wchar_t>::lshr(constant<__int64>* y)
+  { return constant_impl::lsh(y,this); }
+  template<>
+  var* constant<wchar_t>::lshr(constant<unsigned __int64>* y)
+  { return constant_impl::lsh(y,this); }
+  template<>
   var* constant<short int>::lshr(constant<bool>* y)
   { return constant_impl::lsh(y,this); }
   template<>
@@ -211,6 +274,9 @@ namespace cxx_compiler {
   { return constant_impl::lsh(y,this); }
   template<>
   var* constant<short int>::lshr(constant<unsigned char>* y)
+  { return constant_impl::lsh(y,this); }
+  template<>
+  var* constant<short int>::lshr(constant<wchar_t>* y)
   { return constant_impl::lsh(y,this); }
   template<>
   var* constant<short int>::lshr(constant<short int>* y)
@@ -249,6 +315,9 @@ namespace cxx_compiler {
   var* constant<unsigned short int>::lshr(constant<unsigned char>* y)
   { return constant_impl::lsh(y,this); }
   template<>
+  var* constant<unsigned short int>::lshr(constant<wchar_t>* y)
+  { return constant_impl::lsh(y,this); }
+  template<>
   var* constant<unsigned short int>::lshr(constant<short int>* y)
   { return constant_impl::lsh(y,this); }
   template<>
@@ -283,6 +352,9 @@ namespace cxx_compiler {
   { return constant_impl::lsh(y,this); }
   template<>
   var* constant<int>::lshr(constant<unsigned char>* y)
+  { return constant_impl::lsh(y,this); }
+  template<>
+  var* constant<int>::lshr(constant<wchar_t>* y)
   { return constant_impl::lsh(y,this); }
   template<>
   var* constant<int>::lshr(constant<short int>* y)
@@ -321,6 +393,9 @@ namespace cxx_compiler {
   var* constant<unsigned int>::lshr(constant<unsigned char>* y)
   { return constant_impl::lsh(y,this); }
   template<>
+  var* constant<unsigned int>::lshr(constant<wchar_t>* y)
+  { return constant_impl::lsh(y,this); }
+  template<>
   var* constant<unsigned int>::lshr(constant<short int>* y)
   { return constant_impl::lsh(y,this); }
   template<>
@@ -355,6 +430,9 @@ namespace cxx_compiler {
   { return constant_impl::lsh(y,this); }
   template<>
   var* constant<long int>::lshr(constant<unsigned char>* y)
+  { return constant_impl::lsh(y,this); }
+  template<>
+  var* constant<long int>::lshr(constant<wchar_t>* y)
   { return constant_impl::lsh(y,this); }
   template<>
   var* constant<long int>::lshr(constant<short int>* y)
@@ -393,6 +471,9 @@ namespace cxx_compiler {
   var* constant<unsigned long int>::lshr(constant<unsigned char>* y)
   { return constant_impl::lsh(y,this); }
   template<>
+  var* constant<unsigned long int>::lshr(constant<wchar_t>* y)
+  { return constant_impl::lsh(y,this); }
+  template<>
   var* constant<unsigned long int>::lshr(constant<short int>* y)
   { return constant_impl::lsh(y,this); }
   template<>
@@ -429,6 +510,9 @@ namespace cxx_compiler {
   var* constant<__int64>::lshr(constant<unsigned char>* y)
   { return constant_impl::lsh(y,this); }
   template<>
+  var* constant<__int64>::lshr(constant<wchar_t>* y)
+  { return constant_impl::lsh(y,this); }
+  template<>
   var* constant<__int64>::lshr(constant<short int>* y)
   { return constant_impl::lsh(y,this); }
   template<>
@@ -463,6 +547,9 @@ namespace cxx_compiler {
   { return constant_impl::lsh(y,this); }
   template<>
   var* constant<unsigned __int64>::lshr(constant<unsigned char>* y)
+  { return constant_impl::lsh(y,this); }
+  template<>
+  var* constant<unsigned __int64>::lshr(constant<wchar_t>* y)
   { return constant_impl::lsh(y,this); }
   template<>
   var* constant<unsigned __int64>::lshr(constant<short int>* y)
@@ -523,6 +610,7 @@ cxx_compiler::var* cxx_compiler::var::rshr(constant<bool>* y){ return var_impl::
 cxx_compiler::var* cxx_compiler::var::rshr(constant<char>* y){ return var_impl::rsh(y,this); }
 cxx_compiler::var* cxx_compiler::var::rshr(constant<signed char>* y){ return var_impl::rsh(y,this); }
 cxx_compiler::var* cxx_compiler::var::rshr(constant<unsigned char>* y){ return var_impl::rsh(y,this); }
+cxx_compiler::var* cxx_compiler::var::rshr(constant<wchar_t>* y){ return var_impl::rsh(y,this); }
 cxx_compiler::var* cxx_compiler::var::rshr(constant<short int>* y){ return var_impl::rsh(y,this); }
 cxx_compiler::var* cxx_compiler::var::rshr(constant<unsigned short int>* y){ return var_impl::rsh(y,this); }
 cxx_compiler::var* cxx_compiler::var::rshr(constant<int>* y){ return var_impl::rsh(y,this); }
@@ -536,7 +624,18 @@ namespace cxx_compiler { namespace constant_impl {
   template<class A, class B> var* rsh(constant<A>* y, constant<B>* z)
   {
     using namespace expressions::primary::literal;
-    return integer::create(y->m_value >> z->m_value); 
+    usr::flag_t fy = y->m_flag;
+    if (fy & usr::CONST_PTR)
+      return var_impl::rsh(y, z);
+    usr::flag_t fz = z->m_flag;
+    if (fz & usr::CONST_PTR)
+      return var_impl::rsh(y, z);
+    usr* ret = integer::create(y->m_value >> z->m_value);
+    if (fy & usr::SUB_CONST_LONG) {
+      ret->m_type = y->m_type;
+      ret->m_flag = usr::SUB_CONST_LONG;
+    }
+    return ret; 
   }
 } } // end of namespace constant_impl and cxx_compiler
 
@@ -552,6 +651,9 @@ namespace cxx_compiler {
   { return constant_impl::rsh(y,this); }
   template<>
   var* constant<bool>::rshr(constant<unsigned char>* y)
+  { return constant_impl::rsh(y,this); }
+  template<>
+  var* constant<bool>::rshr(constant<wchar_t>* y)
   { return constant_impl::rsh(y,this); }
   template<>
   var* constant<bool>::rshr(constant<short int>* y)
@@ -590,6 +692,9 @@ namespace cxx_compiler {
   var* constant<char>::rshr(constant<unsigned char>* y)
   { return constant_impl::rsh(y,this); }
   template<>
+  var* constant<char>::rshr(constant<wchar_t>* y)
+  { return constant_impl::rsh(y,this); }
+  template<>
   var* constant<char>::rshr(constant<short int>* y)
   { return constant_impl::rsh(y,this); }
   template<>
@@ -624,6 +729,9 @@ namespace cxx_compiler {
   { return constant_impl::rsh(y,this); }
   template<>
   var* constant<signed char>::rshr(constant<unsigned char>* y)
+  { return constant_impl::rsh(y,this); }
+  template<>
+  var* constant<signed char>::rshr(constant<wchar_t>* y)
   { return constant_impl::rsh(y,this); }
   template<>
   var* constant<signed char>::rshr(constant<short int>* y)
@@ -662,6 +770,9 @@ namespace cxx_compiler {
   var* constant<unsigned char>::rshr(constant<unsigned char>* y)
   { return constant_impl::rsh(y,this); }
   template<>
+  var* constant<unsigned char>::rshr(constant<wchar_t>* y)
+  { return constant_impl::rsh(y,this); }
+  template<>
   var* constant<unsigned char>::rshr(constant<short int>* y)
   { return constant_impl::rsh(y,this); }
   template<>
@@ -686,6 +797,45 @@ namespace cxx_compiler {
   var* constant<unsigned char>::rshr(constant<unsigned __int64>* y)
   { return constant_impl::rsh(y,this); }
   template<>
+  var* constant<wchar_t>::rshr(constant<bool>* y)
+  { return constant_impl::rsh(y,this); }
+  template<>
+  var* constant<wchar_t>::rshr(constant<char>* y)
+  { return constant_impl::rsh(y,this); }
+  template<>
+  var* constant<wchar_t>::rshr(constant<signed char>* y)
+  { return constant_impl::rsh(y,this); }
+  template<>
+  var* constant<wchar_t>::rshr(constant<unsigned char>* y)
+  { return constant_impl::rsh(y,this); }
+  template<>
+  var* constant<wchar_t>::rshr(constant<wchar_t>* y)
+  { return constant_impl::rsh(y,this); }
+  template<>
+  var* constant<wchar_t>::rshr(constant<short int>* y)
+  { return constant_impl::rsh(y,this); }
+  template<>
+  var* constant<wchar_t>::rshr(constant<unsigned short int>* y)
+  { return constant_impl::rsh(y,this); }
+  template<>
+  var* constant<wchar_t>::rshr(constant<int>* y)
+  { return constant_impl::rsh(y,this); }
+  template<>
+  var* constant<wchar_t>::rshr(constant<unsigned int>* y)
+  { return constant_impl::rsh(y,this); }
+  template<>
+  var* constant<wchar_t>::rshr(constant<long int>* y)
+  { return constant_impl::rsh(y,this); }
+  template<>
+  var* constant<wchar_t>::rshr(constant<unsigned long int>* y)
+  { return constant_impl::rsh(y,this); }
+  template<>
+  var* constant<wchar_t>::rshr(constant<__int64>* y)
+  { return constant_impl::rsh(y,this); }
+  template<>
+  var* constant<wchar_t>::rshr(constant<unsigned __int64>* y)
+  { return constant_impl::rsh(y,this); }
+  template<>
   var* constant<short int>::rshr(constant<bool>* y)
   { return constant_impl::rsh(y,this); }
   template<>
@@ -696,6 +846,9 @@ namespace cxx_compiler {
   { return constant_impl::rsh(y,this); }
   template<>
   var* constant<short int>::rshr(constant<unsigned char>* y)
+  { return constant_impl::rsh(y,this); }
+  template<>
+  var* constant<short int>::rshr(constant<wchar_t>* y)
   { return constant_impl::rsh(y,this); }
   template<>
   var* constant<short int>::rshr(constant<short int>* y)
@@ -734,6 +887,9 @@ namespace cxx_compiler {
   var* constant<unsigned short int>::rshr(constant<unsigned char>* y)
   { return constant_impl::rsh(y,this); }
   template<>
+  var* constant<unsigned short int>::rshr(constant<wchar_t>* y)
+  { return constant_impl::rsh(y,this); }
+  template<>
   var* constant<unsigned short int>::rshr(constant<short int>* y)
   { return constant_impl::rsh(y,this); }
   template<>
@@ -768,6 +924,9 @@ namespace cxx_compiler {
   { return constant_impl::rsh(y,this); }
   template<>
   var* constant<int>::rshr(constant<unsigned char>* y)
+  { return constant_impl::rsh(y,this); }
+  template<>
+  var* constant<int>::rshr(constant<wchar_t>* y)
   { return constant_impl::rsh(y,this); }
   template<>
   var* constant<int>::rshr(constant<short int>* y)
@@ -806,6 +965,9 @@ namespace cxx_compiler {
   var* constant<unsigned int>::rshr(constant<unsigned char>* y)
   { return constant_impl::rsh(y,this); }
   template<>
+  var* constant<unsigned int>::rshr(constant<wchar_t>* y)
+  { return constant_impl::rsh(y,this); }
+  template<>
   var* constant<unsigned int>::rshr(constant<short int>* y)
   { return constant_impl::rsh(y,this); }
   template<>
@@ -840,6 +1002,9 @@ namespace cxx_compiler {
   { return constant_impl::rsh(y,this); }
   template<>
   var* constant<long int>::rshr(constant<unsigned char>* y)
+  { return constant_impl::rsh(y,this); }
+  template<>
+  var* constant<long int>::rshr(constant<wchar_t>* y)
   { return constant_impl::rsh(y,this); }
   template<>
   var* constant<long int>::rshr(constant<short int>* y)
@@ -878,6 +1043,9 @@ namespace cxx_compiler {
   var* constant<unsigned long int>::rshr(constant<unsigned char>* y)
   { return constant_impl::rsh(y,this); }
   template<>
+  var* constant<unsigned long int>::rshr(constant<wchar_t>* y)
+  { return constant_impl::rsh(y,this); }
+  template<>
   var* constant<unsigned long int>::rshr(constant<short int>* y)
   { return constant_impl::rsh(y,this); }
   template<>
@@ -914,6 +1082,9 @@ namespace cxx_compiler {
   var* constant<__int64>::rshr(constant<unsigned char>* y)
   { return constant_impl::rsh(y,this); }
   template<>
+  var* constant<__int64>::rshr(constant<wchar_t>* y)
+  { return constant_impl::rsh(y,this); }
+  template<>
   var* constant<__int64>::rshr(constant<short int>* y)
   { return constant_impl::rsh(y,this); }
   template<>
@@ -948,6 +1119,9 @@ namespace cxx_compiler {
   { return constant_impl::rsh(y,this); }
   template<>
   var* constant<unsigned __int64>::rshr(constant<unsigned char>* y)
+  { return constant_impl::rsh(y,this); }
+  template<>
+  var* constant<unsigned __int64>::rshr(constant<wchar_t>* y)
   { return constant_impl::rsh(y,this); }
   template<>
   var* constant<unsigned __int64>::rshr(constant<short int>* y)

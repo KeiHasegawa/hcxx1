@@ -6,10 +6,10 @@
 #include "yy.h"
 #include "cxx_y.h"
 
-namespace cxx_compiler { namespace expressions { namespace relational_equality {
+namespace cxx_compiler { namespace expressions { namespace cmp_impl {
   var* gen(goto3ac::op, var*, var*);
   bool valid_pointer(goto3ac::op, var*, var*);
-} } } // end of namespace relational_equality, expressions and cxx_compiler
+} } } // end of namespace cmp_impl, expressions and cxx_compiler
 
 cxx_compiler::opposite_t::opposite_t()
 {
@@ -23,7 +23,8 @@ cxx_compiler::opposite_t::opposite_t()
 
 cxx_compiler::opposite_t cxx_compiler::opposite;
 
-cxx_compiler::var* cxx_compiler::expressions::relational_equality::gen(goto3ac::op op, var* a, var* b)
+cxx_compiler::var*
+cxx_compiler::expressions::cmp_impl::gen(goto3ac::op op, var* a, var* b)
 {
   using namespace std;
   var* y = a->rvalue();
@@ -32,7 +33,7 @@ cxx_compiler::var* cxx_compiler::expressions::relational_equality::gen(goto3ac::
   const type* Tz = z->m_type;
   if ( Ty->arithmetic() && Tz->arithmetic() )
     conversion::arithmetic::gen(&y,&z);
-  else if ( !valid_pointer(op,y,z) ){
+  else if ( !cmp_impl::valid_pointer(op,y,z) ){
     using namespace error::expressions::binary;
     switch ( op ){
     case goto3ac::LT: invalid(parse::position,'<',Ty,Tz); break;
@@ -71,158 +72,296 @@ cxx_compiler::var* cxx_compiler::expressions::relational_equality::gen(goto3ac::
   return ret;
 }
 
-bool cxx_compiler::expressions::relational_equality::valid_pointer(goto3ac::op op, var* y, var* z)
+bool
+cxx_compiler::expressions::cmp_impl::valid_pointer(goto3ac::op op,
+                                                   var* y, var* z)
 {
   const type* Ty = y->m_type;
   const type* Tz = z->m_type;
+  Ty = Ty->unqualified();
+  Tz = Tz->unqualified();
   typedef const pointer_type PT;
   PT* py = Ty->m_id == type::POINTER ? static_cast<PT*>(Ty) : 0;
   PT* pz = Tz->m_id == type::POINTER ? static_cast<PT*>(Tz) : 0;
-  if ( py && pz && py->compatible(pz) )
+  const type* Ry = py ? py->referenced_type()->unqualified() : 0;
+  const type* Rz = pz ? pz->referenced_type()->unqualified() : 0;
+  if (py && pz && compatible(Ry, Rz))
     return true;
   if ( op != goto3ac::EQ && op != goto3ac::NE )
     return false;
-  const type* vp = pointer_type::create(void_type::create());
-  if ( py && pz && pz->compatible(vp) )
+  const void_type* v = void_type::create();
+  if ( py && pz && compatible(Rz, v) )
     return true;
-  if ( pz && py && py->compatible(vp) )
+  if ( pz && py && compatible(Ry, v) )
     return true;
-  if ( py && z->isconstant() && (Tz->integer() || Tz->compatible(vp) ) )
-    return z->value() == 0;
-  if ( pz && y->isconstant() && (Ty->integer() || Ty->compatible(vp) ) )
-    return y->value() == 0;
+  if ( py && z->isconstant() && Tz->integer() && z->value() == 0 )
+    return true;
+  if ( pz && y->isconstant() && Ty->integer() && y->value() == 0 )
+    return true;
   return false;
 }
 
-using namespace cxx_compiler::expressions::relational_equality;
+cxx_compiler::var* cxx_compiler::var::lt(var* z)
+{ return expressions::cmp_impl::gen(goto3ac::LT,this,z); }
+cxx_compiler::var* cxx_compiler::var::ltr(constant<bool>* y)
+{ return expressions::cmp_impl::gen(goto3ac::LT,y,this); }
+cxx_compiler::var* cxx_compiler::var::ltr(constant<char>* y)
+{ return expressions::cmp_impl::gen(goto3ac::LT,y,this); }
+cxx_compiler::var* cxx_compiler::var::ltr(constant<signed char>* y)
+{ return expressions::cmp_impl::gen(goto3ac::LT,y,this); }
+cxx_compiler::var* cxx_compiler::var::ltr(constant<unsigned char>* y)
+{ return expressions::cmp_impl::gen(goto3ac::LT,y,this); }
+cxx_compiler::var* cxx_compiler::var::ltr(constant<wchar_t>* y)
+{ return expressions::cmp_impl::gen(goto3ac::LT,y,this); }
+cxx_compiler::var* cxx_compiler::var::ltr(constant<short int>* y)
+{ return expressions::cmp_impl::gen(goto3ac::LT,y,this); }
+cxx_compiler::var* cxx_compiler::var::ltr(constant<unsigned short int>* y)
+{ return expressions::cmp_impl::gen(goto3ac::LT,y,this); }
+cxx_compiler::var* cxx_compiler::var::ltr(constant<int>* y)
+{ return expressions::cmp_impl::gen(goto3ac::LT,y,this); }
+cxx_compiler::var* cxx_compiler::var::ltr(constant<unsigned int>* y)
+{ return expressions::cmp_impl::gen(goto3ac::LT,y,this); }
+cxx_compiler::var* cxx_compiler::var::ltr(constant<long int>* y)
+{ return expressions::cmp_impl::gen(goto3ac::LT,y,this); }
+cxx_compiler::var* cxx_compiler::var::ltr(constant<unsigned long int>* y)
+{ return expressions::cmp_impl::gen(goto3ac::LT,y,this); }
+cxx_compiler::var* cxx_compiler::var::ltr(constant<__int64>* y)
+{ return expressions::cmp_impl::gen(goto3ac::LT,y,this); }
+cxx_compiler::var* cxx_compiler::var::ltr(constant<unsigned __int64>* y)
+{ return expressions::cmp_impl::gen(goto3ac::LT,y,this); }
+cxx_compiler::var* cxx_compiler::var::ltr(constant<float>* y)
+{ return expressions::cmp_impl::gen(goto3ac::LT,y,this); }
+cxx_compiler::var* cxx_compiler::var::ltr(constant<double>* y)
+{ return expressions::cmp_impl::gen(goto3ac::LT,y,this); }
+cxx_compiler::var* cxx_compiler::var::ltr(constant<long double>* y)
+{ return expressions::cmp_impl::gen(goto3ac::LT,y,this); }
+cxx_compiler::var* cxx_compiler::var::ltr(constant<void*>* y)
+{ return expressions::cmp_impl::gen(goto3ac::LT,y,this); }
+cxx_compiler::var* cxx_compiler::var::ltr(addrof* y)
+{ return expressions::cmp_impl::gen(goto3ac::LT,y,this); }
 
-cxx_compiler::var* cxx_compiler::var::lt(var* z){ return gen(goto3ac::LT,this,z); }
-cxx_compiler::var* cxx_compiler::var::ltr(constant<bool>* y){ return gen(goto3ac::LT,y,this); }
-cxx_compiler::var* cxx_compiler::var::ltr(constant<char>* y){ return gen(goto3ac::LT,y,this); }
-cxx_compiler::var* cxx_compiler::var::ltr(constant<signed char>* y){ return gen(goto3ac::LT,y,this); }
-cxx_compiler::var* cxx_compiler::var::ltr(constant<unsigned char>* y){ return gen(goto3ac::LT,y,this); }
-cxx_compiler::var* cxx_compiler::var::ltr(constant<short int>* y){ return gen(goto3ac::LT,y,this); }
-cxx_compiler::var* cxx_compiler::var::ltr(constant<unsigned short int>* y){ return gen(goto3ac::LT,y,this); }
-cxx_compiler::var* cxx_compiler::var::ltr(constant<int>* y){ return gen(goto3ac::LT,y,this); }
-cxx_compiler::var* cxx_compiler::var::ltr(constant<unsigned int>* y){ return gen(goto3ac::LT,y,this); }
-cxx_compiler::var* cxx_compiler::var::ltr(constant<long int>* y){ return gen(goto3ac::LT,y,this); }
-cxx_compiler::var* cxx_compiler::var::ltr(constant<unsigned long int>* y){ return gen(goto3ac::LT,y,this); }
-cxx_compiler::var* cxx_compiler::var::ltr(constant<__int64>* y){ return gen(goto3ac::LT,y,this); }
-cxx_compiler::var* cxx_compiler::var::ltr(constant<unsigned __int64>* y){ return gen(goto3ac::LT,y,this); }
-cxx_compiler::var* cxx_compiler::var::ltr(constant<float>* y){ return gen(goto3ac::LT,y,this); }
-cxx_compiler::var* cxx_compiler::var::ltr(constant<double>* y){ return gen(goto3ac::LT,y,this); }
-cxx_compiler::var* cxx_compiler::var::ltr(constant<long double>* y){ return gen(goto3ac::LT,y,this); }
-cxx_compiler::var* cxx_compiler::var::ltr(constant<void*>* y){ return gen(goto3ac::LT,y,this); }
-cxx_compiler::var* cxx_compiler::var::ltr(addrof* y){ return gen(goto3ac::LT,y,this); }
+cxx_compiler::var* cxx_compiler::var::gt(var* z)
+{ return expressions::cmp_impl::gen(goto3ac::GT,this,z); }
+cxx_compiler::var* cxx_compiler::var::gtr(constant<bool>* y)
+{ return expressions::cmp_impl::gen(goto3ac::GT,y,this); }
+cxx_compiler::var* cxx_compiler::var::gtr(constant<char>* y)
+{ return expressions::cmp_impl::gen(goto3ac::GT,y,this); }
+cxx_compiler::var* cxx_compiler::var::gtr(constant<signed char>* y)
+{ return expressions::cmp_impl::gen(goto3ac::GT,y,this); }
+cxx_compiler::var* cxx_compiler::var::gtr(constant<unsigned char>* y)
+{ return expressions::cmp_impl::gen(goto3ac::GT,y,this); }
+cxx_compiler::var* cxx_compiler::var::gtr(constant<wchar_t>* y)
+{ return expressions::cmp_impl::gen(goto3ac::GT,y,this); }
+cxx_compiler::var* cxx_compiler::var::gtr(constant<short int>* y)
+{ return expressions::cmp_impl::gen(goto3ac::GT,y,this); }
+cxx_compiler::var* cxx_compiler::var::gtr(constant<unsigned short int>* y)
+{ return expressions::cmp_impl::gen(goto3ac::GT,y,this); }
+cxx_compiler::var* cxx_compiler::var::gtr(constant<int>* y)
+{ return expressions::cmp_impl::gen(goto3ac::GT,y,this); }
+cxx_compiler::var* cxx_compiler::var::gtr(constant<unsigned int>* y)
+{ return expressions::cmp_impl::gen(goto3ac::GT,y,this); }
+cxx_compiler::var* cxx_compiler::var::gtr(constant<long int>* y)
+{ return expressions::cmp_impl::gen(goto3ac::GT,y,this); }
+cxx_compiler::var* cxx_compiler::var::gtr(constant<unsigned long int>* y)
+{ return expressions::cmp_impl::gen(goto3ac::GT,y,this); }
+cxx_compiler::var* cxx_compiler::var::gtr(constant<__int64>* y)
+{ return expressions::cmp_impl::gen(goto3ac::GT,y,this); }
+cxx_compiler::var* cxx_compiler::var::gtr(constant<unsigned __int64>* y)
+{ return expressions::cmp_impl::gen(goto3ac::GT,y,this); }
+cxx_compiler::var* cxx_compiler::var::gtr(constant<float>* y)
+{ return expressions::cmp_impl::gen(goto3ac::GT,y,this); }
+cxx_compiler::var* cxx_compiler::var::gtr(constant<double>* y)
+{ return expressions::cmp_impl::gen(goto3ac::GT,y,this); }
+cxx_compiler::var* cxx_compiler::var::gtr(constant<long double>* y)
+{ return expressions::cmp_impl::gen(goto3ac::GT,y,this); }
+cxx_compiler::var* cxx_compiler::var::gtr(constant<void*>* y)
+{ return expressions::cmp_impl::gen(goto3ac::GT,y,this); }
+cxx_compiler::var* cxx_compiler::var::gtr(addrof* y)
+{ return expressions::cmp_impl::gen(goto3ac::GT,y,this); }
 
-cxx_compiler::var* cxx_compiler::var::gt(var* z){ return gen(goto3ac::GT,this,z); }
-cxx_compiler::var* cxx_compiler::var::gtr(constant<bool>* y){ return gen(goto3ac::GT,y,this); }
-cxx_compiler::var* cxx_compiler::var::gtr(constant<char>* y){ return gen(goto3ac::GT,y,this); }
-cxx_compiler::var* cxx_compiler::var::gtr(constant<signed char>* y){ return gen(goto3ac::GT,y,this); }
-cxx_compiler::var* cxx_compiler::var::gtr(constant<unsigned char>* y){ return gen(goto3ac::GT,y,this); }
-cxx_compiler::var* cxx_compiler::var::gtr(constant<short int>* y){ return gen(goto3ac::GT,y,this); }
-cxx_compiler::var* cxx_compiler::var::gtr(constant<unsigned short int>* y){ return gen(goto3ac::GT,y,this); }
-cxx_compiler::var* cxx_compiler::var::gtr(constant<int>* y){ return gen(goto3ac::GT,y,this); }
-cxx_compiler::var* cxx_compiler::var::gtr(constant<unsigned int>* y){ return gen(goto3ac::GT,y,this); }
-cxx_compiler::var* cxx_compiler::var::gtr(constant<long int>* y){ return gen(goto3ac::GT,y,this); }
-cxx_compiler::var* cxx_compiler::var::gtr(constant<unsigned long int>* y){ return gen(goto3ac::GT,y,this); }
-cxx_compiler::var* cxx_compiler::var::gtr(constant<__int64>* y){ return gen(goto3ac::GT,y,this); }
-cxx_compiler::var* cxx_compiler::var::gtr(constant<unsigned __int64>* y){ return gen(goto3ac::GT,y,this); }
-cxx_compiler::var* cxx_compiler::var::gtr(constant<float>* y){ return gen(goto3ac::GT,y,this); }
-cxx_compiler::var* cxx_compiler::var::gtr(constant<double>* y){ return gen(goto3ac::GT,y,this); }
-cxx_compiler::var* cxx_compiler::var::gtr(constant<long double>* y){ return gen(goto3ac::GT,y,this); }
-cxx_compiler::var* cxx_compiler::var::gtr(constant<void*>* y){ return gen(goto3ac::GT,y,this); }
-cxx_compiler::var* cxx_compiler::var::gtr(addrof* y){ return gen(goto3ac::GT,y,this); }
+cxx_compiler::var* cxx_compiler::var::le(var* z)
+{ return expressions::cmp_impl::gen(goto3ac::LE,this,z); }
+cxx_compiler::var* cxx_compiler::var::ler(constant<bool>* y)
+{ return expressions::cmp_impl::gen(goto3ac::LE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ler(constant<char>* y)
+{ return expressions::cmp_impl::gen(goto3ac::LE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ler(constant<signed char>* y)
+{ return expressions::cmp_impl::gen(goto3ac::LE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ler(constant<unsigned char>* y)
+{ return expressions::cmp_impl::gen(goto3ac::LE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ler(constant<wchar_t>* y)
+{ return expressions::cmp_impl::gen(goto3ac::LE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ler(constant<short int>* y)
+{ return expressions::cmp_impl::gen(goto3ac::LE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ler(constant<unsigned short int>* y)
+{ return expressions::cmp_impl::gen(goto3ac::LE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ler(constant<int>* y)
+{ return expressions::cmp_impl::gen(goto3ac::LE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ler(constant<unsigned int>* y)
+{ return expressions::cmp_impl::gen(goto3ac::LE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ler(constant<long int>* y)
+{ return expressions::cmp_impl::gen(goto3ac::LE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ler(constant<unsigned long int>* y)
+{ return expressions::cmp_impl::gen(goto3ac::LE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ler(constant<__int64>* y)
+{ return expressions::cmp_impl::gen(goto3ac::LE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ler(constant<unsigned __int64>* y)
+{ return expressions::cmp_impl::gen(goto3ac::LE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ler(constant<float>* y)
+{ return expressions::cmp_impl::gen(goto3ac::LE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ler(constant<double>* y)
+{ return expressions::cmp_impl::gen(goto3ac::LE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ler(constant<long double>* y)
+{ return expressions::cmp_impl::gen(goto3ac::LE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ler(constant<void*>* y)
+{ return expressions::cmp_impl::gen(goto3ac::LE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ler(addrof* y)
+{ return expressions::cmp_impl::gen(goto3ac::LE,y,this); }
 
-cxx_compiler::var* cxx_compiler::var::le(var* z){ return gen(goto3ac::LE,this,z); }
-cxx_compiler::var* cxx_compiler::var::ler(constant<bool>* y){ return gen(goto3ac::LE,y,this); }
-cxx_compiler::var* cxx_compiler::var::ler(constant<char>* y){ return gen(goto3ac::LE,y,this); }
-cxx_compiler::var* cxx_compiler::var::ler(constant<signed char>* y){ return gen(goto3ac::LE,y,this); }
-cxx_compiler::var* cxx_compiler::var::ler(constant<unsigned char>* y){ return gen(goto3ac::LE,y,this); }
-cxx_compiler::var* cxx_compiler::var::ler(constant<short int>* y){ return gen(goto3ac::LE,y,this); }
-cxx_compiler::var* cxx_compiler::var::ler(constant<unsigned short int>* y){ return gen(goto3ac::LE,y,this); }
-cxx_compiler::var* cxx_compiler::var::ler(constant<int>* y){ return gen(goto3ac::LE,y,this); }
-cxx_compiler::var* cxx_compiler::var::ler(constant<unsigned int>* y){ return gen(goto3ac::LE,y,this); }
-cxx_compiler::var* cxx_compiler::var::ler(constant<long int>* y){ return gen(goto3ac::LE,y,this); }
-cxx_compiler::var* cxx_compiler::var::ler(constant<unsigned long int>* y){ return gen(goto3ac::LE,y,this); }
-cxx_compiler::var* cxx_compiler::var::ler(constant<__int64>* y){ return gen(goto3ac::LE,y,this); }
-cxx_compiler::var* cxx_compiler::var::ler(constant<unsigned __int64>* y){ return gen(goto3ac::LE,y,this); }
-cxx_compiler::var* cxx_compiler::var::ler(constant<float>* y){ return gen(goto3ac::LE,y,this); }
-cxx_compiler::var* cxx_compiler::var::ler(constant<double>* y){ return gen(goto3ac::LE,y,this); }
-cxx_compiler::var* cxx_compiler::var::ler(constant<long double>* y){ return gen(goto3ac::LE,y,this); }
-cxx_compiler::var* cxx_compiler::var::ler(constant<void*>* y){ return gen(goto3ac::LE,y,this); }
-cxx_compiler::var* cxx_compiler::var::ler(addrof* y){ return gen(goto3ac::LE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ge(var* z)
+{ return expressions::cmp_impl::gen(goto3ac::GE,this,z); }
+cxx_compiler::var* cxx_compiler::var::ger(constant<bool>* y)
+{ return expressions::cmp_impl::gen(goto3ac::GE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ger(constant<char>* y)
+{ return expressions::cmp_impl::gen(goto3ac::GE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ger(constant<signed char>* y)
+{ return expressions::cmp_impl::gen(goto3ac::GE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ger(constant<unsigned char>* y)
+{ return expressions::cmp_impl::gen(goto3ac::GE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ger(constant<wchar_t>* y)
+{ return expressions::cmp_impl::gen(goto3ac::GE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ger(constant<short int>* y)
+{ return expressions::cmp_impl::gen(goto3ac::GE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ger(constant<unsigned short int>* y)
+{ return expressions::cmp_impl::gen(goto3ac::GE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ger(constant<int>* y)
+{ return expressions::cmp_impl::gen(goto3ac::GE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ger(constant<unsigned int>* y)
+{ return expressions::cmp_impl::gen(goto3ac::GE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ger(constant<long int>* y)
+{ return expressions::cmp_impl::gen(goto3ac::GE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ger(constant<unsigned long int>* y)
+{ return expressions::cmp_impl::gen(goto3ac::GE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ger(constant<__int64>* y)
+{ return expressions::cmp_impl::gen(goto3ac::GE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ger(constant<unsigned __int64>* y)
+{ return expressions::cmp_impl::gen(goto3ac::GE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ger(constant<float>* y)
+{ return expressions::cmp_impl::gen(goto3ac::GE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ger(constant<double>* y)
+{ return expressions::cmp_impl::gen(goto3ac::GE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ger(constant<long double>* y)
+{ return expressions::cmp_impl::gen(goto3ac::GE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ger(constant<void*>* y)
+{ return expressions::cmp_impl::gen(goto3ac::GE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ger(addrof* y)
+{ return expressions::cmp_impl::gen(goto3ac::GE,y,this); }
 
-cxx_compiler::var* cxx_compiler::var::ge(var* z){ return gen(goto3ac::GE,this,z); }
-cxx_compiler::var* cxx_compiler::var::ger(constant<bool>* y){ return gen(goto3ac::GE,y,this); }
-cxx_compiler::var* cxx_compiler::var::ger(constant<char>* y){ return gen(goto3ac::GE,y,this); }
-cxx_compiler::var* cxx_compiler::var::ger(constant<signed char>* y){ return gen(goto3ac::GE,y,this); }
-cxx_compiler::var* cxx_compiler::var::ger(constant<unsigned char>* y){ return gen(goto3ac::GE,y,this); }
-cxx_compiler::var* cxx_compiler::var::ger(constant<short int>* y){ return gen(goto3ac::GE,y,this); }
-cxx_compiler::var* cxx_compiler::var::ger(constant<unsigned short int>* y){ return gen(goto3ac::GE,y,this); }
-cxx_compiler::var* cxx_compiler::var::ger(constant<int>* y){ return gen(goto3ac::GE,y,this); }
-cxx_compiler::var* cxx_compiler::var::ger(constant<unsigned int>* y){ return gen(goto3ac::GE,y,this); }
-cxx_compiler::var* cxx_compiler::var::ger(constant<long int>* y){ return gen(goto3ac::GE,y,this); }
-cxx_compiler::var* cxx_compiler::var::ger(constant<unsigned long int>* y){ return gen(goto3ac::GE,y,this); }
-cxx_compiler::var* cxx_compiler::var::ger(constant<__int64>* y){ return gen(goto3ac::GE,y,this); }
-cxx_compiler::var* cxx_compiler::var::ger(constant<unsigned __int64>* y){ return gen(goto3ac::GE,y,this); }
-cxx_compiler::var* cxx_compiler::var::ger(constant<float>* y){ return gen(goto3ac::GE,y,this); }
-cxx_compiler::var* cxx_compiler::var::ger(constant<double>* y){ return gen(goto3ac::GE,y,this); }
-cxx_compiler::var* cxx_compiler::var::ger(constant<long double>* y){ return gen(goto3ac::GE,y,this); }
-cxx_compiler::var* cxx_compiler::var::ger(constant<void*>* y){ return gen(goto3ac::GE,y,this); }
-cxx_compiler::var* cxx_compiler::var::ger(addrof* y){ return gen(goto3ac::GE,y,this); }
+cxx_compiler::var* cxx_compiler::var::eq(var* z)
+{ return expressions::cmp_impl::gen(goto3ac::EQ,this,z); }
+cxx_compiler::var* cxx_compiler::var::eqr(constant<bool>* y)
+{ return expressions::cmp_impl::gen(goto3ac::EQ,y,this); }
+cxx_compiler::var* cxx_compiler::var::eqr(constant<char>* y)
+{ return expressions::cmp_impl::gen(goto3ac::EQ,y,this); }
+cxx_compiler::var* cxx_compiler::var::eqr(constant<signed char>* y)
+{ return expressions::cmp_impl::gen(goto3ac::EQ,y,this); }
+cxx_compiler::var* cxx_compiler::var::eqr(constant<unsigned char>* y)
+{ return expressions::cmp_impl::gen(goto3ac::EQ,y,this); }
+cxx_compiler::var* cxx_compiler::var::eqr(constant<wchar_t>* y)
+{ return expressions::cmp_impl::gen(goto3ac::EQ,y,this); }
+cxx_compiler::var* cxx_compiler::var::eqr(constant<short int>* y)
+{ return expressions::cmp_impl::gen(goto3ac::EQ,y,this); }
+cxx_compiler::var* cxx_compiler::var::eqr(constant<unsigned short int>* y)
+{ return expressions::cmp_impl::gen(goto3ac::EQ,y,this); }
+cxx_compiler::var* cxx_compiler::var::eqr(constant<int>* y)
+{ return expressions::cmp_impl::gen(goto3ac::EQ,y,this); }
+cxx_compiler::var* cxx_compiler::var::eqr(constant<unsigned int>* y)
+{ return expressions::cmp_impl::gen(goto3ac::EQ,y,this); }
+cxx_compiler::var* cxx_compiler::var::eqr(constant<long int>* y)
+{ return expressions::cmp_impl::gen(goto3ac::EQ,y,this); }
+cxx_compiler::var* cxx_compiler::var::eqr(constant<unsigned long int>* y)
+{ return expressions::cmp_impl::gen(goto3ac::EQ,y,this); }
+cxx_compiler::var* cxx_compiler::var::eqr(constant<__int64>* y)
+{ return expressions::cmp_impl::gen(goto3ac::EQ,y,this); }
+cxx_compiler::var* cxx_compiler::var::eqr(constant<unsigned __int64>* y)
+{ return expressions::cmp_impl::gen(goto3ac::EQ,y,this); }
+cxx_compiler::var* cxx_compiler::var::eqr(constant<float>* y)
+{ return expressions::cmp_impl::gen(goto3ac::EQ,y,this); }
+cxx_compiler::var* cxx_compiler::var::eqr(constant<double>* y)
+{ return expressions::cmp_impl::gen(goto3ac::EQ,y,this); }
+cxx_compiler::var* cxx_compiler::var::eqr(constant<long double>* y)
+{ return expressions::cmp_impl::gen(goto3ac::EQ,y,this); }
+cxx_compiler::var* cxx_compiler::var::eqr(constant<void*>* y)
+{ return expressions::cmp_impl::gen(goto3ac::EQ,y,this); }
+cxx_compiler::var* cxx_compiler::var::eqr(addrof* y)
+{ return expressions::cmp_impl::gen(goto3ac::EQ,y,this); }
 
-cxx_compiler::var* cxx_compiler::var::eq(var* z){ return gen(goto3ac::EQ,this,z); }
-cxx_compiler::var* cxx_compiler::var::eqr(constant<bool>* y){ return gen(goto3ac::EQ,y,this); }
-cxx_compiler::var* cxx_compiler::var::eqr(constant<char>* y){ return gen(goto3ac::EQ,y,this); }
-cxx_compiler::var* cxx_compiler::var::eqr(constant<signed char>* y){ return gen(goto3ac::EQ,y,this); }
-cxx_compiler::var* cxx_compiler::var::eqr(constant<unsigned char>* y){ return gen(goto3ac::EQ,y,this); }
-cxx_compiler::var* cxx_compiler::var::eqr(constant<short int>* y){ return gen(goto3ac::EQ,y,this); }
-cxx_compiler::var* cxx_compiler::var::eqr(constant<unsigned short int>* y){ return gen(goto3ac::EQ,y,this); }
-cxx_compiler::var* cxx_compiler::var::eqr(constant<int>* y){ return gen(goto3ac::EQ,y,this); }
-cxx_compiler::var* cxx_compiler::var::eqr(constant<unsigned int>* y){ return gen(goto3ac::EQ,y,this); }
-cxx_compiler::var* cxx_compiler::var::eqr(constant<long int>* y){ return gen(goto3ac::EQ,y,this); }
-cxx_compiler::var* cxx_compiler::var::eqr(constant<unsigned long int>* y){ return gen(goto3ac::EQ,y,this); }
-cxx_compiler::var* cxx_compiler::var::eqr(constant<__int64>* y){ return gen(goto3ac::EQ,y,this); }
-cxx_compiler::var* cxx_compiler::var::eqr(constant<unsigned __int64>* y){ return gen(goto3ac::EQ,y,this); }
-cxx_compiler::var* cxx_compiler::var::eqr(constant<float>* y){ return gen(goto3ac::EQ,y,this); }
-cxx_compiler::var* cxx_compiler::var::eqr(constant<double>* y){ return gen(goto3ac::EQ,y,this); }
-cxx_compiler::var* cxx_compiler::var::eqr(constant<long double>* y){ return gen(goto3ac::EQ,y,this); }
-cxx_compiler::var* cxx_compiler::var::eqr(constant<void*>* y){ return gen(goto3ac::EQ,y,this); }
-cxx_compiler::var* cxx_compiler::var::eqr(addrof* y){ return gen(goto3ac::EQ,y,this); }
-
-cxx_compiler::var* cxx_compiler::var::ne(var* z){ return gen(goto3ac::NE,this,z); }
-cxx_compiler::var* cxx_compiler::var::ner(constant<bool>* y){ return gen(goto3ac::NE,y,this); }
-cxx_compiler::var* cxx_compiler::var::ner(constant<char>* y){ return gen(goto3ac::NE,y,this); }
-cxx_compiler::var* cxx_compiler::var::ner(constant<signed char>* y){ return gen(goto3ac::NE,y,this); }
-cxx_compiler::var* cxx_compiler::var::ner(constant<unsigned char>* y){ return gen(goto3ac::NE,y,this); }
-cxx_compiler::var* cxx_compiler::var::ner(constant<short int>* y){ return gen(goto3ac::NE,y,this); }
-cxx_compiler::var* cxx_compiler::var::ner(constant<unsigned short int>* y){ return gen(goto3ac::NE,y,this); }
-cxx_compiler::var* cxx_compiler::var::ner(constant<int>* y){ return gen(goto3ac::NE,y,this); }
-cxx_compiler::var* cxx_compiler::var::ner(constant<unsigned int>* y){ return gen(goto3ac::NE,y,this); }
-cxx_compiler::var* cxx_compiler::var::ner(constant<long int>* y){ return gen(goto3ac::NE,y,this); }
-cxx_compiler::var* cxx_compiler::var::ner(constant<unsigned long int>* y){ return gen(goto3ac::NE,y,this); }
-cxx_compiler::var* cxx_compiler::var::ner(constant<__int64>* y){ return gen(goto3ac::NE,y,this); }
-cxx_compiler::var* cxx_compiler::var::ner(constant<unsigned __int64>* y){ return gen(goto3ac::NE,y,this); }
-cxx_compiler::var* cxx_compiler::var::ner(constant<float>* y){ return gen(goto3ac::NE,y,this); }
-cxx_compiler::var* cxx_compiler::var::ner(constant<double>* y){ return gen(goto3ac::NE,y,this); }
-cxx_compiler::var* cxx_compiler::var::ner(constant<long double>* y){ return gen(goto3ac::NE,y,this); }
-cxx_compiler::var* cxx_compiler::var::ner(constant<void*>* y){ return gen(goto3ac::NE,y,this); }
-cxx_compiler::var* cxx_compiler::var::ner(addrof* y){ return gen(goto3ac::NE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ne(var* z)
+{ return expressions::cmp_impl::gen(goto3ac::NE,this,z); }
+cxx_compiler::var* cxx_compiler::var::ner(constant<bool>* y)
+{ return expressions::cmp_impl::gen(goto3ac::NE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ner(constant<char>* y)
+{ return expressions::cmp_impl::gen(goto3ac::NE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ner(constant<signed char>* y)
+{ return expressions::cmp_impl::gen(goto3ac::NE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ner(constant<unsigned char>* y)
+{ return expressions::cmp_impl::gen(goto3ac::NE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ner(constant<wchar_t>* y)
+{ return expressions::cmp_impl::gen(goto3ac::NE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ner(constant<short int>* y)
+{ return expressions::cmp_impl::gen(goto3ac::NE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ner(constant<unsigned short int>* y)
+{ return expressions::cmp_impl::gen(goto3ac::NE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ner(constant<int>* y)
+{ return expressions::cmp_impl::gen(goto3ac::NE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ner(constant<unsigned int>* y)
+{ return expressions::cmp_impl::gen(goto3ac::NE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ner(constant<long int>* y)
+{ return expressions::cmp_impl::gen(goto3ac::NE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ner(constant<unsigned long int>* y)
+{ return expressions::cmp_impl::gen(goto3ac::NE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ner(constant<__int64>* y)
+{ return expressions::cmp_impl::gen(goto3ac::NE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ner(constant<unsigned __int64>* y)
+{ return expressions::cmp_impl::gen(goto3ac::NE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ner(constant<float>* y)
+{ return expressions::cmp_impl::gen(goto3ac::NE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ner(constant<double>* y)
+{ return expressions::cmp_impl::gen(goto3ac::NE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ner(constant<long double>* y)
+{ return expressions::cmp_impl::gen(goto3ac::NE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ner(constant<void*>* y)
+{ return expressions::cmp_impl::gen(goto3ac::NE,y,this); }
+cxx_compiler::var* cxx_compiler::var::ner(addrof* y)
+{ return expressions::cmp_impl::gen(goto3ac::NE,y,this); }
 
 namespace cxx_compiler { namespace constant_impl {
   template<class A, class B> var* lt(constant<A>* y, constant<B>* z)
   {
     using namespace expressions::primary::literal;
+    if (expressions::cmp_impl::valid_pointer(goto3ac::LT, y, z)) {
+      constant<__int64>* yy = reinterpret_cast<constant<__int64>*>(y);
+      constant<__int64>* zz = reinterpret_cast<constant<__int64>*>(z);
+      return integer::create(yy->m_value < zz->m_value); 
+    }
+    usr::flag_t fy = y->m_flag;
+    if (fy & usr::CONST_PTR)
+      return expressions::cmp_impl::gen(goto3ac::LT, y,z);
+    usr::flag_t fz = z->m_flag;
+    if (fz & usr::CONST_PTR)
+      return expressions::cmp_impl::gen(goto3ac::LT, y,z);
     return integer::create(y->m_value < z->m_value); 
   }
   template<class A, class B> var* fop1(constant<A>* y, constant<B>* z, goto3ac::op op)
   {
     using namespace std;
     using namespace expressions::primary::literal;
-    if ( y->m_type->compatible(long_double_type::create()) ){
+    const type* Ty = y->m_type;
+    Ty = Ty->unqualified();
+    if (Ty->m_id == type::LONG_DOUBLE) {
       int sz = long_double_type::create()->size();
-      auto_ptr<unsigned char> p = auto_ptr<unsigned char>(new unsigned char[sz]);
+      auto_ptr<unsigned char> p =
+        auto_ptr<unsigned char>(new unsigned char[sz]);
 #ifndef _MSC_VER
       (*generator::long_double->from_double)(p.get(),z->m_value);
 #else // _MSC_VER
@@ -251,7 +390,9 @@ namespace cxx_compiler { namespace constant_impl {
   {
     using namespace std;
     using namespace expressions::primary::literal;
-    if ( z->m_type->compatible(long_double_type::create()) ){
+    const type* Tz = z->m_type;
+    Tz = Tz->unqualified();
+    if (Tz->m_id == type::LONG_DOUBLE) {
       int sz = long_double_type::create()->size();
       auto_ptr<unsigned char> p = auto_ptr<unsigned char>(new unsigned char[sz]);
 #ifndef _MSC_VER
@@ -282,25 +423,29 @@ namespace cxx_compiler { namespace constant_impl {
   {
     using namespace std;
     using namespace expressions::primary::literal;
+    const type* Ty = y->m_type;
+    const type* Tz = z->m_type;
+    Ty = Ty->unqualified();
+    Tz = Tz->unqualified();
     int sz = long_double_type::create()->size();
-    if ( y->m_type->compatible(long_double_type::create()) ){
+    if (Ty->m_id == type::LONG_DOUBLE) {
       constant<long double>* yy = reinterpret_cast<constant<long double>*>(y);
-      if ( z->m_type->compatible(long_double_type::create()) ){
+      if (Tz->m_id == type::LONG_DOUBLE) {
         constant<long double>* zz = reinterpret_cast<constant<long double>*>(z);
         bool b = (*generator::long_double->cmp)(op,yy->b,zz->b);
         return b ? integer::create(1) : integer::create(0);
       }
-      auto_ptr<unsigned char> p = auto_ptr<unsigned char>(new unsigned char[sz]);
+      auto_ptr<unsigned char> p =
+        auto_ptr<unsigned char>(new unsigned char[sz]);
       (*generator::long_double->from_double)(p.get(),z->m_value);
       bool b = (*generator::long_double->cmp)(op,yy->b,p.get());
-
-     
       return b ? integer::create(1) : integer::create(0);
     }
-    if ( z->m_type->compatible(long_double_type::create()) ){
-      constant<long double>* zz = reinterpret_cast<constant<long double>*>(z);
-      auto_ptr<unsigned char> p = auto_ptr<unsigned char>(new unsigned char[sz]);
+    if (Tz->m_id == type::LONG_DOUBLE) {
+      auto_ptr<unsigned char> p =
+        auto_ptr<unsigned char>(new unsigned char[sz]);
       (*generator::long_double->from_double)(p.get(),y->m_value);
+      constant<long double>* zz = reinterpret_cast<constant<long double>*>(z);
       bool b = (*generator::long_double->cmp)(op,p.get(),zz->b);
       return b ? integer::create(1) : integer::create(0);
     }
@@ -329,6 +474,9 @@ namespace cxx_compiler {
   { return constant_impl::lt(y,this); }
   template<>
   var* constant<bool>::ltr(constant<unsigned char>* y)
+  { return constant_impl::lt(y,this); }
+  template<>
+  var* constant<bool>::ltr(constant<wchar_t>* y)
   { return constant_impl::lt(y,this); }
   template<>
   var* constant<bool>::ltr(constant<short int>* y)
@@ -376,6 +524,9 @@ namespace cxx_compiler {
   var* constant<char>::ltr(constant<unsigned char>* y)
   { return constant_impl::lt(y,this); }
   template<>
+  var* constant<char>::ltr(constant<wchar_t>* y)
+  { return constant_impl::lt(y,this); }
+  template<>
   var* constant<char>::ltr(constant<short int>* y)
   { return constant_impl::lt(y,this); }
   template<>
@@ -419,6 +570,9 @@ namespace cxx_compiler {
   { return constant_impl::lt(y,this); }
   template<>
   var* constant<signed char>::ltr(constant<unsigned char>* y)
+  { return constant_impl::lt(y,this); }
+  template<>
+  var* constant<signed char>::ltr(constant<wchar_t>* y)
   { return constant_impl::lt(y,this); }
   template<>
   var* constant<signed char>::ltr(constant<short int>* y)
@@ -466,6 +620,9 @@ namespace cxx_compiler {
   var* constant<unsigned char>::ltr(constant<unsigned char>* y)
   { return constant_impl::lt(y,this); }
   template<>
+  var* constant<unsigned char>::ltr(constant<wchar_t>* y)
+  { return constant_impl::lt(y,this); }
+  template<>
   var* constant<unsigned char>::ltr(constant<short int>* y)
   { return constant_impl::lt(y,this); }
   template<>
@@ -499,6 +656,54 @@ namespace cxx_compiler {
   var* constant<unsigned char>::ltr(constant<long double>* y)
   { return constant_impl::flt1(y,this); }
   template<>
+  var* constant<wchar_t>::ltr(constant<bool>* y)
+  { return constant_impl::lt(y,this); }
+  template<>
+  var* constant<wchar_t>::ltr(constant<char>* y)
+  { return constant_impl::lt(y,this); }
+  template<>
+  var* constant<wchar_t>::ltr(constant<signed char>* y)
+  { return constant_impl::lt(y,this); }
+  template<>
+  var* constant<wchar_t>::ltr(constant<unsigned char>* y)
+  { return constant_impl::lt(y,this); }
+  template<>
+  var* constant<wchar_t>::ltr(constant<wchar_t>* y)
+  { return constant_impl::lt(y,this); }
+  template<>
+  var* constant<wchar_t>::ltr(constant<short int>* y)
+  { return constant_impl::lt(y,this); }
+  template<>
+  var* constant<wchar_t>::ltr(constant<unsigned short int>* y)
+  { return constant_impl::lt(y,this); }
+  template<>
+  var* constant<wchar_t>::ltr(constant<int>* y)
+  { return constant_impl::lt(y,this); }
+  template<>
+  var* constant<wchar_t>::ltr(constant<unsigned int>* y)
+  { return constant_impl::lt(y,this); }
+  template<>
+  var* constant<wchar_t>::ltr(constant<long int>* y)
+  { return constant_impl::lt(y,this); }
+  template<>
+  var* constant<wchar_t>::ltr(constant<unsigned long int>* y)
+  { return constant_impl::lt(y,this); }
+  template<>
+  var* constant<wchar_t>::ltr(constant<__int64>* y)
+  { return constant_impl::lt(y,this); }
+  template<>
+  var* constant<wchar_t>::ltr(constant<unsigned __int64>* y)
+  { return constant_impl::lt(y,this); }
+  template<>
+  var* constant<wchar_t>::ltr(constant<float>* y)
+  { return constant_impl::flt1(y,this); }
+  template<>
+  var* constant<wchar_t>::ltr(constant<double>* y)
+  { return constant_impl::flt1(y,this); }
+  template<>
+  var* constant<wchar_t>::ltr(constant<long double>* y)
+  { return constant_impl::flt1(y,this); }
+  template<>
   var* constant<short int>::ltr(constant<bool>* y)
   { return constant_impl::lt(y,this); }
   template<>
@@ -509,6 +714,9 @@ namespace cxx_compiler {
   { return constant_impl::lt(y,this); }
   template<>
   var* constant<short int>::ltr(constant<unsigned char>* y)
+  { return constant_impl::lt(y,this); }
+  template<>
+  var* constant<short int>::ltr(constant<wchar_t>* y)
   { return constant_impl::lt(y,this); }
   template<>
   var* constant<short int>::ltr(constant<short int>* y)
@@ -556,6 +764,9 @@ namespace cxx_compiler {
   var* constant<unsigned short int>::ltr(constant<unsigned char>* y)
   { return constant_impl::lt(y,this); }
   template<>
+  var* constant<unsigned short int>::ltr(constant<wchar_t>* y)
+  { return constant_impl::lt(y,this); }
+  template<>
   var* constant<unsigned short int>::ltr(constant<short int>* y)
   { return constant_impl::lt(y,this); }
   template<>
@@ -599,6 +810,9 @@ namespace cxx_compiler {
   { return constant_impl::lt(y,this); }
   template<>
   var* constant<int>::ltr(constant<unsigned char>* y)
+  { return constant_impl::lt(y,this); }
+  template<>
+  var* constant<int>::ltr(constant<wchar_t>* y)
   { return constant_impl::lt(y,this); }
   template<>
   var* constant<int>::ltr(constant<short int>* y)
@@ -646,6 +860,9 @@ namespace cxx_compiler {
   var* constant<unsigned int>::ltr(constant<unsigned char>* y)
   { return constant_impl::lt(y,this); }
   template<>
+  var* constant<unsigned int>::ltr(constant<wchar_t>* y)
+  { return constant_impl::lt(y,this); }
+  template<>
   var* constant<unsigned int>::ltr(constant<short int>* y)
   { return constant_impl::lt(y,this); }
   template<>
@@ -689,6 +906,9 @@ namespace cxx_compiler {
   { return constant_impl::lt(y,this); }
   template<>
   var* constant<long int>::ltr(constant<unsigned char>* y)
+  { return constant_impl::lt(y,this); }
+  template<>
+  var* constant<long int>::ltr(constant<wchar_t>* y)
   { return constant_impl::lt(y,this); }
   template<>
   var* constant<long int>::ltr(constant<short int>* y)
@@ -736,6 +956,9 @@ namespace cxx_compiler {
   var* constant<unsigned long int>::ltr(constant<unsigned char>* y)
   { return constant_impl::lt(y,this); }
   template<>
+  var* constant<unsigned long int>::ltr(constant<wchar_t>* y)
+  { return constant_impl::lt(y,this); }
+  template<>
   var* constant<unsigned long int>::ltr(constant<short int>* y)
   { return constant_impl::lt(y,this); }
   template<>
@@ -779,6 +1002,9 @@ namespace cxx_compiler {
   { return constant_impl::lt(y,this); }
   template<>
   var* constant<__int64>::ltr(constant<unsigned char>* y)
+  { return constant_impl::lt(y,this); }
+  template<>
+  var* constant<__int64>::ltr(constant<wchar_t>* y)
   { return constant_impl::lt(y,this); }
   template<>
   var* constant<__int64>::ltr(constant<short int>* y)
@@ -826,6 +1052,9 @@ namespace cxx_compiler {
   var* constant<unsigned __int64>::ltr(constant<unsigned char>* y)
   { return constant_impl::lt(y,this); }
   template<>
+  var* constant<unsigned __int64>::ltr(constant<wchar_t>* y)
+  { return constant_impl::lt(y,this); }
+  template<>
   var* constant<unsigned __int64>::ltr(constant<short int>* y)
   { return constant_impl::lt(y,this); }
   template<>
@@ -869,6 +1098,8 @@ cxx_compiler::var* cxx_compiler::constant<float>::ltr(constant<signed char>* y)
 { return constant_impl::flt2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<float>::ltr(constant<unsigned char>* y)
 { return constant_impl::flt2(y,this); }
+cxx_compiler::var* cxx_compiler::constant<float>::ltr(constant<wchar_t>* y)
+{ return constant_impl::flt2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<float>::ltr(constant<short int>* y)
 { return constant_impl::flt2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<float>::ltr(constant<unsigned short int>* y)
@@ -901,6 +1132,8 @@ cxx_compiler::var* cxx_compiler::constant<double>::ltr(constant<signed char>* y)
 { return constant_impl::flt2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<double>::ltr(constant<unsigned char>* y)
 { return constant_impl::flt2(y,this); }
+cxx_compiler::var* cxx_compiler::constant<double>::ltr(constant<wchar_t>* y)
+{ return constant_impl::flt2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<double>::ltr(constant<short int>* y)
 { return constant_impl::flt2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<double>::ltr(constant<unsigned short int>* y)
@@ -932,6 +1165,8 @@ cxx_compiler::var* cxx_compiler::constant<long double>::ltr(constant<signed char
 { return constant_impl::flt2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<long double>::ltr(constant<unsigned char>* y)
 { return constant_impl::flt2(y,this); }
+cxx_compiler::var* cxx_compiler::constant<long double>::ltr(constant<wchar_t>* y)
+{ return constant_impl::flt2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<long double>::ltr(constant<short int>* y)
 { return constant_impl::flt2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<long double>::ltr(constant<unsigned short int>* y)
@@ -959,7 +1194,7 @@ namespace cxx_compiler { namespace constant_impl {
   template<class A, class B> var* pcmp(goto3ac::op op, constant<A>* a, constant<B>* b)
   {
     using namespace expressions::primary::literal;
-    if ( valid_pointer(op,a,b) ){
+    if (expressions::cmp_impl::valid_pointer(op,a,b)){
       void* x = (void*)a->m_value;
       void* y = (void*)b->m_value;
       switch ( op ){
@@ -971,7 +1206,7 @@ namespace cxx_compiler { namespace constant_impl {
       case goto3ac::NE: return integer::create(x != y);
       }
     }
-    return gen(op,a,b);
+    return expressions::cmp_impl::gen(op,a,b);
   }
 } } // end of namespace constant_impl and cxx_compiler
 
@@ -997,7 +1232,7 @@ cxx_compiler::var* cxx_compiler::addrof_impl::pcmp(goto3ac::op op, addrof* a, ad
     case goto3ac::NE: return integer::create(x != y);
     }
   }
-  return gen(op,a,b);
+  return expressions::cmp_impl::gen(op,a,b);
 }
 
 cxx_compiler::var* cxx_compiler::addrof::lt(var* z){ return z->ltr(this); }
@@ -1007,6 +1242,17 @@ namespace cxx_compiler { namespace constant_impl {
   template<class A, class B> var* gt(constant<A>* y, constant<B>* z)
   {
     using namespace expressions::primary::literal;
+    if (expressions::cmp_impl::valid_pointer(goto3ac::GT, y, z)) {
+      constant<__int64>* yy = reinterpret_cast<constant<__int64>*>(y);
+      constant<__int64>* zz = reinterpret_cast<constant<__int64>*>(z);
+      return integer::create(yy->m_value > zz->m_value); 
+    }
+    usr::flag_t fy = y->m_flag;
+    if (fy & usr::CONST_PTR)
+      return expressions::cmp_impl::gen(goto3ac::GT, y,z);
+    usr::flag_t fz = z->m_flag;
+    if (fz & usr::CONST_PTR)
+      return expressions::cmp_impl::gen(goto3ac::GT, y,z);
     return integer::create(y->m_value > z->m_value); 
   }
   template<class A, class B> var* fgt1(constant<A>* y, constant<B>* z)
@@ -1060,6 +1306,9 @@ namespace cxx_compiler {
   var* constant<bool>::gtr(constant<unsigned char>* y)
   { return constant_impl::gt(y,this); }
   template<>
+  var* constant<bool>::gtr(constant<wchar_t>* y)
+  { return constant_impl::gt(y,this); }
+  template<>
   var* constant<bool>::gtr(constant<short int>* y)
   { return constant_impl::gt(y,this); }
   template<>
@@ -1103,6 +1352,9 @@ namespace cxx_compiler {
   { return constant_impl::gt(y,this); }
   template<>
   var* constant<char>::gtr(constant<unsigned char>* y)
+  { return constant_impl::gt(y,this); }
+  template<>
+  var* constant<char>::gtr(constant<wchar_t>* y)
   { return constant_impl::gt(y,this); }
   template<>
   var* constant<char>::gtr(constant<short int>* y)
@@ -1150,6 +1402,9 @@ namespace cxx_compiler {
   var* constant<signed char>::gtr(constant<unsigned char>* y)
   { return constant_impl::gt(y,this); }
   template<>
+  var* constant<signed char>::gtr(constant<wchar_t>* y)
+  { return constant_impl::gt(y,this); }
+  template<>
   var* constant<signed char>::gtr(constant<short int>* y)
   { return constant_impl::gt(y,this); }
   template<>
@@ -1182,7 +1437,6 @@ namespace cxx_compiler {
   template<>
   var* constant<signed char>::gtr(constant<long double>* y)
   { return constant_impl::fgt1(y,this); }
-  
   template<>
   var* constant<unsigned char>::gtr(constant<bool>* y)
   { return constant_impl::gt(y,this); }
@@ -1194,6 +1448,9 @@ namespace cxx_compiler {
   { return constant_impl::gt(y,this); }
   template<>
   var* constant<unsigned char>::gtr(constant<unsigned char>* y)
+  { return constant_impl::gt(y,this); }
+  template<>
+  var* constant<unsigned char>::gtr(constant<wchar_t>* y)
   { return constant_impl::gt(y,this); }
   template<>
   var* constant<unsigned char>::gtr(constant<short int>* y)
@@ -1228,7 +1485,54 @@ namespace cxx_compiler {
   template<>
   var* constant<unsigned char>::gtr(constant<long double>* y)
   { return constant_impl::fgt1(y,this); }
-  
+  template<>
+  var* constant<wchar_t>::gtr(constant<bool>* y)
+  { return constant_impl::gt(y,this); }
+  template<>
+  var* constant<wchar_t>::gtr(constant<char>* y)
+  { return constant_impl::gt(y,this); }
+  template<>
+  var* constant<wchar_t>::gtr(constant<signed char>* y)
+  { return constant_impl::gt(y,this); }
+  template<>
+  var* constant<wchar_t>::gtr(constant<unsigned char>* y)
+  { return constant_impl::gt(y,this); }
+  template<>
+  var* constant<wchar_t>::gtr(constant<wchar_t>* y)
+  { return constant_impl::gt(y,this); }
+  template<>
+  var* constant<wchar_t>::gtr(constant<short int>* y)
+  { return constant_impl::gt(y,this); }
+  template<>
+  var* constant<wchar_t>::gtr(constant<unsigned short int>* y)
+  { return constant_impl::gt(y,this); }
+  template<>
+  var* constant<wchar_t>::gtr(constant<int>* y)
+  { return constant_impl::gt(y,this); }
+  template<>
+  var* constant<wchar_t>::gtr(constant<unsigned int>* y)
+  { return constant_impl::gt(y,this); }
+  template<>
+  var* constant<wchar_t>::gtr(constant<long int>* y)
+  { return constant_impl::gt(y,this); }
+  template<>
+  var* constant<wchar_t>::gtr(constant<unsigned long int>* y)
+  { return constant_impl::gt(y,this); }
+  template<>
+  var* constant<wchar_t>::gtr(constant<__int64>* y)
+  { return constant_impl::gt(y,this); }
+  template<>
+  var* constant<wchar_t>::gtr(constant<unsigned __int64>* y)
+  { return constant_impl::gt(y,this); }
+  template<>
+  var* constant<wchar_t>::gtr(constant<float>* y)
+  { return constant_impl::fgt1(y,this); }
+  template<>
+  var* constant<wchar_t>::gtr(constant<double>* y)
+  { return constant_impl::fgt1(y,this); }
+  template<>
+  var* constant<wchar_t>::gtr(constant<long double>* y)
+  { return constant_impl::fgt1(y,this); }
   template<>
   var* constant<short int>::gtr(constant<bool>* y)
   { return constant_impl::gt(y,this); }
@@ -1240,6 +1544,9 @@ namespace cxx_compiler {
   { return constant_impl::gt(y,this); }
   template<>
   var* constant<short int>::gtr(constant<unsigned char>* y)
+  { return constant_impl::gt(y,this); }
+  template<>
+  var* constant<short int>::gtr(constant<wchar_t>* y)
   { return constant_impl::gt(y,this); }
   template<>
   var* constant<short int>::gtr(constant<short int>* y)
@@ -1288,6 +1595,9 @@ namespace cxx_compiler {
   var* constant<unsigned short int>::gtr(constant<unsigned char>* y)
   { return constant_impl::gt(y,this); }
   template<>
+  var* constant<unsigned short int>::gtr(constant<wchar_t>* y)
+  { return constant_impl::gt(y,this); }
+  template<>
   var* constant<unsigned short int>::gtr(constant<short int>* y)
   { return constant_impl::gt(y,this); }
   template<>
@@ -1332,6 +1642,9 @@ namespace cxx_compiler {
   { return constant_impl::gt(y,this); }
   template<>
   var* constant<int>::gtr(constant<unsigned char>* y)
+  { return constant_impl::gt(y,this); }
+  template<>
+  var* constant<int>::gtr(constant<wchar_t>* y)
   { return constant_impl::gt(y,this); }
   template<>
   var* constant<int>::gtr(constant<short int>* y)
@@ -1380,6 +1693,9 @@ namespace cxx_compiler {
   var* constant<unsigned int>::gtr(constant<unsigned char>* y)
   { return constant_impl::gt(y,this); }
   template<>
+  var* constant<unsigned int>::gtr(constant<wchar_t>* y)
+  { return constant_impl::gt(y,this); }
+  template<>
   var* constant<unsigned int>::gtr(constant<short int>* y)
   { return constant_impl::gt(y,this); }
   template<>
@@ -1424,6 +1740,9 @@ namespace cxx_compiler {
   { return constant_impl::gt(y,this); }
   template<>
   var* constant<long int>::gtr(constant<unsigned char>* y)
+  { return constant_impl::gt(y,this); }
+  template<>
+  var* constant<long int>::gtr(constant<wchar_t>* y)
   { return constant_impl::gt(y,this); }
   template<>
   var* constant<long int>::gtr(constant<short int>* y)
@@ -1472,6 +1791,9 @@ namespace cxx_compiler {
   var* constant<unsigned long int>::gtr(constant<unsigned char>* y)
   { return constant_impl::gt(y,this); }
   template<>
+  var* constant<unsigned long int>::gtr(constant<wchar_t>* y)
+  { return constant_impl::gt(y,this); }
+  template<>
   var* constant<unsigned long int>::gtr(constant<short int>* y)
   { return constant_impl::gt(y,this); }
   template<>
@@ -1516,6 +1838,9 @@ namespace cxx_compiler {
   { return constant_impl::gt(y,this); }
   template<>
   var* constant<__int64>::gtr(constant<unsigned char>* y)
+  { return constant_impl::gt(y,this); }
+  template<>
+  var* constant<__int64>::gtr(constant<wchar_t>* y)
   { return constant_impl::gt(y,this); }
   template<>
   var* constant<__int64>::gtr(constant<short int>* y)
@@ -1564,6 +1889,9 @@ namespace cxx_compiler {
   var* constant<unsigned __int64>::gtr(constant<unsigned char>* y)
   { return constant_impl::gt(y,this); }
   template<>
+  var* constant<unsigned __int64>::gtr(constant<wchar_t>* y)
+  { return constant_impl::gt(y,this); }
+  template<>
   var* constant<unsigned __int64>::gtr(constant<short int>* y)
   { return constant_impl::gt(y,this); }
   template<>
@@ -1607,6 +1935,8 @@ cxx_compiler::var* cxx_compiler::constant<float>::gtr(constant<signed char>* y)
 { return constant_impl::fgt2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<float>::gtr(constant<unsigned char>* y)
 { return constant_impl::fgt2(y,this); }
+cxx_compiler::var* cxx_compiler::constant<float>::gtr(constant<wchar_t>* y)
+{ return constant_impl::fgt2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<float>::gtr(constant<short int>* y)
 { return constant_impl::fgt2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<float>::gtr(constant<unsigned short int>* y)
@@ -1639,6 +1969,8 @@ cxx_compiler::var* cxx_compiler::constant<double>::gtr(constant<signed char>* y)
 { return constant_impl::fgt2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<double>::gtr(constant<unsigned char>* y)
 { return constant_impl::fgt2(y,this); }
+cxx_compiler::var* cxx_compiler::constant<double>::gtr(constant<wchar_t>* y)
+{ return constant_impl::fgt2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<double>::gtr(constant<short int>* y)
 { return constant_impl::fgt2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<double>::gtr(constant<unsigned short int>* y)
@@ -1670,6 +2002,8 @@ cxx_compiler::var* cxx_compiler::constant<long double>::gtr(constant<char>* y)
 cxx_compiler::var* cxx_compiler::constant<long double>::gtr(constant<signed char>* y)
 { return constant_impl::fgt2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<long double>::gtr(constant<unsigned char>* y)
+{ return constant_impl::fgt2(y,this); }
+cxx_compiler::var* cxx_compiler::constant<long double>::gtr(constant<wchar_t>* y)
 { return constant_impl::fgt2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<long double>::gtr(constant<short int>* y)
 { return constant_impl::fgt2(y,this); }
@@ -1704,6 +2038,17 @@ namespace cxx_compiler { namespace constant_impl {
   template<class A, class B> var* le(constant<A>* y, constant<B>* z)
   {
     using namespace expressions::primary::literal;
+    if (expressions::cmp_impl::valid_pointer(goto3ac::LE, y, z)) {
+      constant<__int64>* yy = reinterpret_cast<constant<__int64>*>(y);
+      constant<__int64>* zz = reinterpret_cast<constant<__int64>*>(z);
+      return integer::create(yy->m_value <= zz->m_value); 
+    }
+    usr::flag_t fy = y->m_flag;
+    if (fy & usr::CONST_PTR)
+      return expressions::cmp_impl::gen(goto3ac::LE, y,z);
+    usr::flag_t fz = z->m_flag;
+    if (fz & usr::CONST_PTR)
+      return expressions::cmp_impl::gen(goto3ac::LE, y,z);
     return integer::create(y->m_value <= z->m_value); 
   }
   template<class A, class B> var* fle1(constant<A>* y, constant<B>* z)
@@ -1757,6 +2102,9 @@ namespace cxx_compiler {
   var* constant<bool>::ler(constant<unsigned char>* y)
   { return constant_impl::le(y,this); }
   template<>
+  var* constant<bool>::ler(constant<wchar_t>* y)
+  { return constant_impl::le(y,this); }
+  template<>
   var* constant<bool>::ler(constant<short int>* y)
   { return constant_impl::le(y,this); }
   template<>
@@ -1800,6 +2148,9 @@ namespace cxx_compiler {
   { return constant_impl::le(y,this); }
   template<>
   var* constant<char>::ler(constant<unsigned char>* y)
+  { return constant_impl::le(y,this); }
+  template<>
+  var* constant<char>::ler(constant<wchar_t>* y)
   { return constant_impl::le(y,this); }
   template<>
   var* constant<char>::ler(constant<short int>* y)
@@ -1847,6 +2198,9 @@ namespace cxx_compiler {
   var* constant<signed char>::ler(constant<unsigned char>* y)
   { return constant_impl::le(y,this); }
   template<>
+  var* constant<signed char>::ler(constant<wchar_t>* y)
+  { return constant_impl::le(y,this); }
+  template<>
   var* constant<signed char>::ler(constant<short int>* y)
   { return constant_impl::le(y,this); }
   template<>
@@ -1892,6 +2246,9 @@ namespace cxx_compiler {
   var* constant<unsigned char>::ler(constant<unsigned char>* y)
   { return constant_impl::le(y,this); }
   template<>
+  var* constant<unsigned char>::ler(constant<wchar_t>* y)
+  { return constant_impl::le(y,this); }
+  template<>
   var* constant<unsigned char>::ler(constant<short int>* y)
   { return constant_impl::le(y,this); }
   template<>
@@ -1925,6 +2282,54 @@ namespace cxx_compiler {
   var* constant<unsigned char>::ler(constant<long double>* y)
   { return constant_impl::fle1(y,this); }
   template<>
+  var* constant<wchar_t>::ler(constant<bool>* y)
+  { return constant_impl::le(y,this); }
+  template<>
+  var* constant<wchar_t>::ler(constant<char>* y)
+  { return constant_impl::le(y,this); }
+  template<>
+  var* constant<wchar_t>::ler(constant<signed char>* y)
+  { return constant_impl::le(y,this); }
+  template<>
+  var* constant<wchar_t>::ler(constant<unsigned char>* y)
+  { return constant_impl::le(y,this); }
+  template<>
+  var* constant<wchar_t>::ler(constant<wchar_t>* y)
+  { return constant_impl::le(y,this); }
+  template<>
+  var* constant<wchar_t>::ler(constant<short int>* y)
+  { return constant_impl::le(y,this); }
+  template<>
+  var* constant<wchar_t>::ler(constant<unsigned short int>* y)
+  { return constant_impl::le(y,this); }
+  template<>
+  var* constant<wchar_t>::ler(constant<int>* y)
+  { return constant_impl::le(y,this); }
+  template<>
+  var* constant<wchar_t>::ler(constant<unsigned int>* y)
+  { return constant_impl::le(y,this); }
+  template<>
+  var* constant<wchar_t>::ler(constant<long int>* y)
+  { return constant_impl::le(y,this); }
+  template<>
+  var* constant<wchar_t>::ler(constant<unsigned long int>* y)
+  { return constant_impl::le(y,this); }
+  template<>
+  var* constant<wchar_t>::ler(constant<__int64>* y)
+  { return constant_impl::le(y,this); }
+  template<>
+  var* constant<wchar_t>::ler(constant<unsigned __int64>* y)
+  { return constant_impl::le(y,this); }
+  template<>
+  var* constant<wchar_t>::ler(constant<float>* y)
+  { return constant_impl::fle1(y,this); }
+  template<>
+  var* constant<wchar_t>::ler(constant<double>* y)
+  { return constant_impl::fle1(y,this); }
+  template<>
+  var* constant<wchar_t>::ler(constant<long double>* y)
+  { return constant_impl::fle1(y,this); }
+  template<>
   var* constant<short int>::ler(constant<bool>* y)
   { return constant_impl::le(y,this); }
   template<>
@@ -1935,6 +2340,9 @@ namespace cxx_compiler {
   { return constant_impl::le(y,this); }
   template<>
   var* constant<short int>::ler(constant<unsigned char>* y)
+  { return constant_impl::le(y,this); }
+  template<>
+  var* constant<short int>::ler(constant<wchar_t>* y)
   { return constant_impl::le(y,this); }
   template<>
   var* constant<short int>::ler(constant<short int>* y)
@@ -1982,6 +2390,9 @@ namespace cxx_compiler {
   var* constant<unsigned short int>::ler(constant<unsigned char>* y)
   { return constant_impl::le(y,this); }
   template<>
+  var* constant<unsigned short int>::ler(constant<wchar_t>* y)
+  { return constant_impl::le(y,this); }
+  template<>
   var* constant<unsigned short int>::ler(constant<short int>* y)
   { return constant_impl::le(y,this); }
   template<>
@@ -2025,6 +2436,9 @@ namespace cxx_compiler {
   { return constant_impl::le(y,this); }
   template<>
   var* constant<int>::ler(constant<unsigned char>* y)
+  { return constant_impl::le(y,this); }
+  template<>
+  var* constant<int>::ler(constant<wchar_t>* y)
   { return constant_impl::le(y,this); }
   template<>
   var* constant<int>::ler(constant<short int>* y)
@@ -2072,6 +2486,9 @@ namespace cxx_compiler {
   var* constant<unsigned int>::ler(constant<unsigned char>* y)
   { return constant_impl::le(y,this); }
   template<>
+  var* constant<unsigned int>::ler(constant<wchar_t>* y)
+  { return constant_impl::le(y,this); }
+  template<>
   var* constant<unsigned int>::ler(constant<short int>* y)
   { return constant_impl::le(y,this); }
   template<>
@@ -2115,6 +2532,9 @@ namespace cxx_compiler {
   { return constant_impl::le(y,this); }
   template<>
   var* constant<long int>::ler(constant<unsigned char>* y)
+  { return constant_impl::le(y,this); }
+  template<>
+  var* constant<long int>::ler(constant<wchar_t>* y)
   { return constant_impl::le(y,this); }
   template<>
   var* constant<long int>::ler(constant<short int>* y)
@@ -2162,6 +2582,9 @@ namespace cxx_compiler {
   var* constant<unsigned long int>::ler(constant<unsigned char>* y)
   { return constant_impl::le(y,this); }
   template<>
+  var* constant<unsigned long int>::ler(constant<wchar_t>* y)
+  { return constant_impl::le(y,this); }
+  template<>
   var* constant<unsigned long int>::ler(constant<short int>* y)
   { return constant_impl::le(y,this); }
   template<>
@@ -2205,6 +2628,9 @@ namespace cxx_compiler {
   { return constant_impl::le(y,this); }
   template<>
   var* constant<__int64>::ler(constant<unsigned char>* y)
+  { return constant_impl::le(y,this); }
+  template<>
+  var* constant<__int64>::ler(constant<wchar_t>* y)
   { return constant_impl::le(y,this); }
   template<>
   var* constant<__int64>::ler(constant<short int>* y)
@@ -2252,6 +2678,9 @@ namespace cxx_compiler {
   var* constant<unsigned __int64>::ler(constant<unsigned char>* y)
   { return constant_impl::le(y,this); }
   template<>
+  var* constant<unsigned __int64>::ler(constant<wchar_t>* y)
+  { return constant_impl::le(y,this); }
+  template<>
   var* constant<unsigned __int64>::ler(constant<short int>* y)
   { return constant_impl::le(y,this); }
   template<>
@@ -2295,6 +2724,8 @@ cxx_compiler::var* cxx_compiler::constant<float>::ler(constant<signed char>* y)
 { return constant_impl::fle2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<float>::ler(constant<unsigned char>* y)
 { return constant_impl::fle2(y,this); }
+cxx_compiler::var* cxx_compiler::constant<float>::ler(constant<wchar_t>* y)
+{ return constant_impl::fle2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<float>::ler(constant<short int>* y)
 { return constant_impl::fle2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<float>::ler(constant<unsigned short int>* y)
@@ -2327,6 +2758,8 @@ cxx_compiler::var* cxx_compiler::constant<double>::ler(constant<signed char>* y)
 { return constant_impl::fle2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<double>::ler(constant<unsigned char>* y)
 { return constant_impl::fle2(y,this); }
+cxx_compiler::var* cxx_compiler::constant<double>::ler(constant<wchar_t>* y)
+{ return constant_impl::fle2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<double>::ler(constant<short int>* y)
 { return constant_impl::fle2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<double>::ler(constant<unsigned short int>* y)
@@ -2357,6 +2790,8 @@ cxx_compiler::var* cxx_compiler::constant<long double>::ler(constant<char>* y)
 cxx_compiler::var* cxx_compiler::constant<long double>::ler(constant<signed char>* y)
 { return constant_impl::fle2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<long double>::ler(constant<unsigned char>* y)
+{ return constant_impl::fle2(y,this); }
+cxx_compiler::var* cxx_compiler::constant<long double>::ler(constant<wchar_t>* y)
 { return constant_impl::fle2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<long double>::ler(constant<short int>* y)
 { return constant_impl::fle2(y,this); }
@@ -2391,6 +2826,17 @@ namespace cxx_compiler { namespace constant_impl {
   template<class A, class B> var* ge(constant<A>* y, constant<B>* z)
   {
     using namespace expressions::primary::literal;
+    if (expressions::cmp_impl::valid_pointer(goto3ac::GE, y, z)) {
+      constant<__int64>* yy = reinterpret_cast<constant<__int64>*>(y);
+      constant<__int64>* zz = reinterpret_cast<constant<__int64>*>(z);
+      return integer::create(yy->m_value >= zz->m_value); 
+    }
+    usr::flag_t fy = y->m_flag;
+    if (fy & usr::CONST_PTR)
+      return expressions::cmp_impl::gen(goto3ac::GE, y,z);
+    usr::flag_t fz = z->m_flag;
+    if (fz & usr::CONST_PTR)
+      return expressions::cmp_impl::gen(goto3ac::GE, y,z);
     return integer::create(y->m_value >= z->m_value);
   }
   template<class A, class B> var* fge1(constant<A>* y, constant<B>* z)
@@ -2448,6 +2894,9 @@ namespace cxx_compiler {
   var* constant<bool>::ger(constant<unsigned char>* y)
   { return constant_impl::ge(y,this); }
   template<>
+  var* constant<bool>::ger(constant<wchar_t>* y)
+  { return constant_impl::ge(y,this); }
+  template<>
   var* constant<bool>::ger(constant<short int>* y)
   { return constant_impl::ge(y,this); }
   template<>
@@ -2491,6 +2940,9 @@ namespace cxx_compiler {
   { return constant_impl::ge(y,this); }
   template<>
   var* constant<char>::ger(constant<unsigned char>* y)
+  { return constant_impl::ge(y,this); }
+  template<>
+  var* constant<char>::ger(constant<wchar_t>* y)
   { return constant_impl::ge(y,this); }
   template<>
   var* constant<char>::ger(constant<short int>* y)
@@ -2538,6 +2990,9 @@ namespace cxx_compiler {
   var* constant<signed char>::ger(constant<unsigned char>* y)
   { return constant_impl::ge(y,this); }
   template<>
+  var* constant<signed char>::ger(constant<wchar_t>* y)
+  { return constant_impl::ge(y,this); }
+  template<>
   var* constant<signed char>::ger(constant<short int>* y)
   { return constant_impl::ge(y,this); }
   template<>
@@ -2583,6 +3038,9 @@ namespace cxx_compiler {
   var* constant<unsigned char>::ger(constant<unsigned char>* y)
   { return constant_impl::ge(y,this); }
   template<>
+  var* constant<unsigned char>::ger(constant<wchar_t>* y)
+  { return constant_impl::ge(y,this); }
+  template<>
   var* constant<unsigned char>::ger(constant<short int>* y)
   { return constant_impl::ge(y,this); }
   template<>
@@ -2616,6 +3074,54 @@ namespace cxx_compiler {
   var* constant<unsigned char>::ger(constant<long double>* y)
   { return constant_impl::fge1(y,this); }
   template<>
+  var* constant<wchar_t>::ger(constant<bool>* y)
+  { return constant_impl::ge(y,this); }
+  template<>
+  var* constant<wchar_t>::ger(constant<char>* y)
+  { return constant_impl::ge(y,this); }
+  template<>
+  var* constant<wchar_t>::ger(constant<signed char>* y)
+  { return constant_impl::ge(y,this); }
+  template<>
+  var* constant<wchar_t>::ger(constant<unsigned char>* y)
+  { return constant_impl::ge(y,this); }
+  template<>
+  var* constant<wchar_t>::ger(constant<wchar_t>* y)
+  { return constant_impl::ge(y,this); }
+  template<>
+  var* constant<wchar_t>::ger(constant<short int>* y)
+  { return constant_impl::ge(y,this); }
+  template<>
+  var* constant<wchar_t>::ger(constant<unsigned short int>* y)
+  { return constant_impl::ge(y,this); }
+  template<>
+  var* constant<wchar_t>::ger(constant<int>* y)
+  { return constant_impl::ge(y,this); }
+  template<>
+  var* constant<wchar_t>::ger(constant<unsigned int>* y)
+  { return constant_impl::ge(y,this); }
+  template<>
+  var* constant<wchar_t>::ger(constant<long int>* y)
+  { return constant_impl::ge(y,this); }
+  template<>
+  var* constant<wchar_t>::ger(constant<unsigned long int>* y)
+  { return constant_impl::ge(y,this); }
+  template<>
+  var* constant<wchar_t>::ger(constant<__int64>* y)
+  { return constant_impl::ge(y,this); }
+  template<>
+  var* constant<wchar_t>::ger(constant<unsigned __int64>* y)
+  { return constant_impl::ge(y,this); }
+  template<>
+  var* constant<wchar_t>::ger(constant<float>* y)
+  { return constant_impl::fge1(y,this); }
+  template<>
+  var* constant<wchar_t>::ger(constant<double>* y)
+  { return constant_impl::fge1(y,this); }
+  template<>
+  var* constant<wchar_t>::ger(constant<long double>* y)
+  { return constant_impl::fge1(y,this); }
+  template<>
   var* constant<short int>::ger(constant<bool>* y)
   { return constant_impl::ge(y,this); }
   template<>
@@ -2626,6 +3132,9 @@ namespace cxx_compiler {
   { return constant_impl::ge(y,this); }
   template<>
   var* constant<short int>::ger(constant<unsigned char>* y)
+  { return constant_impl::ge(y,this); }
+  template<>
+  var* constant<short int>::ger(constant<wchar_t>* y)
   { return constant_impl::ge(y,this); }
   template<>
   var* constant<short int>::ger(constant<short int>* y)
@@ -2673,6 +3182,9 @@ namespace cxx_compiler {
   var* constant<unsigned short int>::ger(constant<unsigned char>* y)
   { return constant_impl::ge(y,this); }
   template<>
+  var* constant<unsigned short int>::ger(constant<wchar_t>* y)
+  { return constant_impl::ge(y,this); }
+  template<>
   var* constant<unsigned short int>::ger(constant<short int>* y)
   { return constant_impl::ge(y,this); }
   template<>
@@ -2716,6 +3228,9 @@ namespace cxx_compiler {
   { return constant_impl::ge(y,this); }
   template<>
   var* constant<int>::ger(constant<unsigned char>* y)
+  { return constant_impl::ge(y,this); }
+  template<>
+  var* constant<int>::ger(constant<wchar_t>* y)
   { return constant_impl::ge(y,this); }
   template<>
   var* constant<int>::ger(constant<short int>* y)
@@ -2763,6 +3278,9 @@ namespace cxx_compiler {
   var* constant<unsigned int>::ger(constant<unsigned char>* y)
   { return constant_impl::ge(y,this); }
   template<>
+  var* constant<unsigned int>::ger(constant<wchar_t>* y)
+  { return constant_impl::ge(y,this); }
+  template<>
   var* constant<unsigned int>::ger(constant<short int>* y)
   { return constant_impl::ge(y,this); }
   template<>
@@ -2806,6 +3324,9 @@ namespace cxx_compiler {
   { return constant_impl::ge(y,this); }
   template<>
   var* constant<long int>::ger(constant<unsigned char>* y)
+  { return constant_impl::ge(y,this); }
+  template<>
+  var* constant<long int>::ger(constant<wchar_t>* y)
   { return constant_impl::ge(y,this); }
   template<>
   var* constant<long int>::ger(constant<short int>* y)
@@ -2853,6 +3374,9 @@ namespace cxx_compiler {
   var* constant<unsigned long int>::ger(constant<unsigned char>* y)
   { return constant_impl::ge(y,this); }
   template<>
+  var* constant<unsigned long int>::ger(constant<wchar_t>* y)
+  { return constant_impl::ge(y,this); }
+  template<>
   var* constant<unsigned long int>::ger(constant<short int>* y)
   { return constant_impl::ge(y,this); }
   template<>
@@ -2896,6 +3420,9 @@ namespace cxx_compiler {
   { return constant_impl::ge(y,this); }
   template<>
   var* constant<__int64>::ger(constant<unsigned char>* y)
+  { return constant_impl::ge(y,this); }
+  template<>
+  var* constant<__int64>::ger(constant<wchar_t>* y)
   { return constant_impl::ge(y,this); }
   template<>
   var* constant<__int64>::ger(constant<short int>* y)
@@ -2943,6 +3470,9 @@ namespace cxx_compiler {
   var* constant<unsigned __int64>::ger(constant<unsigned char>* y)
   { return constant_impl::ge(y,this); }
   template<>
+  var* constant<unsigned __int64>::ger(constant<wchar_t>* y)
+  { return constant_impl::ge(y,this); }
+  template<>
   var* constant<unsigned __int64>::ger(constant<short int>* y)
   { return constant_impl::ge(y,this); }
   template<>
@@ -2986,6 +3516,8 @@ cxx_compiler::var* cxx_compiler::constant<float>::ger(constant<signed char>* y)
 { return constant_impl::fge2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<float>::ger(constant<unsigned char>* y)
 { return constant_impl::fge2(y,this); }
+cxx_compiler::var* cxx_compiler::constant<float>::ger(constant<wchar_t>* y)
+{ return constant_impl::fge2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<float>::ger(constant<short int>* y)
 { return constant_impl::fge2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<float>::ger(constant<unsigned short int>* y)
@@ -3018,6 +3550,8 @@ cxx_compiler::var* cxx_compiler::constant<double>::ger(constant<signed char>* y)
 { return constant_impl::fge2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<double>::ger(constant<unsigned char>* y)
 { return constant_impl::fge2(y,this); }
+cxx_compiler::var* cxx_compiler::constant<double>::ger(constant<wchar_t>* y)
+{ return constant_impl::fge2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<double>::ger(constant<short int>* y)
 { return constant_impl::fge2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<double>::ger(constant<unsigned short int>* y)
@@ -3049,6 +3583,8 @@ cxx_compiler::var* cxx_compiler::constant<long double>::ger(constant<signed char
 { return constant_impl::fge2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<long double>::ger(constant<unsigned char>* y)
 { return constant_impl::fge2(y,this); }
+cxx_compiler::var* cxx_compiler::constant<long double>::ger(constant<wchar_t>* y)
+{ return constant_impl::fge2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<long double>::ger(constant<short int>* y)
 { return constant_impl::fge2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<long double>::ger(constant<unsigned short int>* y)
@@ -3079,9 +3615,50 @@ cxx_compiler::var* cxx_compiler::addrof::ge(var* z){ return z->ger(this); }
 cxx_compiler::var* cxx_compiler::addrof::ger(addrof* y){ return addrof_impl::pcmp(goto3ac::GE,y,this); }
 
 namespace cxx_compiler { namespace constant_impl {
+  using namespace expressions::primary::literal;
+  template<class A, class B> var* ptr_equality(goto3ac::op op,
+                                               constant<A>* y, constant<B>* z)
+  {
+    assert(op == goto3ac::EQ || op == goto3ac::NE);
+    usr::flag_t fy = y->m_flag;
+    usr::flag_t fz = z->m_flag;
+    constant<__int64>* yy = 0;
+    constant<__int64>* zz = 0;
+    if (fy & usr::CONST_PTR)
+      yy = reinterpret_cast<constant<__int64>*>(y);
+    if (fz & usr::CONST_PTR)
+      zz = reinterpret_cast<constant<__int64>*>(z);
+    if (yy && zz) {
+      if (op == goto3ac::EQ)
+        return integer::create(yy->m_value == zz->m_value);
+      else
+        return integer::create(yy->m_value != zz->m_value);
+    }
+    if (yy) {
+      assert(z->m_type->integer() && z->zero());
+      if (op == goto3ac::EQ)
+        return integer::create(yy->m_value == 0);
+      else
+        return integer::create(yy->m_value != 0);
+    }
+
+    assert(zz && y->m_type->integer() && y->zero());
+    if (op == goto3ac::EQ)
+      return integer::create(0 == zz->m_value);
+    else
+      return integer::create(0 != zz->m_value);
+  }
   template<class A, class B> var* eq(constant<A>* y, constant<B>* z)
   {
-    using namespace expressions::primary::literal;
+    if (expressions::cmp_impl::valid_pointer(goto3ac::EQ, y, z))
+      return ptr_equality(goto3ac::EQ, y, z);
+
+    usr::flag_t fy = y->m_flag;
+    if (fy & usr::CONST_PTR)
+      return expressions::cmp_impl::gen(goto3ac::EQ, y, z);
+    usr::flag_t fz = z->m_flag;
+    if (fz & usr::CONST_PTR)
+      return expressions::cmp_impl::gen(goto3ac::EQ, y, z);
     return integer::create(y->m_value == z->m_value);
   }
   template<class A, class B> var* feq1(constant<A>* y, constant<B>* z)
@@ -3135,6 +3712,9 @@ namespace cxx_compiler {
   var* constant<bool>::eqr(constant<unsigned char>* y)
   { return constant_impl::eq(y,this); }
   template<>
+  var* constant<bool>::eqr(constant<wchar_t>* y)
+  { return constant_impl::eq(y,this); }
+  template<>
   var* constant<bool>::eqr(constant<short int>* y)
   { return constant_impl::eq(y,this); }
   template<>
@@ -3181,6 +3761,9 @@ namespace cxx_compiler {
   { return constant_impl::eq(y,this); }
   template<>
   var* constant<char>::eqr(constant<unsigned char>* y)
+  { return constant_impl::eq(y,this); }
+  template<>
+  var* constant<char>::eqr(constant<wchar_t>* y)
   { return constant_impl::eq(y,this); }
   template<>
   var* constant<char>::eqr(constant<short int>* y)
@@ -3231,6 +3814,9 @@ namespace cxx_compiler {
   var* constant<signed char>::eqr(constant<unsigned char>* y)
   { return constant_impl::eq(y,this); }
   template<>
+  var* constant<signed char>::eqr(constant<wchar_t>* y)
+  { return constant_impl::eq(y,this); }
+  template<>
   var* constant<signed char>::eqr(constant<short int>* y)
   { return constant_impl::eq(y,this); }
   template<>
@@ -3279,6 +3865,9 @@ namespace cxx_compiler {
   var* constant<unsigned char>::eqr(constant<unsigned char>* y)
   { return constant_impl::eq(y,this); }
   template<>
+  var* constant<unsigned char>::eqr(constant<wchar_t>* y)
+  { return constant_impl::eq(y,this); }
+  template<>
   var* constant<unsigned char>::eqr(constant<short int>* y)
   { return constant_impl::eq(y,this); }
   template<>
@@ -3315,6 +3904,57 @@ namespace cxx_compiler {
   var* constant<unsigned char>::eqr(constant<void*>* y)
   { return constant_impl::pcmp(goto3ac::EQ,y,this); }
   template<>
+  var* constant<wchar_t>::eqr(constant<bool>* y)
+  { return constant_impl::eq(y,this); }
+  template<>
+  var* constant<wchar_t>::eqr(constant<char>* y)
+  { return constant_impl::eq(y,this); }
+  template<>
+  var* constant<wchar_t>::eqr(constant<signed char>* y)
+  { return constant_impl::eq(y,this); }
+  template<>
+  var* constant<wchar_t>::eqr(constant<unsigned char>* y)
+  { return constant_impl::eq(y,this); }
+  template<>
+  var* constant<wchar_t>::eqr(constant<wchar_t>* y)
+  { return constant_impl::eq(y,this); }
+  template<>
+  var* constant<wchar_t>::eqr(constant<short int>* y)
+  { return constant_impl::eq(y,this); }
+  template<>
+  var* constant<wchar_t>::eqr(constant<unsigned short int>* y)
+  { return constant_impl::eq(y,this); }
+  template<>
+  var* constant<wchar_t>::eqr(constant<int>* y)
+  { return constant_impl::eq(y,this); }
+  template<>
+  var* constant<wchar_t>::eqr(constant<unsigned int>* y)
+  { return constant_impl::eq(y,this); }
+  template<>
+  var* constant<wchar_t>::eqr(constant<long int>* y)
+  { return constant_impl::eq(y,this); }
+  template<>
+  var* constant<wchar_t>::eqr(constant<unsigned long int>* y)
+  { return constant_impl::eq(y,this); }
+  template<>
+  var* constant<wchar_t>::eqr(constant<__int64>* y)
+  { return constant_impl::eq(y,this); }
+  template<>
+  var* constant<wchar_t>::eqr(constant<unsigned __int64>* y)
+  { return constant_impl::eq(y,this); }
+  template<>
+  var* constant<wchar_t>::eqr(constant<float>* y)
+  { return constant_impl::feq1(y,this); }
+  template<>
+  var* constant<wchar_t>::eqr(constant<double>* y)
+  { return constant_impl::feq1(y,this); }
+  template<>
+  var* constant<wchar_t>::eqr(constant<long double>* y)
+  { return constant_impl::feq1(y,this); }
+  template<>
+  var* constant<wchar_t>::eqr(constant<void*>* y)
+  { return constant_impl::pcmp(goto3ac::EQ,y,this); }
+  template<>
   var* constant<short int>::eqr(constant<bool>* y)
   { return constant_impl::eq(y,this); }
   template<>
@@ -3325,6 +3965,9 @@ namespace cxx_compiler {
   { return constant_impl::eq(y,this); }
   template<>
   var* constant<short int>::eqr(constant<unsigned char>* y)
+  { return constant_impl::eq(y,this); }
+  template<>
+  var* constant<short int>::eqr(constant<wchar_t>* y)
   { return constant_impl::eq(y,this); }
   template<>
   var* constant<short int>::eqr(constant<short int>* y)
@@ -3375,6 +4018,9 @@ namespace cxx_compiler {
   var* constant<unsigned short int>::eqr(constant<unsigned char>* y)
   { return constant_impl::eq(y,this); }
   template<>
+  var* constant<unsigned short int>::eqr(constant<wchar_t>* y)
+  { return constant_impl::eq(y,this); }
+  template<>
   var* constant<unsigned short int>::eqr(constant<short int>* y)
   { return constant_impl::eq(y,this); }
   template<>
@@ -3421,6 +4067,9 @@ namespace cxx_compiler {
   { return constant_impl::eq(y,this); }
   template<>
   var* constant<int>::eqr(constant<unsigned char>* y)
+  { return constant_impl::eq(y,this); }
+  template<>
+  var* constant<int>::eqr(constant<wchar_t>* y)
   { return constant_impl::eq(y,this); }
   template<>
   var* constant<int>::eqr(constant<short int>* y)
@@ -3471,6 +4120,9 @@ namespace cxx_compiler {
   var* constant<unsigned int>::eqr(constant<unsigned char>* y)
   { return constant_impl::eq(y,this); }
   template<>
+  var* constant<unsigned int>::eqr(constant<wchar_t>* y)
+  { return constant_impl::eq(y,this); }
+  template<>
   var* constant<unsigned int>::eqr(constant<short int>* y)
   { return constant_impl::eq(y,this); }
   template<>
@@ -3517,6 +4169,9 @@ namespace cxx_compiler {
   { return constant_impl::eq(y,this); }
   template<>
   var* constant<long int>::eqr(constant<unsigned char>* y)
+  { return constant_impl::eq(y,this); }
+  template<>
+  var* constant<long int>::eqr(constant<wchar_t>* y)
   { return constant_impl::eq(y,this); }
   template<>
   var* constant<long int>::eqr(constant<short int>* y)
@@ -3567,6 +4222,9 @@ namespace cxx_compiler {
   var* constant<unsigned long int>::eqr(constant<unsigned char>* y)
   { return constant_impl::eq(y,this); }
   template<>
+  var* constant<unsigned long int>::eqr(constant<wchar_t>* y)
+  { return constant_impl::eq(y,this); }
+  template<>
   var* constant<unsigned long int>::eqr(constant<short int>* y)
   { return constant_impl::eq(y,this); }
   template<>
@@ -3613,6 +4271,9 @@ namespace cxx_compiler {
   { return constant_impl::eq(y,this); }
   template<>
   var* constant<__int64>::eqr(constant<unsigned char>* y)
+  { return constant_impl::eq(y,this); }
+  template<>
+  var* constant<__int64>::eqr(constant<wchar_t>* y)
   { return constant_impl::eq(y,this); }
   template<>
   var* constant<__int64>::eqr(constant<short int>* y)
@@ -3663,6 +4324,9 @@ namespace cxx_compiler {
   var* constant<unsigned __int64>::eqr(constant<unsigned char>* y)
   { return constant_impl::eq(y,this); }
   template<>
+  var* constant<unsigned __int64>::eqr(constant<wchar_t>* y)
+  { return constant_impl::eq(y,this); }
+  template<>
   var* constant<unsigned __int64>::eqr(constant<short int>* y)
   { return constant_impl::eq(y,this); }
   template<>
@@ -3709,6 +4373,8 @@ cxx_compiler::var* cxx_compiler::constant<float>::eqr(constant<signed char>* y)
 { return constant_impl::feq2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<float>::eqr(constant<unsigned char>* y)
 { return constant_impl::feq2(y,this); }
+cxx_compiler::var* cxx_compiler::constant<float>::eqr(constant<wchar_t>* y)
+{ return constant_impl::feq2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<float>::eqr(constant<short int>* y)
 { return constant_impl::feq2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<float>::eqr(constant<unsigned short int>* y)
@@ -3741,6 +4407,8 @@ cxx_compiler::var* cxx_compiler::constant<double>::eqr(constant<signed char>* y)
 { return constant_impl::feq2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<double>::eqr(constant<unsigned char>* y)
 { return constant_impl::feq2(y,this); }
+cxx_compiler::var* cxx_compiler::constant<double>::eqr(constant<wchar_t>* y)
+{ return constant_impl::feq2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<double>::eqr(constant<short int>* y)
 { return constant_impl::feq2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<double>::eqr(constant<unsigned short int>* y)
@@ -3772,6 +4440,8 @@ cxx_compiler::var* cxx_compiler::constant<long double>::eqr(constant<signed char
 { return constant_impl::feq2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<long double>::eqr(constant<unsigned char>* y)
 { return constant_impl::feq2(y,this); }
+cxx_compiler::var* cxx_compiler::constant<long double>::eqr(constant<wchar_t>* y)
+{ return constant_impl::feq2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<long double>::eqr(constant<short int>* y)
 { return constant_impl::feq2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<long double>::eqr(constant<unsigned short int>* y)
@@ -3800,6 +4470,7 @@ cxx_compiler::var* cxx_compiler::constant<void*>::eqr(constant<bool>* y){ return
 cxx_compiler::var* cxx_compiler::constant<void*>::eqr(constant<char>* y){ return constant_impl::pcmp(goto3ac::EQ,y,this); }
 cxx_compiler::var* cxx_compiler::constant<void*>::eqr(constant<signed char>* y){ return constant_impl::pcmp(goto3ac::EQ,y,this); }
 cxx_compiler::var* cxx_compiler::constant<void*>::eqr(constant<unsigned char>* y){ return constant_impl::pcmp(goto3ac::EQ,y,this); }
+cxx_compiler::var* cxx_compiler::constant<void*>::eqr(constant<wchar_t>* y){ return constant_impl::pcmp(goto3ac::EQ,y,this); }
 cxx_compiler::var* cxx_compiler::constant<void*>::eqr(constant<short int>* y){ return constant_impl::pcmp(goto3ac::EQ,y,this); }
 cxx_compiler::var* cxx_compiler::constant<void*>::eqr(constant<unsigned short int>* y){ return constant_impl::pcmp(goto3ac::EQ,y,this); }
 cxx_compiler::var* cxx_compiler::constant<void*>::eqr(constant<int>* y){ return constant_impl::pcmp(goto3ac::EQ,y,this); }
@@ -3817,6 +4488,14 @@ namespace cxx_compiler { namespace constant_impl {
   template<class A, class B> var* ne(constant<A>* y, constant<B>* z)
   {
     using namespace expressions::primary::literal;
+    if (expressions::cmp_impl::valid_pointer(goto3ac::NE, y, z))
+      return ptr_equality(goto3ac::NE, y, z);
+    usr::flag_t fy = y->m_flag;
+    if (fy & usr::CONST_PTR)
+      return expressions::cmp_impl::gen(goto3ac::NE, y, z);
+    usr::flag_t fz = z->m_flag;
+    if (fz & usr::CONST_PTR)
+      return expressions::cmp_impl::gen(goto3ac::NE, y, z);
     return integer::create(y->m_value != z->m_value);
   }
   template<class A, class B> var* fne1(constant<A>* y, constant<B>* z)
@@ -3870,6 +4549,9 @@ namespace cxx_compiler {
   var* constant<bool>::ner(constant<unsigned char>* y)
   { return constant_impl::ne(y,this); }
   template<>
+  var* constant<bool>::ner(constant<wchar_t>* y)
+  { return constant_impl::ne(y,this); }
+  template<>
   var* constant<bool>::ner(constant<short int>* y)
   { return constant_impl::ne(y,this); }
   template<>
@@ -3916,6 +4598,9 @@ namespace cxx_compiler {
   { return constant_impl::ne(y,this); }
   template<>
   var* constant<char>::ner(constant<unsigned char>* y)
+  { return constant_impl::ne(y,this); }
+  template<>
+  var* constant<char>::ner(constant<wchar_t>* y)
   { return constant_impl::ne(y,this); }
   template<>
   var* constant<char>::ner(constant<short int>* y)
@@ -3966,6 +4651,9 @@ namespace cxx_compiler {
   var* constant<signed char>::ner(constant<unsigned char>* y)
   { return constant_impl::ne(y,this); }
   template<>
+  var* constant<signed char>::ner(constant<wchar_t>* y)
+  { return constant_impl::ne(y,this); }
+  template<>
   var* constant<signed char>::ner(constant<short int>* y)
   { return constant_impl::ne(y,this); }
   template<>
@@ -4014,6 +4702,9 @@ namespace cxx_compiler {
   var* constant<unsigned char>::ner(constant<unsigned char>* y)
   { return constant_impl::ne(y,this); }
   template<>
+  var* constant<unsigned char>::ner(constant<wchar_t>* y)
+  { return constant_impl::ne(y,this); }
+  template<>
   var* constant<unsigned char>::ner(constant<short int>* y)
   { return constant_impl::ne(y,this); }
   template<>
@@ -4050,6 +4741,57 @@ namespace cxx_compiler {
   var* constant<unsigned char>::ner(constant<void*>* y)
   { return constant_impl::pcmp(goto3ac::NE,y,this); }
   template<>
+  var* constant<wchar_t>::ner(constant<bool>* y)
+  { return constant_impl::ne(y,this); }
+  template<>
+  var* constant<wchar_t>::ner(constant<char>* y)
+  { return constant_impl::ne(y,this); }
+  template<>
+  var* constant<wchar_t>::ner(constant<signed char>* y)
+  { return constant_impl::ne(y,this); }
+  template<>
+  var* constant<wchar_t>::ner(constant<unsigned char>* y)
+  { return constant_impl::ne(y,this); }
+  template<>
+  var* constant<wchar_t>::ner(constant<wchar_t>* y)
+  { return constant_impl::ne(y,this); }
+  template<>
+  var* constant<wchar_t>::ner(constant<short int>* y)
+  { return constant_impl::ne(y,this); }
+  template<>
+  var* constant<wchar_t>::ner(constant<unsigned short int>* y)
+  { return constant_impl::ne(y,this); }
+  template<>
+  var* constant<wchar_t>::ner(constant<int>* y)
+  { return constant_impl::ne(y,this); }
+  template<>
+  var* constant<wchar_t>::ner(constant<unsigned int>* y)
+  { return constant_impl::ne(y,this); }
+  template<>
+  var* constant<wchar_t>::ner(constant<long int>* y)
+  { return constant_impl::ne(y,this); }
+  template<>
+  var* constant<wchar_t>::ner(constant<unsigned long int>* y)
+  { return constant_impl::ne(y,this); }
+  template<>
+  var* constant<wchar_t>::ner(constant<__int64>* y)
+  { return constant_impl::ne(y,this); }
+  template<>
+  var* constant<wchar_t>::ner(constant<unsigned __int64>* y)
+  { return constant_impl::ne(y,this); }
+  template<>
+  var* constant<wchar_t>::ner(constant<float>* y)
+  { return constant_impl::fne1(y,this); }
+  template<>
+  var* constant<wchar_t>::ner(constant<double>* y)
+  { return constant_impl::fne1(y,this); }
+  template<>
+  var* constant<wchar_t>::ner(constant<long double>* y)
+  { return constant_impl::fne1(y,this); }
+  template<>
+  var* constant<wchar_t>::ner(constant<void*>* y)
+  { return constant_impl::pcmp(goto3ac::NE,y,this); }
+  template<>
   var* constant<short int>::ner(constant<bool>* y)
   { return constant_impl::ne(y,this); }
   template<>
@@ -4060,6 +4802,9 @@ namespace cxx_compiler {
   { return constant_impl::ne(y,this); }
   template<>
   var* constant<short int>::ner(constant<unsigned char>* y)
+  { return constant_impl::ne(y,this); }
+  template<>
+  var* constant<short int>::ner(constant<wchar_t>* y)
   { return constant_impl::ne(y,this); }
   template<>
   var* constant<short int>::ner(constant<short int>* y)
@@ -4110,6 +4855,9 @@ namespace cxx_compiler {
   var* constant<unsigned short int>::ner(constant<unsigned char>* y)
   { return constant_impl::ne(y,this); }
   template<>
+  var* constant<unsigned short int>::ner(constant<wchar_t>* y)
+  { return constant_impl::ne(y,this); }
+  template<>
   var* constant<unsigned short int>::ner(constant<short int>* y)
   { return constant_impl::ne(y,this); }
   template<>
@@ -4156,6 +4904,9 @@ namespace cxx_compiler {
   { return constant_impl::ne(y,this); }
   template<>
   var* constant<int>::ner(constant<unsigned char>* y)
+  { return constant_impl::ne(y,this); }
+  template<>
+  var* constant<int>::ner(constant<wchar_t>* y)
   { return constant_impl::ne(y,this); }
   template<>
   var* constant<int>::ner(constant<short int>* y)
@@ -4206,6 +4957,9 @@ namespace cxx_compiler {
   var* constant<unsigned int>::ner(constant<unsigned char>* y)
   { return constant_impl::ne(y,this); }
   template<>
+  var* constant<unsigned int>::ner(constant<wchar_t>* y)
+  { return constant_impl::ne(y,this); }
+  template<>
   var* constant<unsigned int>::ner(constant<short int>* y)
   { return constant_impl::ne(y,this); }
   template<>
@@ -4252,6 +5006,9 @@ namespace cxx_compiler {
   { return constant_impl::ne(y,this); }
   template<>
   var* constant<long int>::ner(constant<unsigned char>* y)
+  { return constant_impl::ne(y,this); }
+  template<>
+  var* constant<long int>::ner(constant<wchar_t>* y)
   { return constant_impl::ne(y,this); }
   template<>
   var* constant<long int>::ner(constant<short int>* y)
@@ -4302,6 +5059,9 @@ namespace cxx_compiler {
   var* constant<unsigned long int>::ner(constant<unsigned char>* y)
   { return constant_impl::ne(y,this); }
   template<>
+  var* constant<unsigned long int>::ner(constant<wchar_t>* y)
+  { return constant_impl::ne(y,this); }
+  template<>
   var* constant<unsigned long int>::ner(constant<short int>* y)
   { return constant_impl::ne(y,this); }
   template<>
@@ -4348,6 +5108,9 @@ namespace cxx_compiler {
   { return constant_impl::ne(y,this); }
   template<>
   var* constant<__int64>::ner(constant<unsigned char>* y)
+  { return constant_impl::ne(y,this); }
+  template<>
+  var* constant<__int64>::ner(constant<wchar_t>* y)
   { return constant_impl::ne(y,this); }
   template<>
   var* constant<__int64>::ner(constant<short int>* y)
@@ -4398,6 +5161,9 @@ namespace cxx_compiler {
   var* constant<unsigned __int64>::ner(constant<unsigned char>* y)
   { return constant_impl::ne(y,this); }
   template<>
+  var* constant<unsigned __int64>::ner(constant<wchar_t>* y)
+  { return constant_impl::ne(y,this); }
+  template<>
   var* constant<unsigned __int64>::ner(constant<short int>* y)
   { return constant_impl::ne(y,this); }
   template<>
@@ -4444,6 +5210,8 @@ cxx_compiler::var* cxx_compiler::constant<float>::ner(constant<signed char>* y)
 { return constant_impl::fne2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<float>::ner(constant<unsigned char>* y)
 { return constant_impl::fne2(y,this); }
+cxx_compiler::var* cxx_compiler::constant<float>::ner(constant<wchar_t>* y)
+{ return constant_impl::fne2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<float>::ner(constant<short int>* y)
 { return constant_impl::fne2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<float>::ner(constant<unsigned short int>* y)
@@ -4476,6 +5244,8 @@ cxx_compiler::var* cxx_compiler::constant<double>::ner(constant<signed char>* y)
 { return constant_impl::fne2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<double>::ner(constant<unsigned char>* y)
 { return constant_impl::fne2(y,this); }
+cxx_compiler::var* cxx_compiler::constant<double>::ner(constant<wchar_t>* y)
+{ return constant_impl::fne2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<double>::ner(constant<short int>* y)
 { return constant_impl::fne2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<double>::ner(constant<unsigned short int>* y)
@@ -4507,6 +5277,8 @@ cxx_compiler::var* cxx_compiler::constant<long double>::ner(constant<signed char
 { return constant_impl::fne2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<long double>::ner(constant<unsigned char>* y)
 { return constant_impl::fne2(y,this); }
+cxx_compiler::var* cxx_compiler::constant<long double>::ner(constant<wchar_t>* y)
+{ return constant_impl::fne2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<long double>::ner(constant<short int>* y)
 { return constant_impl::fne2(y,this); }
 cxx_compiler::var* cxx_compiler::constant<long double>::ner(constant<unsigned short int>* y)
@@ -4535,6 +5307,7 @@ cxx_compiler::var* cxx_compiler::constant<void*>::ner(constant<bool>* y){ return
 cxx_compiler::var* cxx_compiler::constant<void*>::ner(constant<char>* y){ return constant_impl::pcmp(goto3ac::NE,y,this); }
 cxx_compiler::var* cxx_compiler::constant<void*>::ner(constant<signed char>* y){ return constant_impl::pcmp(goto3ac::NE,y,this); }
 cxx_compiler::var* cxx_compiler::constant<void*>::ner(constant<unsigned char>* y){ return constant_impl::pcmp(goto3ac::NE,y,this); }
+cxx_compiler::var* cxx_compiler::constant<void*>::ner(constant<wchar_t>* y){ return constant_impl::pcmp(goto3ac::NE,y,this); }
 cxx_compiler::var* cxx_compiler::constant<void*>::ner(constant<short int>* y){ return constant_impl::pcmp(goto3ac::NE,y,this); }
 cxx_compiler::var* cxx_compiler::constant<void*>::ner(constant<unsigned short int>* y){ return constant_impl::pcmp(goto3ac::NE,y,this); }
 cxx_compiler::var* cxx_compiler::constant<void*>::ner(constant<int>* y){ return constant_impl::pcmp(goto3ac::NE,y,this); }

@@ -6,8 +6,15 @@ namespace cxx_compiler {
   namespace generator {
     void (*generate)(const interface_t*);
     long_double_t* long_double;
+    type::id_t sizeof_type = type::UINT;
+    type::id_t ptrdiff_type = type::LONG;
+    namespace wchar {
+      type::id_t id = type::USHORT;
+      const cxx_compiler::type* type = ushort_type::create();
+    } // end of namespace wchar
     bool m_require_align = true;
     int (*m_close_file)();
+    void (*last)(const last_interface_t*);
     void* m_module;
   } // end of namespace generator
 } // end of namespace cxx_compiler
@@ -81,13 +88,9 @@ void cxx_compiler::generator::initialize()
   }
 
   int (*of)(const char*) = (int (*)(const char*))dlsym(m_module,"generator_open_file");
-  if ( !of ){
-    warning::generator::open_file(fn);
-    return;
-  }
-  else {
-    if ( !cmdline::output.empty() )
-      if ( (*of)(cmdline::output.c_str()) )
+  if (of) {
+    if (!cmdline::output.empty())
+      if ((*of)(cmdline::output.c_str()))
         return;
   }
 
@@ -95,18 +98,39 @@ void cxx_compiler::generator::initialize()
   if ( spell ){
     void* magic[] = {
       (void*)&dump::tac,
-    };
+      (void*)&optimize::basic_block::create,
+      };
     (*spell)(&magic[0]);
   }
 
   generate = (void (*)(const interface_t*))dlsym(m_module,"generator_generate");
-  if ( !generate ){
-    warning::generator::generate(fn);
-    return;
-  }
 
   int (*size)(int) = (int (*)(int))dlsym(m_module,"generator_sizeof");
   type_impl::update(size);
+
+  type::id_t (*szof_tp)() = (type::id_t (*)())dlsym(m_module, "generator_sizeof_type");
+  if (szof_tp)
+    sizeof_type = (*szof_tp)();
+  type::id_t (*ptrd_tp)() = (type::id_t (*)())dlsym(m_module, "generator_ptrdiff_type");
+  if (ptrd_tp)
+    ptrdiff_type = (*ptrd_tp)();
+
+  type::id_t (*wc_tp)() = (type::id_t (*)())dlsym(m_module,"generator_wchar_type");
+  if (wc_tp) {
+    wchar::id = (*wc_tp)();
+    switch (wchar::id) {
+    case type::SHORT:  wchar::type = short_type::create(); break;
+    case type::USHORT: wchar::type = ushort_type::create(); break;
+    case type::INT:    wchar::type = int_type::create(); break;
+    case type::UINT:   wchar::type = uint_type::create(); break;
+    case type::LONG:   wchar::type = long_type::create(); break;
+    default:
+      assert(wchar::id == type::ULONG);
+      wchar::type = ulong_type::create();
+      break;
+    }
+  }
+  
   bool (*require_align)() = (bool (*)())dlsym(m_module,"generator_require_align");
   if ( require_align )
     m_require_align = require_align();
@@ -115,10 +139,8 @@ void cxx_compiler::generator::initialize()
     long_double = (*pf)();
 
   m_close_file = (int (*)())dlsym(m_module,"generator_close_file");
-  if ( !m_close_file ){
-    warning::generator::close_file(fn);
-    return;
-  }
+  
+  last = (void (*)(const last_interface_t*))dlsym(m_module, "generator_last");
 }
 
 void cxx_compiler::generator::terminate()

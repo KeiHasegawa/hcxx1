@@ -1524,20 +1524,24 @@ void cxx_compiler::error::declarations::declarators::function::definition::multi
 }
 
 void
-cxx_compiler::error::declarations::declarators::function::definition::static_inline::nodef(const file_t& file, std::string name, const file_t& ref)
+cxx_compiler::error::declarations::declarators::function::definition::static_inline::nodef(const file_t& decl, usr::flag_t flag, std::string name, const file_t& use)
 {
   using namespace std;
-  switch ( lang ){
+  switch (lang) {
   case jpn:
-    header(file,"エラー");
-    cerr << "static な函数 `" << name << "' の函数定義がありません.\n";
-    header(ref,"エラー");
+    header(decl,"エラー");
+    if (flag & usr::STATIC)
+      cerr << "static ";
+    if (flag & usr::INLINE)
+      cerr << "inline ";
+    cerr << "な函数 `" << name << "' の函数定義がありません.\n";
+    header(use,"エラー");
     cerr << "ここで参照されています.\n";
     break;
   default:
-    header(file,"error");
+    header(decl,"error");
     cerr << "no function definition of static function `" << name << "'.\n";
-    header(ref,"error");
+    header(use,"error");
     cerr << "referenced here.\n";
     break;
   }
@@ -2271,7 +2275,7 @@ void cxx_compiler::error::declarations::specifier_seq::function::not_function(co
   ++counter;
 }
 
-void cxx_compiler::error::declarations::specifier_seq::function::Inline::main(const usr* u)
+void cxx_compiler::error::declarations::specifier_seq::function::func_spec::main(const usr* u)
 {
   using namespace std;
   switch ( lang ){
@@ -2288,7 +2292,7 @@ void cxx_compiler::error::declarations::specifier_seq::function::Inline::main(co
   ++counter;
 }
 
-void cxx_compiler::error::declarations::specifier_seq::function::Inline::static_storage(const usr* u)
+void cxx_compiler::error::declarations::specifier_seq::function::func_spec::static_storage(const usr* u)
 {
   using namespace std;
   string func = fundef::current->m_usr->m_name;
@@ -2307,7 +2311,7 @@ void cxx_compiler::error::declarations::specifier_seq::function::Inline::static_
   ++counter;
 }
 
-void cxx_compiler::error::declarations::specifier_seq::function::Inline::internal_linkage(const file_t& file, const usr* u)
+void cxx_compiler::error::declarations::specifier_seq::function::func_spec::internal_linkage(const file_t& file, const usr* u)
 {
   using namespace std;
   string func = fundef::current->m_usr->m_name;
@@ -2321,23 +2325,6 @@ void cxx_compiler::error::declarations::specifier_seq::function::Inline::interna
     header(file,"error");
     cerr << "`" << u->m_name << "' is referenced in inline function `" << func;
     cerr << "', which has internal linkage.\n";
-    break;
-  }
-  ++counter;
-}
-
-void cxx_compiler::error::declarations::specifier_seq::function::Inline::no_definition(const usr* u)
-{
-  using namespace std;
-  switch ( lang ){
-  case jpn:
-    header(u->m_file,"エラー");
-    cerr << "inline 函数 `" << u->m_name << "' が宣言されていますが, 定義されていません.\n";
-    break;
-  default:
-    header(u->m_file,"error");
-    cerr << "inline function `" << u->m_name << "' is declared but not defined.\n";
-    cerr << ".\n";
     break;
   }
   ++counter;

@@ -100,34 +100,23 @@ cxx_compiler::usr* cxx_compiler::refbit::mask(int n, int pos)
   return expressions::primary::literal::integer::create(n);
 }
 
-cxx_compiler::var* cxx_compiler::refimm::rvalue()
-{
-  using namespace std;
-  if ( scope::current->m_id == scope::BLOCK ){
-    vector<var*>& v = garbage;
-    vector<var*>::reverse_iterator p = find(v.rbegin(),v.rend(),this);
-    assert(p != v.rend());
-    v.erase(p.base()-1);
-    block* b = static_cast<block*>(scope::current);
-    b->m_vars.push_back(this);
-    var* i = expressions::primary::literal::integer::create(reinterpret_cast<__int64>(m_addr));
-    code.push_back(new assign3ac(this,i));
-  }
-  return ref::rvalue();
-}
-
 cxx_compiler::var* cxx_compiler::refsomewhere::rvalue()
 {
   block* b = ( scope::current->m_id == scope::BLOCK ) ? static_cast<block*>(scope::current) : 0;
   const type* T = m_result;
   if ( const pointer_type* G = T->ptr_gen() ){
+    var* tmp = new var(G);
     var* ret = new generated(G,T);
-    if ( b )
+    if ( b ) {
+      b->m_vars.push_back(tmp);
       b->m_vars.push_back(ret);
-    else
+    }
+    else {
+      garbage.push_back(tmp);
       garbage.push_back(ret);
-    code.push_back(new addr3ac(ret,m_ref));
-    code.push_back(new add3ac(ret,ret,m_offset));
+    }
+    code.push_back(new addr3ac(tmp,m_ref));
+    code.push_back(new add3ac(ret,tmp,m_offset));
     return ret;
   }
   var* ret = new var(T);
@@ -156,6 +145,42 @@ cxx_compiler::var* cxx_compiler::addrof::rvalue()
   }
 }
 
+namespace cxx_compiler {
+  const type* unsigned_wchar()
+  {
+    switch(generator::wchar::id) {
+    case type::INT: return uint_type::create();
+    case type::LONG: return ulong_type::create();
+    case type::LONGLONG: return ulong_long_type::create();
+    case type::SHORT:      
+    default:
+      return ushort_type::create();
+    }
+  }
+  const type* unsigned_type(const type* T)
+  {
+    T = T->unqualified();
+    switch (T->m_id) {
+    case type::ENUM:
+      {
+	typedef const enum_type ET;
+	ET* et = static_cast<ET*>(T);
+	T = et->get_integer();
+	return unsigned_type(T);
+      }
+    case type::CHAR: return uchar_type::create();
+    case type::SCHAR: return uchar_type::create();
+    case type::WCHAR: return unsigned_wchar();
+    case type::SHORT: return ushort_type::create();
+    case type::INT: return uint_type::create();
+    case type::LONG: return ulong_type::create();
+    default:
+      assert(T->m_id == type::LONGLONG);
+      return ulong_long_type::create();
+    }
+  }
+}  // end of namespace cxx_compiler
+
 cxx_compiler::var* cxx_compiler::refbit::rvalue()
 {
   using namespace std;
@@ -179,8 +204,8 @@ cxx_compiler::var* cxx_compiler::refbit::rvalue()
     code.push_back(new invraddr3ac(ret,ptr));
   }
   if ( m_position ){
-    const type* U = T->_unsigned();
-    if ( U ){
+    if (T->_signed()) {
+      const type* U = unsigned_type(T);      
       var* tmp = new var(U);
       b->m_vars.push_back(tmp);
       code.push_back(new cast3ac(tmp,ret,U));
@@ -197,7 +222,7 @@ cxx_compiler::var* cxx_compiler::refbit::rvalue()
   b->m_vars.push_back(tmp);
   code.push_back(new and3ac(tmp,ret,m));
   ret = tmp;
-  if ( T->_unsigned() ){
+  if (T->_signed()) {
     usr* m = expressions::primary::literal::integer::create(1 << (m_bit-1));
     var* tmp = new var(T);
     b->m_vars.push_back(tmp);

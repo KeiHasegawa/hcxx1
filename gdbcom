@@ -1,3 +1,10 @@
 #b cxx_compiler::declarations::initializers::action
-run sample.txt --no-generator --cxx-compiler-debug
+#run sample.txt --no-generator --cxx-compiler-debug
+
+#b cxx_compiler::declarations::action1
+#b cxx_compiler::parse::block::enter
+#b expr01.cpp:605
+#run sample.txt --no-generator --output-medium --simple-medium
+run sample.txt --generator ~/lang/37_tacsim/src/tacsimxx.dll
+
 

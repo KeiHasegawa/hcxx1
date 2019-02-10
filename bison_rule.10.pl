@@ -57,6 +57,7 @@ print <<EOF
     using namespace std;
     int n = (cxx_compiler_char == YYEMPTY) ? cxx_compiler::parse::peek() : cxx_compiler_char;
     if ( n == '(' ){
+      YYDPRINTF((stderr, "rule.10 is applied\\n"));
       cxx_compiler::parse::identifier::flag = cxx_compiler::parse::identifier::look;
       n = cxx_compiler::parse::get_token();
       if ( n == INTEGER_LITERAL_LEX ){

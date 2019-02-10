@@ -18,26 +18,50 @@ cxx_compiler::var* cxx_compiler::expressions::unary::Sizeof::gen()
 {
   using namespace std;
   if ( m_type ){
-    if ( var* size = m_type->vsize() )
+    const type* T = m_type->complete_type();
+    if ( var* size = T->vsize() )
       return size;
-    else {
-      unsigned int n = m_type->size();
-      if ( !n ){
-        using namespace error::expressions::unary::size;
-        invalid(parse::position,m_type);
-        n = 1;
+    unsigned int n = T->size();
+    if ( !n ){
+      using namespace error::expressions::unary::size;
+      invalid(parse::position,m_type);
+      n = 1;
+    }
+    using namespace primary::literal;
+    switch (generator::sizeof_type) {
+    case type::UINT:
+      {
+	typedef unsigned int X;
+	return integer::create((X)n);
       }
-      return primary::literal::integer::create(n);
+    case type::ULONG:
+      {
+	typedef unsigned long int X;
+	const type* XX = ulong_type::create();
+	XX = const_type::create(XX);
+	if (XX->size() == sizeof(X))
+	  return integer::create((X)n);
+	typedef unsigned long long int Y;
+	assert(XX->size() == sizeof(Y));
+	usr* ret = integer::create((Y)n);
+	ret->m_type = XX;
+	ret->m_flag = usr::SUB_CONST_LONG;
+	return ret;
+      }
+    default:
+      {
+	typedef unsigned long long int X;
+	return integer::create((X)n);
+      }
     }
   }
-  else {
-    int n = code.size();
-    var* expr = m_expr->gen();
-    int m = code.size();
-    for_each(code.begin()+n,code.begin()+m,misc::deleter<tac>());
-    code.resize(n);
-    return expr->size();
-  }
+
+  int n = code.size();
+  var* expr = m_expr->gen();
+  int m = code.size();
+  for_each(code.begin()+n,code.begin()+m,[](tac* p){ delete p; });
+  code.resize(n);
+  return expr->size();
 }
 
 const cxx_compiler::file_t& cxx_compiler::expressions::unary::Sizeof::file() const
@@ -168,18 +192,56 @@ cxx_compiler::var* cxx_compiler::addrof::indirection()
 cxx_compiler::var* cxx_compiler::genaddr::indirection()
 {
   const type* T = m_ref->m_type;
-  if ( T->m_id == type::FUNC ){
-    mark();
+  if (T->m_id == type::FUNC)
     return this;
-  }
+  
   return addrof::indirection();
 }
+
+namespace cxx_compiler {
+  template<> var* constant<bool>::indirection()
+  { return var::indirection(); }
+  template<> var* constant<char>::indirection()
+  { return var::indirection(); }
+  template<> var* constant<signed char>::indirection()
+  { return var::indirection(); }    
+  template<> var* constant<unsigned char>::indirection()
+  { return var::indirection(); }
+  template<> var* constant<wchar_t>::indirection()
+  { return var::indirection(); }
+  template<> var* constant<short int>::indirection()
+  { return var::indirection(); }
+  template<> var* constant<unsigned short int>::indirection()
+  { return var::indirection(); }
+  template<> var* constant<int>::indirection()
+  { return var::indirection(); }
+  template<> var* constant<unsigned int>::indirection()
+  { return var::indirection(); }
+  template<> var* constant<long int>::indirection()
+  { return var::indirection(); }
+  template<> var* constant<unsigned long int>::indirection()
+  { return var::indirection(); }
+  template<> var* constant<__int64>::indirection()
+  {
+    if (m_flag & CONST_PTR) {
+      assert(sizeof(void*) < m_type->size());
+      typedef const pointer_type PT;
+      PT* pt = static_cast<PT*>(m_type);
+      var* ret = new refimm<__int64>(pt,m_value);
+      garbage.push_back(ret);
+      return ret;
+    }
+    return var::indirection();
+  }
+  template<> var* constant<unsigned __int64>::indirection()
+  { return var::indirection(); }
+} // end of namespace cxx_compiler
 
 cxx_compiler::var* cxx_compiler::constant<void*>::indirection()
 {
   typedef const pointer_type PT;
   PT* pt = static_cast<PT*>(m_type);
-  var* ret = new refimm(pt,m_value);
+  var* ret = new refimm<void*>(pt,m_value);
   garbage.push_back(ret);
   return ret;
 }
@@ -215,9 +277,6 @@ cxx_compiler::var* cxx_compiler::usr::address()
 
 cxx_compiler::var* cxx_compiler::genaddr::address()
 {
-  const type* T = m_ref->m_type;
-  if ( T->m_id == type::FUNC )
-    mark();
   block* b = scope::current->m_id == scope::BLOCK ? static_cast<block*>(scope::current) : 0;
   if ( b && !expressions::constant_flag ){
     var* ret = new var(pointer_type::create(m_ref->m_type));
@@ -283,11 +342,6 @@ cxx_compiler::var* cxx_compiler::refaddr::address()
     garbage.push_back(ret);
     return ret;
   }
-}
-
-cxx_compiler::var* cxx_compiler::refimm::address()
-{
-  return expressions::primary::literal::pointer::create(m_type,m_addr);
 }
 
 cxx_compiler::var* cxx_compiler::refsomewhere::address()
@@ -356,7 +410,13 @@ namespace cxx_compiler { namespace constant_impl {
   template<class T> var* minus(constant<T>* p)
   {
     using namespace expressions::primary::literal;
-    return integer::create(-p->m_value);
+    usr* ret = integer::create(-p->m_value);
+    usr::flag_t f = p->m_flag;
+    if (f & usr::SUB_CONST_LONG) {
+      ret->m_type = p->m_type;
+      ret->m_flag = usr::SUB_CONST_LONG;
+    }
+    return ret;
   }
 } } // end of constant_impl and cxx_compiler
 
@@ -372,6 +432,9 @@ namespace cxx_compiler {
   { return constant_impl::minus(this); }
   template<>
   var* constant<unsigned char>::minus()
+  { return constant_impl::minus(this); }
+  template<>
+  var* constant<wchar_t>::minus()
   { return constant_impl::minus(this); }
   template<>
   var* constant<short int>::minus()
@@ -393,7 +456,13 @@ namespace cxx_compiler {
   { return constant_impl::minus(this); }
   template<>
   var* constant<__int64>::minus()
-  { return constant_impl::minus(this); }
+  {
+    if (m_flag & CONST_PTR) {
+      assert(sizeof(void*) < m_type->size());
+      return var::minus();
+    }
+    return constant_impl::minus(this);
+  }
   template<>
   var* constant<unsigned __int64>::minus()
   { return constant_impl::minus(this); }
@@ -522,6 +591,9 @@ namespace cxx_compiler {
   var* constant<unsigned char>::_not()
   { return zero() ? expressions::primary::literal::integer::create(1) : expressions::primary::literal::integer::create(0); }
   template<>
+  var* constant<wchar_t>::_not()
+  { return zero() ? expressions::primary::literal::integer::create(1) : expressions::primary::literal::integer::create(0); }
+  template<>
   var* constant<short int>::_not()
   { return zero() ? expressions::primary::literal::integer::create(1) : expressions::primary::literal::integer::create(0); }
   template<>
@@ -587,7 +659,13 @@ namespace cxx_compiler { namespace constant_impl {
   template<class T> var* tilde(constant<T>* y)
   {
     using namespace expressions::primary::literal;
-    return integer::create(~y->m_value);
+    usr* ret = integer::create(~y->m_value);
+    usr::flag_t f = y->m_flag;
+    if (f & usr::SUB_CONST_LONG) {
+      ret->m_type = y->m_type;
+      ret->m_flag = usr::SUB_CONST_LONG;
+    }
+    return ret;
   }
 } } // end of namespace constant_impl and cxx_compiler
 
@@ -603,6 +681,9 @@ namespace cxx_compiler {
   { return constant_impl::tilde(this); }
   template<>
   var* constant<unsigned char>::tilde()
+  { return constant_impl::tilde(this); }
+  template<>
+  var* constant<wchar_t>::tilde()
   { return constant_impl::tilde(this); }
   template<>
   var* constant<short int>::tilde()
@@ -624,7 +705,13 @@ namespace cxx_compiler {
   { return constant_impl::tilde(this); }
   template<>
   var* constant<__int64>::tilde()
-  { return constant_impl::tilde(this); }
+  {
+    if (m_flag & CONST_PTR) {
+      assert(sizeof(void*) < m_type->size());
+      return var::tilde();
+    }
+    return constant_impl::tilde(this);
+  }
   template<>
   var* constant<unsigned __int64>::tilde()
   { return constant_impl::tilde(this); }

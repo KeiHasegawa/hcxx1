@@ -84,8 +84,11 @@ int cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
       cxx_compiler_lval.m_usr = static_cast<enum_member*>(u)->m_value;
       return INTEGER_LITERAL_LEX;
     }
-    if ( u->m_flag & usr::TYPEDEF )
+    if ( u->m_flag & usr::TYPEDEF ) {
+      type_def* tdef = static_cast<type_def*>(u);
+	  tdef->m_refed.push_back(parse::position);
       return TYPEDEF_NAME_LEX;
+	}
     if ( u->m_flag & usr::OVERLOAD )
       return IDENTIFIER_LEX;
     if ( u->m_flag & usr::NAMESPACE ){
@@ -360,6 +363,29 @@ void cxx_compiler::parse::parameter::leave()
 
 int cxx_compiler::parse::parameter::depth;
 
+namespace cxx_compiler { namespace parse { namespace parameter {
+  inline void move(var *v)
+  {
+    using namespace std;
+    vector<var*>::reverse_iterator p = find(garbage.rbegin(),garbage.rend(),v);
+    if (p != garbage.rend()) {
+      garbage.erase(p.base()-1);
+      cxx_compiler::block* b =
+	static_cast<cxx_compiler::block*>(scope::current);
+      v->m_scope = b;
+      b->m_vars.push_back(v);
+    }
+  }
+  inline void move()
+  {
+    for (auto p : code) {
+      if (p->x) move(p->x);
+      if (p->y) move(p->y);
+      if (p->z) move(p->z);
+    }
+  }
+} } } // end of namespace parameter, parse and cxx_compiler
+
 namespace cxx_compiler { namespace parse { namespace block {
   void new_block();
 } } } // end of namespace block, parse and cxx_compiler
@@ -376,8 +402,7 @@ void cxx_compiler::parse::block::enter()
     vector<scope*>& children = scope::current->m_children;
     assert(children.size() == 1);
     scope::current = children.back();
-    new_block();
-    return;
+    return new_block(), parameter::move();
   }
 
   if ( scope::current->m_id == scope::TAG ){
@@ -386,7 +411,7 @@ void cxx_compiler::parse::block::enter()
     vector<scope*>& children = scope::current->m_children;
     scope::current = children.back();
     if ( !T ){
-      new_block();
+      new_block(), parameter::move();
       usr::flag_t& flag = fundef::current->m_usr->m_flag;
       flag = usr::flag_t(flag | usr::INLINE);
       member_function_body::save();
@@ -405,16 +430,14 @@ void cxx_compiler::parse::block::enter()
       scope::current = c.back();
       return;
     }
-    new_block();
-    return;
+    return new_block(), parameter::move();
   }
 
   if ( scope::current->m_id == scope::NAMESPACE ){
     vector<scope*>& c = scope::current->m_children;
     assert(c.size() == 1);
     scope::current = c.back();
-    new_block();
-    return;
+    return new_block(), parameter::move();
   }
 
   new_block();

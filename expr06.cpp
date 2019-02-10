@@ -77,8 +77,7 @@ cxx_compiler::var* cxx_compiler::expressions::compound::info_t::gen()
 
 cxx_compiler::expressions::compound::info_t::~info_t()
 {
-  using namespace std;
-  typedef declarations::initializers::element T;
-  for_each(m_list->begin(),m_list->end(),misc::deleter<T>());
+  for (auto p : *m_list)
+    delete p;
   delete m_list;
 }

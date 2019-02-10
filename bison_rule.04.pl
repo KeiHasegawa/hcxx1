@@ -17,6 +17,8 @@ while ( <> ){
 
 label:
 print <<EOF
-  if ( yystate == $xxx )
+  if ( yystate == $xxx ) {
+    YYDPRINTF((stderr, "rule.04 is applied\\n"));
     cxx_compiler::parse::identifier::flag = cxx_compiler::parse::identifier::look;
+  }
 EOF

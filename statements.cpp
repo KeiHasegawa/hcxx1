@@ -208,7 +208,6 @@ int cxx_compiler::statements::expression::info_t::gen()
 
 namespace cxx_compiler { namespace statements { namespace compound {
   extern void gen_dtor(usr*);
-  namespace parameter { void decide(usr* u){ u->m_type->decide(); } }
 } } } // end of namespace compund, statements and cxx_compiler
 
 int cxx_compiler::statements::compound::info_t::gen()
@@ -216,10 +215,6 @@ int cxx_compiler::statements::compound::info_t::gen()
   using namespace std;
   scope* org = scope::current;
   scope::current = m_scope;
-  if ( org == &scope::root ){
-    vector<usr*>& order = m_scope->m_parent->m_order;
-    for_each(order.begin(),order.end(),parameter::decide);
-  }
   if ( m_bases ){
     const vector<base*>& v = *m_bases;
     for_each(v.begin(),v.end(),mem_fun(&base::gen));
@@ -254,28 +249,24 @@ void cxx_compiler::statements::compound::gen_dtor(usr* u)
   assert(T->m_id == type::FUNC);
   typedef const func_type FT;
   FT* ft = static_cast<FT*>(T);
-  declarations::declarators::function::definition::static_inline::info_t* inline_info = 0;
+  call_impl::common(ft,dtor,&arg,false,u);
   usr::flag_t flag = dtor->m_flag;
-  if ( flag & usr::INLINE ){
-    using namespace declarations::declarators::function;
-    using namespace declarations::declarators::function::definition::static_inline;
-    const vector<const type*>& param = ft->param();
-    scope* ptr = dtor->m_scope;
-    KEY key(make_pair(name,ptr),&param);
-    map<KEY, declarations::declarators::function::definition::static_inline::info_t*>::const_iterator
-      p = skipped.find(key);
-    assert(p != skipped.end());
-    inline_info = p->second;
+  if (!error::counter) {
+    if (flag & usr::INLINE) {
+      using namespace declarations::declarators::function::definition::static_inline::skip;
+      table_t::const_iterator p = table.find(dtor);
+      if (p != table.end())
+        substitute(code, code.size()-1, p->second);
+    }
   }
-  call_impl::common(ft,dtor,&arg,inline_info,false,u);
 }
 
 cxx_compiler::statements::compound::info_t::~info_t()
 {
   using namespace std;
   if ( m_bases ){
-    const vector<base*>& v = *m_bases;
-    for_each(v.begin(),v.end(),misc::deleter<base>());
+    for (auto p : *m_bases)
+      delete p;
     delete m_bases;
   }
 }
@@ -334,7 +325,7 @@ namespace cxx_compiler { namespace statements { namespace if_stmt {
     if ( ptr->zero() ){
       int n = code.size();
       info->m_stmt1->gen();
-      for_each(code.begin()+n,code.end(),misc::deleter<tac>());
+      for_each(code.begin()+n,code.end(),[](tac* p){ delete p; });
       code.resize(n);
       if ( info->m_stmt2 )
         info->m_stmt2->gen();
@@ -344,7 +335,7 @@ namespace cxx_compiler { namespace statements { namespace if_stmt {
       if ( info->m_stmt2 ){
         int n = code.size();
         info->m_stmt2->gen();
-        for_each(code.begin()+n,code.end(),misc::deleter<tac>());
+        for_each(code.begin()+n,code.end(),[](tac* p){ delete p; });
         code.resize(n);
       }
     }
@@ -360,6 +351,8 @@ namespace cxx_compiler {
   void constant<signed char>::if_code(statements::if_stmt::info_t* info){ statements::if_stmt::common(this,info); }
   template<>
   void constant<unsigned char>::if_code(statements::if_stmt::info_t* info){ statements::if_stmt::common(this,info); }
+  template<>
+  void constant<wchar_t>::if_code(statements::if_stmt::info_t* info){ statements::if_stmt::common(this,info); }
   template<>
   void constant<short int>::if_code(statements::if_stmt::info_t* info){ statements::if_stmt::common(this,info); }
   template<>
@@ -606,7 +599,7 @@ namespace cxx_compiler { namespace statements { namespace while_stmt {
     else {
       int n = code.size();
       info->m_stmt->gen();
-      for_each(code.begin()+n,code.end(),misc::deleter<tac>());
+      for_each(code.begin()+n,code.end(),[](tac* p){ delete p; });
       code.resize(n);
     }
   }
@@ -621,6 +614,8 @@ namespace cxx_compiler {
   void constant<signed char>::while_code(statements::while_stmt::info_t* info, to3ac* begin){ statements::while_stmt::common(this,info,begin); }
   template<>
   void constant<unsigned char>::while_code(statements::while_stmt::info_t* info, to3ac* begin){ statements::while_stmt::common(this,info,begin); }
+  template<>
+  void constant<wchar_t>::while_code(statements::while_stmt::info_t* info, to3ac* begin){ statements::while_stmt::common(this,info,begin); }
   template<>
   void constant<short int>::while_code(statements::while_stmt::info_t* info, to3ac* begin){ statements::while_stmt::common(this,info,begin); }
   template<>
@@ -767,6 +762,8 @@ namespace cxx_compiler {
   void constant<signed char>::do_code(statements::do_stmt::info_t* info, to3ac* begin){ statements::do_stmt::common(this,info,begin); }
   template<>
   void constant<unsigned char>::do_code(statements::do_stmt::info_t* info, to3ac* begin){ statements::do_stmt::common(this,info,begin); }
+  template<>
+  void constant<wchar_t>::do_code(statements::do_stmt::info_t* info, to3ac* begin){ statements::do_stmt::common(this,info,begin); }
   template<>
   void constant<short int>::do_code(statements::do_stmt::info_t* info, to3ac* begin){ statements::do_stmt::common(this,info,begin); }
   template<>
@@ -937,7 +934,7 @@ namespace cxx_compiler { namespace statements { namespace for_stmt {
     else {
       int n = code.size();
       info->m_stmt->gen();
-      for_each(code.begin()+n,code.end(),misc::deleter<tac>());
+      for_each(code.begin()+n,code.end(),[](tac* p){ delete p; });
       code.resize(n);
     }
   }
@@ -952,6 +949,8 @@ namespace cxx_compiler {
   void constant<signed char>::for_code(statements::for_stmt::info_t* info, to3ac* begin){ statements::for_stmt::common(this,info,begin); }
   template<>
   void constant<unsigned char>::for_code(statements::for_stmt::info_t* info, to3ac* begin){ statements::for_stmt::common(this,info,begin); }
+  template<>
+  void constant<wchar_t>::for_code(statements::for_stmt::info_t* info, to3ac* begin){ statements::for_stmt::common(this,info,begin); }
   template<>
   void constant<short int>::for_code(statements::for_stmt::info_t* info, to3ac* begin){ statements::for_stmt::common(this,info,begin); }
   template<>
@@ -1093,6 +1092,7 @@ int cxx_compiler::statements::return_stmt::info_t::gen()
   typedef const func_type FUNC;
   FUNC* func = static_cast<FUNC*>(T);
   T = func->return_type();
+  T = T->unqualified();
   if ( expr ){
     bool discard = false;
     T = cxx_compiler::expressions::assignment::valid(T,expr,&discard);
@@ -1106,10 +1106,9 @@ int cxx_compiler::statements::return_stmt::info_t::gen()
     expr = expr->cast(T);
   }
   else {
-    const type* vt = void_type::create();
-    if ( !T->compatible(vt) ){
+    if (T->m_id != type::VOID) {
       using namespace error::statements::return_stmt;
-      invalid(m_file,vt,T);
+      invalid(m_file,void_type::create(),T);
     }
   }
   for_each(m_usrs.begin(),m_usrs.end(),compound::gen_dtor);

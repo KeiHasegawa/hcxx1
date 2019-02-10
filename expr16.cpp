@@ -170,21 +170,6 @@ cxx_compiler::var* cxx_compiler::refbit::assign(var* op)
   return x;
 }
 
-cxx_compiler::var* cxx_compiler::refimm::assign(var* op)
-{
-  using namespace std;
-  if ( scope::current->m_id == scope::BLOCK ){
-    vector<var*>& v = garbage;
-    vector<var*>::reverse_iterator p = find(v.rbegin(),v.rend(),this);
-    assert(p != v.rend());
-    v.erase(p.base()-1);
-    block* b = static_cast<block*>(scope::current);
-    b->m_vars.push_back(this);
-    var* i = expressions::primary::literal::integer::create(reinterpret_cast<__int64>(m_addr));
-    code.push_back(new assign3ac(this,i));
-  }
-  return ref::assign(op);
-}
 
 cxx_compiler::var* cxx_compiler::refsomewhere::assign(var* op)
 {
@@ -209,4 +194,15 @@ cxx_compiler::var* cxx_compiler::refsomewhere::assign(var* op)
     garbage.push_back(ret);
   code.push_back(new assign3ac(ret,op));
   return ret;
+}
+
+// comma-expression
+#include "stdafx.h"
+#include "cxx_core.h"
+#include "cxx_impl.h"
+
+cxx_compiler::var* cxx_compiler::var::comma(var* right)
+{
+  rvalue();
+  return right->rvalue();
 }

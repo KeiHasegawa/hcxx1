@@ -16,11 +16,7 @@ cxx_compiler::type_impl::sizeof_table::sizeof_table()
   (*this)[int_type::create()] = (*this)[uint_type::create()] = sizeof(int);
   (*this)[long_type::create()] = (*this)[ulong_type::create()] = sizeof(long);
   (*this)[long_long_type::create()] = (*this)[ulong_long_type::create()] =
-#ifdef WIN32
     sizeof(__int64);
-#else  // WIN32
-    sizeof(long long);
-#endif  // WIN32
   (*this)[float_type::create()] = sizeof(float);
   (*this)[double_type::create()] = sizeof(double);
   (*this)[long_double_type::create()] = sizeof(long double);
@@ -85,19 +81,34 @@ const cxx_compiler::type* cxx_compiler::type::qualified(int cvr) const
   return T;
 }
 
-namespace cxx_compiler { namespace type_impl {
-  std::vector<const type*> temp1;
-#ifdef _DEBUG
-  misc::pvector<const type> temp2;
-#endif // _DEBUG
-} } // end of namespace type_impl and cxx_compiler
-
-void cxx_compiler::type::destroy_temporary()
+void cxx_compiler::type::destroy_tmp()
 {
-  using namespace std;
-  vector<const type*>& v = type_impl::temp1;
-  for_each(v.begin(),v.end(),misc::deleter<const type>());
-  v.clear();
+  const_type::destroy_tmp();
+  volatile_type::destroy_tmp();
+  restrict_type::destroy_tmp();
+  func_type::destroy_tmp();
+  array_type::destroy_tmp();
+  pointer_type::destroy_tmp();
+  incomplete_tagged_type::destroy_tmp();
+  record_type::destroy_tmp();
+  enum_type::destroy_tmp();
+  varray_type::destroy_tmp();
+  pointer_member_type::destroy_tmp();
+}
+
+void cxx_compiler::type::collect_tmp(std::vector<const type*>& vt)
+{
+  const_type::collect_tmp(vt);
+  volatile_type::collect_tmp(vt);
+  restrict_type::collect_tmp(vt);
+  func_type::collect_tmp(vt);
+  array_type::collect_tmp(vt);
+  pointer_type::collect_tmp(vt);
+  incomplete_tagged_type::collect_tmp(vt);
+  record_type::collect_tmp(vt);
+  enum_type::collect_tmp(vt);
+  varray_type::collect_tmp(vt);
+  pointer_member_type::collect_tmp(vt);
 }
 
 cxx_compiler::void_type cxx_compiler::void_type::obj;
@@ -127,8 +138,6 @@ const cxx_compiler::type* cxx_compiler::char_type::promotion() const
   return int_type::create();
 }
 
-const cxx_compiler::type* cxx_compiler::char_type::_unsigned() const { return uchar_type::create(); }
-
 cxx_compiler::schar_type cxx_compiler::schar_type::obj;
 
 void cxx_compiler::schar_type::decl(std::ostream& os, std::string name) const
@@ -144,8 +153,6 @@ const cxx_compiler::type* cxx_compiler::schar_type::promotion() const
 {
   return int_type::create();
 }
-
-const cxx_compiler::type* cxx_compiler::schar_type::_unsigned() const { return uchar_type::create(); }
 
 cxx_compiler::uchar_type cxx_compiler::uchar_type::obj;
 
@@ -163,8 +170,6 @@ const cxx_compiler::type* cxx_compiler::uchar_type::promotion() const
   return int_type::create();
 }
 
-const cxx_compiler::type* cxx_compiler::uchar_type::_signed() const { return char_type::create(); }
-
 cxx_compiler::wchar_type cxx_compiler::wchar_type::obj;
 
 void cxx_compiler::wchar_type::decl(std::ostream& os, std::string name) const
@@ -176,12 +181,15 @@ void cxx_compiler::wchar_type::decl(std::ostream& os, std::string name) const
 
 void cxx_compiler::wchar_type::encode(std::ostream& os) const { os << 'w'; }
 
+int cxx_compiler::wchar_type::size() const
+{
+  return generator::wchar::type->size();
+}
+
 const cxx_compiler::type* cxx_compiler::wchar_type::promotion() const
 {
   return int_type::create();
 }
-
-const cxx_compiler::type* cxx_compiler::wchar_type::_signed() const { return short_type::create(); }
 
 cxx_compiler::bool_type cxx_compiler::bool_type::obj;
 
@@ -217,8 +225,6 @@ const cxx_compiler::type* cxx_compiler::short_type::promotion() const
   return int_type::create();
 }
 
-const cxx_compiler::type* cxx_compiler::short_type::_unsigned() const { return ushort_type::create(); }
-
 cxx_compiler::ushort_type cxx_compiler::ushort_type::obj;
 
 int cxx_compiler::ushort_type::size() const { return type_impl::sizeof_table[&obj]; }
@@ -237,8 +243,6 @@ const cxx_compiler::type* cxx_compiler::ushort_type::promotion() const
   return int_type::create();
 }
 
-const cxx_compiler::type* cxx_compiler::ushort_type::_signed() const { return short_type::create(); }
-
 cxx_compiler::int_type cxx_compiler::int_type::obj;
 
 int cxx_compiler::int_type::size() const { return type_impl::sizeof_table[&obj]; }
@@ -251,8 +255,6 @@ void cxx_compiler::int_type::decl(std::ostream& os, std::string name) const
 }
 
 void cxx_compiler::int_type::encode(std::ostream& os) const { os << 'i'; }
-
-const cxx_compiler::type* cxx_compiler::int_type::_unsigned() const { return uint_type::create(); }
 
 cxx_compiler::uint_type cxx_compiler::uint_type::obj;
 
@@ -267,8 +269,6 @@ void cxx_compiler::uint_type::decl(std::ostream& os, std::string name) const
 
 void cxx_compiler::uint_type::encode(std::ostream& os) const { os << 'j'; }
 
-const cxx_compiler::type* cxx_compiler::uint_type::_signed() const { return int_type::create(); }
-
 cxx_compiler::long_type cxx_compiler::long_type::obj;
 
 int cxx_compiler::long_type::size() const { return type_impl::sizeof_table[&obj]; }
@@ -281,8 +281,6 @@ void cxx_compiler::long_type::decl(std::ostream& os, std::string name) const
 }
 
 void cxx_compiler::long_type::encode(std::ostream& os) const { os << 'l'; }
-
-const cxx_compiler::type* cxx_compiler::long_type::_unsigned() const { return ulong_type::create(); }
 
 cxx_compiler::ulong_type cxx_compiler::ulong_type::obj;
 
@@ -297,8 +295,6 @@ void cxx_compiler::ulong_type::decl(std::ostream& os, std::string name) const
 
 void cxx_compiler::ulong_type::encode(std::ostream& os) const { os << 'm'; }
 
-const cxx_compiler::type* cxx_compiler::ulong_type::_signed() const { return long_type::create(); }
-
 cxx_compiler::long_long_type cxx_compiler::long_long_type::obj;
 
 int cxx_compiler::long_long_type::size() const { return type_impl::sizeof_table[&obj]; }
@@ -312,8 +308,6 @@ void cxx_compiler::long_long_type::decl(std::ostream& os, std::string name) cons
 
 void cxx_compiler::long_long_type::encode(std::ostream& os) const { os << 'x'; }
 
-const cxx_compiler::type* cxx_compiler::long_long_type::_unsigned() const { return ulong_long_type::create(); }
-
 cxx_compiler::ulong_long_type cxx_compiler::ulong_long_type::obj;
 
 int cxx_compiler::ulong_long_type::size() const { return type_impl::sizeof_table[&obj]; }
@@ -326,8 +320,6 @@ void cxx_compiler::ulong_long_type::decl(std::ostream& os, std::string name) con
 }
 
 void cxx_compiler::ulong_long_type::encode(std::ostream& os) const { os << 'y'; }
-
-const cxx_compiler::type* cxx_compiler::ulong_long_type::_signed() const { return long_long_type::create(); }
 
 cxx_compiler::float_type cxx_compiler::float_type::obj;
 
@@ -372,7 +364,10 @@ void cxx_compiler::long_double_type::encode(std::ostream& os) const { os << 'e';
 
 cxx_compiler::backpatch_type cxx_compiler::backpatch_type::obj;
 
-struct cxx_compiler::const_type::table_t : cxx_compiler::misc::pmap<const type*, const const_type> {};
+namespace cxx_compiler {
+  const_type::table_t const_type::tmp_tbl;
+  const_type::table_t const_type::pmt_tbl;
+} // end of namespace cxx_compiler
 
 void cxx_compiler::const_type::decl(std::ostream& os, std::string name) const
 {
@@ -415,28 +410,36 @@ const cxx_compiler::type* cxx_compiler::const_type::qualified(int cvr) const
   return m_T->qualified(cvr);
 }
 
-const cxx_compiler::const_type* cxx_compiler::const_type::create(const type* T)
+const cxx_compiler::type* cxx_compiler::const_type::create(const type* T)
 {
-  if ( T->temporary(false) ){
-    const const_type* ret = new const_type(T);
-    if ( scope::current->m_id == scope::BLOCK )
-      type_impl::temp1.push_back(ret);
-#ifdef _DEBUG
-    else
-      type_impl::temp2.push_back(ret);
-#endif // _DEBUG
-    return ret;
-  }
+  if (T->m_id == CONST)
+    return T;
+
+  table_t& table = T->tmp() ? tmp_tbl : pmt_tbl;
   table_t::const_iterator p = table.find(T);
   if ( p != table.end() )
-    return p->second;
-  else
-    return table[T] = new const_type(T);
+      return p->second;
+  return table[T] = new const_type(T);
 }
 
-struct cxx_compiler::volatile_type::table_t : cxx_compiler::misc::pmap<const type*, const volatile_type> {};
+void cxx_compiler::const_type::destroy_tmp()
+{
+  for (auto p : tmp_tbl)
+    delete p.second;
+  tmp_tbl.clear();
+}
 
-cxx_compiler::volatile_type::table_t cxx_compiler::volatile_type::table;
+void cxx_compiler::const_type::collect_tmp(std::vector<const type*>& vs)
+{
+  for (auto p : tmp_tbl)
+    vs.push_back(p.second);
+  tmp_tbl.clear();
+}
+
+namespace cxx_compiler {
+  volatile_type::table_t volatile_type::tmp_tbl;
+  volatile_type::table_t volatile_type::pmt_tbl;
+} // end of namespace cxx_compiler
 
 void cxx_compiler::volatile_type::decl(std::ostream& os, std::string name) const
 {
@@ -479,28 +482,46 @@ const cxx_compiler::type* cxx_compiler::volatile_type::qualified(int cvr) const
   return m_T->qualified(cvr);
 }
 
-const cxx_compiler::volatile_type* cxx_compiler::volatile_type::create(const type* T)
+const cxx_compiler::type* cxx_compiler::volatile_type::create(const type* T)
 {
-  if ( T->temporary(false) ){
-    const volatile_type* ret = new volatile_type(T);
-    if ( scope::current->m_id == scope::BLOCK )
-      type_impl::temp1.push_back(ret);
-#ifdef _DEBUG
-    else
-      type_impl::temp2.push_back(ret);
-#endif // _DEBUG
-    return ret;
-  }
+  if (T->m_id == VOLATILE)
+    return T;
+
+  table_t& table = T->tmp() ? tmp_tbl : pmt_tbl;
   table_t::const_iterator p = table.find(T);
-  if ( p != table.end() )
-    return p->second;
-  else
-    return table[T] = new volatile_type(T);
+  if (p != table.end())
+      return p->second;
+  
+  if (T->m_id == CONST) {
+    typedef const const_type CT;
+    CT* ct = static_cast<CT*>(T);
+    volatile_type* vt = new volatile_type(ct->m_T);
+    table[ct->m_T] = vt;
+    return const_type::create(vt);
+  }
+
+  volatile_type* ret = new volatile_type(T);
+  return table[T] = ret;
 }
 
-struct cxx_compiler::restrict_type::table_t : cxx_compiler::misc::pmap<const type*, const restrict_type> {};
+void cxx_compiler::volatile_type::destroy_tmp()
+{
+  for (auto p : tmp_tbl)
+    delete p.second;
+  tmp_tbl.clear();
+}
 
-cxx_compiler::restrict_type::table_t cxx_compiler::restrict_type::table;
+void cxx_compiler::volatile_type::collect_tmp(std::vector<const type*>& vt)
+{
+  for (auto p : tmp_tbl)
+    vt.push_back(p.second);
+  tmp_tbl.clear();
+}
+
+namespace cxx_compiler {
+  restrict_type::table_t restrict_type::tmp_tbl;
+  restrict_type::table_t restrict_type::pmt_tbl;
+} // end of namespace cxx_compiler
 
 void cxx_compiler::restrict_type::decl(std::ostream& os, std::string name) const
 {
@@ -543,28 +564,66 @@ const cxx_compiler::type* cxx_compiler::restrict_type::qualified(int cvr) const
   return m_T->qualified(cvr);
 }
 
-const cxx_compiler::restrict_type* cxx_compiler::restrict_type::create(const type* T)
+const cxx_compiler::type* cxx_compiler::restrict_type::create(const type* T)
 {
-  if ( T->temporary(false) ){
-    const restrict_type* ret = new restrict_type(T);
-    if ( scope::current->m_id == scope::BLOCK )
-      type_impl::temp1.push_back(ret);
-#ifdef _DEBUG
-    else
-      type_impl::temp2.push_back(ret);
-#endif // _DEBUG
-    return ret;
-  }
+  if (T->m_id == RESTRICT)
+    return T;
+
+  table_t& table = T->tmp() ? tmp_tbl : pmt_tbl;
   table_t::const_iterator p = table.find(T);
-  if ( p != table.end() )
+  if (p != table.end())
     return p->second;
-  else
-    return table[T] = new restrict_type(T);
+
+  typedef const const_type CT;  
+  typedef const volatile_type VT;
+  
+  if (T->m_id == CONST) {
+    CT* ct = static_cast<CT*>(T);
+    const type* T2 = ct->m_T;
+    if (T2->m_id == VOLATILE) {
+      VT* vt = static_cast<VT*>(T2);
+      restrict_type* rt = new restrict_type(vt->m_T);
+      table[vt->m_T] = rt;
+      return const_type::create(volatile_type::create(rt));
+    }
+    restrict_type* rt = new restrict_type(T2);
+    table[T2] = rt;
+    return const_type::create(rt);
+  }
+
+  if (T->m_id == VOLATILE) {
+    VT* vt = static_cast<VT*>(T);
+    restrict_type* rt = new restrict_type(vt->m_T);
+    table[vt->m_T] = rt;
+    return volatile_type::create(rt);
+  }
+
+  restrict_type* ret = new restrict_type(T);  
+  return table[T] = ret;
 }
 
-struct cxx_compiler::func_type::table_t : cxx_compiler::misc::pmap<std::pair<const type*, std::vector<const type*> >, const func_type> {};
+void cxx_compiler::restrict_type::destroy_tmp()
+{
+  for (auto p : tmp_tbl)
+    delete p.second;
+  tmp_tbl.clear();
+}
 
-cxx_compiler::func_type::table_t cxx_compiler::func_type::table;
+void cxx_compiler::restrict_type::collect_tmp(std::vector<const type*>& vs)
+{
+  for (auto p : tmp_tbl)
+    vs.push_back(p.second);
+  tmp_tbl.clear();
+}
+
+namespace cxx_compiler {
+  using namespace std;
+  struct func_type::table_t
+  : map<pair<const type*, vector<const type*> >, const func_type*>
+  {};
+  func_type::table_t func_type::tmp_tbl;
+  func_type::table_t func_type::pmt_tbl;
+} // end of namespace cxx_compiler
 
 void cxx_compiler::func_type::decl(std::ostream& os, std::string name) const
 {
@@ -740,11 +799,28 @@ const cxx_compiler::pointer_type* cxx_compiler::func_type::ptr_gen() const
   return pointer_type::create(this);
 }
 
-bool cxx_compiler::func_type::temporary(bool b) const
+bool cxx_compiler::func_type::tmp() const
 {
   using namespace std;
-  return m_T && m_T->temporary(b) || find_if(m_param.begin(),m_param.end(),bind2nd(mem_fun(&type::temporary),b)) != m_param.end();
+  return m_T && m_T->tmp() || find_if(m_param.begin(),m_param.end(),mem_fun(&type::tmp)) != m_param.end();
 }
+
+
+bool cxx_compiler::func_type::variably_modified() const
+{
+  using namespace std;
+  return m_T->variably_modified() || find_if(m_param.begin(), m_param.end(), mem_fun(&type::variably_modified)) != m_param.end();
+}
+
+const cxx_compiler::type* cxx_compiler::func_type::vla2a() const
+{
+  using namespace std;
+  const type* T = m_T->vla2a();
+  vector<const type*> param;
+  transform(m_param.begin(), m_param.end(), back_inserter(param), mem_fun(&type::vla2a));
+  return create(T, param);
+}
+
 
 bool cxx_compiler::func_type::overloadable(const func_type* that) const
 {
@@ -753,24 +829,17 @@ bool cxx_compiler::func_type::overloadable(const func_type* that) const
   const vector<const type*>& v = that->m_param;
   if ( u.size() != v.size() )
     return true;
-  return mismatch(u.begin(),u.end(),v.begin(),cxx_compiler::compatible) != make_pair(u.end(),v.end());
+  return mismatch(u.begin(),u.end(),v.begin(),cxx_compiler::compatible)
+    != make_pair(u.end(),v.end());
 }
 
-const cxx_compiler::func_type* cxx_compiler::func_type::create(const type* T,
-                                                           const std::vector<const type*>& param)
+const cxx_compiler::func_type*
+cxx_compiler::func_type::create(const type* T,
+                                const std::vector<const type*>& param)
 {
   using namespace std;
-  if ( T && T->temporary(false) || find_if(param.begin(),param.end(),bind2nd(mem_fun(&type::temporary),false)) != param.end() ){
-    const func_type* ret = new func_type(T,param);
-    if ( scope::current->m_id == scope::BLOCK )
-      type_impl::temp1.push_back(ret);
-#ifdef _DEBUG
-    else
-      type_impl::temp2.push_back(ret);
-#endif // _DEBUG
-    return ret;
-  }
-  pair<const type*, vector<const type*> > key(T,param);
+  table_t& table = (T && T->tmp() || find_if(param.begin(), param.end(), mem_fun(&type::tmp)) != param.end()) ? tmp_tbl : pmt_tbl;
+  pair<const type*, vector<const type*> > key(T,param);  
   table_t::const_iterator p = table.find(key);
   if ( p != table.end() )
     return p->second;
@@ -778,9 +847,27 @@ const cxx_compiler::func_type* cxx_compiler::func_type::create(const type* T,
     return table[key] = new func_type(T,param);
 }
 
-struct cxx_compiler::array_type::table_t : cxx_compiler::misc::pmap<std::pair<const type*,int>, const array_type> {};
+void cxx_compiler::func_type::destroy_tmp()
+{
+  for (auto p : tmp_tbl)
+    delete p.second;
+  tmp_tbl.clear();
+}
 
-cxx_compiler::array_type::table_t cxx_compiler::array_type::table;
+void cxx_compiler::func_type::collect_tmp(std::vector<const type*>& vt)
+{
+  for (auto p : tmp_tbl)
+    vt.push_back(p.second);
+  tmp_tbl.clear();
+}
+
+namespace cxx_compiler {
+  using namespace std;
+  struct array_type::table_t
+    : map<pair<const type*,int>, const array_type*> {};
+  array_type::table_t array_type::tmp_tbl;
+  array_type::table_t array_type::pmt_tbl;
+} // end of namespace cxx_compiler
 
 void cxx_compiler::array_type::decl(std::ostream& os, std::string name) const
 {
@@ -800,7 +887,7 @@ void cxx_compiler::array_type::decl(std::ostream& os, std::string name) const
         tmp << "const ";
       if ( cvr & 2 )
         tmp << "volatile ";
-      if ( cvr & 2 )
+      if ( cvr & 4 )
         tmp << "restrict ";
       tmp << name;
       y->decl(os,tmp.str());
@@ -939,16 +1026,7 @@ cxx_compiler::var* cxx_compiler::array_type::vsize() const
 const cxx_compiler::array_type* cxx_compiler::array_type::create(const type* T, int dim)
 {
   using namespace std;
-  if ( T->temporary(false) ){
-    const array_type* ret = new array_type(T,dim);
-    if ( scope::current->m_id == scope::BLOCK )
-      type_impl::temp1.push_back(ret);
-#ifdef _DEBUG
-    else
-      type_impl::temp2.push_back(ret);
-#endif // _DEBUG
-    return ret;
-  }
+  table_t& table = T->tmp() ? tmp_tbl : pmt_tbl;
   pair<const type*, int> key(T,dim);
   table_t::const_iterator p = table.find(key);
   if ( p != table.end() )
@@ -957,11 +1035,25 @@ const cxx_compiler::array_type* cxx_compiler::array_type::create(const type* T, 
     return table[key] = new array_type(T,dim);
 }
 
-struct cxx_compiler::pointer_type::table_t : cxx_compiler::misc::pmap<const type*, const pointer_type> {};
 
-int cxx_compiler::pointer_type::size() const { return type_impl::pointer_sizeof; }
+void cxx_compiler::array_type::destroy_tmp()
+{
+  for (auto p : tmp_tbl)
+    delete p.second;
+  tmp_tbl.clear();
+}
 
-cxx_compiler::pointer_type::table_t cxx_compiler::pointer_type::table;
+void cxx_compiler::array_type::collect_tmp(std::vector<const type*>& vt)
+{
+  for (auto p : tmp_tbl)
+    vt.push_back(p.second);
+  tmp_tbl.clear();
+}
+
+namespace cxx_compiler {
+  pointer_type::table_t pointer_type::tmp_tbl;
+  pointer_type::table_t pointer_type::pmt_tbl;
+} // end of namespace cxx_compiler
 
 void cxx_compiler::pointer_type::decl(std::ostream& os, std::string name) const
 {
@@ -989,6 +1081,11 @@ const cxx_compiler::type* cxx_compiler::pointer_type::patch(const type* T, usr* 
     flag = (usr::flag_t)(flag & ~usr::FUNCTION & ~usr::VL);
   }
   return create(T);
+}
+
+int cxx_compiler::pointer_type::size() const
+{
+  return type_impl::pointer_sizeof;
 }
 
 bool cxx_compiler::pointer_type::compatible(const type* T) const
@@ -1058,16 +1155,7 @@ const cxx_compiler::type* cxx_compiler::pointer_type::complete_type() const
 
 const cxx_compiler::pointer_type* cxx_compiler::pointer_type::create(const type* T)
 {
-  if ( T->temporary(false) ){
-    const pointer_type* ret = new pointer_type(T);
-    if ( scope::current->m_id == scope::BLOCK )
-      type_impl::temp1.push_back(ret);
-#ifdef _DEBUG
-    else
-      type_impl::temp2.push_back(ret);
-#endif // _DEBUG
-    return ret;
-  }
+  table_t& table = T->tmp() ? tmp_tbl : pmt_tbl;
   table_t::const_iterator p = table.find(T);
   if ( p != table.end() )
     return p->second;
@@ -1075,11 +1163,29 @@ const cxx_compiler::pointer_type* cxx_compiler::pointer_type::create(const type*
     return table[T] = new pointer_type(T);
 }
 
-struct cxx_compiler::reference_type::table_t : cxx_compiler::misc::pmap<const type*, const reference_type> {};
+void cxx_compiler::pointer_type::destroy_tmp()
+{
+  for (auto p : tmp_tbl)
+    delete p.second;
+  tmp_tbl.clear();
+}
 
-int cxx_compiler::reference_type::size() const { return type_impl::pointer_sizeof; }
+void cxx_compiler::pointer_type::collect_tmp(std::vector<const type*>& vt)
+{
+  for (auto p : tmp_tbl)
+    vt.push_back(p.second);
+  tmp_tbl.clear();
+}
 
-cxx_compiler::reference_type::table_t cxx_compiler::reference_type::table;
+namespace cxx_compiler {
+  reference_type::table_t reference_type::tmp_tbl;
+  reference_type::table_t reference_type::pmt_tbl;
+} // end of namespace cxx_compiler
+
+int cxx_compiler::reference_type::size() const
+{
+  return type_impl::pointer_sizeof;
+}
 
 void cxx_compiler::reference_type::decl(std::ostream& os, std::string name) const
 {
@@ -1176,21 +1282,26 @@ const cxx_compiler::type* cxx_compiler::reference_type::complete_type() const
 
 const cxx_compiler::reference_type* cxx_compiler::reference_type::create(const type* T)
 {
-  if ( T->temporary(false) ){
-    const reference_type* ret = new reference_type(T);
-    if ( scope::current->m_id == scope::BLOCK )
-      type_impl::temp1.push_back(ret);
-#ifdef _DEBUG
-    else
-      type_impl::temp2.push_back(ret);
-#endif // _DEBUG
-    return ret;
-  }
+  table_t& table = T->tmp() ? tmp_tbl : pmt_tbl;
   table_t::const_iterator p = table.find(T);
   if ( p != table.end() )
     return p->second;
   else
     return table[T] = new reference_type(T);
+}
+
+void cxx_compiler::reference_type::destroy_tmp()
+{
+  for (auto p : tmp_tbl)
+    delete p.second;
+  tmp_tbl.clear();
+}
+
+void cxx_compiler::reference_type::collect_tmp(std::vector<const type*>& vt)
+{
+  for (auto p : tmp_tbl)
+    vt.push_back(p.second);
+  tmp_tbl.clear();
 }
 
 void cxx_compiler::ellipsis_type::decl(std::ostream& os, std::string name) const
@@ -1207,6 +1318,10 @@ const cxx_compiler::ellipsis_type* cxx_compiler::ellipsis_type::create()
 {
   return &m_obj;
 }
+
+namespace cxx_compiler {
+  incomplete_tagged_type::table_t incomplete_tagged_type::tmp_tbl;
+} // end of namespace cxx_compiler
 
 void cxx_compiler::incomplete_tagged_type::decl(std::ostream& os, std::string name) const
 {
@@ -1273,17 +1388,52 @@ namespace cxx_compiler {
   }
 } // end of namespace cxx_compiler
 
-bool cxx_compiler::incomplete_tagged_type::temporary(bool vm) const
+bool cxx_compiler::incomplete_tagged_type::tmp() const
 {
-  if ( vm )
-    return false;
-  else
-    return temporary_helper(m_tag);
+  return tmp_tbl.find(this) != tmp_tbl.end();
 }
 
-const cxx_compiler::incomplete_tagged_type* cxx_compiler::incomplete_tagged_type::create(tag* tag)
+
+void cxx_compiler::incomplete_tagged_type::destroy_tmp()
 {
-  return new incomplete_tagged_type(tag);
+  for (auto p : tmp_tbl)
+    delete p;
+  tmp_tbl.clear();
+}
+
+void cxx_compiler::incomplete_tagged_type::collect_tmp(std::vector<const type*>& vt)
+{
+  for (auto p : tmp_tbl)
+    vt.push_back(p);
+  tmp_tbl.clear();
+}
+
+namespace cxx_compiler {
+  bool inblock(const scope* ptr)
+  {
+    switch (ptr->m_id) {
+    case scope::NONE:
+      return false;
+    case scope::BLOCK:
+    case scope::PARAM:
+      return true;
+    default:
+      return ptr->m_parent ? inblock(ptr->m_parent) : false;
+    }
+  }
+  inline bool temporary(const tag* ptr)
+  {
+    return inblock(ptr);
+  }
+} // end of namespace cxx_compiler
+
+const cxx_compiler::incomplete_tagged_type* cxx_compiler::incomplete_tagged_type::create(tag* ptr)
+{
+  typedef incomplete_tagged_type ITT;
+  ITT* ret = new ITT(ptr);
+  if (temporary(ptr))
+    tmp_tbl.insert(ret);
+  return ret;
 }
 
 namespace cxx_compiler { namespace record_impl {
@@ -1484,7 +1634,7 @@ int cxx_compiler::record_impl::layouter::operator()(int offset, usr* member)
     m_current = current();
     string name = member->m_name;
     const type* T = member->m_type;
-    if ( T->temporary(true) ){
+    if (T->variably_modified()){
       using namespace error::classes;
       not_ordinary(member);
       T = member->m_type = int_type::create();
@@ -1502,7 +1652,7 @@ int cxx_compiler::record_impl::layouter::operator()(int offset, usr* member)
         *X++ = make_pair(name,make_pair(offset,member));
         return offset;
       }
-      for_each(code.begin()+n,code.end(),misc::deleter<tac>());
+      for_each(code.begin()+n,code.end(),[](tac* p){ delete p; });
       code.resize(n);
       using namespace error::classes;
       incomplete_member(member);
@@ -1700,9 +1850,13 @@ void cxx_compiler::record_impl::add_ctor(tag* Tg, const info& arg)
     else
       code.push_back(new invladdr3ac(This,tmp));
   }
-  fundef::current = new fundef(ctor,param);
-  declarations::declarators::function::definition::action(code,true);
+  fundef* fdef = new fundef(ctor,param);
+  declarations::declarators::function::definition::action(fdef, code);
 }
+
+namespace cxx_compiler {
+  record_type::table_t record_type::tmp_tbl;
+} // end of namespace cxx_compiler
 
 void cxx_compiler::record_type::decl(std::ostream& os, std::string name) const
 {
@@ -1776,18 +1930,32 @@ std::pair<int, const cxx_compiler::type*> cxx_compiler::record_type::current(int
   return make_pair(offset,T);
 }
 
-bool cxx_compiler::record_type::temporary(bool vm) const
+bool cxx_compiler::record_type::tmp() const
 {
-  if ( vm )
-    return false;
-  else
-    return temporary_helper(m_tag);
+  return tmp_tbl.find(this) != tmp_tbl.end();
 }
 
 const cxx_compiler::record_type*
-cxx_compiler::record_type::create(tag* Tg)
+cxx_compiler::record_type::create(tag* ptr)
 {
-  return new record_type(Tg);
+  record_type* ret = new record_type(ptr);
+  if (temporary(ptr))
+    tmp_tbl.insert(ret);
+  return ret;
+}
+
+void cxx_compiler::record_type::destroy_tmp()
+{
+  for (auto p : tmp_tbl)
+    delete p;
+  tmp_tbl.clear();
+}
+
+void cxx_compiler::record_type::collect_tmp(std::vector<const type*>& vt)
+{
+  for (auto p : tmp_tbl)
+    vt.push_back(p);
+  tmp_tbl.clear();
 }
 
 void cxx_compiler::enum_type::decl(std::ostream& os, std::string name) const
@@ -1829,17 +1997,35 @@ const cxx_compiler::type* cxx_compiler::enum_type::composite(const type* T) cons
   return m_tag == that->get_tag() ? this : 0;
 }
 
-bool cxx_compiler::enum_type::temporary(bool vm) const
+namespace cxx_compiler {
+  enum_type::table_t enum_type::tmp_tbl;
+} // end of namespace cxx_compiler
+
+const cxx_compiler::enum_type* cxx_compiler::enum_type::create(tag* ptr, const type* integer)
 {
-  if ( vm )
-    return false;
-  else
-    return temporary_helper(m_tag);
+  enum_type* ret = new enum_type(ptr, integer);
+  if (temporary(ptr))
+    tmp_tbl.insert(ret);
+  return ret;
 }
 
-const cxx_compiler::enum_type* cxx_compiler::enum_type::create(tag* tag, const type* integer)
+bool cxx_compiler::enum_type::tmp() const
 {
-  return new enum_type(tag,integer);
+  return tmp_tbl.find(this) != tmp_tbl.end();
+}
+
+void cxx_compiler::enum_type::destroy_tmp()
+{
+  for (auto p : tmp_tbl)
+    delete p;
+  tmp_tbl.clear();
+}
+
+void cxx_compiler::enum_type::collect_tmp(std::vector<const type*>& vt)
+{
+  for (auto p : tmp_tbl)
+    vt.push_back(p);
+  tmp_tbl.clear();
 }
 
 struct cxx_compiler::bit_field_type::table_t : cxx_compiler::misc::pmap<std::pair<int, const type*>, const bit_field_type> {};
@@ -1885,31 +2071,12 @@ const cxx_compiler::bit_field_type* cxx_compiler::bit_field_type::create(int bit
     return table[make_pair(bit,integer)] = new bit_field_type(bit,integer);
 }
 
-cxx_compiler::varray_type::varray_type(const type* T, var* dim)
-  : type(VARRAY), m_T(T), m_decided(false)
-{
-  m_dim.first = dim;
-  m_dim.second = new var(dim->m_type);
-  m_dim.second->m_scope = 0;
-}
-
-cxx_compiler::varray_type::varray_type(const type* T,
-                                       var* dim,
-                                       const std::vector<tac*>& c)
-  : type(VARRAY), m_T(T), m_decided(false), m_code(c)
-{
-  m_dim.first = dim;
-  m_dim.second = new var(dim->m_type);
-  m_dim.second->m_scope = 0;
-}
-
-cxx_compiler::varray_type::~varray_type()
-{
+namespace cxx_compiler {
   using namespace std;
-  if ( !m_decided )
-    delete m_dim.second;
-  for_each(m_code.begin(),m_code.end(),misc::deleter<tac>());
-}
+  struct varray_type::table_t
+    : map<pair<const type*, var*>, const varray_type*> {};
+  varray_type::table_t varray_type::table;
+} // end of namespace cxx_compiler
 
 void cxx_compiler::varray_type::decl(std::ostream& os, std::string name) const
 {
@@ -2018,30 +2185,27 @@ void cxx_compiler::varray_type::post(std::ostream& os) const
 const cxx_compiler::type* cxx_compiler::varray_type::patch(const type* T, usr* u) const
 {
   T = m_T->patch(T,u);
-  if ( T->m_id == type::FUNC ){
+  if (T->m_id == type::FUNC) {
     using namespace error::declarations::declarators::array;
     of_function(parse::position,u);
     T = backpatch_type::create();
   }
   T = T->complete_type();
-  if ( u ){
+  if (u) {
     usr::flag_t& flag = u->m_flag;
     flag = usr::flag_t(flag | usr::VL);
   }
-  const type* ret = m_code.empty() ? create(T,m_dim.first) : create(T,m_dim.first,m_code);
-  m_code.clear();
-  return ret;
+  return create(T,m_dim);
 }
 
 const cxx_compiler::type* cxx_compiler::varray_type::qualified(int cvr) const
 {
-  return create(m_T->qualified(cvr),m_dim.first);
+  return create(m_T->qualified(cvr),m_dim);
 }
 
 const cxx_compiler::type* cxx_compiler::varray_type::complete_type() const
 {
-  m_T = m_T->complete_type();
-  return this;
+  return create(m_T->complete_type(),m_dim);
 }
 
 const cxx_compiler::pointer_type* cxx_compiler::varray_type::ptr_gen() const
@@ -2049,101 +2213,58 @@ const cxx_compiler::pointer_type* cxx_compiler::varray_type::ptr_gen() const
   return pointer_type::create(m_T);
 }
 
-namespace cxx_compiler { namespace varray_impl {
-  void move1(tac*);
-  void move2(var*);
-} } // end of namespace varray_impl and cxx_compiler
-
-void cxx_compiler::varray_impl::move1(tac* ptr)
-{
-  if ( ptr->x ) move2(ptr->x);
-  if ( ptr->y ) move2(ptr->y);
-  if ( ptr->z ) move2(ptr->z);
-}
-
-void cxx_compiler::varray_impl::move2(var* v)
-{
-  using namespace std;
-  vector<var*>::reverse_iterator p = find(garbage.rbegin(),garbage.rend(),v);
-  if ( p != garbage.rend() ){
-    garbage.erase(p.base()-1);
-    block* b = static_cast<block*>(scope::current);
-    v->m_scope = b;
-    b->m_vars.push_back(v);
-  }
-}
-
-void cxx_compiler::varray_type::decide() const
-{
-  using namespace std;
-  if ( m_decided )
-    return;
-  m_T->decide();
-  for_each(m_code.begin(),m_code.end(),varray_impl::move1);
-  copy(m_code.begin(),m_code.end(),back_inserter(code));
-  m_code.clear();
-  block* b = static_cast<block*>(scope::current);
-  m_dim.second->m_scope = b;
-  b->m_vars.push_back(m_dim.second);
-  code.push_back(new assign3ac(m_dim.second,m_dim.first));
-  m_decided = true;
-}
-
 cxx_compiler::var* cxx_compiler::varray_type::vsize() const
 {
   using namespace std;
-  const type* T = m_T;
-  T = T->complete_type();
+  const type* T = m_T->complete_type();
   if ( var* vs = T->vsize() )
-    return m_dim.second->mul(vs);
-  else {
-    int n = T->size();
-    usr* size = expressions::primary::literal::integer::create(n);
-    return m_dim.second->mul(size);
-  }
+    return m_dim->mul(vs);
+
+  int n = T->size();
+  usr* size = expressions::primary::literal::integer::create(n);
+  return m_dim->mul(size);
 }
 
 const cxx_compiler::varray_type* cxx_compiler::varray_type::create(const type* T, var* dim)
 {
   using namespace std;
-  const varray_type* ret = new varray_type(T,dim);
-  if ( scope::current->m_id == scope::BLOCK )
-    type_impl::temp1.push_back(ret);
-#ifdef _DEBUG
-  else
-    type_impl::temp2.push_back(ret);
-#endif // _DEBUG
-  return ret;
-}
-
-const cxx_compiler::varray_type* cxx_compiler::varray_type::create(const type* T, var* dim, const std::vector<tac*>& c)
-{
-  using namespace std;
-  const varray_type* ret = new varray_type(T,dim,c);
-  if ( scope::current->m_id == scope::BLOCK )
-    type_impl::temp1.push_back(ret);
-#ifdef _DEBUG
-  else
-    type_impl::temp2.push_back(ret);
-#endif // _DEBUG
-  return ret;
-}
-
-struct cxx_compiler::pointer_member_type::table_t : cxx_compiler::misc::pmap<pointer_member_type::KEY, const pointer_member_type> {};
-
-cxx_compiler::pointer_member_type::table_t cxx_compiler::pointer_member_type::table;
-
-const cxx_compiler::pointer_member_type*
-cxx_compiler::pointer_member_type::create(const tag* tg, const type* T)
-{
-  throw int();
-  using namespace std;
-  KEY key(tg,T);
+  pair<const type*, var*> key(T,dim);
   table_t::const_iterator p = table.find(key);
   if ( p != table.end() )
     return p->second;
   else
-    return table[key] = new pointer_member_type(tg,T);
+    return table[key] = new varray_type(T,dim);
+}
+
+void cxx_compiler::varray_type::destroy_tmp()
+{
+  for (auto p : table)
+    delete p.second;
+  table.clear();
+}
+
+void cxx_compiler::varray_type::collect_tmp(std::vector<const type*>& vt)
+{
+  for (auto p : table)
+    vt.push_back(p.second);
+  table.clear();
+}
+
+namespace cxx_compiler {
+  pointer_member_type::table_t pointer_member_type::tmp_tbl;
+  pointer_member_type::table_t pointer_member_type::pmt_tbl;
+} // end of namespace cxx_compiler
+
+const cxx_compiler::pointer_member_type*
+cxx_compiler::pointer_member_type::create(const tag* ptr, const type* T)
+{
+  using namespace std;
+  pair<const tag*, const type*> key(ptr,T);  
+  table_t& table = (temporary(ptr) || T->tmp()) ? tmp_tbl : pmt_tbl;
+  table_t::const_iterator p = table.find(key);
+  if ( p != table.end() )
+      return p->second;
+  return table[key] = new pointer_member_type(ptr, T);
 }
 
 void
@@ -2189,4 +2310,19 @@ cxx_compiler::pointer_member_type::composite(const type* T) const
     return 0;
   T = this->m_T->composite(that->m_T);
   return T ? create(m_tag, T) : 0;
+}
+
+void cxx_compiler::pointer_member_type::destroy_tmp()
+{
+  for (auto p : tmp_tbl)
+    delete p.second;
+  tmp_tbl.clear();
+}
+
+void
+cxx_compiler::pointer_member_type::collect_tmp(std::vector<const type*>& vt)
+{
+  for (auto p : tmp_tbl)
+    vt.push_back(p.second);
+  tmp_tbl.clear();
 }

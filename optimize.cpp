@@ -3,23 +3,60 @@
 #include "cxx_impl.h"
 
 namespace cxx_compiler { namespace optimize {
-  extern void redundant_to3ac(std::vector<tac*>&);
-  namespace basic_block { extern void action(std::vector<tac*>&); }
+  void goto_to(vector<tac*>&);
+  void empty_to3ac(vector<tac*>&);
+  namespace basic_block { extern void action(fundef*, std::vector<tac*>&); }
 } } // end of namespace optimize and cxx_compiler
 
-void cxx_compiler::optimize::action(std::vector<tac*>& v)
+void cxx_compiler::optimize::action(fundef* fdef, std::vector<tac*>& v)
 {
-  redundant_to3ac(v);
+  goto_to(v);
+  empty_to3ac(v);
   if ( cmdline::bb_optimize )
-    basic_block::action(v);
+    basic_block::action(fdef, v);
 }
 
-void cxx_compiler::optimize::redundant_to3ac(std::vector<tac*>& v)
+void cxx_compiler::optimize::goto_to(std::vector<tac*>& vt)
+{
+  using namespace std;
+  typedef vector<tac*>::iterator IT;
+  for ( IT p = vt.begin() ; p != vt.end() ; ){
+    if ((*p)->m_id != tac::GOTO) {
+      ++p;
+      continue;
+    }
+    goto3ac* go = static_cast<goto3ac*>(*p);
+    IT q = p + 1;
+    if (q == vt.end())
+      break;
+    if ((*q)->m_id != tac::TO) {
+      p = q;
+      continue;
+    }
+    to3ac* to = static_cast<to3ac*>(*q);
+    if (go->m_to != to) {
+      p = q + 1;
+      continue;
+    }
+    delete go;
+    vector<goto3ac*>& vg = to->m_goto;
+    vector<goto3ac*>::iterator r = find(vg.begin(),vg.end(),go);
+    assert(r != vg.end());
+    vg.erase(r);
+    if (vg.empty()) {
+      delete to;
+	  vt.erase(q);
+    }
+    p = vt.erase(p);
+  }
+}
+
+void cxx_compiler::optimize::empty_to3ac(std::vector<tac*>& v)
 {
   using namespace std;
   typedef vector<tac*>::iterator IT;
   for ( IT p = v.begin() ; p != v.end() ; ){
-    if ( (*p)->m_id == tac::TO ){
+    if ((*p)->m_id == tac::TO) {
       to3ac* to = static_cast<to3ac*>(*p);
       if ( to->m_goto.empty() ){
         delete *p;
@@ -34,7 +71,6 @@ void cxx_compiler::optimize::redundant_to3ac(std::vector<tac*>& v)
 }
 
 namespace cxx_compiler { namespace optimize { namespace basic_block {
-  void create(std::vector<tac*>&, std::vector<info_t*>&);
   namespace dag {
     struct action_t {
       std::vector<tac*> conv;
@@ -55,19 +91,19 @@ namespace cxx_compiler { namespace optimize { namespace symtab {
   extern void simplify_string(std::vector<tac*>*);
 } } } // end of namespace symtab, optimize and cxx_compiler
 
-void cxx_compiler::optimize::basic_block::action(std::vector<tac*>& v)
+void
+cxx_compiler::optimize::basic_block::action(fundef* fdef, std::vector<tac*>& v)
 {
   using namespace std;
   if ( cmdline::output_medium && cmdline::output_optinfo ){
     cout << "Before optimization\n";
-    usr* u = fundef::current->m_usr;
+    usr* u = fdef->m_usr;
     scope* org = scope::current;
     scope::current = &scope::root;
     cout << dump::names::ref(u) << ":\n";
     scope::current = org;
-    typedef vector<tac*>::const_iterator IT;
-    for ( IT p = v.begin() ; p != v.end() ; ++p )
-      cout << '\t', dump::tac(cout,*p), cout << '\n';
+    for (auto p : v)
+      cout << '\t', dump::tac(cout, p), cout << '\n';
     cout << '\n';
     dump::scope();
   }
@@ -87,16 +123,16 @@ void cxx_compiler::optimize::basic_block::action(std::vector<tac*>& v)
     }
     v = seed.conv;
   }
-  for_each(bbs.begin(),bbs.end(),misc::deleter<info_t>());
+  for (auto p : bbs)
+    delete p;
   {
-    scope* p = fundef::current->m_param;
+    scope* p = fdef->m_param;
     vector<scope*>& children = p->m_children;
     assert(children.size() == 1);
     p = children.back();
     symtab::simplify(p,&v);
   }
-  if ( !declarations::declarators::function::Inline::resolve::flag )
-    symtab::simplify_string(&v);
+  symtab::simplify_string(&v);
 }
 
 namespace cxx_compiler { namespace optimize { namespace basic_block {
@@ -388,13 +424,19 @@ cxx_compiler::optimize::basic_block::dag::match(info_t* xinfo, std::pair<tac*, s
     {
       const type* x = xtac->x->m_type;
       const type* y = ytac->x->m_type;
-      return x->compatible(y);
+      x = x->unqualified();
+      y = y->unqualified();
+      return compatible(x, y);
     }
   case tac::CAST:
     {
       cast3ac* x = static_cast<cast3ac*>(xtac);
       cast3ac* y = static_cast<cast3ac*>(ytac);
-      return x->m_type->compatible(y->m_type);
+      const type* Tx = x->m_type;
+      const type* Ty = y->m_type;
+      Tx = Tx->unqualified();
+      Ty = Ty->unqualified();
+      return compatible(Tx, Ty);
     }
   case tac::LOFF:
   case tac::ALLOCA:
@@ -428,7 +470,9 @@ cxx_compiler::optimize::basic_block::dag::roff_match_loff(info_t* xinfo, std::pa
     return false;
   const type* x = roff->x->m_type;
   const type* y = loff->z->m_type;
-  return x->compatible(y);
+  x = x->unqualified();
+  y = y->unqualified();
+  return compatible(x, y);
 }
 
 namespace cxx_compiler { namespace optimize { namespace live_var {
@@ -607,7 +651,8 @@ cxx_compiler::optimize::basic_block::dag::generate::action(action_t* act)
   using namespace std;
   vector<info_t*>& v = info_t::all;
   for_each(v.begin(),v.end(),bind2nd(ptr_fun(inorder),act));
-  for_each(v.begin(),v.end(),misc::deleter<info_t>());
+  for (auto p : v)
+    delete p;
   v.clear();
 }
 
@@ -1060,9 +1105,6 @@ namespace cxx_compiler { namespace optimize { namespace symtab {
 bool cxx_compiler::optimize::symtab::erasable(usr* u, std::vector<tac*>* res, std::set<usr*>* addr)
 {
   using namespace std;
-  if ( u == (usr*)0x00ffec80 ){
-    int debug = 1;
-  }
   string name = u->m_name;
   if ( !is_string(name) )
     return false;
@@ -1075,29 +1117,4 @@ bool cxx_compiler::optimize::symtab::erasable(usr* u, std::vector<tac*>* res, st
   if ( remembered.find(u) != remembered.end() )
     return false;
   return true;
-}
-
-namespace cxx_compiler { namespace optimize { namespace symtab {
-  extern void remember_string(tac*);
-} } } // end of namespace symtab, optimize and cxx_compiler
-
-void cxx_compiler::optimize::remember_action(const std::vector<tac*>& v)
-{
-  using namespace std;
-  for_each(v.begin(),v.end(),symtab::remember_string);
-}
-
-void cxx_compiler::optimize::symtab::remember_string(tac* p)
-{
-  using namespace std;
-  if ( p->m_id != tac::ADDR )
-    return;
-  var* y = p->y;
-  usr* u = y->usr_cast();
-  if ( !u )
-    return;
-  string name = u->m_name;
-  if ( !is_string(name) )
-    return;
-  remembered.insert(u);
 }

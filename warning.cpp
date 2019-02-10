@@ -193,54 +193,6 @@ void cxx_compiler::warning::generator::option(std::string option, int n, std::st
   ++counter;
 }
 
-void cxx_compiler::warning::generator::open_file(std::string fn)
-{
-  using namespace std;
-  using namespace error;
-  string prog = cxx_compiler::cmdline::prog;
-  switch ( lang ){
-  case jpn:
-    cerr << prog << ": `generator_open_file' ‚ª " << fn << " ‚©‚çŒ©‚Â‚©‚è‚Ü‚¹‚ñ.\n";
-    break;
-  default:
-    cerr << prog << ": cannot find symbol `generator_open_file' from " << fn << ".\n";
-    break;
-  }
-  ++counter;
-}
-
-void cxx_compiler::warning::generator::generate(std::string fn)
-{
-  using namespace std;
-  using namespace error;
-  string prog = cxx_compiler::cmdline::prog;
-  switch ( lang ){
-  case jpn:
-    cerr << prog << ": `generator_generate' ‚ª " << fn << " ‚©‚çŒ©‚Â‚©‚è‚Ü‚¹‚ñ.\n";
-    break;
-  default:
-    cerr << prog << ": cannot find symbol `generator_generate' from " << fn << ".\n";
-    break;
-  }
-  ++counter;
-}
-
-void cxx_compiler::warning::generator::close_file(std::string fn)
-{
-  using namespace std;
-  using namespace error;
-  string prog = cxx_compiler::cmdline::prog;
-  switch ( lang ){
-  case jpn:
-    cerr << prog << ": `generator_close_file' ‚ª " << fn << " ‚©‚çŒ©‚Â‚©‚è‚Ü‚¹‚ñ.\n";
-    break;
-  default:
-    cerr << prog << ": cannot find symbol `generator_close_file' from " << fn << ".\n";
-    break;
-  }
-  ++counter;
-}
-
 void cxx_compiler::warning::cmdline::lang_option(std::string arg)
 {
   using namespace std;
