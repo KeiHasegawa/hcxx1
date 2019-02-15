@@ -52,14 +52,6 @@ cxx_compiler::scope::~scope()
   }
   for (auto p : m_children)
     delete p;
-  if (m_id == PARAM) {
-    transform(m_tags.begin(),m_tags.end(),back_inserter(tags),conv);
-    m_tags.clear();
-  }
-  else {
-    for (auto p : m_tags)
-      delete p.second;
-  }
 }
 
 std::string cxx_compiler::tag::keyword(kind_t kind)
@@ -109,8 +101,6 @@ std::string cxx_compiler::usr::keyword(flag_t f)
 
 cxx_compiler::tag::~tag()
 {
-  delete m_types.first;
-  delete m_types.second;
   if ( m_bases ){
     for (auto p : *m_bases)
       delete p;

@@ -548,10 +548,10 @@ void cxx_compiler::error::expressions::postfix::call::not_function(const file_t&
     header(file,"エラー");
     cerr << "函数ではない";
     if ( u )
-      cerr << " `" << u->m_name << "'";
+      cerr << " `" << u->m_name << "' ";
     else
       cerr << "もの";
-    cerr << " を呼び出しました.\n";
+    cerr << "を呼び出しました.\n";
     break;
   default:
     header(file,"error");
@@ -640,6 +640,60 @@ void cxx_compiler::error::expressions::postfix::call::mismatch_argument(const fi
     if ( discard )
       cerr << " qualifier discarded.";
     cerr << '\n';
+    break;
+  }
+  ++counter;
+}
+
+namespace cxx_compiler {
+  namespace error {
+    namespace expressions {
+      namespace postfix {
+	namespace call {
+	  void overload_candidacy(usr* c)
+	  {
+	    const file_t& file = c->m_file;
+	    string name = c->m_name;
+	    switch (lang) {
+	    case jpn:
+	    default:
+	      header(file,"error");
+	      cerr << "`" << name << "'" << '\n';
+	      break;
+	    }
+	  }
+	} // end of namespace call
+      } // end of namespace postfix
+    } // end of namespace expressions
+  } // end of namespace error
+} // end of namespace cxx_compiler
+
+void
+cxx_compiler::error::expressions::postfix::call::overload_not_match(const usr* u)
+{
+  const file_t& file = u->m_file;
+  assert(u->m_flag & usr::OVERLOAD);
+  const overload* o = static_cast<const overload*>(u);
+  const vector<usr*>& candidacy = o->m_candidacy;
+  switch ( lang ){
+  case jpn:
+    header(file,"エラー");
+    cerr << "函数" << " `" << u->m_name << "' の";
+    cerr << "オーバーロード呼び出しがいずれもマッチしません.";
+    cerr << '\n';
+    cerr << "候補:" << '\n';
+    for ( auto c : candidacy )
+      overload_candidacy(c);
+    break;
+  default:
+    header(file,"error");
+    cerr << "function overload call ";
+    cerr << '`' << u->m_name << "' ";
+    cerr << " doesn't mismatch to any.";
+    cerr << '\n';
+    cerr << "Candidacy:" << '\n';
+    for (auto c : candidacy)
+      overload_candidacy(c);
     break;
   }
   ++counter;

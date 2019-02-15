@@ -63,7 +63,7 @@ print <<EOF
       if ( n == INTEGER_LITERAL_LEX ){
         cxx_compiler::parse::g_read.m_token.push_front(make_pair(n,cxx_compiler::parse::position));
 		cxx_compiler::parse::g_read.m_lval.push_front(cxx_compiler_lval.m_usr);
-        yyn = 133 + 1;
+        yyn = $aaa + 1;
         goto yyreduce;
       }
       else {

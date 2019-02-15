@@ -1,3 +1,8 @@
-static int b;
+void g(char*);
 
-extern int b;
+int f(void)
+{
+  char a[] = "hello";
+  g(&a[0]);
+  return sizeof "world";
+}

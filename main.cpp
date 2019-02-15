@@ -52,29 +52,3 @@ int main(int argc, char** argv)
   generator::terminate();
   return error::counter;
 }
-
-namespace cxx_compiler {
-  namespace declarations {
-    namespace declarators {
-      namespace function {
-	namespace definition {
-	  namespace static_inline {
-	    namespace defer {
-	      void last()
-	      {
-		using namespace std;
-		for (auto& p : refs) {
-		  const vector<ref_t>& v = p.second;
-		  assert(!v.empty());
-		  const ref_t& r = v[0];
-		  error::declarations::declarators::function::definition::
-		    static_inline::nodef(r.m_def, r.m_flag, r.m_name, r.m_use);
-		}
-	      }
-	    } // end of namespace defer
-	  } // end of namespace static_inline
-	} // end of namespace definition
-      } // end of namespace function
-    } // end of namespace declarators
-  } // end of namespace declarations
-} // end of namespace cxx_compiler

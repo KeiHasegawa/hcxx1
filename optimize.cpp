@@ -88,7 +88,9 @@ namespace cxx_compiler { namespace optimize { namespace live_var {
 
 namespace cxx_compiler { namespace optimize { namespace symtab {
   extern int simplify(scope*, std::vector<tac*>*);
-  extern void simplify_string(std::vector<tac*>*);
+  namespace literal {
+    void simplify(const vector<tac*>&);
+  } // end of namespace literal
 } } } // end of namespace symtab, optimize and cxx_compiler
 
 void
@@ -132,7 +134,7 @@ cxx_compiler::optimize::basic_block::action(fundef* fdef, std::vector<tac*>& v)
     p = children.back();
     symtab::simplify(p,&v);
   }
-  symtab::simplify_string(&v);
+  symtab::literal::simplify(v);
 }
 
 namespace cxx_compiler { namespace optimize { namespace basic_block {
@@ -1028,93 +1030,106 @@ bool cxx_compiler::optimize::symtab::refs(tac* ptr, var* v)
   return false;
 }
 
-namespace cxx_compiler { namespace optimize { namespace symtab {
-  int getaddr1(usr*, std::set<usr*>*);
-  int getaddr2(scope*, std::set<usr*>*);
-  bool erasable(usr*, std::vector<tac*>*, std::set<usr*>*);
-} } } // end of namespace symtab, optimize and cxx_compiler
+namespace cxx_compiler { namespace optimize { namespace symtab { namespace literal {
+        using namespace std;
+        set<usr*> canbe_erased;
+        void mark1(tac*);
+        void mark2(scope*);
+        void mark3(const pair<string, vector<usr*> >&);
+        void mark4(usr*);
+        void mark5(const pair<int, var*>&);
+        void erase(usr*);
+} } } } // end of namespace literal, symtab, optimize and cxx_compiler
 
-void cxx_compiler::optimize::symtab::simplify_string(std::vector<tac*>* res)
+void cxx_compiler::optimize::mark(usr* u)
 {
-  // new_external_declaration was deleted. so this function will be deleted.
-#if 0  
+  symtab::literal::canbe_erased.insert(u);
+}
+
+void cxx_compiler::optimize::symtab::literal::simplify(const std::vector<tac*>& vc)
+{
   using namespace std;
-  set<usr*> addr;
-  const vector<scope*>& c = scope::current->m_children;
-  for_each(c.begin(),c.end(),bind2nd(ptr_fun(getaddr2),&addr));
-  typedef vector<usr*>::iterator IT;
-  for ( IT p = v.begin() ; p != v.end() ; ){
-    usr* u = *p;
-    if ( erasable(u,res,&addr) ){
-      p = v.erase(p);
-      map<string, vector<usr*> >& usrs = scope::root.m_usrs;
-      typedef map<string, vector<usr*> >::iterator IT;
-      string name = u->m_name;
-      IT q = usrs.find(name);
-      usrs.erase(q);
-      delete u;
+  for_each(vc.begin(), vc.end(), mark1);
+  mark2(&scope::root);
+  for_each(canbe_erased.begin(), canbe_erased.end(), erase);
+  canbe_erased.clear();
+}
+
+void cxx_compiler::optimize::symtab::literal::mark1(tac* tac)
+{
+  using namespace std;
+  if (var* y = tac->y) {
+    if (usr* u = y->usr_cast()) {
+      if (u->isconstant() || is_string(u->m_name)) {
+        canbe_erased.erase(u);
+      }
     }
-    else
-      ++p;    
   }
-#endif
+  if (var* z = tac->z) {
+    if (usr* u = z->usr_cast()) {
+      if (u->isconstant() || is_string(u->m_name)) {
+        canbe_erased.erase(u);
+      }
+    }
+  }
 }
 
-int cxx_compiler::optimize::symtab::getaddr1(usr* u, std::set<usr*>* addr)
+void cxx_compiler::optimize::symtab::literal::mark2(scope* ptr)
 {
   using namespace std;
-  with_initial* w = u->with_initial_cast();
-  if ( !w )
-    return 0;
-  const map<int, var*>& value = w->m_value;
-  typedef map<int, var*>::const_iterator IT;
-  for ( IT p = value.begin() ; p != value.end() ; ++p ){
-    var* v = p->second;
-    addrof* a = v->addrof_cast();
-    if ( !a )
-      continue;
-    v = a->m_ref;
-    u = v->usr_cast();
-    if ( !is_string(u->m_name) )
-      continue;
-    addr->insert(u);
-  }
-  return 0;
+  map<string, vector<usr*> >& usrs = ptr->m_usrs;
+  for_each(usrs.begin(), usrs.end(), mark3);
+  vector<scope*>& children = ptr->m_children;
+  for_each(children.begin(), children.end(), mark2);
 }
 
-int cxx_compiler::optimize::symtab::getaddr2(scope* ptr, std::set<usr*>* addr)
+void cxx_compiler::optimize::symtab::literal::mark3(const std::pair<std::string, std::vector<usr*> >& x)
 {
   using namespace std;
-  const map<string, vector<usr*> >& usrs = ptr->m_usrs;
-  typedef map<string, vector<usr*> >::const_iterator IT;
-  for ( IT p = usrs.begin() ; p != usrs.end() ; ++p ){
-    const vector<usr*>& v = p->second;
-    usr* u = v.back();
-    if ( u->m_flag & usr::STATIC )
-      getaddr1(u,addr);
-  }
-  const vector<scope*>& c = ptr->m_children;
-  for_each(c.begin(),c.end(),bind2nd(ptr_fun(getaddr2),addr));
-  return 0;
+  const vector<usr*>& vec = x.second;
+  for_each(vec.begin(), vec.end(), mark4);
 }
 
-namespace cxx_compiler { namespace optimize { namespace symtab {
-  std::set<usr*> remembered;
-} } } // end of namespace symtab, optimize and cxx_compiler
-
-bool cxx_compiler::optimize::symtab::erasable(usr* u, std::vector<tac*>* res, std::set<usr*>* addr)
+void cxx_compiler::optimize::symtab::literal::mark4(usr* u)
 {
   using namespace std;
+  usr::flag_t flag = u->m_flag;
+  if ( !(flag & usr::WITH_INI) )
+    return;
+  with_initial* wi = static_cast<with_initial*>(u);
+  const map<int, var*>& value = wi->m_value;
+  for_each(value.begin(), value.end(), mark5);
+}
+
+void cxx_compiler::optimize::symtab::literal::mark5(const std::pair<int, var*>& x)
+{
+  using namespace std;
+  var* v = x.second;
+  if (usr* u = v->usr_cast()) {
+    assert(u->isconstant());
+    canbe_erased.erase(u);
+  }
+  else {
+    addrof* addr = v->addrof_cast();
+    assert(addr);
+    var* ref = addr->m_ref;
+    if (usr* u = ref->usr_cast()) {
+      if (is_string(u->m_name))
+        canbe_erased.erase(u);
+    }
+  }
+}
+
+void cxx_compiler::optimize::symtab::literal::erase(usr* u)
+{
+  using namespace std;
+  map<string, vector<usr*> >& usrs = scope::root.m_usrs;
   string name = u->m_name;
-  if ( !is_string(name) )
-    return false;
-  if ( !not_referenced(u,res) )
-    return false;
-  if ( addr->find(u) != addr->end() )
-    return false;
-  if ( u->m_flag & usr::INLINE_REFED )
-    return false;
-  if ( remembered.find(u) != remembered.end() )
-    return false;
-  return true;
+  map<string, vector<usr*> >::iterator it = usrs.find(name);
+  assert(it != usrs.end());
+  vector<usr*>& v = it->second;
+  assert(v.size() == 1);
+  assert(v[0] == u);
+  usrs.erase(it);
+  delete u;
 }

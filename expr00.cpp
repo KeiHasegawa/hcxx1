@@ -816,6 +816,7 @@ cxx_compiler::usr* cxx_compiler::expressions::primary::literal::stringa::new_obj
   usr* u = wide ? integer::create((wchar_typedef)0) : integer::create((char)0);
   value.insert(make_pair(offset,u));
   ret->m_type = array_type::create(ret->m_type,++size);
+  optimize::mark(ret);
   return ret;
 }
 

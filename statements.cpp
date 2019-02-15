@@ -23,6 +23,20 @@ namespace cxx_compiler { namespace statements { namespace label {
   extern int decide(use,to3ac*);
 } } } // end of namespace label, statements and cxx_compiler
 
+cxx_compiler::statements::label::info_t::info_t(var* v, base* stmt) : m_stmt(stmt)
+{
+  genaddr* a = v->genaddr_cast();
+  if (a)
+    v = a->m_ref;
+  usr* u = v->usr_cast();
+  if (u->m_type->m_id == type::BACKPATCH)
+    m_label = u;
+  else {
+    m_label = new usr(*u);
+    m_label->m_file = parse::position;
+  }
+}
+
 int cxx_compiler::statements::label::info_t::gen()
 {
   using namespace std;
@@ -108,11 +122,6 @@ void cxx_compiler::statements::label::clear()
   defined.clear();
   used.clear();
   vm.clear();
-}
-
-void cxx_compiler::statements::label::mark_vm(usr* u)
-{
-  vm.push_back(u);
 }
 
 namespace cxx_compiler { namespace statements { namespace switch_stmt {
@@ -851,8 +860,9 @@ void cxx_compiler::log01::do_code(statements::do_stmt::info_t* info, to3ac* begi
     delete *q;
     q = code.erase(q);
     sweep(q);
-    end = static_cast<to3ac*>(*p);
-    end->m_goto.clear();
+	// `static_cast<to3ac*>(*p)' is runtime error in Visual Studio 2017.
+	end = static_cast<to3ac*>(code[m_zero]);
+	end->m_goto.clear();
   }
   break_stmt::outer& b = *info;
   for_each(b.begin(),b.end(),bind2nd(ptr_fun(misc::update),end));
@@ -1166,11 +1176,17 @@ namespace cxx_compiler { namespace statements { namespace declaration {
   extern void check_storage(usr*);
 } } } // end of namespace declaration, statements and cxx_compiler
 
-cxx_compiler::statements::declaration::info_t::info_t(std::vector<usr*>* usrs, bool for_stmt) : m_usrs(usrs)
+cxx_compiler::statements::declaration::info_t::info_t(std::vector<usr*>* usrs,
+                                                      bool for_stmt)
+  : m_usrs(usrs)
 {
   using namespace std;
-  if ( for_stmt && m_usrs )
-    for_each(m_usrs->begin(),m_usrs->end(),check_storage);
+  if (m_usrs) {
+    if (for_stmt) {
+      for (auto u : *m_usrs)
+        check_storage(u);
+    }
+  }
 }
 
 void cxx_compiler::statements::declaration::check_storage(usr* u)

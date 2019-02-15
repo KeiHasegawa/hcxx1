@@ -20,13 +20,11 @@ cxx_compiler::var* cxx_compiler::expressions::_va_start::info_t::gen()
   y = y->rvalue();
   if ( !y->lvalue() )
     not_lvalue(parse::position);
-  code.push_back(new addr3ac(x,y));
   const type* Ty = y->m_type;
   int n = Ty->size();
   if ( !n )
     no_size(parse::position);
-  usr* s = primary::literal::integer::create(n);
-  code.push_back(new add3ac(x,x,s));
+  code.push_back(new va_start3ac(x,y));
   return x;
 }
 
@@ -61,6 +59,19 @@ cxx_compiler::var* cxx_compiler::expressions::_va_arg::info_t::gen()
 }
 
 const cxx_compiler::file_t& cxx_compiler::expressions::_va_arg::info_t::file() const
+{
+  return m_expr->file();
+}
+
+cxx_compiler::var* cxx_compiler::expressions::_va_end::info_t::gen()
+{
+  var* expr = m_expr->gen();
+  expr = expr->rvalue();
+  code.push_back(new va_end3ac(expr));
+  return expr;
+}
+
+const cxx_compiler::file_t& cxx_compiler::expressions::_va_end::info_t::file() const
 {
   return m_expr->file();
 }

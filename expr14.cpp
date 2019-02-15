@@ -306,51 +306,51 @@ namespace cxx_compiler {
       const type* T2 = expr2->m_type;
       const type* T3 = expr3->m_type;
       if ( T2->arithmetic() && T3->arithmetic() ){
-	var* v2 = new var(T2); auto_ptr<var> sweeper2(v2);
-	var* v3 = new var(T3); auto_ptr<var> sweeper3(v3);
-	struct sweeper {
-	  int n;
-	  sweeper() : n(cxx_compiler::code.size()) {}
-	  ~sweeper()
-	  {
-	    using namespace std;
-	    using namespace cxx_compiler;
-	    for_each(code.begin()+n,code.end(),[](tac* p){ delete p; });
-	    code.resize(n);
-	  }
-	} sweeper;
-	return conversion::arithmetic::gen(&v2,&v3);
+        var* v2 = new var(T2); auto_ptr<var> sweeper2(v2);
+        var* v3 = new var(T3); auto_ptr<var> sweeper3(v3);
+        struct sweeper {
+          int n;
+          sweeper() : n(cxx_compiler::code.size()) {}
+          ~sweeper()
+          {
+            using namespace std;
+            using namespace cxx_compiler;
+            for_each(code.begin()+n,code.end(),[](tac* p){ delete p; });
+            code.resize(n);
+          }
+        } sweeper;
+        return conversion::arithmetic::gen(&v2,&v3);
       }
       T2 = T2->unqualified();
       T3 = T3->unqualified();
       T2 = T2->complete_type();
       if (compatible(T2, T3))
-	return T2;
+        return T2;
 
       if (T2->m_id == type::POINTER && T3->m_id == type::POINTER) {
-	typedef const pointer_type PT;
-	PT* p2 = static_cast<PT*>(T2);
-	PT* p3 = static_cast<PT*>(T3);
-	const type* R2 = p2->referenced_type();
-	const type* R3 = p3->referenced_type();
-	int cvr2 = 0, cvr3 = 0;
-	const type* R2u = R2->unqualified(&cvr2);
-	const type* R3u = R3->unqualified(&cvr3);
-	if (compatible(R2u, R3u))
-	  return pointer_type::create(R2->qualified(cvr3));
-	if (R2u->m_id == type::VOID)
-	  return p3;
-	if (R3u->m_id == type::VOID)
-	  return p2;
+        typedef const pointer_type PT;
+        PT* p2 = static_cast<PT*>(T2);
+        PT* p3 = static_cast<PT*>(T3);
+        const type* R2 = p2->referenced_type();
+        const type* R3 = p3->referenced_type();
+        int cvr2 = 0, cvr3 = 0;
+        const type* R2u = R2->unqualified(&cvr2);
+        const type* R3u = R3->unqualified(&cvr3);
+        if (compatible(R2u, R3u))
+          return pointer_type::create(R2->qualified(cvr3));
+        if (R2u->m_id == type::VOID)
+          return p3;
+        if (R3u->m_id == type::VOID)
+          return p2;
       }
 
       if (T2->m_id == type::POINTER) {
-	if (T3->integer() && expr3->zero())
-	  return T2;
+        if (T3->integer() && expr3->zero())
+          return T2;
       }
       if (T3->m_id == type::POINTER) {
-	if (T2->integer() && expr2->zero())
-	  return T3;
+        if (T2->integer() && expr2->zero())
+          return T3;
       }
       return 0;
     }

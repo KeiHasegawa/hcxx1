@@ -14,46 +14,59 @@ const cxx_compiler::file_t& cxx_compiler::expressions::unary::ppmm::file() const
   return m_expr->file();
 }
 
+namespace cxx_compiler {
+  namespace expressions {
+    namespace unary {
+      namespace sizeof_impl {
+	var* common(int n)
+	{
+          using namespace primary::literal;
+          switch (generator::sizeof_type) {
+          case type::UINT:
+            {
+              typedef unsigned int X;
+              return integer::create((X)n);
+            }
+          case type::ULONG:
+            {
+              typedef unsigned long int X;
+              const type* XX = ulong_type::create();
+              XX = const_type::create(XX);
+              if (XX->size() == sizeof(X))
+                return integer::create((X)n);
+              typedef unsigned long long int Y;
+              assert(XX->size() == sizeof(Y));
+              usr* ret = integer::create((Y)n);
+              ret->m_type = XX;
+              ret->m_flag = usr::SUB_CONST_LONG;
+              return ret;
+            }
+          default:
+            {
+              typedef unsigned long long int X;
+              return integer::create((X)n);
+            }
+          }
+	}
+      } // end of namespace sizoef_impl
+    } // end of namespace unary
+  } // end of namespace expressions
+} // end of namespace cxx_compiler
+
 cxx_compiler::var* cxx_compiler::expressions::unary::Sizeof::gen()
 {
   using namespace std;
-  if ( m_type ){
+  if (m_type) {
     const type* T = m_type->complete_type();
     if ( var* size = T->vsize() )
       return size;
     unsigned int n = T->size();
     if ( !n ){
       using namespace error::expressions::unary::size;
-      invalid(parse::position,m_type);
+      invalid(file(), T);
       n = 1;
     }
-    using namespace primary::literal;
-    switch (generator::sizeof_type) {
-    case type::UINT:
-      {
-	typedef unsigned int X;
-	return integer::create((X)n);
-      }
-    case type::ULONG:
-      {
-	typedef unsigned long int X;
-	const type* XX = ulong_type::create();
-	XX = const_type::create(XX);
-	if (XX->size() == sizeof(X))
-	  return integer::create((X)n);
-	typedef unsigned long long int Y;
-	assert(XX->size() == sizeof(Y));
-	usr* ret = integer::create((Y)n);
-	ret->m_type = XX;
-	ret->m_flag = usr::SUB_CONST_LONG;
-	return ret;
-      }
-    default:
-      {
-	typedef unsigned long long int X;
-	return integer::create((X)n);
-      }
-    }
+    return sizeof_impl::common(n);
   }
 
   int n = code.size();
@@ -61,6 +74,7 @@ cxx_compiler::var* cxx_compiler::expressions::unary::Sizeof::gen()
   int m = code.size();
   for_each(code.begin()+n,code.begin()+m,[](tac* p){ delete p; });
   code.resize(n);
+  parse::position = file();
   return expr->size();
 }
 
@@ -498,13 +512,15 @@ cxx_compiler::var* cxx_compiler::var::size()
   if ( var* size = m_type->vsize() )
     return size;
   else {
-    int n = m_type->size();
+    const type* T = m_type->complete_type();
+    int n = T->size();
     if ( !n ){
       using namespace error::expressions::unary::size;
       invalid(parse::position,m_type);
       n = 1;
     }
-    return expressions::primary::literal::integer::create(n);
+    using namespace expressions::unary;
+    return sizeof_impl::common(n);
   }
 }
 
@@ -519,7 +535,8 @@ cxx_compiler::var* cxx_compiler::generated::size()
       invalid(parse::position,m_org);
       n = 1;
     }
-    return expressions::primary::literal::integer::create(n);
+    using namespace expressions::unary;
+    return sizeof_impl::common(n);
   }
 }
 
@@ -534,7 +551,8 @@ cxx_compiler::var* cxx_compiler::ref::size()
       invalid(parse::position,m_result);
       n = 1;
     }
-    return expressions::primary::literal::integer::create(n);
+    using namespace expressions::unary;
+    return sizeof_impl::common(n);
   }
 }
 

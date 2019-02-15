@@ -59,7 +59,7 @@
 %token OPERATOR_KW
 
 %token FALSE_KW TRUE_KW
-%token BUILTIN_VA_ARG BUILTIN_VA_START
+%token BUILTIN_VA_ARG BUILTIN_VA_START BUILTIN_VA_END
 
 %union {
   int m_ival;
@@ -157,9 +157,9 @@ declaration
 block_declaration
   : simple_declaration
   | asm_definition
-  | namespace_alias_definition { throw int(); }
-  | using_declaration { throw int(); }
-  | using_directive { throw int(); }
+  | namespace_alias_definition
+  | using_declaration
+  | using_directive
   ;
 
 simple_declaration
@@ -220,12 +220,12 @@ type_specifier
   ;
 
 simple_type_specifier
-  : COLONCOLON_MK move_to_root nested_name_specifier type_name { throw int(); }
-  | COLONCOLON_MK move_to_root                       type_name { throw int(); }
+  : COLONCOLON_MK move_to_root nested_name_specifier type_name
+  | COLONCOLON_MK move_to_root                       type_name
   |                            nested_name_specifier type_name { $$ = $2; cxx_compiler::class_or_namespace_name::after(); }
   |                                                  type_name
-  | COLONCOLON_MK move_to_root nested_name_specifier TEMPLATE_KW template_id { throw int(); }
-  |                            nested_name_specifier TEMPLATE_KW template_id { throw int(); }
+  | COLONCOLON_MK move_to_root nested_name_specifier TEMPLATE_KW template_id
+  |                            nested_name_specifier TEMPLATE_KW template_id
   | CHAR_KW { $$ = new cxx_compiler::declarations::type_specifier(CHAR_KW); }
   | WCHAR_T_KW { $$ = new cxx_compiler::declarations::type_specifier(WCHAR_T_KW); }
   | BOOL_KW { $$ = new cxx_compiler::declarations::type_specifier(BOOL_KW); }
@@ -246,28 +246,28 @@ type_name
   ;
 
 elaborated_type_specifier
-  : class_key COLONCOLON_MK move_to_root nested_name_specifier IDENTIFIER_LEX { throw int(); }
-  | class_key               nested_name_specifier IDENTIFIER_LEX { throw int(); }
-  | class_key COLONCOLON_MK move_to_root IDENTIFIER_LEX { throw int(); }
+  : class_key COLONCOLON_MK move_to_root nested_name_specifier IDENTIFIER_LEX
+  | class_key               nested_name_specifier IDENTIFIER_LEX
+  | class_key COLONCOLON_MK move_to_root IDENTIFIER_LEX
   | class_key                                     IDENTIFIER_LEX { $$ = cxx_compiler::declarations::elaborated::action($1,$2); }
-  | class_key COLONCOLON_MK move_to_root nested_name_specifier TEMPLATE_KW template_id { throw int(); }
-  | class_key               nested_name_specifier TEMPLATE_KW template_id { throw int(); }
-  | class_key COLONCOLON_MK move_to_root                       TEMPLATE_KW template_id { throw int(); }
-  | class_key COLONCOLON_MK move_to_root nested_name_specifier             template_id { throw int(); }
-  | class_key                                     TEMPLATE_KW template_id { throw int(); }
-  | class_key COLONCOLON_MK move_to_root                                   template_id { throw int(); }
-  | class_key               nested_name_specifier             template_id { throw int(); }
-  | class_key                                                 template_id { throw int(); }
-  | enum_key COLONCOLON_MK move_to_root nested_name_specifier IDENTIFIER_LEX { throw int(); }
-  | enum_key               nested_name_specifier IDENTIFIER_LEX { throw int(); }
-  | enum_key COLONCOLON_MK move_to_root                       IDENTIFIER_LEX { throw int(); }
+  | class_key COLONCOLON_MK move_to_root nested_name_specifier TEMPLATE_KW template_id
+  | class_key               nested_name_specifier TEMPLATE_KW template_id
+  | class_key COLONCOLON_MK move_to_root                       TEMPLATE_KW template_id
+  | class_key COLONCOLON_MK move_to_root nested_name_specifier             template_id
+  | class_key                                     TEMPLATE_KW template_id
+  | class_key COLONCOLON_MK move_to_root                                   template_id
+  | class_key               nested_name_specifier             template_id
+  | class_key                                                 template_id
+  | enum_key COLONCOLON_MK move_to_root nested_name_specifier IDENTIFIER_LEX
+  | enum_key               nested_name_specifier IDENTIFIER_LEX
+  | enum_key COLONCOLON_MK move_to_root                       IDENTIFIER_LEX
   | enum_key                                     IDENTIFIER_LEX { $$ = cxx_compiler::declarations::elaborated::action($1,$2); }
-  | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier IDENTIFIER_LEX { throw int(); }
-  | TYPENAME_KW               nested_name_specifier IDENTIFIER_LEX { throw int(); }
-  | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier TEMPLATE_KW template_id { throw int(); }
-  | TYPENAME_KW               nested_name_specifier TEMPLATE_KW template_id { throw int(); }
-  | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier             template_id { throw int(); }
-  | TYPENAME_KW               nested_name_specifier             template_id { throw int(); }
+  | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier IDENTIFIER_LEX
+  | TYPENAME_KW               nested_name_specifier IDENTIFIER_LEX
+  | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier TEMPLATE_KW template_id
+  | TYPENAME_KW               nested_name_specifier TEMPLATE_KW template_id
+  | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier             template_id
+  | TYPENAME_KW               nested_name_specifier             template_id
   ;
 
 enum_specifier
@@ -432,9 +432,15 @@ declarator
 direct_declarator
   : declarator_id
   | direct_declarator '(' enter_parameter parameter_declaration_clause leave_parameter ')' cvr_qualifier_seq exception_specification
-    { throw int(); }
+    {
+      $$ = $1;
+      $$->m_type = cxx_compiler::declarations::declarators::function::action($1->m_type,$4,$1,$7);
+    }
   | direct_declarator '(' enter_parameter parameter_declaration_clause leave_parameter ')'                   exception_specification
-    { throw int(); }
+    {
+      $$ = $1;
+      $$->m_type = cxx_compiler::declarations::declarators::function::action($1->m_type,$4,$1,0);
+    }
   | direct_declarator '(' enter_parameter parameter_declaration_clause leave_parameter ')' cvr_qualifier_seq
     {
       $$ = $1;
@@ -474,13 +480,13 @@ ptr_operator
   | '&'
     { $$ = cxx_compiler::declarations::declarators::reference::action(); }
   | COLONCOLON_MK move_to_root nested_name_specifier '*' cvr_qualifier_seq
-    { throw int(); }
+   
   |                            nested_name_specifier '*' cvr_qualifier_seq
-    { throw int(); }
+   
   | COLONCOLON_MK move_to_root nested_name_specifier '*'
-    { throw int(); }
+   
   |                            nested_name_specifier '*'
-    { throw int(); }
+   
   ;
 
 cvr_qualifier_seq
@@ -498,9 +504,9 @@ cvr_qualifier
 
 declarator_id
   : id_expression
-  | COLONCOLON_MK move_to_root nested_name_specifier type_name { throw int(); }
-  |                            nested_name_specifier type_name { throw int(); }
-  | COLONCOLON_MK move_to_root                       type_name { throw int(); }
+  | COLONCOLON_MK move_to_root nested_name_specifier type_name
+  |                            nested_name_specifier type_name
+  | COLONCOLON_MK move_to_root                       type_name
   ;
 
 parameter_declaration_clause
@@ -527,7 +533,7 @@ parameter_declaration
       $$ = cxx_compiler::declarations::declarators::function::parameter($1,$2);
     }
   | decl_specifier_seq declarator '=' assignment_expression
-    { throw int(); }
+   
   | decl_specifier_seq abstract_declarator
     {
       $$ = cxx_compiler::declarations::declarators::function::parameter($1,$2);
@@ -538,9 +544,9 @@ parameter_declaration
       $$ = cxx_compiler::declarations::declarators::function::parameter($1,zero);
     }
   | decl_specifier_seq abstract_declarator '=' assignment_expression
-    { throw int(); }
+   
   | decl_specifier_seq  '=' assignment_expression
-    { throw int(); }
+   
   ;
 
 abstract_declarator
@@ -552,21 +558,21 @@ abstract_declarator
 
 direct_abstract_declarator
   : direct_abstract_declarator '(' enter_parameter parameter_declaration_clause leave_parameter ')' cvr_qualifier_seq exception_specification
-    { throw int(); }
+   
   | direct_abstract_declarator '(' enter_parameter parameter_declaration_clause leave_parameter ')'                   exception_specification
-    { throw int(); }
+   
   | direct_abstract_declarator '(' enter_parameter parameter_declaration_clause leave_parameter ')' cvr_qualifier_seq
-    { throw int(); }
+   
   | direct_abstract_declarator '(' enter_parameter parameter_declaration_clause leave_parameter ')'
     {
       $$ = cxx_compiler::declarations::declarators::function::action($1,$4,0,0);
     }
   |                            '(' enter_parameter parameter_declaration_clause leave_parameter ')' cvr_qualifier_seq exception_specification
-    { throw int(); }
+   
   |                            '(' enter_parameter parameter_declaration_clause leave_parameter ')'                   exception_specification
-    { throw int(); }
+   
   |                            '(' enter_parameter parameter_declaration_clause leave_parameter ')' cvr_qualifier_seq
-    { throw int(); }
+   
   | '(' enter_parameter parameter_declaration_clause leave_parameter ')'
     {
       $$ = cxx_compiler::declarations::declarators::function::action(cxx_compiler::backpatch_type::create(),$3,0,0);
@@ -616,14 +622,12 @@ end_array
 
 exception_specification
   : THROW_KW '(' type_id_list ')'
-    { throw int(); }
   | THROW_KW '('              ')'
-    { throw int(); }
   ;
 
 type_id_list
-  : type_id { throw int(); }
-  | type_id_list ',' type_id { throw int(); }
+  : type_id
+  | type_id_list ',' type_id
   ;
 
 initializer
@@ -704,7 +708,7 @@ type_specifier_seq
 
 class_name
   : CLASS_NAME_LEX
-  | template_id { throw int(); }
+  | template_id
   ;
 
 class_key
@@ -727,10 +731,10 @@ class_head
   : class_key IDENTIFIER_LEX base_clause { cxx_compiler::classes::specifier::begin($1,$2,$3); }
   | class_key                base_clause { cxx_compiler::classes::specifier::begin($1,0,$2); }
   | class_key                            { cxx_compiler::classes::specifier::begin($1,0,0); }
-  | class_key nested_name_specifier IDENTIFIER_LEX base_clause { throw int(); }
+  | class_key nested_name_specifier IDENTIFIER_LEX base_clause
   | class_key nested_name_specifier CLASS_NAME_LEX             { cxx_compiler::classes::specifier::begin2($1,$3); }
-  | class_key nested_name_specifier template_id base_clause { throw int(); }
-  | class_key                       template_id base_clause { throw int(); }
+  | class_key nested_name_specifier template_id base_clause
+  | class_key                       template_id base_clause
   ;
 
 member_specification
@@ -795,25 +799,25 @@ base_specifier_list
   ;
 
 base_specifier
-  : COLONCOLON_MK move_to_root nested_name_specifier class_name { throw int(); }
-  | COLONCOLON_MK move_to_root                       class_name { throw int(); }
-  |               nested_name_specifier class_name { throw int(); }
+  : COLONCOLON_MK move_to_root nested_name_specifier class_name
+  | COLONCOLON_MK move_to_root                       class_name
+  |               nested_name_specifier class_name
   |                                     class_name { $$ = new cxx_compiler::base(0,false,$1); }
-  | VIRTUAL_KW access_specifier COLONCOLON_MK move_to_root nested_name_specifier class_name { throw int(); }
-  | VIRTUAL_KW access_specifier COLONCOLON_MK move_to_root                       class_name { throw int(); }
-  | VIRTUAL_KW access_specifier               nested_name_specifier class_name { throw int(); }
-  | VIRTUAL_KW access_specifier                                     class_name { throw int(); }
-  | VIRTUAL_KW                  COLONCOLON_MK move_to_root nested_name_specifier class_name { throw int(); }
-  | VIRTUAL_KW                  COLONCOLON_MK move_to_root                       class_name { throw int(); }
-  | VIRTUAL_KW                                nested_name_specifier class_name { throw int(); }
+  | VIRTUAL_KW access_specifier COLONCOLON_MK move_to_root nested_name_specifier class_name
+  | VIRTUAL_KW access_specifier COLONCOLON_MK move_to_root                       class_name
+  | VIRTUAL_KW access_specifier               nested_name_specifier class_name
+  | VIRTUAL_KW access_specifier                                     class_name
+  | VIRTUAL_KW                  COLONCOLON_MK move_to_root nested_name_specifier class_name
+  | VIRTUAL_KW                  COLONCOLON_MK move_to_root                       class_name
+  | VIRTUAL_KW                                nested_name_specifier class_name
   | VIRTUAL_KW                                                      class_name { $$ = new cxx_compiler::base(0,true,$2); }
-  | access_specifier VIRTUAL_KW COLONCOLON_MK move_to_root nested_name_specifier class_name { throw int(); }
-  | access_specifier VIRTUAL_KW COLONCOLON_MK move_to_root                       class_name { throw int(); }
-  | access_specifier VIRTUAL_KW               nested_name_specifier class_name { throw int(); }
-  | access_specifier VIRTUAL_KW                                     class_name { throw int(); }
-  | access_specifier            COLONCOLON_MK move_to_root nested_name_specifier class_name { throw int(); }
-  | access_specifier            COLONCOLON_MK move_to_root                       class_name { throw int(); }
-  | access_specifier                          nested_name_specifier class_name { throw int(); }
+  | access_specifier VIRTUAL_KW COLONCOLON_MK move_to_root nested_name_specifier class_name
+  | access_specifier VIRTUAL_KW COLONCOLON_MK move_to_root                       class_name
+  | access_specifier VIRTUAL_KW               nested_name_specifier class_name
+  | access_specifier VIRTUAL_KW                                     class_name
+  | access_specifier            COLONCOLON_MK move_to_root nested_name_specifier class_name
+  | access_specifier            COLONCOLON_MK move_to_root                       class_name
+  | access_specifier                          nested_name_specifier class_name
   | access_specifier                                                class_name
     { $$ = new cxx_compiler::base($1,false,$2); }
   ;
@@ -843,7 +847,6 @@ mem_initializer_id
   | COLONCOLON_MK move_to_root                       class_name
   |               nested_name_specifier class_name
   |                                     class_name
-    { throw int(); }
   | IDENTIFIER_LEX
   ;
 
@@ -853,16 +856,12 @@ conversion_function_id
 
 conversion_type_id
   : type_specifier_seq conversion_declarator
-    { throw int(); }
   | type_specifier_seq
-    { throw int(); }
   ;
 
 conversion_declarator
   : ptr_operator conversion_declarator
-    { throw int(); }
   | ptr_operator
-    { throw int(); }
   ;
 
 operator_function_id
@@ -929,7 +928,6 @@ template_parameter_list
 template_parameter
   : type_parameter
   | parameter_declaration
-    { throw int(); }
   ;
 
 type_parameter
@@ -959,11 +957,8 @@ template_argument_list
 
 template_argument
   : assignment_expression
-    { throw int(); }
   | type_id
-    { throw int(); }
   | id_expression
-    { throw int(); }
   ;
 
 explicit_instantiation
@@ -975,7 +970,7 @@ explicit_specialization
   ;
 
 try_block
-  : TRY_KW compound_statement handler_seq { throw int(); }
+  : TRY_KW compound_statement handler_seq
   ;
 
 throw_expression
@@ -1016,20 +1011,20 @@ id_expression
 
 unqualified_id
   : IDENTIFIER_LEX  { $$ = cxx_compiler::unqualified_id::action($1); }
-  | operator_function_id { throw int(); }
-  | conversion_function_id { throw int(); }
+  | operator_function_id
+  | conversion_function_id
   | '~' class_name { $$ = cxx_compiler::unqualified_id::dtor($2); }
-  | template_id { throw int(); }
+  | template_id
   ;
 
 qualified_id
-  : COLONCOLON_MK move_to_root nested_name_specifier TEMPLATE_KW unqualified_id { throw int(); }
-  | COLONCOLON_MK move_to_root nested_name_specifier             unqualified_id { throw int(); }
-  |                            nested_name_specifier TEMPLATE_KW unqualified_id { throw int(); }
+  : COLONCOLON_MK move_to_root nested_name_specifier TEMPLATE_KW unqualified_id
+  | COLONCOLON_MK move_to_root nested_name_specifier             unqualified_id
+  |                            nested_name_specifier TEMPLATE_KW unqualified_id
   |                            nested_name_specifier             unqualified_id { $$ = $2; }
   | COLONCOLON_MK move_to_root IDENTIFIER_LEX { $$ = $3; cxx_compiler::class_or_namespace_name::after(); }
-  | COLONCOLON_MK move_to_root operator_function_id { throw int(); }
-  | COLONCOLON_MK move_to_root template_id { throw int(); }
+  | COLONCOLON_MK move_to_root operator_function_id
+  | COLONCOLON_MK move_to_root template_id
   ;
 
 move_to_root
@@ -1039,7 +1034,7 @@ move_to_root
 nested_name_specifier
   : class_or_namespace_name COLONCOLON_MK nested_name_specifier
   | class_or_namespace_name COLONCOLON_MK
-  | class_or_namespace_name COLONCOLON_MK TEMPLATE_KW nested_name_specifier { throw int(); }
+  | class_or_namespace_name COLONCOLON_MK TEMPLATE_KW nested_name_specifier
   ;
 
 class_or_namespace_name
@@ -1054,29 +1049,29 @@ postfix_expression
   | postfix_expression '('                 ')' { $$ = new cxx_compiler::expressions::postfix::call($1,0); }
   | simple_type_specifier '(' expression_list ')' { $$ = new cxx_compiler::expressions::postfix::fcast($1,$3); }
   | simple_type_specifier '('                 ')' { $$ = new cxx_compiler::expressions::postfix::fcast($1,0); }
-  | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier IDENTIFIER_LEX '(' expression_list ')' { throw int(); }
-  | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier IDENTIFIER_LEX '('                 ')' { throw int(); }
-  | TYPENAME_KW               nested_name_specifier IDENTIFIER_LEX '(' expression_list ')' { throw int(); }
-  | TYPENAME_KW               nested_name_specifier IDENTIFIER_LEX '('                 ')' { throw int(); }
-  | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier TEMPLATE_KW template_id '(' expression_list ')' { throw int(); }
-  | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier TEMPLATE_KW template_id '('                 ')' { throw int(); }
-  | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier             template_id '(' expression_list ')' { throw int(); }
-  | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier             template_id '('                 ')' { throw int(); }
-  | TYPENAME_KW               nested_name_specifier TEMPLATE_KW template_id '(' expression_list ')' { throw int(); }
-  | TYPENAME_KW               nested_name_specifier TEMPLATE_KW template_id '('                 ')' { throw int(); }
-  | TYPENAME_KW               nested_name_specifier             template_id '(' expression_list ')' { throw int(); }
-  | TYPENAME_KW               nested_name_specifier             template_id '('                 ')' { throw int(); }
+  | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier IDENTIFIER_LEX '(' expression_list ')'
+  | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier IDENTIFIER_LEX '('                 ')'
+  | TYPENAME_KW               nested_name_specifier IDENTIFIER_LEX '(' expression_list ')'
+  | TYPENAME_KW               nested_name_specifier IDENTIFIER_LEX '('                 ')'
+  | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier TEMPLATE_KW template_id '(' expression_list ')'
+  | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier TEMPLATE_KW template_id '('                 ')'
+  | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier             template_id '(' expression_list ')'
+  | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier             template_id '('                 ')'
+  | TYPENAME_KW               nested_name_specifier TEMPLATE_KW template_id '(' expression_list ')'
+  | TYPENAME_KW               nested_name_specifier TEMPLATE_KW template_id '('                 ')'
+  | TYPENAME_KW               nested_name_specifier             template_id '(' expression_list ')'
+  | TYPENAME_KW               nested_name_specifier             template_id '('                 ')'
   | member_access_begin TEMPLATE_KW id_expression  { $$ = cxx_compiler::expressions::postfix::member::end($1,$3); }
   | member_access_begin             id_expression  { $$ = cxx_compiler::expressions::postfix::member::end($1,$2); }
   | member_access_begin pseudo_destructor_name     { $$ = cxx_compiler::expressions::postfix::member::end($1,0); }
   | postfix_expression PLUSPLUS_MK    { $$ = new cxx_compiler::expressions::postfix::ppmm($1,true); }
   | postfix_expression MINUSMINUS_MK  { $$ = new cxx_compiler::expressions::postfix::ppmm($1,false); }
-  | DYNAMIC_CAST_KW     '<' type_id '>' '(' expression ')' { throw int(); }
-  | STATIC_CAST_KW      '<' type_id '>' '(' expression ')' { throw int(); }
-  | REINTERPRET_CAST_KW '<' type_id '>' '(' expression ')' { throw int(); }
-  | CONST_CAST_KW       '<' type_id '>' '(' expression ')' { throw int(); }
-  | TYPEID_KW '(' expression ')' { throw int(); }
-  | TYPEID_KW '(' type_id ')' { throw int(); }
+  | DYNAMIC_CAST_KW     '<' type_id '>' '(' expression ')'
+  | STATIC_CAST_KW      '<' type_id '>' '(' expression ')'
+  | REINTERPRET_CAST_KW '<' type_id '>' '(' expression ')'
+  | CONST_CAST_KW       '<' type_id '>' '(' expression ')'
+  | TYPEID_KW '(' expression ')'
+  | TYPEID_KW '(' type_id ')'
   | '(' type_id ')' '{' initializer_list '}' { $$ = new cxx_compiler::expressions::compound::info_t($2,$5); }
   | '(' type_id ')' '{' initializer_list ',' '}' { $$ = new cxx_compiler::expressions::compound::info_t($2,$5); }
   ;
@@ -1098,7 +1093,7 @@ pseudo_destructor_name
   | COLONCOLON_MK move_to_root                       type_name COLONCOLON_MK '~' type_name
   |               nested_name_specifier type_name COLONCOLON_MK '~' type_name
   |                                     type_name COLONCOLON_MK '~' type_name
-    { throw int(); }
+   
   | COLONCOLON_MK move_to_root nested_name_specifier TEMPLATE_KW template_id COLONCOLON_MK '.' type_name
   |               nested_name_specifier TEMPLATE_KW template_id COLONCOLON_MK '.' type_name
   | COLONCOLON_MK move_to_root nested_name_specifier '~' type_name
@@ -1133,23 +1128,23 @@ unary_operator
   ;
 
 new_expression
-  : COLONCOLON_MK move_to_root NEW_KW new_placement new_type_id new_initializer { throw int(); }
-  | COLONCOLON_MK move_to_root NEW_KW new_placement new_type_id { throw int(); }
-  | COLONCOLON_MK move_to_root NEW_KW               new_type_id new_initializer { throw int(); }
-  | COLONCOLON_MK move_to_root NEW_KW               new_type_id { throw int(); }
-  |                            NEW_KW new_placement new_type_id new_initializer { throw int(); }
-  |                            NEW_KW new_placement new_type_id { throw int(); }
-  |                            NEW_KW               new_type_id new_initializer { throw int(); }
+  : COLONCOLON_MK move_to_root NEW_KW new_placement new_type_id new_initializer
+  | COLONCOLON_MK move_to_root NEW_KW new_placement new_type_id
+  | COLONCOLON_MK move_to_root NEW_KW               new_type_id new_initializer
+  | COLONCOLON_MK move_to_root NEW_KW               new_type_id
+  |                            NEW_KW new_placement new_type_id new_initializer
+  |                            NEW_KW new_placement new_type_id
+  |                            NEW_KW               new_type_id new_initializer
   |                            NEW_KW               new_type_id
     { $$ = new cxx_compiler::expressions::unary::New($2, cxx_compiler::parse::position); }
-  | COLONCOLON_MK move_to_root NEW_KW new_placement '(' type_id ')' new_initializer { throw int(); }
-  | COLONCOLON_MK move_to_root NEW_KW new_placement '(' type_id ')' { throw int(); }
-  | COLONCOLON_MK move_to_root NEW_KW               '(' type_id ')' new_initializer { throw int(); }
-  | COLONCOLON_MK move_to_root NEW_KW               '(' type_id ')' { throw int(); }
-  |                            NEW_KW new_placement '(' type_id ')' new_initializer { throw int(); }
-  |                            NEW_KW new_placement '(' type_id ')' { throw int(); }
-  |                            NEW_KW '(' type_id ')' new_initializer { throw int(); }
-  |                            NEW_KW '(' type_id ')' { throw int(); }
+  | COLONCOLON_MK move_to_root NEW_KW new_placement '(' type_id ')' new_initializer
+  | COLONCOLON_MK move_to_root NEW_KW new_placement '(' type_id ')'
+  | COLONCOLON_MK move_to_root NEW_KW               '(' type_id ')' new_initializer
+  | COLONCOLON_MK move_to_root NEW_KW               '(' type_id ')'
+  |                            NEW_KW new_placement '(' type_id ')' new_initializer
+  |                            NEW_KW new_placement '(' type_id ')'
+  |                            NEW_KW '(' type_id ')' new_initializer
+  |                            NEW_KW '(' type_id ')'
   ;
 
 new_placement
@@ -1163,16 +1158,16 @@ new_initializer
 
 new_type_id
   : type_specifier_seq new_declarator
-    { throw int(); }
+   
   | type_specifier_seq
     { $$ = cxx_compiler::declarations::new_type_id::action($1); }
   ;
 
 new_declarator
   : ptr_operator new_declarator
-    { throw int(); }
+   
   | ptr_operator
-    { throw int(); }
+   
   | direct_new_declarator
   ;
 
@@ -1183,10 +1178,10 @@ direct_new_declarator
 
 
 delete_expression
-  : COLONCOLON_MK move_to_root DELETE_KW         cast_expression { throw int(); }
+  : COLONCOLON_MK move_to_root DELETE_KW         cast_expression
   |                            DELETE_KW         cast_expression { $$ = new cxx_compiler::expressions::unary::Delete($2); }
-  | COLONCOLON_MK move_to_root DELETE_KW '[' ']' cast_expression { throw int(); }
-  |                            DELETE_KW '[' ']' cast_expression { throw int(); }
+  | COLONCOLON_MK move_to_root DELETE_KW '[' ']' cast_expression
+  |                            DELETE_KW '[' ']' cast_expression
   ;
 
 cast_expression
@@ -1197,6 +1192,8 @@ cast_expression
     { $$ = new cxx_compiler::expressions::_va_start::info_t($3,$5); }
   | BUILTIN_VA_ARG '(' cast_expression ',' type_id ')'
     { $$ = new cxx_compiler::expressions::_va_arg::info_t($3,$5); }
+  | BUILTIN_VA_END '(' cast_expression ')'
+    { $$ = new cxx_compiler::expressions::_va_end::info_t($3); }
   ;
 
 pm_expression
@@ -1293,7 +1290,7 @@ assignment_expression
   : conditional_expression
   | logical_or_expression assignment_operator assignment_expression
     { $$ = new cxx_compiler::expressions::binary::info_t($1,$2,$3); }
-  | throw_expression { throw int(); }
+  | throw_expression
   ;
 
 assignment_operator
@@ -1329,9 +1326,9 @@ function_definition_begin1
 
 function_definition_begin2
   :                    declarator
-    { throw int(); }
+   
   | decl_specifier_seq declarator
-    { throw int(); }
+   
   ;
 
 function_definition
@@ -1363,11 +1360,8 @@ handler
 
 exception_declaration
   : type_specifier_seq declarator
-    { throw int(); }
   | type_specifier_seq abstract_declarator
-    { throw int(); }
   | type_specifier_seq
-    { throw int(); }
   | DOTS_MK
   ;
 

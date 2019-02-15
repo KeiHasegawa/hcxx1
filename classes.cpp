@@ -126,11 +126,7 @@ void cxx_compiler::classes::members::action(var* v, expressions::base* expr)
     return;
   assert(children.size() == 1);
   scope* ptr = children.back();
-#if 0
-  assert(ptr->m_param);
-#else
   assert(ptr->m_id == scope::PARAM);
-#endif
   delete ptr;
   children.clear();
 }

@@ -210,6 +210,18 @@ cxx_compiler::overload::call(std::vector<cxx_compiler::var*>* arg)
   }
   if ( v.size() == 1 )
     return v[0]->m_var;
+  if (v.empty()) {
+    using namespace error::expressions::postfix::call;
+    overload_not_match(this);
+    var* ret = new var(int_type::create());
+    if (scope::current->m_id == scope::BLOCK) {
+      block* b = static_cast<block*>(scope::current);
+      b->m_vars.push_back(ret);
+    }
+    else
+      garbage.push_back(ret);
+    return ret;
+  }
   throw int();
 }
 
@@ -499,7 +511,7 @@ namespace cxx_compiler { namespace declarations { namespace declarators { namesp
         block* ret = new block;
         ret->m_parent = scope::current;
         scope::current->m_children.push_back(ret);
-        const vector<usr*>& o = param->m_order;
+		const vector<usr*>& o = param->m_order;
         vector<var*>& v = ret->m_vars;
         transform(o.begin(),o.end(),back_inserter(v),
                   bind2nd(ptr_fun(new_usr),ret));
@@ -646,6 +658,20 @@ namespace cxx_compiler { namespace declarations { namespace declarators { namesp
       for_each(result.begin(), result.end(),
                [&vt, &pos](tac* ptr){ vt.insert(vt.begin()+pos++, ptr); });
     }
+
+    namespace defer {
+      void last()
+      {
+	using namespace std;
+	for (auto& p : refs) {
+	  const vector<ref_t>& v = p.second;
+	  assert(!v.empty());
+	  const ref_t& r = v[0];
+	  error::declarations::declarators::function::definition::
+	    static_inline::nodef(r.m_def, r.m_flag, r.m_name, r.m_use);
+	}
+      }
+    } // end of namespace defer
   }  // end of namespace static_inline
 } } } } } // end of namespace definition, function, declarators, declarations and cxx_compiler
 

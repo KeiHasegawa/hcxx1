@@ -371,7 +371,7 @@ namespace cxx_compiler { namespace parse { namespace parameter {
     if (p != garbage.rend()) {
       garbage.erase(p.base()-1);
       cxx_compiler::block* b =
-	static_cast<cxx_compiler::block*>(scope::current);
+        static_cast<cxx_compiler::block*>(scope::current);
       v->m_scope = b;
       b->m_vars.push_back(v);
     }
@@ -383,6 +383,15 @@ namespace cxx_compiler { namespace parse { namespace parameter {
       if (p->y) move(p->y);
       if (p->z) move(p->z);
     }
+  }
+  inline void decide_dim()
+  {
+    using namespace std;
+	if (scope::current->m_id != scope::PARAM)
+      return;
+    const vector<usr*>& o = scope::current->m_order;
+    for (auto u : o)
+      u->m_type->decide_dim();
   }
 } } } // end of namespace parameter, parse and cxx_compiler
 
@@ -402,7 +411,7 @@ void cxx_compiler::parse::block::enter()
     vector<scope*>& children = scope::current->m_children;
     assert(children.size() == 1);
     scope::current = children.back();
-    return new_block(), parameter::move();
+    return parameter::decide_dim(), new_block(), parameter::move();
   }
 
   if ( scope::current->m_id == scope::TAG ){
@@ -411,7 +420,7 @@ void cxx_compiler::parse::block::enter()
     vector<scope*>& children = scope::current->m_children;
     scope::current = children.back();
     if ( !T ){
-      new_block(), parameter::move();
+      parameter::decide_dim(), new_block(), parameter::move();
       usr::flag_t& flag = fundef::current->m_usr->m_flag;
       flag = usr::flag_t(flag | usr::INLINE);
       member_function_body::save();
@@ -430,14 +439,14 @@ void cxx_compiler::parse::block::enter()
       scope::current = c.back();
       return;
     }
-    return new_block(), parameter::move();
+    return parameter::decide_dim(), new_block(), parameter::move();
   }
 
   if ( scope::current->m_id == scope::NAMESPACE ){
     vector<scope*>& c = scope::current->m_children;
     assert(c.size() == 1);
     scope::current = c.back();
-    return new_block(), parameter::move();
+    return parameter::decide_dim(), new_block(), parameter::move();
   }
 
   new_block();

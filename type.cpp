@@ -50,11 +50,18 @@ const cxx_compiler::type* cxx_compiler::type::composite(const type* that) const
   return this == that ? this : 0;
 }
 
-bool cxx_compiler::type::include_cvr(const type* that) const
+int cxx_compiler::type::align() const
 {
-  int cvr = 0;
-  that->unqualified(&cvr);
-  return !cvr;
+  switch (size()) {
+  case 1: return 1;
+  case 2: return 2;
+  case 3:
+  case 4: return 4;
+  case 5: case 6: case 7: case 8: return 8;
+  case 9: case 10: case 11: case 12: case 13:
+  case 14: case 15: case 16:
+  default: return 16;
+  }
 }
 
 std::pair<int, const cxx_compiler::type*> cxx_compiler::type::current(int nth) const
@@ -189,6 +196,11 @@ int cxx_compiler::wchar_type::size() const
 const cxx_compiler::type* cxx_compiler::wchar_type::promotion() const
 {
   return int_type::create();
+}
+
+bool cxx_compiler::wchar_type::_signed() const
+{
+  return generator::wchar::type->_signed();
 }
 
 cxx_compiler::bool_type cxx_compiler::bool_type::obj;
@@ -388,15 +400,28 @@ void cxx_compiler::const_type::encode(std::ostream& os) const
   m_T->encode(os);
 }
 
-bool cxx_compiler::const_type::include_cvr(const type* that) const
+bool cxx_compiler::const_type::compatible(const type* T) const
 {
-  int x = 0;
-  const type* a = this->unqualified(&x);
-  int y = 0;
-  const type* b = that->unqualified(&y);
-  if ( ~x & y )
+  if (this == T)
+    return true;
+  if (T->m_id != CONST)
     return false;
-  return a->include_cvr(b);
+  typedef const const_type CT;
+  CT* that = static_cast<CT*>(T);
+  return this->m_T->compatible(that->m_T);
+}
+
+const cxx_compiler::type*
+cxx_compiler::const_type::composite(const type* T) const
+{
+  if (this == T)
+    return this;
+  if (T->m_id != CONST)
+    return 0;
+  typedef const const_type CT;
+  CT* that = static_cast<CT*>(T);
+  T = this->m_T->composite(that->m_T);
+  return T ? create(T) : 0;
 }
 
 const cxx_compiler::type* cxx_compiler::const_type::patch(const type* T, usr* u) const
@@ -460,15 +485,28 @@ void cxx_compiler::volatile_type::encode(std::ostream& os) const
   m_T->encode(os);
 }
 
-bool cxx_compiler::volatile_type::include_cvr(const type* that) const
+bool cxx_compiler::volatile_type::compatible(const type* T) const
 {
-  int x = 0;
-  const type* a = this->unqualified(&x);
-  int y = 0;
-  const type* b = that->unqualified(&y);
-  if ( ~x & y )
+  if (this == T)
+    return true;
+  if (T->m_id != VOLATILE)
     return false;
-  return a->include_cvr(b);
+  typedef const volatile_type VT;
+  VT* that = static_cast<VT*>(T);
+  return this->m_T->compatible(that->m_T);
+}
+
+const cxx_compiler::type*
+cxx_compiler::volatile_type::composite(const type* T) const
+{
+  if (this == T)
+    return this;
+  if (T->m_id != VOLATILE)
+    return 0;
+  typedef const volatile_type VT;
+  VT* that = static_cast<VT*>(T);
+  T = this->m_T->composite(that->m_T);
+  return T ? create(T) : 0;
 }
 
 const cxx_compiler::type* cxx_compiler::volatile_type::patch(const type* T, usr* u) const
@@ -542,15 +580,28 @@ void cxx_compiler::restrict_type::encode(std::ostream& os) const
   m_T->encode(os);
 }
 
-bool cxx_compiler::restrict_type::include_cvr(const type* that) const
+bool cxx_compiler::restrict_type::compatible(const type* T) const
 {
-  int x = 0;
-  const type* a = this->unqualified(&x);
-  int y = 0;
-  const type* b = that->unqualified(&y);
-  if ( ~x & y )
+  if (this == T)
+    return true;
+  if (T->m_id != RESTRICT)
     return false;
-  return a->include_cvr(b);
+  typedef const restrict_type RT;
+  RT* that = static_cast<RT*>(T);
+  return this->m_T->compatible(that->m_T);
+}
+
+const cxx_compiler::type*
+cxx_compiler::restrict_type::composite(const type* T) const
+{
+  if (this == T)
+    return this;
+  if (T->m_id != RESTRICT)
+    return 0;
+  typedef const restrict_type RT;
+  RT* that = static_cast<RT*>(T);
+  T = this->m_T->composite(that->m_T);
+  return T ? create(T) : 0;
 }
 
 const cxx_compiler::type* cxx_compiler::restrict_type::patch(const type* T, usr* u) const
@@ -734,30 +785,6 @@ const cxx_compiler::type* cxx_compiler::func_type::composite(const type* T) cons
   return create(this->m_T->composite(that->m_T),param);
 }
 
-namespace cxx_compiler { namespace func_impl {
-  bool include_cvr(const type* x, const type* y){ return x->include_cvr(y); }
-} } // end of namespace func_impl and c_compier
-
-bool cxx_compiler::func_type::include_cvr(const type* T) const
-{
-  using namespace std;
-  if ( this == T )
-    return true;
-  if ( T->m_id != type::FUNC )
-    return false;
-  typedef const func_type FUNC;
-  FUNC* that = static_cast<FUNC*>(T);
-  if ( this->m_T ){
-    if ( !this->m_T->include_cvr(that->m_T) )
-      return false;
-  }
-  const vector<const type*>& u = this->m_param;
-  const vector<const type*>& v = that->m_param;
-  if ( u.size() != v.size() )
-    return false;
-  return mismatch(u.begin(),u.end(),v.begin(),func_impl::include_cvr) == make_pair(u.end(),v.end());
-}
-
 const cxx_compiler::type* cxx_compiler::func_type::patch(const type* T, usr* u) const
 {
   if ( T && m_T )
@@ -821,6 +848,12 @@ const cxx_compiler::type* cxx_compiler::func_type::vla2a() const
   return create(T, param);
 }
 
+void cxx_compiler::func_type::decide_dim() const
+{
+  using namespace std;
+  m_T->decide_dim();
+  for_each(m_param.begin(), m_param.end(), mem_fun(&type::decide_dim));
+}
 
 bool cxx_compiler::func_type::overloadable(const func_type* that) const
 {
@@ -950,24 +983,6 @@ const cxx_compiler::type* cxx_compiler::array_type::composite(const type* T) con
   }
   else
     return 0;
-}
-
-bool cxx_compiler::array_type::include_cvr(const type* T) const
-{
-  if ( this == T )
-    return true;
-  if ( T->m_id == type::ARRAY ){
-    typedef const array_type ARRAY;
-    ARRAY* that = static_cast<ARRAY*>(T);
-    return this->m_T->include_cvr(that->m_T);
-  }
-  else if ( T->m_id == type::VARRAY ){
-    typedef const varray_type VARRAY;
-    VARRAY* that = static_cast<VARRAY*>(T);
-    return this->m_T->include_cvr(that->element_type());
-  }
-  else
-    return false;
 }
 
 void cxx_compiler::array_type::post(std::ostream& os) const
@@ -1111,43 +1126,6 @@ const cxx_compiler::type* cxx_compiler::pointer_type::composite(const type* T) c
   return T ? create(T) : 0;
 }
 
-bool cxx_compiler::pointer_type::include_cvr(const type* T) const
-{
-  if ( T->m_id != type::POINTER )
-    return false;
-  typedef const pointer_type PT;
-  PT* that = static_cast<PT*>(T);
-  const type* a = this->m_T;
-  const type* b = that->m_T;
-  int c = 0;
-  int d = 0;
-  const type* e = a->unqualified(&c);
-  const type* f = b->unqualified(&d);
-  if ( ~c & d )
-    return false;
-  if ( e->m_id != type::POINTER )
-    return a->include_cvr(b);
-  PT* g = static_cast<PT*>(e);
-  PT* h = static_cast<PT*>(f);
-  if ( !g->include_cvr(h) )
-    return false;
-  const type* i = g->m_T;
-  const type* j = h->m_T;
-  int k = 0;
-  int l = 0;
-  i->unqualified(&k);
-  j->unqualified(&l);
-  if ( ~k & l )
-    return false;
-  if ( (k&4) && !(l&4) && !(c&1) )
-    return false;
-  if ( (k&2) && !(l&2) && !(c&1) )
-    return false;
-  if ( (k&1) && !(l&1) && !(c&1) )
-    return false;
-  return true;
-}
-
 const cxx_compiler::type* cxx_compiler::pointer_type::complete_type() const
 {
   return create(m_T->complete_type());
@@ -1236,43 +1214,6 @@ const cxx_compiler::type* cxx_compiler::reference_type::composite(const type* T)
   REF* that = static_cast<REF*>(T);
   T = this->m_T->composite(that->m_T);
   return T ? create(T) : 0;
-}
-
-bool cxx_compiler::reference_type::include_cvr(const type* T) const
-{
-  if ( T->m_id != type::REFERENCE )
-    return false;
-  typedef const reference_type REF;
-  REF* that = static_cast<REF*>(T);
-  const type* a = this->m_T;
-  const type* b = that->m_T;
-  int c = 0;
-  int d = 0;
-  const type* e = a->unqualified(&c);
-  const type* f = b->unqualified(&d);
-  if ( ~c & d )
-    return false;
-  if ( e->m_id != type::REFERENCE )
-    return a->include_cvr(b);
-  REF* g = static_cast<REF*>(e);
-  REF* h = static_cast<REF*>(f);
-  if ( !g->include_cvr(h) )
-    return false;
-  const type* i = g->m_T;
-  const type* j = h->m_T;
-  int k = 0;
-  int l = 0;
-  i->unqualified(&k);
-  j->unqualified(&l);
-  if ( ~k & l )
-    return false;
-  if ( (k&4) && !(l&4) && !(c&1) )
-    return false;
-  if ( (k&2) && !(l&2) && !(c&1) )
-    return false;
-  if ( (k&1) && !(l&1) && !(c&1) )
-    return false;
-  return true;
 }
 
 const cxx_compiler::type* cxx_compiler::reference_type::complete_type() const
@@ -1411,15 +1352,9 @@ void cxx_compiler::incomplete_tagged_type::collect_tmp(std::vector<const type*>&
 namespace cxx_compiler {
   bool inblock(const scope* ptr)
   {
-    switch (ptr->m_id) {
-    case scope::NONE:
-      return false;
-    case scope::BLOCK:
-    case scope::PARAM:
+    if (ptr->m_id == scope::BLOCK)
       return true;
-    default:
-      return ptr->m_parent ? inblock(ptr->m_parent) : false;
-    }
+    return ptr->m_parent ? inblock(ptr->m_parent) : false;
   }
   inline bool temporary(const tag* ptr)
   {
@@ -1544,7 +1479,6 @@ cxx_compiler::record_type::record_type(tag* Tg)
       BF* bf = static_cast<BF*>(T);
       T = bf->integer_type();
     }
-    m_align = T->align();
     T = m_member.back()->m_type;
     if ( T->m_id == type::BIT_FIELD ){
       BF* bf = static_cast<BF*>(T);
@@ -1553,8 +1487,6 @@ cxx_compiler::record_type::record_type(tag* Tg)
       usr::flag_t& flag = m_member.back()->m_flag;
       flag = usr::flag_t(flag | usr::MSB_FIELD);
     }
-    if ( int n = m_size % m_align )
-      m_size += m_align - n;
   }
   else {
     transform(m_member.begin(),m_member.end(),inserter(m_layout,m_layout.begin()),
@@ -1577,11 +1509,14 @@ cxx_compiler::record_type::record_type(tag* Tg)
         BF* bf = static_cast<BF*>(T);
         T = bf->integer_type();
       }
-      m_align = T->align();
     }
   }
   m_modifiable =
     find_if(m_member.begin(),m_member.end(),not1(ptr_fun(member_modifiable))) == m_member.end();
+  int al = align();
+  if ( int n = m_size % al ) {
+    m_size += al - n;
+  }
 }
 
 int cxx_compiler::record_impl::layouter::operator()(int offset, usr* member)
@@ -2157,24 +2092,6 @@ const cxx_compiler::type* cxx_compiler::varray_type::composite(const type* T) co
   return 0;
 }
 
-bool cxx_compiler::varray_type::include_cvr(const type* T) const
-{
-  if ( this == T )
-    return true;
-  if ( T->m_id == type::VARRAY ){
-    typedef const varray_type VARRAY;
-    VARRAY* that = static_cast<VARRAY*>(T);
-    return this->m_T->include_cvr(that->m_T);
-  }
-  else if ( T->m_id == type::ARRAY ){
-    typedef const array_type ARRAY;
-    ARRAY* that = static_cast<ARRAY*>(T);
-    return this->m_T->include_cvr(that->element_type());
-  }
-  else
-    return false;
-}
-
 void cxx_compiler::varray_type::post(std::ostream& os) const
 {
   os << '[';
@@ -2223,6 +2140,20 @@ cxx_compiler::var* cxx_compiler::varray_type::vsize() const
   int n = T->size();
   usr* size = expressions::primary::literal::integer::create(n);
   return m_dim->mul(size);
+}
+
+void cxx_compiler::varray_type::decide_dim() const
+{
+  using namespace std;
+  using namespace declarations::declarators::array;
+  map<var*, vector<tac*> >::iterator p =
+    variable_length::dim_code.find(m_dim);
+  if (p != variable_length::dim_code.end()) {
+    vector<tac*>& vc = p->second;
+    copy(vc.begin(), vc.end(), back_inserter(code));
+    variable_length::dim_code.erase(p);
+  }
+  m_T->decide_dim();
 }
 
 const cxx_compiler::varray_type* cxx_compiler::varray_type::create(const type* T, var* dim)

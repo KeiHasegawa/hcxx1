@@ -78,26 +78,36 @@ cxx_compiler::declarations::declarators::function::parameter(specifier_seq::info
   } sweeper2;
   auto_ptr<specifier_seq::info_t> sweepr(p);
   usr::flag_t mask = usr::flag_t(usr::TYPEDEF | usr::EXTERN | usr::STATIC | usr::AUTO);
+  typedef const pointer_type PT;
   if ( u ){
+    usr::flag_t flag = u->m_flag = p->m_flag;
     const type* T = u->m_type;
-    typedef const pointer_type PT;
     if ( PT* pt = T->ptr_gen() )
       u->m_type = pt;
-    usr::flag_t& flag = u->m_flag = p->m_flag;
     if ( flag & mask ){
       error::declarations::declarators::function::parameter::invalid_storage(parse::position,u);
-      flag = usr::flag_t(flag & ~mask);
+      flag = u->m_flag = p->m_flag = usr::flag_t(flag & ~mask);
     }
-    declarations::action1(u,false,false);
-    return u->m_type;
+    u = declarations::action1(u,false,false);
+	T = u->m_type;
+	if (PT* pt = T->ptr_gen()) {
+      T = u->m_type = pt;
+	  u->m_flag = usr::flag_t(u->m_flag & ~(usr::FUNCTION | usr::VL));
+	}
+	return T;
   }
   else {
     if ( !p->m_type || !p->m_tmp.empty() )
       p->update();
     usr::flag_t flag = p->m_flag;
-    if ( flag & mask )
-      error::declarations::declarators::function::parameter::invalid_storage(parse::position,0);
-    return p->m_type;
+	if (flag & mask) {
+	  error::declarations::declarators::function::parameter::invalid_storage(parse::position, 0);
+	  flag = p->m_flag = usr::flag_t(flag & ~mask);
+	}
+    const type* T = p->m_type;
+    if (PT* pt = T->ptr_gen())
+      T = pt;
+    return T;
   }
 }
 
@@ -125,9 +135,57 @@ cxx_compiler::declarations::declarators::function::parameter(specifier_seq::info
     error::declarations::declarators::function::parameter::invalid_storage(parse::position,u);
     flag = usr::flag_t(flag & ~mask);
   }
-  declarations::action1(u,false,false);
-  return u->m_type;
+  u = declarations::action1(u,false,false);
+  T = u->m_type;
+  if (PT* pt = T->ptr_gen()) {
+    T = u->m_type = pt;
+	u->m_flag = usr::flag_t(u->m_flag & ~(usr::FUNCTION | usr::VL));
+  }
+  return T;
 }
+
+namespace cxx_compiler {
+  namespace declarations {
+    namespace declarators {
+      using namespace std;
+      namespace array {
+        namespace variable_length {
+          map<var*, vector<tac*> > dim_code;
+          void destroy_tmp()
+          {
+            for (auto p : dim_code)
+              for (auto q : p.second)
+                delete q;
+            dim_code.clear();
+          }
+        } // end of namespace variable_length
+      } // end of namespace array 
+      namespace array_impl {
+        bool inblock(scope* ptr)
+        {
+          assert(ptr);
+          switch (ptr->m_id) {
+          case scope::NONE:
+            return false;
+          case scope::BLOCK:
+            return true;
+          default:
+            assert(ptr->m_id == scope::PARAM);
+            return inblock(ptr->m_parent);
+          }
+        }
+        bool inblock_param(scope* ptr)
+        {
+          assert(ptr);
+          if (ptr->m_id == scope::PARAM)
+            return inblock(ptr->m_parent);
+          else
+            return false;
+        }
+      } // end of namespace array_impl
+    } // end of namespace declarators
+  } // end of namespace declarations
+} // end of namespace cxx_compiler
 
 const cxx_compiler::type*
 cxx_compiler::declarations::declarators::array::action(const type* T,
@@ -139,7 +197,8 @@ cxx_compiler::declarations::declarators::array::action(const type* T,
   using namespace error::declarations::declarators::array;
   usr* u = static_cast<usr*>(v);
   auto_ptr<expressions::base> sweepr(expr);
-  int x = code.size();
+  const type* bt = backpatch_type::create();
+  int n = code.size();
   v = 0;
   if ( expr )
     v = expr->gen();
@@ -152,8 +211,29 @@ cxx_compiler::declarations::declarators::array::action(const type* T,
       v = v->cast(int_type::create());
     }
     if ( !v->isconstant() ){
-      if ( scope::current != &scope::root )
-	return variable_length::action(T,v,u);
+      if (scope::current != &scope::root) {
+        var* tmp = new var(v->m_type);
+        if (v->lvalue()) {
+          if (scope::current->m_id == scope::BLOCK) {
+            block* b = static_cast<block*>(scope::current);
+            tmp->m_scope = b;
+            b->m_vars.push_back(tmp);
+          }
+          else
+            garbage.push_back(tmp);
+          code.push_back(new assign3ac(tmp, v));
+          v = tmp;
+        }
+        if (array_impl::inblock_param(scope::current)) {
+          for_each(code.begin()+n, code.end(), [](tac* p){ delete p; });
+          code.resize(n);
+          return T->patch( array_type::create(bt, 0), u);
+        }
+        copy(code.begin()+n, code.end(),
+             back_inserter(variable_length::dim_code[v]));
+        code.resize(n);
+        return T->patch(varray_type::create(bt, v), u);
+      }
       using namespace error::declarations::declarators::vm;
       file_scope(u);
       v = expressions::primary::literal::integer::create(1);
@@ -170,35 +250,30 @@ cxx_compiler::declarations::declarators::array::action(const type* T,
       asterisc_dimension(parse::position,u);
     }
   }
-  return T->patch(array_type::create(backpatch_type::create(),dim),u);
-}
-
-const cxx_compiler::type*
-cxx_compiler::declarations::declarators::array::variable_length::action(const type* T, var* dim, usr* u)
-{
-  return T->patch(varray_type::create(backpatch_type::create(),dim),u);
+  return T->patch(array_type::create(bt,dim),u);
 }
 
 void
 cxx_compiler::declarations::declarators::array::variable_length::allocate(usr* u)
 {
+  using namespace std;
   if ( scope::current == &scope::root )
     return;
-  assert(scope::current->m_parent != &scope::root);
-  usr::flag_t& flag = u->m_flag;
+  u->m_type->decide_dim();
+  usr::flag_t flag = u->m_flag;
+  if (!(flag & usr::VL))
+    return;
   usr::flag_t mask = usr::flag_t(usr::STATIC | usr::EXTERN);
-  if ( flag & mask ){
+  if (flag & mask) {
     using namespace error::declarations::declarators::array::variable_length;
     invalid_storage(u);
-    flag = usr::flag_t(flag & ~mask);
+    flag = u->m_flag = usr::flag_t(flag & ~mask);
   }
-  statements::label::mark_vm(u);
-  if ( flag & usr::TYPEDEF )
+  statements::label::vm.push_back(u);
+  if (flag & usr::TYPEDEF)
     return;
   const type* T = u->m_type;
-  int n = code.size();
   var* size = T->vsize();
-  int m = code.size();
   code.push_back(new alloca3ac(u,size));
 }
 
@@ -226,7 +301,7 @@ cxx_compiler::declarations::declarators::function::definition::begin(declaration
   }
   auto_ptr<declarations::specifier_seq::info_t> sweeper(p);
   parse::identifier::flag = parse::identifier::look;
-  declarations::action1(u,false, u != v);
+  u = declarations::action1(u,false, u != v);
   vector<scope*>& children = scope::current->m_children;
   if ( children.empty() ){
     using namespace error::declarations::declarators::function::definition;
@@ -302,7 +377,7 @@ namespace cxx_compiler { namespace declarations { namespace declarators { namesp
   using namespace std;
   extern void remember(fundef*, vector<tac*>&);
   skip::table_t skip::table;
-  namespace defer {	    
+  namespace defer {
     map<string, vector<ref_t> > refs;
     map<string, set<usr*> > callers;
     map<usr*, vector<int> > positions;
@@ -396,7 +471,7 @@ void cxx_compiler::declarations::declarators::function::definition::action(funde
 }
 
 namespace cxx_compiler { namespace declarations { namespace declarators { namespace function { namespace definition { namespace static_inline {
-	    
+    
   void skip::check(tac* ptac, chk_t* arg)
   {
     using namespace std;
@@ -547,7 +622,7 @@ namespace cxx_compiler { namespace declarations { namespace declarators { namesp
       }
     } // end of namespace skip
   } // end of namespace static_inline
-} } } } } // end of namespace definition, function, declarators, declarations and cxx_compiler	  
+} } } } } // end of namespace definition, function, declarators, declarations and cxx_compiler
 
 void cxx_compiler::declarations::declarators::function::definition::static_inline::remember(fundef* fdef, std::vector<tac*>& vc)
 {

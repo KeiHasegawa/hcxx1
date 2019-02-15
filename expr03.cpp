@@ -38,8 +38,8 @@ const cxx_compiler::file_t& cxx_compiler::expressions::cast::info_t::file() cons
 
 const cxx_compiler::type* cxx_compiler::expressions::cast::valid(const type* T, var* y)
 {
-  if ( const type* r = assignment::valid(T,y,0) )
-    return r;
+  if (assignment::valid(T,y,0))
+    return T;
   const type* Tx = T->unqualified();
   const type* Ty = y->m_type->unqualified();
   if ( Tx->m_id == type::POINTER )
@@ -74,7 +74,7 @@ namespace cxx_compiler {
 
 cxx_compiler::var* cxx_compiler::var::cast(const type* T)
 {
-  if ( T == m_type && !lvalue() )
+  if ( T == m_type )
     return this;
   var* ret = new var(T);
   if ( scope::current->m_id == scope::BLOCK ){

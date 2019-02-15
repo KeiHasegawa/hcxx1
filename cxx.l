@@ -102,6 +102,7 @@ s-char  [^\"\\\n\r]|{escape-sequence}|{universal-character-name}
 %%
 
 __builtin_va_arg    { return BUILTIN_VA_ARG; }
+__builtin_va_end    { return BUILTIN_VA_END; }
 __builtin_va_start  { return BUILTIN_VA_START; }
 asm                 { return ASM_KW; }
 auto                { return AUTO_KW; }

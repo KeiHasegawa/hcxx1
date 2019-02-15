@@ -82,10 +82,8 @@ int cxx_compiler::usr::initialize()
       m_flag = usr::flag_t(m_flag & ~usr::EXTERN);
     }
   }
-  if ( m_flag & usr::VL ){
-    using namespace declarations::declarators::array;
-    variable_length::allocate(this);
-  }
+  using namespace declarations::declarators::array;
+  variable_length::allocate(this);
   return 0;
 }
 
@@ -187,8 +185,13 @@ int cxx_compiler::declarations::initializers::clause::assign(var* y, argument* a
   if ( y->addrof_cast() ){
     vector<var*>& v = garbage;
     vector<var*>::reverse_iterator p = find(v.rbegin(),v.rend(),y);
-    assert(p != v.rend());
+#if 0
+	assert(p != v.rend());
     v.erase(p.base()-1);
+#else
+    if (p != v.rend())
+      v.erase(p.base()-1);
+#endif
   }
   arg->V[arg->off] = y;
   arg->nth_max = max(arg->nth_max,++arg->nth);

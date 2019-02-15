@@ -11,7 +11,8 @@ while ( <> ){
     $xxx = $1;
     $_ = <>;
     $_ = <>; chop;
-    next if ( !/type_specifier: simple_type_specifier/ );
+    next if ( !/([0-9]+) type_specifier: simple_type_specifier/ );
+    $yyy = $1;
     $_ = <>; chop;
     next if ( !/postfix_expression: simple_type_specifier/ );
     $_ = <>; chop;
@@ -21,21 +22,9 @@ while ( <> ){
 
 label:
 print <<EOF
-  if ( yystate == $xxx ) {
+  if (yystate == $xxx && yychar == '(') {
     YYDPRINTF((stderr, "rule.03 is applied\\n"));
-    if ( cxx_compiler::parse::backtrack::g_stack.empty() ) {
-      cxx_compiler::parse::backtrack::g_stack.push(yyssp-1);
-      goto yydefault;
-    }
-    else {
-      cxx_compiler::parse::backtrack& x = cxx_compiler::parse::backtrack::g_stack.top();
-      ++x.m_way;
-      if ( x.m_way == 1 ) {
-        cxx_compiler::parse::identifier::flag = cxx_compiler::parse::identifier::look;
-      }
-      else {
-        cxx_compiler::parse::backtrack::g_stack.pop();
-      }
-    }
+    yyn = $yyy + 1;
+    goto yyreduce;
   }
 EOF

@@ -162,7 +162,9 @@ namespace cxx_compiler { namespace dump {
   void roff(std::ostream&, const cxx_compiler::tac*);
   void _alloca_(std::ostream&, const cxx_compiler::tac*);
   void _asm_(std::ostream&, const cxx_compiler::tac*);
+  void _va_start(std::ostream&, const cxx_compiler::tac*);
   void _va_arg(std::ostream&, const cxx_compiler::tac*);
+  void _va_end(std::ostream&, const cxx_compiler::tac*);
 } } // end of namespace dump and cxx_compiler
 
 cxx_compiler::dump::table::table()
@@ -193,7 +195,9 @@ cxx_compiler::dump::table::table()
   (*this)[tac::ROFF] = roff;
   (*this)[tac::ALLOCA] = _alloca_;
   (*this)[tac::ASM] = _asm_;
+  (*this)[tac::VASTART] = _va_start;
   (*this)[tac::VAARG] = _va_arg;
+  (*this)[tac::VAEND] = _va_end;
 }
 
 namespace cxx_compiler { namespace dump { namespace names {
@@ -223,10 +227,12 @@ std::string cxx_compiler::dump::names::ref(cxx_compiler::var* v)
     }
     if ( constant<char>* p = dynamic_cast<constant<char>*>(u) ){
       char c = p->m_value;
-      if ( isgraph(c) || c == ' ' || c == '\t' ){
-        ostringstream os;
-        os << "'" << c << "'";
-        return os.str();
+      if (0 <= c && c <= 255) {
+        if (isgraph(c) || c == ' ' || c == '\t') {
+          ostringstream os;
+          os << "'" << c << "'";
+          return os.str();
+        }
       }
     }
     return name;
@@ -509,6 +515,14 @@ void cxx_compiler::dump::_asm_(std::ostream& os, const cxx_compiler::tac* ptr)
   os << "asm " << p->m_inst;
 }
 
+void cxx_compiler::dump::_va_start(std::ostream& os, const cxx_compiler::tac* ptr)
+{
+  using namespace std;
+  string x = names::ref(ptr->x);
+  string y = names::ref(ptr->y);
+  os << x << " := va_start " << y;
+}
+
 void cxx_compiler::dump::_va_arg(std::ostream& os, const cxx_compiler::tac* ptr)
 {
   using namespace std;
@@ -518,6 +532,13 @@ void cxx_compiler::dump::_va_arg(std::ostream& os, const cxx_compiler::tac* ptr)
   const va_arg3ac* va = static_cast<const va_arg3ac*>(ptr);
   const type* type = va->m_type;
   type->decl(os,"");
+}
+
+void cxx_compiler::dump::_va_end(std::ostream& os, const cxx_compiler::tac* ptr)
+{
+  using namespace std;
+  string y = names::ref(ptr->y);
+  os << "va_end " << y;
 }
 
 namespace cxx_compiler { namespace dump {

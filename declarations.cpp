@@ -21,6 +21,7 @@ void cxx_compiler::declarations::destroy()
   if (!generator::last)
     type::destroy_tmp();
   constant<void*>::destroy_temporary();
+  declarators::array::variable_length::destroy_tmp();
   if ( cmdline::simple_medium )
     dump::names::reset();
   class_or_namespace_name::after();
@@ -54,6 +55,9 @@ cxx_compiler::declarations::specifier::specifier(type_specifier* spec)
 cxx_compiler::declarations::type_specifier::type_specifier(int n)
  : m_keyword(n), m_type(0), m_usr(0)
 {
+	if (parse::position.m_lineno == 1187) {
+		int debug = 1;
+	}
   if ( VOID_KW <= m_keyword && m_keyword <= UNSIGNED_KW )
     parse::identifier::flag = parse::identifier::new_obj;
 }
@@ -529,13 +533,6 @@ cxx_compiler::declarations::action1(var* v, bool ini, bool lookuped)
   }
   if (u->m_flag & usr::TYPEDEF) {
     type_def* tmp = new type_def(*u);
-    if (u->m_flag & usr::VL) {
-      vector<usr*>& v = statements::label::vm;
-      typedef vector<usr*>::reverse_iterator IT;
-      IT p = find(rbegin(v), rend(v), u);
-      assert(p != rend(v));
-      *p = tmp;
-    }
     delete u;
     u = tmp;
   }
@@ -646,12 +643,12 @@ cxx_compiler::declarations::action1(var* v, bool ini, bool lookuped)
       call_impl::common(ft,ctor,&arg,false,u);
       usr::flag_t flag = ctor->m_flag;
       if (!error::counter) {
-	if (flag & usr::INLINE) {
-	  using namespace declarations::declarators::function::definition::static_inline::skip;
-	  table_t::const_iterator p = table.find(ctor);
-	  if (p != table.end())
-	    substitute(code, code.size()-1, p->second);
-	}
+        if (flag & usr::INLINE) {
+          using namespace declarations::declarators::function::definition::static_inline::skip;
+          table_t::const_iterator p = table.find(ctor);
+          if (p != table.end())
+            substitute(code, code.size()-1, p->second);
+        }
       }
     }
   }
@@ -679,14 +676,7 @@ cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr, bool lookuped)
 {
   using namespace std;
   string name = curr->m_name;
-#if 0
-  if ( class_or_namespace_name::last ){
-    curr->m_scope = class_or_namespace_name::last;
-    class_or_namespace_name::last = 0;
-  }
-  else
-#endif
-    curr->m_scope = scope::current;
+  curr->m_scope = scope::current;
   if ( name == "__func__" ){
     using namespace error::expressions::primary::underscore_func;
     declared(parse::position);
@@ -708,13 +698,28 @@ cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr, bool lookuped)
       using namespace error::declarations;
       redeclaration(prev,curr,false);
     }
-    else
+    else {
       curr = combine(prev,curr);
+      usr::flag_t flag = curr->m_flag;
+      if ((flag & usr::FUNCTION) && (flag & usr::EXTERN)){
+        using namespace declarators::function::definition;
+        using namespace static_inline;
+        skip::table_t::iterator r = skip::table.find(prev);
+        if (r != skip::table.end()) {
+          info_t* info = r->second;
+          usr::flag_t& flag = info->m_fundef->m_usr->m_flag;
+          flag = usr::flag_t(flag | usr::EXTERN);
+          skip::table.erase(r);
+          gencode(info);
+        }
+      }
+    }
   }
   if ( lookuped )
     return curr;
   usrs[name].push_back(curr);
-  curr->m_scope->m_order.push_back(curr);
+  if (curr->m_scope->m_id != scope::PARAM || !(curr->m_flag & usr::ENUM_MEMBER))
+    curr->m_scope->m_order.push_back(curr);
   class_or_namespace_name::last = 0;
   return curr;
 }
@@ -749,6 +754,8 @@ namespace cxx_compiler { namespace declarations {
 bool cxx_compiler::declarations::conflict(usr::flag_t x, usr::flag_t y)
 {
   using namespace std;
+  if ((x & usr::ENUM_MEMBER) || (y & usr::ENUM_MEMBER))
+    return true;
   usr::flag_t mask = usr::flag_t(usr::TYPEDEF|usr::EXTERN|usr::STATIC|usr::AUTO|usr::REGISTER);
   x = usr::flag_t(x & mask);
   y = usr::flag_t(y & mask);
@@ -1010,7 +1017,17 @@ cxx_compiler::tac::tac(id_t id, var* xx, var* yy, var* zz) : m_id(id), x(xx), y(
 
 bool cxx_compiler::declarations::internal_linkage(usr* u)
 {
-  return u->m_scope == &scope::root && (u->m_flag & usr::STATIC) && u->m_name[u->m_name.length()-1] != '"';
+  if (u->m_scope != &scope::root)
+    return false;
+  usr::flag_t flag = u->m_flag;
+  if (flag & usr::FUNCTION)
+    return false;
+  if (!(flag & usr::STATIC))
+    return false;
+  string name = u->m_name;
+  if (name[name.length() - 1] == '"')
+    return false;
+  return true;
 }
 
 void cxx_compiler::declarations::specifier_seq::function::Inline::check(var* v)

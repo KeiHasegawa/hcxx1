@@ -1472,9 +1472,8 @@ struct type {
   virtual void post(std::ostream&) const {}
   virtual bool compatible(const type*) const;
   virtual const type* composite(const type*) const;
-  virtual bool include_cvr(const type*) const;
   virtual int size() const = 0;
-  virtual int align() const { return size(); }
+  virtual int align() const;
   virtual bool scalar() const { return true; }
   virtual bool real() const { return false; }
   virtual bool integer() const { return scalar() && !real(); }
@@ -1495,6 +1494,7 @@ struct type {
   virtual bool tmp() const { return false; }
   virtual bool variably_modified() const { return false; }
   virtual const type* vla2a() const { return this; }
+  virtual void decide_dim() const {}
   virtual var* vsize() const { return 0; }
   virtual ~type(){}
   static void destroy_tmp();
@@ -1576,7 +1576,7 @@ public:
   void encode(std::ostream&) const;
   int size() const;
   const type* promotion() const;
-  bool _signed() const { return true; }
+  bool _signed() const;
   static const wchar_type* create(){ return &obj; }
 };
 
@@ -1737,9 +1737,8 @@ class const_type : public type {
 public:
   void decl(std::ostream&, std::string) const;
   void encode(std::ostream&) const;
-  bool compatible(const type* T) const { return m_T->compatible(T); }
-  const type* composite(const type* T) const { T = m_T->composite(T); return T ? create(T) : 0; }
-  bool include_cvr(const type*) const;
+  bool compatible(const type* T) const;
+  const type* composite(const type* T) const;
   int size() const { return m_T->size(); }
   bool scalar() const { return m_T->scalar(); }
   bool real() const { return m_T->real(); }
@@ -1757,6 +1756,7 @@ public:
   const type* qualified(int) const;
   bool variably_modified() const { return m_T->variably_modified(); }
   const type* vla2a() const { return create(m_T->vla2a()); }
+  void decide_dim() const { m_T->decide_dim(); }
   tag* get_tag() const { return m_T->get_tag(); }
   static const type* create(const type*);
   static void destroy_tmp();
@@ -1772,9 +1772,8 @@ class volatile_type : public type {
 public:
   void decl(std::ostream&, std::string) const;
   void encode(std::ostream&) const;
-  bool compatible(const type* T) const { return m_T->compatible(T); }
-  const type* composite(const type* T) const { T = m_T->composite(T); return T ? create(T) : 0; }
-  bool include_cvr(const type*) const;
+  bool compatible(const type* T) const;
+  const type* composite(const type* T) const;
   const type* patch(const type*, usr*) const;
   int size() const { return m_T->size(); }
   bool scalar() const { return m_T->scalar(); }
@@ -1791,6 +1790,7 @@ public:
   bool tmp() const { return m_T->tmp(); }
   bool variably_modified() const { return m_T->variably_modified(); }
   const type* vla2a() const { return create(m_T->vla2a()); }
+  void decide_dim() const { m_T->decide_dim(); }  
   const type* qualified(int) const;
   tag* get_tag() const { return m_T->get_tag(); }
   static const type* create(const type*);
@@ -1807,9 +1807,8 @@ public:
   void decl(std::ostream&, std::string) const;
   void encode(std::ostream&) const;
   const type* patch(const type*, usr*) const;
-  bool compatible(const type* T) const { return m_T->compatible(T); }
-  const type* composite(const type* T) const { T = m_T->composite(T); return T ? create(T) : 0; }
-  bool include_cvr(const type*) const;
+  bool compatible(const type* T) const;
+  const type* composite(const type* T) const;
   int size() const { return m_T->size(); }
   bool scalar() const { return m_T->scalar(); }
   bool integer() const { return m_T->integer(); }
@@ -1825,6 +1824,7 @@ public:
   bool tmp() const { return m_T->tmp(); }
   bool variably_modified() const { return m_T->variably_modified(); }
   const type* vla2a() const { return create(m_T->vla2a()); }
+  void decide_dim() const { m_T->decide_dim(); }  
   const type* qualified(int) const;
   tag* get_tag() const { return m_T->get_tag(); }
   static const type* create(const type*);
@@ -1843,7 +1843,6 @@ public:
   void encode(std::ostream&) const;
   bool compatible(const type*) const;
   const type* composite(const type*) const;
-  bool include_cvr(const type*) const;
   int size() const { return 0; }
   bool scalar() const { return false; }
   const type* prev() const { return m_T->prev(); }
@@ -1857,6 +1856,7 @@ public:
   bool tmp() const;
   bool variably_modified() const;
   const type* vla2a() const;
+  void decide_dim() const;
   bool overloadable(const func_type*) const;
   static const func_type* create(const type*, const std::vector<const type*>&);
   static void destroy_tmp();
@@ -1874,7 +1874,6 @@ public:
   void encode(std::ostream&) const;
   bool compatible(const type*) const;
   const type* composite(const type*) const;
-  bool include_cvr(const type*) const;
   int size() const { return m_T->size() * m_dim; }
   int align() const { return m_T->align(); }
   bool scalar() const { return false; }
@@ -1892,6 +1891,7 @@ public:
   bool tmp() const { return m_T->tmp(); }
   bool variably_modified() const { return m_T->variably_modified(); }
   const type* vla2a() const { return create(m_T->vla2a(), m_dim); }
+  void decide_dim() const { m_T->decide_dim(); }
   var* vsize() const;
   static const array_type* create(const type*, int);
   static void destroy_tmp();
@@ -1907,7 +1907,6 @@ public:
   void decl(std::ostream&, std::string) const;
   void encode(std::ostream&) const;
   bool compatible(const type*) const;
-  bool include_cvr(const type*) const;
   const type* composite(const type*) const;
   const type* patch(const type*, usr*) const;
   const type* referenced_type() const { return m_T; }
@@ -1917,6 +1916,7 @@ public:
   bool tmp() const { return m_T->tmp(); }
   bool variably_modified() const { return m_T->variably_modified(); }
   const type* vla2a() const { return create(m_T->vla2a()); }
+  void decide_dim() const { m_T->decide_dim(); }
   static const pointer_type* create(const type*);
   static void destroy_tmp();
   static void collect_tmp(std::vector<const type*>&);
@@ -1931,7 +1931,6 @@ public:
   void decl(std::ostream&, std::string) const;
   void encode(std::ostream&) const;
   bool compatible(const type*) const;
-  bool include_cvr(const type*) const;
   const type* composite(const type*) const;
   const type* patch(const type*, usr*) const;
   const type* referenced_type() const { return m_T; }
@@ -1970,6 +1969,7 @@ public:
   tag* get_tag() const { return m_tag; }
   const type* complete_type() const;
   bool tmp() const;
+  ~incomplete_tagged_type(){ delete m_tag; }  
   static const incomplete_tagged_type* create(tag*);
   static void destroy_tmp();
   static void collect_tmp(std::vector<const type*>&);
@@ -1980,7 +1980,6 @@ class record_type : public type {
   std::map<std::string, std::pair<int, usr*> > m_layout;
   std::map<usr*, int> m_position;
   int m_size;
-  int m_align;
   bool m_modifiable;
   tag* m_tag;
   typedef std::set<const record_type*> table_t;
@@ -1997,7 +1996,6 @@ public:
   bool compatible(const type*) const;
   const type* composite(const type*) const;
   int size() const { return m_size; }
-  int align() const { return m_align; }
   bool scalar() const { return false; }
   bool modifiable() const { return m_modifiable; }
   std::pair<int, usr*> offset(std::string) const;
@@ -2065,7 +2063,6 @@ public:
   void encode(std::ostream&) const;
   bool compatible(const type*) const;
   const type* composite(const type*) const;
-  bool include_cvr(const type*) const;
   int size() const { return 0; }
   int align() const { return m_T->align(); }
   bool scalar() const { return false; }
@@ -2081,6 +2078,7 @@ public:
   bool tmp() const { return true; }
   bool variably_modified() const { return true; }
   const type* vla2a() const { return array_type::create(m_T->vla2a(), 0); }
+  void decide_dim() const;
   var* vsize() const;
   static const varray_type* create(const type*, var*);
   static void destroy_tmp();

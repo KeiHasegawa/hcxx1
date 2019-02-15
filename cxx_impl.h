@@ -11,8 +11,8 @@ namespace misc {
   public:
     ~pvector()
       {
-	for ( auto p : *this )
-	  delete p;
+        for ( auto p : *this )
+          delete p;
       }
   };
   template<class K, class V> struct pmap : std::map<K,V*> {
@@ -227,6 +227,7 @@ namespace error {
         extern void num_of_arg(const file_t&, const var*, int, int);
         extern void not_object(const file_t&, const var*);
         extern void mismatch_argument(const file_t&, int, bool, const var*);
+        extern void overload_not_match(const usr*);
       } // end of namespace call
       namespace member {
         extern void not_record(const file_t&, const var*);
@@ -415,12 +416,7 @@ namespace declarations {
     const type* m_type;
     usr* m_usr;
     bool m_tag;
-    specifier(int n) : m_keyword(n), m_type(0), m_usr(0), m_tag(false)
-	{
-		if ( this == (void*)0x01048290 ){
-			int debug = 1;
-		}
-	}
+    specifier(int n) : m_keyword(n), m_type(0), m_usr(0), m_tag(false) {}
     specifier(type_specifier*);
   };
   struct type_specifier {
@@ -475,64 +471,65 @@ namespace declarations {
         extern void begin(declarations::specifier_seq::info_t*, var*);
         extern void action(statements::base*);
         extern void action(fundef* fdef, vector<tac*>&);
-	typedef pair<pair<string, scope*>,const vector<const type*>*> KEY;
+        typedef pair<pair<string, scope*>,const vector<const type*>*> KEY;
         typedef map<KEY,usr*> table_t;
         extern table_t table;
         namespace static_inline {
-	  struct info_t {
-	    fundef* m_fundef;
-	    vector<tac*> m_code;
-	    vector<const type*> m_tmp;
+          struct info_t {
+            fundef* m_fundef;
+            vector<tac*> m_code;
+            vector<const type*> m_tmp;
             info_t(fundef* f, const vector<tac*>& c,
                    const vector<const type*>& t)
             : m_fundef(f), m_code(c), m_tmp(t) {}
-	    ~info_t();
-	  };
-	  void substitute(vector<tac*>& vt, int pos, info_t* info);
-	  namespace skip {
-	    struct table_t : map<usr*, info_t*> {
+            ~info_t();
+          };
+          void substitute(vector<tac*>& vt, int pos, info_t* info);
+          namespace skip {
+            struct table_t : map<usr*, info_t*> {
 #ifdef _DEBUG
-	      ~table_t(){ for (auto p : *this) delete p.second; }
+              ~table_t(){ for (auto p : *this) delete p.second; }
 #endif // _DEBUG
-	    };
-	    extern table_t table;
-	    void add(fundef* fdef, vector<tac*>& vc, bool b);
-	    struct chk_t {
-	      int m_pos;
-	      bool m_wait_inline;
-	      fundef* m_fundef;
+            };
+            extern table_t table;
+            void add(fundef* fdef, vector<tac*>& vc, bool b);
+            struct chk_t {
+              int m_pos;
+              bool m_wait_inline;
+              fundef* m_fundef;
               chk_t(fundef* f) : m_pos(-1), m_wait_inline(false), m_fundef(f) {}
-	    };
-	    void check(tac* ptac, chk_t* arg);
-	  } // end of namespace skip
+            };
+            void check(tac* ptac, chk_t* arg);
+          } // end of namespace skip
           extern void gencode(info_t*);
-	  namespace defer {
-	    struct ref_t {
-	      string m_name;
-	      usr::flag_t m_flag;
-	      file_t m_def;
-	      file_t m_use;
-	      ref_t(string name, usr::flag_t flag, const file_t& def,
-		    const file_t& use)
-	      : m_name(name), m_flag(flag), m_def(def), m_use(use) {}
-	    };
-	    extern map<string, vector<ref_t> > refs;
+          namespace defer {
+            struct ref_t {
+              string m_name;
+              usr::flag_t m_flag;
+              file_t m_def;
+              file_t m_use;
+              ref_t(string name, usr::flag_t flag, const file_t& def,
+                    const file_t& use)
+              : m_name(name), m_flag(flag), m_def(def), m_use(use) {}
+            };
+            extern map<string, vector<ref_t> > refs;
 
-	    // inline function -> callers
-	    extern map<string, set<usr*> > callers;
+            // inline function -> callers
+            extern map<string, set<usr*> > callers;
 
-	    // caller -> position at caller
-	    extern map<usr*, vector<int> > positions;
-	    
-	    void last();
-	  } // end of namespace defer
+            // caller -> position at caller
+            extern map<usr*, vector<int> > positions;
+            
+            void last();
+          } // end of namespace defer
         } // end of namespace static_inline
       } // end of namespace definition
     } // end of namespace function
     namespace array {
       extern const type* action(const type*, expressions::base*, bool, var*);
       namespace variable_length {
-        extern const type* action(const type*, var*, usr*);
+        extern map<var*, vector<tac*> > dim_code;
+        extern void destroy_tmp();
         extern void allocate(usr*);
       } // end of namespace variable_length
     } // end of namespace array
@@ -828,6 +825,15 @@ namespace expressions {
       ~info_t(){ delete m_expr; }
     };
   } // end of namespace _va_arg
+  namespace _va_end {
+    struct info_t : base {
+      base* m_expr;
+      const file_t& file() const;
+      var* gen();
+      info_t(base* expr) : m_expr(expr) {}
+      ~info_t(){ delete m_expr; }
+    };
+  } // end of namespace _va_arg
   namespace binary {
     struct info_t : base {
       base* m_left;
@@ -867,14 +873,13 @@ namespace statements {
     struct info_t : base {
       usr* m_label;
       base* m_stmt;
-      info_t(var* v, base* stmt) : m_label(static_cast<usr*>(v)), m_stmt(stmt) {}
+      info_t(var* v, base* stmt);
       int gen();
       ~info_t(){ delete m_label; delete m_stmt; }
     };
     extern void check();
     extern void clear();
-    extern void mark_vm(usr*);
-	extern std::vector<usr*> vm;
+    extern std::vector<usr*> vm;
   } // end of namespace label
   namespace _case {
     struct info_t : base {
@@ -1202,6 +1207,7 @@ extern opposite_t opposite;
 
 namespace optimize {
   void action(fundef*, vector<tac*>&);
+  void mark(usr*);
   namespace basic_block {
     void create(std::vector<tac*>&, std::vector<info_t*>&);
   } // end of namespace basic_block
