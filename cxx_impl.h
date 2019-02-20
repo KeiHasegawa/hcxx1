@@ -82,17 +82,13 @@ namespace parse {
     extern void leave();
   } // end of namespace block
   namespace member_function_body {
-    struct saved {
+    struct save_t {
       scope* m_param;
-      list<pair<int,file_t> > m_token;
-      list<var*> m_lval;
-      saved() : m_param(0) {}
+	  read_t m_read;
+      save_t() : m_param(0) {}
     };
-    extern map<usr*, saved> table;
-    struct restore_t {
-      saved* m_saved;
-    };
-    extern restore_t g_restore;
+    extern map<usr*, save_t> table;
+    extern save_t* saved;
     extern int get_token();
   } // end of namespace member_function_body
 } // end of namespace parse

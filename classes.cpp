@@ -52,34 +52,34 @@ cxx_compiler::classes::specifier::begin(int keyword, var* v, std::vector<base*>*
 }
 
 void
-cxx_compiler::classes::specifier::begin2(int keyword, tag* Tg)
+cxx_compiler::classes::specifier::begin2(int keyword, tag* ptr)
 {
   using namespace std;
-  string name = Tg->m_name;
+  string name = ptr->m_name;
   usr* tmp = new usr(name,0,usr::NONE,file_t());
   begin(keyword,tmp,0);
 }
 
 namespace cxx_compiler { namespace classes { namespace specifier {
-  void member_function_definition(std::pair<usr* const,parse::member_function_body::saved>&);
+  void member_function_definition(std::pair<usr* const,parse::member_function_body::save_t>&);
 } } } // end of namespace specifier, classes and cxx_compiler
 
 const cxx_compiler::type* cxx_compiler::classes::specifier::action()
 {
   using namespace std;
-  tag* T = static_cast<tag*>(scope::current);
-  const type* ret = record_type::create(T);
-  T->m_types.second = ret;
-  map<usr*, parse::member_function_body::saved>& tbl = parse::member_function_body::table;
+  tag* ptr = static_cast<tag*>(scope::current);
+  const type* ret = record_type::create(ptr);
+  ptr->m_types.second = ret;
+  map<usr*, parse::member_function_body::save_t>& tbl = parse::member_function_body::table;
   for_each(tbl.begin(),tbl.end(),member_function_definition);
   tbl.clear();
-  scope::current = T->m_parent;
+  scope::current = ptr->m_parent;
   class_or_namespace_name::after();
   return ret;
 }
 
 void cxx_compiler::classes::specifier::
-member_function_definition(std::pair<usr* const,parse::member_function_body::saved>& E)
+member_function_definition(std::pair<usr* const,parse::member_function_body::save_t>& E)
 {
   using namespace std;
   usr* u = E.first;
@@ -89,9 +89,9 @@ member_function_definition(std::pair<usr* const,parse::member_function_body::sav
   scope* param = E.second.m_param;
   children.push_back(param);
   fundef::current = new fundef(u,param);
-  parse::member_function_body::g_restore.m_saved = &E.second;
+  parse::member_function_body::saved = &E.second;
   cxx_compiler_parse();
-  parse::member_function_body::g_restore.m_saved = 0;
+  parse::member_function_body::saved = 0;
 }
 
 namespace cxx_compiler {
@@ -99,7 +99,7 @@ namespace cxx_compiler {
     usr* m_constant;
     constant_member(usr* u, usr* c) : usr(*u), m_constant(c) {}
     bool isconstant(bool) const { return true; }
-    int int_value(){ return m_constant->value(); }
+    __int64 value() const { return m_constant->value(); }
   };
 } // end of namespace cxx_compiler
 

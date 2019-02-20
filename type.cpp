@@ -1425,8 +1425,8 @@ namespace cxx_compiler { namespace record_impl {
   void add_ctor(tag*, const info&);
 } } // end of namespace record_impl and cxx_compiler
 
-cxx_compiler::record_type::record_type(tag* Tg)
-  : type(RECORD), m_tag(Tg), m_vbtbl(0), m_vftbl(0)
+cxx_compiler::record_type::record_type(tag* ptr)
+  : type(RECORD), m_tag(ptr), m_vbtbl(0), m_vftbl(0)
 {
   using namespace std;
   using namespace record_impl;
@@ -1665,8 +1665,8 @@ int cxx_compiler::record_impl::base_handler(base* p, info* arg)
   bool vb = is_virtual_base(p);
   if ( vb )
     ++arg->m_virtual_base;
-  tag* Tg = p->m_tag;
-  const vector<usr*>& member = Tg->m_order;
+  tag* ptr = p->m_tag;
+  const vector<usr*>& member = ptr->m_order;
   info tmp(vb && arg->m_vb_member ? arg->m_vb_member : arg->m_member, 0);
   for_each(member.begin(),member.end(),bind2nd(ptr_fun(member_handler),&tmp));
   return 0;
@@ -1717,14 +1717,14 @@ cxx_compiler::record_impl::set_vbtbl::operator()(base* vb)
   using namespace std;
   int offset = m_offset;
   m_offset += int_type::create()->size();
-  tag* Tg = vb->m_tag;
-  const type* T = Tg->m_types.second;
+  tag* ptr = vb->m_tag;
+  const type* T = ptr->m_types.second;
   m_delta += T->size();
   var* delta = expressions::primary::literal::integer::create(m_delta);
   return make_pair(offset, delta);
 }
 
-void cxx_compiler::record_impl::add_ctor(tag* Tg, const info& arg)
+void cxx_compiler::record_impl::add_ctor(tag* ptr, const info& arg)
 {
   using namespace std;
 
@@ -1732,15 +1732,15 @@ void cxx_compiler::record_impl::add_ctor(tag* Tg, const info& arg)
     return;
 
   usr* ctor = 0;
-  string tgn = Tg->m_name;
-  map<string, vector<usr*> >::const_iterator p = Tg->m_usrs.find(tgn);
-  if ( p == Tg->m_usrs.end() ){
+  string tgn = ptr->m_name;
+  map<string, vector<usr*> >::const_iterator p = ptr->m_usrs.find(tgn);
+  if ( p == ptr->m_usrs.end() ){
     vector<const type*> param;
     param.push_back(void_type::create());
     const type* T = func_type::create(0,param);
     usr::flag_t flag = usr::flag_t(usr::FUNCTION | usr::INLINE);
     ctor = new usr(tgn,T,flag,file_t());
-    Tg->m_usrs[tgn].push_back(ctor);
+    ptr->m_usrs[tgn].push_back(ctor);
   }
   else {
     const vector<usr*>& v = p->second;
@@ -1748,10 +1748,10 @@ void cxx_compiler::record_impl::add_ctor(tag* Tg, const info& arg)
   }
 
   scope* param = new scope(scope::PARAM);
-  param->m_parent = Tg;
-  Tg->m_children.push_back(param);
+  param->m_parent = ptr;
+  ptr->m_children.push_back(param);
   string name = "this";
-  const type* T = Tg->m_types.first;
+  const type* T = ptr->m_types.first;
   T = pointer_type::create(T);
   usr* This = new usr(name,T,usr::NONE,file_t());
   param->m_order.push_back(This);
@@ -1851,8 +1851,8 @@ int cxx_compiler::record_type::position(usr* member) const
 std::pair<int, const cxx_compiler::type*> cxx_compiler::record_type::current(int nth) const
 {
   using namespace std;
-  tag* tg = get_tag();
-  if ( tg->m_kind == tag::UNION && nth >= 1 )
+  tag* ptr = get_tag();
+  if ( ptr->m_kind == tag::UNION && nth >= 1 )
     return make_pair(-1,static_cast<const type*>(0));
   if ( m_member.size() <= nth )
     return make_pair(-1,static_cast<const type*>(0));

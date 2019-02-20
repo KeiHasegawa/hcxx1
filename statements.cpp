@@ -244,10 +244,10 @@ void cxx_compiler::statements::compound::gen_dtor(usr* u)
     return;
   typedef const record_type REC;
   REC* rec = static_cast<REC*>(T);
-  tag* Tg = rec->get_tag();
-  string name = Tg->m_name;
+  tag* ptr = rec->get_tag();
+  string name = ptr->m_name;
   name = "~" + name;
-  const map<string, vector<usr*> >& usrs = Tg->m_usrs;
+  const map<string, vector<usr*> >& usrs = ptr->m_usrs;
   map<string, vector<usr*> >::const_iterator p = usrs.find(name);
   if ( p == usrs.end() )
     return;

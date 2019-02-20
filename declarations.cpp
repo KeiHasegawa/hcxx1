@@ -488,9 +488,6 @@ cxx_compiler::declarations::action1(var* v, bool ini, bool lookuped)
   using namespace std;
   using namespace error::declarations::specifier_seq::type;
   usr* u = v->usr_cast();
-  if ( cxx_compiler_char == '+' ){  // Žb’è
-    return u;
-  }
   if ( !u ){
     /*
      Definition like
@@ -632,9 +629,9 @@ cxx_compiler::declarations::action1(var* v, bool ini, bool lookuped)
   if ( b && u->m_type->m_id == type::RECORD ){
     typedef const record_type REC;
     REC* rec = static_cast<REC*>(u->m_type);
-    tag* Tg = rec->get_tag();
-    string name = Tg->m_name;
-    const map<string, vector<usr*> >& usrs = Tg->m_usrs;
+    tag* ptr = rec->get_tag();
+    string name = ptr->m_name;
+    const map<string, vector<usr*> >& usrs = ptr->m_usrs;
     map<string, vector<usr*> >::const_iterator p = usrs.find(name);
     if ( p != usrs.end() ){
       const vector<usr*>& v = p->second;

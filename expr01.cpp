@@ -389,8 +389,8 @@ cxx_compiler::var* cxx_compiler::call_impl::ref_vftbl(usr* vf, var* vp)
   using namespace std;
   scope* ptr = vf->m_scope;
   assert(ptr->m_id == scope::TAG);
-  tag* Tg = static_cast<tag*>(ptr);
-  const type* T = Tg->m_types.second;
+  tag* ptag = static_cast<tag*>(ptr);
+  const type* T = ptag->m_types.second;
   assert(T->m_id == type::RECORD);
   typedef const record_type REC;
   REC* rec = static_cast<REC*>(T);

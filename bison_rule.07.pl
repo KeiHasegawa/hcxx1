@@ -22,7 +22,7 @@ while ( <> ){
 
 label:
 print <<EOF
-  if ( cxx_compiler::parse::member_function_body::g_restore.m_saved ) {
+  if (cxx_compiler::parse::member_function_body::saved) {
     YYDPRINTF((stderr, "rule.07 is applied\\n"));
     yystate = $xxx;
   }

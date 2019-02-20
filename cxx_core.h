@@ -385,7 +385,7 @@ struct var {
   virtual var* offref(const type*, var*);
   virtual const type* result_type() const { return m_type; }
   virtual bool isconstant(bool = false) const { return false; }
-  virtual __int64 value(){ return 0; }
+  virtual __int64 value() const { return 0; }
   virtual void if_code(statements::if_stmt::info_t*);
   virtual void while_code(statements::while_stmt::info_t*, to3ac*);
   virtual void for_code(statements::for_stmt::info_t*, to3ac*);
@@ -723,7 +723,7 @@ struct constant : usr {
   bool zero() const { return m_value == 0; }
   var* _not();
   bool isconstant(bool = false) const { return true; }
-  __int64 value(){ return m_value; }
+  __int64 value() const { return m_value; }
   void if_code(statements::if_stmt::info_t*);
   void while_code(statements::while_stmt::info_t*, to3ac*);
   void for_code(statements::for_stmt::info_t*, to3ac*);
@@ -1380,7 +1380,7 @@ template<> struct constant<void*> : usr {
 
   bool zero() const { return m_value == 0; }
   var* _not();
-  __int64 value(){ return (__int64)m_value; }
+  __int64 value() const { return (__int64)m_value; }
   bool isconstant(bool = false) const { return true; }
   void if_code(statements::if_stmt::info_t*);
   void while_code(statements::while_stmt::info_t*, to3ac*);

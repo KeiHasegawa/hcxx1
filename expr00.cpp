@@ -1167,7 +1167,7 @@ namespace cxx_compiler { namespace unqualified_id {
   struct search_info_t {
     tag* m_tag;
     std::vector<base*> m_route;
-    search_info_t(tag* Tg) : m_tag(Tg) {}
+    search_info_t(tag* ptr) : m_tag(ptr) {}
   };
   int base_search(base*, search_info_t*);
   block* get_block();
@@ -1259,10 +1259,10 @@ cxx_compiler::block* cxx_compiler::unqualified_id::get_block()
   return 0;
 }
 
-cxx_compiler::var* cxx_compiler::unqualified_id::dtor(tag* Tg)
+cxx_compiler::var* cxx_compiler::unqualified_id::dtor(tag* ptr)
 {
   using namespace std;
-  string name = "~" + Tg->m_name;
+  string name = "~" + ptr->m_name;
   const type* T = backpatch_type::create();
   var* ret = new usr(name,T,usr::DTOR,parse::position);
   return ret;

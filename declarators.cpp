@@ -360,12 +360,12 @@ cxx_compiler::declarations::declarators::function::definition::valid(const type*
     scope* ptr = func->m_scope;
     if ( ptr->m_id != scope::TAG )
       return false;
-    tag* Tg = static_cast<tag*>(ptr);
+    tag* ptag = static_cast<tag*>(ptr);
     if ( T->m_id != type::INCOMPLETE_TAGGED )
       return false;
     typedef const incomplete_tagged_type IT;
     IT* it = static_cast<IT*>(T);
-    return Tg == it->get_tag();
+    return ptag == it->get_tag();
   }
   return true;
 }
@@ -395,10 +395,10 @@ void cxx_compiler::declarations::declarators::function::definition::action(state
   auto_ptr<statements::base> sweeper(stmt);
   usr* u = fundef::current->m_usr;
   using namespace parse::member_function_body;
-  const map<usr*, saved>& tbl = parse::member_function_body::table;
-  map<usr*, saved>::const_iterator p = tbl.find(u);
-  if ( p != tbl.end() && !parse::member_function_body::g_restore.m_saved ){
-    const saved& tmp = p->second;
+  const map<usr*, save_t>& tbl = parse::member_function_body::table;
+  map<usr*, save_t>::const_iterator p = tbl.find(u);
+  if (p != tbl.end() && !parse::member_function_body::saved) {
+    const save_t& tmp = p->second;
     scope* ptr = tmp.m_param;
     ptr = ptr->m_parent;
     vector<scope*>& c = ptr->m_children;
@@ -594,7 +594,7 @@ namespace cxx_compiler { namespace declarations { namespace declarators { namesp
         type::collect_tmp(vt);
         info_t* info = new info_t(fdef,vc,vt);
         table[u] = info;
-        vector<scope*>& ch = scope::root.m_children;
+        vector<scope*>& ch = u->m_scope->m_children;
         assert(ch.size() == 1 && ch[0] == fdef->m_param);
         ch.clear();
         vc.clear();
