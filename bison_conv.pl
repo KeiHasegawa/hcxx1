@@ -3,7 +3,8 @@ print "#pragma warning ( disable : 4060 )\n";
 print "#include \"stdafx.h\"\n";
 print "#include \"yy.h\"\n";
 
-$flag = 0;
+$yychar_converted = 0;
+$rule08_inserted = 0;
 
 while ( <> ){
   chop;
@@ -11,25 +12,15 @@ while ( <> ){
   s/cxx\.tab\.c/cxx_y.cpp/;
   if ( /yychar = yylex \(\);/ ){
     print "      yychar = cxx_compiler::parse::get_token();\n";
-    ++$flag;
+    ++$yychar_converted;
     next;
   }
   if ( /yychar = YYLEX;/ ){
     print "      yychar = cxx_compiler::parse::get_token();\n";
-    ++$flag;
+    ++$yychar_converted;
     next;
   }
-  if ( /  yyvsp -= yylen;/ && !$rule08_done ){
-    print " #include \"rule.08\"\n";
-    $rule08_done = 1;
-  }
-  if ( /^yydestruct \(const char \*yymsg, int yytype, YYSTYPE \*yyvaluep\)$/ ){
-      $yydestruct = 1;
-  }
   print $_,"\n";
-  if ( /yystate = 0/ ){
-    print "#include \"rule.07\"\n";
-  }
   if ( /yystate = yydefgoto/ ){
     print "#include \"rule.00\"\n";
   }
@@ -45,6 +36,13 @@ while ( <> ){
   if ( /yyn.*=.*yydefact\[yystate\];/ ){
     print "#include \"rule.06\"\n";
   }
+  if ( /yystate = 0/ ){
+    print "#include \"rule.07\"\n";
+  }
+  if ( /YY_SYMBOL_PRINT \(\"-> \$\$ =\", yyr1\[yyn\], &yyval, &yyloc\);/ ){
+    print "#include \"rule.08\"\n";
+    ++$rule08_inserted;
+  }
   if (/^yyerrlab:/) {
       print<<EOF
   if (!cxx_compiler::parse::context_t::all.empty()) {
@@ -58,8 +56,14 @@ EOF
   }
 }
 
-if ( $flag != 1 ) {
+if ($yychar_converted != 1) {
     print STDERR "Error detected at $0\n";
-    print STDERR '$flag = ', $flag, "\n";
+    print STDERR '$yychar_converted = ', $yychar_converted, "\n";
+    exit 1;
+}
+
+if ($rule08_inserted != 1) {
+    print STDERR "Error detected at $0\n";
+    print STDERR '$rule08_inserted = ', $rule08_inserted, "\n";
     exit 1;
 }

@@ -454,12 +454,11 @@ void cxx_compiler::parse::block::enter()
     const type* T = tg->m_types.second;
     vector<scope*>& children = scope::current->m_children;
     scope::current = children.back();
-    if ( !T ){
+    if (!T) {
       parameter::decide_dim(), new_block(), parameter::move();
       usr::flag_t& flag = fundef::current->m_usr->m_flag;
       flag = usr::flag_t(flag | usr::INLINE);
-      member_function_body::save();
-      return;
+	  return member_function_body::save();
     }
     if ( !(fundef::current->m_usr->m_flag & usr::STATIC) ){
       T = pointer_type::create(T);
