@@ -11,6 +11,14 @@
 #  DDD unary_operator: '*' .
 #
 #---------------------------------------------
+#
+#  Example:
+#
+#  void f()
+#  {
+#    int* p;  // Declaration statement. Use ptr_operator -> '*'
+#    *p; // Expression statement. Use unary_operator -> '*'
+#  }
 
 while ( <> ){
     chop;
@@ -83,7 +91,8 @@ while ( <> ){
 
 print <<EOF
   if ( yystate == $xxx ){
-    if ( cxx_compiler::parse::identifier::flag != cxx_compiler::parse::identifier::new_obj ) {
+    using namespace cxx_compiler::parse;
+    if (identifier::mode != identifier::new_obj) {
       YYDPRINTF((stderr, "rule.01 is applied\\n"));
       yystate = $yyy;
     }

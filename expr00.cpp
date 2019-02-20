@@ -1243,7 +1243,7 @@ int cxx_compiler::unqualified_id::base_search(base* bp, search_info_t* info)
 cxx_compiler::block* cxx_compiler::unqualified_id::get_block()
 {
   using namespace std;
-  if ( parse::identifier::flag == parse::identifier::member ){
+  if ( parse::identifier::mode == parse::identifier::member ){
     const stack<expressions::postfix::member::info_t*>& s =
       expressions::postfix::member::handling;
     assert(!s.empty());

@@ -1,6 +1,14 @@
 #State XXX
 #
 #   YYY function_definition: function_definition_begin1 . function_body
+#
+#   Example:
+#
+#   struct S {
+#     int f(){ A x; x = 1.0; return x + a; }
+#     typedef double A;
+#     int a;
+#   };
 
 while ( <> ){
     chop;

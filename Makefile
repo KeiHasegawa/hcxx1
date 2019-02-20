@@ -70,9 +70,13 @@ warning_utf.cpp:warning_euc.cpp
 
 OBJS = $(SRCS:.cpp=.o)
 
-RULES = rule.00 rule.01 rule.02 rule.03 rule.04 \
+RULES = rule.00 rule.01 rule.02 rule.03 \
         rule.06 rule.07 rule.08 rule.09 \
-        rule.10 rule.11 rule.12 \
+        rule.10
+
+RULES_HEADER = rule.03.h
+
+parse.o : $(RULES_HEADER)
 
 $(OBJS) : cxx_y.h
 
@@ -90,41 +94,35 @@ cxx_y.h:bison_script bison_conv.pl cxx.y
 cxx_y.output:bison_script bison_conv.pl cxx.y
 	./bison_script cxx.y
 
-rule.00:cxx_y.output
+rule.00:cxx_y.output bison_rule.00.pl
 	perl bison_rule.00.pl $< > $@
 
-rule.01:cxx_y.output
+rule.01:cxx_y.output bison_rule.01.pl
 	perl bison_rule.01.pl $< > $@
 
-rule.02:cxx_y.output
+rule.02:cxx_y.output bison_rule.02.pl
 	perl bison_rule.02.pl $< > $@
 
-rule.03:cxx_y.output
+rule.03:cxx_y.output bison_rule.03.pl
 	perl bison_rule.03.pl $< > $@
 
-rule.04:cxx_y.output
-	perl bison_rule.04.pl $< > $@
+rule.03.h:cxx_y.output bison_rule.03.pl
+	perl bison_rule.03.pl -h $< > $@
 
-rule.06:cxx_y.output
+rule.06:cxx_y.output bison_rule.06.pl
 	perl bison_rule.06.pl $< > $@
 
-rule.07:cxx_y.output
+rule.07:cxx_y.output bison_rule.07.pl
 	perl bison_rule.07.pl $< > $@
 
-rule.08:cxx_y.output
+rule.08:cxx_y.output bison_rule.08.pl
 	perl bison_rule.08.pl $< > $@
 
-rule.09:cxx_y.output
+rule.09:cxx_y.output bison_rule.09.pl
 	perl bison_rule.09.pl $< > $@
 
-rule.10:cxx_y.output
+rule.10:cxx_y.output bison_rule.10.pl
 	perl bison_rule.10.pl $< > $@
-
-rule.11:cxx_y.output
-	perl bison_rule.11.pl $< > $@
-
-rule.12:cxx_y.output
-	perl bison_rule.12.pl $< > $@
 
 DEBUG_FLAG = -g
 CXXFLAGS = -w $(DEBUG_FLAG) -DYYDEBUG
@@ -141,7 +139,7 @@ RM = rm -r -f
 
 clean:
 	$(RM) cxx_l.cpp* cxx_y.cpp* cxx_y.h
-	$(RM) $(RULES)
+	$(RM) $(RULES) $(RULES_HEADER)
 	$(RM) cxx_y.out*
 	$(RM) $(PROG) *.o *.stackdump *~
 	$(RM) .vs Debug Release x64

@@ -57,12 +57,6 @@ void cxx_compiler_error(const char* msg)
   using namespace std;
   using namespace cxx_compiler;
 
-	if ( cxx_compiler_char == '+' ){
-		parse::g_read.m_token.push_front(make_pair('+',file_t()));
-		cxx_compiler_char = -2; /* YYEMPTY */
-		return;
-	}
-
   switch ( error::lang ){
 #ifndef __GNUC__
   case error::jpn:

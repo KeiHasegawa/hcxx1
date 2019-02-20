@@ -2,6 +2,16 @@
 # 
 #   YYY type_name: class_name .
 #   ZZZ class_or_namespace_name: class_name .
+#
+#   Example:
+#
+#   struct T { void f(); };
+#
+#   void T::f()
+#   {
+#     // ...
+#   }
+#
 
 while ( <> ){
     chop;
@@ -18,7 +28,7 @@ while ( <> ){
 
 label:
 print <<EOF
-  if ( yystate == $xxx && cxx_compiler::parse::identifier::g_peek_coloncolon ) {
+  if (yystate == $xxx && cxx_compiler::parse::peek() == COLONCOLON_MK) {
     YYDPRINTF((stderr, "rule.06 is applied\\n"));
     yyn = $zzz + 1;
   }

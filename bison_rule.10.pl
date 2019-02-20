@@ -9,6 +9,22 @@
 #  GGG                  | direct_declarator . begin_array end_array
 #  HHH                  | direct_declarator . begin_array '*' end_array
 #
+#  Example:
+#
+#  struct T { T(int); };
+#
+#  void f(int a)
+#  {
+#    T t1();   // function declaration
+#    T t2(a);  // variable definition
+#  }
+#
+use Getopt::Long;
+
+$opt_header = 0;
+
+GetOptions('header' => \$opt_header);
+
 
 while ( <> ){
     chop;
@@ -48,42 +64,28 @@ while ( <> ){
     if ( !/| direct_declarator \. begin_array '*' end_array/ ){
 	next;
     }
+    if ($opt_header) {
+	goto label2;
+    }
     goto label;
 }
 
 label:
 print <<EOF
-  if ( yystate == $xxx ){
-    using namespace std;
-    int n = (cxx_compiler_char == YYEMPTY) ? cxx_compiler::parse::peek() : cxx_compiler_char;
-    if ( n == '(' ){
+  if (yystate == $xxx && yychar == '(') {
+    if (!cxx_compiler::parse::context_t::retry[$xxx])
+      cxx_compiler::parse::save(yystate, yyss, yyssp, yyvs, yyvsp);
+    else {
       YYDPRINTF((stderr, "rule.10 is applied\\n"));
-      cxx_compiler::parse::identifier::flag = cxx_compiler::parse::identifier::look;
-      n = cxx_compiler::parse::get_token();
-      if ( n == INTEGER_LITERAL_LEX ){
-        cxx_compiler::parse::g_read.m_token.push_front(make_pair(n,cxx_compiler::parse::position));
-		cxx_compiler::parse::g_read.m_lval.push_front(cxx_compiler_lval.m_usr);
-        yyn = $aaa + 1;
-        goto yyreduce;
-      }
-      else {
-        cxx_compiler::parse::g_read.m_token.push_front(make_pair(n,cxx_compiler::parse::position));
-		switch ( n ) {
-		case IDENTIFIER_LEX:
-		case INTEGER_LITERAL_LEX:
-		case CHARACTER_LITERAL_LEX:
-		case FLOATING_LITERAL_LEX:
-		case TYPEDEF_NAME_LEX:
-		case STRING_LITERAL_LEX:
-		case CLASS_NAME_LEX:
-		case ENUM_NAME_LEX:
-		case DEFAULT_KW:
-		case ORIGINAL_NAMESPACE_NAME_LEX:
-		case NAMESPACE_ALIAS_LEX:
-			cxx_compiler::parse::g_read.m_lval.push_front(cxx_compiler_lval.m_usr);
-			break;
-		}
-      }
+      yyn = $aaa + 1;
+      goto yyreduce;
     }
   }
 EOF
+    ;
+exit;
+
+label2:
+print <<EOF2
+const int DECLARATOR_ID_CONFLICT_STATE = $xxx ;
+EOF2

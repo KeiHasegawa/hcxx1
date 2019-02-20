@@ -1,6 +1,14 @@
 #State XXX
 # 
 #     YYY declaration: function_definition .
+#
+#   Example:
+#
+#   struct S {
+#     int f(){ A x; x = 1.0; return x + a; }
+#     typedef double A;
+#     int a;
+#   };
 
 while ( <> ){
     chop;
@@ -16,7 +24,7 @@ label:
 print <<EOF
   if ( cxx_compiler::parse::member_function_body::g_restore.m_saved &&
        yystate == $xxx ) {
-    YYDPRINTF((stderr "rule.08 is applied\n"));
+    YYDPRINTF((stderr "rule.08 is applied\\n"));
     return 0;
   }
 EOF

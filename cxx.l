@@ -211,16 +211,6 @@ while               { return WHILE_KW; }
 {string-literal}           { cxx_compiler_lval.m_var = cxx_compiler::expressions::primary::literal::stringa::create(cxx_compiler::ucn::conv(yytext)); return STRING_LITERAL_LEX; }
 [ \t]    {}
 \n|\r\n  { ++cxx_compiler::parse::position.m_lineno; }
-\(                         {
-                             if ( cxx_compiler::parse::parameter::depth )
-                               cxx_compiler::parse::identifier::g_maybe_absdecl = true;
-                             return '(';
-                           }
-\)                         {
-                             if ( cxx_compiler::parse::parameter::depth )
-                               cxx_compiler::parse::identifier::g_maybe_absdecl = false;
-                             return ')';
-                           }
 .        { return yytext[0]; }
 
 %%

@@ -4,6 +4,19 @@
 #  BBB                      | class_or_namespace_name COLONCOLON_MK .
 #  CCC                      | class_or_namespace_name COLONCOLON_MK . TEMPLATE_KW nested_name_specifier
 #
+#  Example:
+#
+#  namespace N {
+#    struct outer {
+#      struct inner {
+#        // ...
+#      };
+#      // ...
+#    };
+#  }
+#
+#  N::outer::inner x;
+#
 
 while ( <> ){
     chop;
@@ -27,9 +40,8 @@ while ( <> ){
 
 label:
 print <<EOF
-  if ( yystate == $xxx ){
-    cxx_compiler::parse::peek();
-    if ( !cxx_compiler::parse::identifier::g_peek_coloncolon ) {
+  if (yystate == $xxx) {
+    if (cxx_compiler::parse::peek() != COLONCOLON_MK) {
       YYDPRINTF((stderr, "rule.09 is applied\\n"));
       goto yydefault;
     }

@@ -4,11 +4,9 @@ perl bison_rule.00.pl cxx_y.output > rule.00
 perl bison_rule.01.pl cxx_y.output > rule.01
 perl bison_rule.02.pl cxx_y.output > rule.02
 perl bison_rule.03.pl cxx_y.output > rule.03
-perl bison_rule.04.pl cxx_y.output > rule.04
+perl bison_rule.03.pl -h cxx_y.output > rule.03.h
 perl bison_rule.06.pl cxx_y.output > rule.06
 perl bison_rule.07.pl cxx_y.output > rule.07
 perl bison_rule.08.pl cxx_y.output > rule.08
 perl bison_rule.09.pl cxx_y.output > rule.09
 perl bison_rule.10.pl cxx_y.output > rule.10
-perl bison_rule.11.pl cxx_y.output > rule.11
-perl bison_rule.12.pl cxx_y.output > rule.12

@@ -1,6 +1,8 @@
 #ifndef _CXX_IMPL_H_
 #define _CXX_IMPL_H_
 
+union YYSTYPE;
+
 namespace cxx_compiler {
 
 using namespace std;  
@@ -38,22 +40,36 @@ namespace ucn {
 namespace parse {
   extern file_t position;
   extern void delete_buffer();
-  struct read {
+  struct read_t {
     list<pair<int,file_t> > m_token;
     list<void*> m_lval;
   };
-  extern void debug();
-  extern read g_read;
+  struct context_t {
+    int m_state;
+    vector<short> m_stack0;
+	vector<void*> m_stack1;
+    int m_char;
+    read_t m_read;
+    context_t(int state, const vector<short>& vs, const vector<void*>& vv, int c)
+    : m_state(state), m_stack0(vs), m_stack1(vv), m_char(c) {}
+    static vector<context_t> all;
+    static map<int, int> retry;
+    static void clear(){ all.clear(); retry.clear(); }
+  };
+  extern void save(int state, short* b0, short* t0, YYSTYPE* b1, YYSTYPE* t1);
+  extern void restore(int* state, short** b0, short** t0, short* a0,
+		      YYSTYPE** b1, YYSTYPE** t1, YYSTYPE* a1);
+  extern void common(int token, list<void*>& lval);
+  
+  extern read_t g_read;
   extern int last_token;
   extern int get_token();
   extern int peek();
   extern int lex_and_save();
   namespace identifier {
     extern int judge(string);
-    enum flag_t { look, new_obj, member, peeking };
-    extern flag_t flag;
-    extern bool g_maybe_absdecl;
-    extern bool g_peek_coloncolon;
+    enum mode_t { look, new_obj, member, peeking };
+    extern mode_t mode;
   } // end of namespace identifier
   extern bool is_last_decl;
   namespace parameter {
@@ -73,18 +89,12 @@ namespace parse {
       saved() : m_param(0) {}
     };
     extern map<usr*, saved> table;
-    struct restore {
+    struct restore_t {
       saved* m_saved;
     };
-    extern restore g_restore;
+    extern restore_t g_restore;
     extern int get_token();
   } // end of namespace member_function_body
-  struct backtrack {
-    void* m_point;
-    int m_way;
-    backtrack(void* point) : m_point(point), m_way(0) {}
-    static stack<backtrack> g_stack;
-  };
 } // end of namespace parse
 
 typedef pair<const fundef*, vector<tac*> > FUNCS_ELEMENT_TYPE;
@@ -732,13 +742,12 @@ namespace expressions {
       ~ppmm(){ delete m_expr; }
     };
     struct fcast : base {
-      declarations::type_specifier* m_type_specifier;
       vector<base*>* m_list;
       file_t m_file;
       var* gen();
       const file_t& file() const { return m_file; }
-      fcast(declarations::type_specifier* type, vector<base*>* list)
-        : m_type_specifier(type), m_list(list), m_file(parse::position) {}
+      fcast(vector<base*>* list)
+        : m_list(list), m_file(parse::position) {}
     };
   } // end of namespace postfix
   namespace unary {
@@ -911,7 +920,7 @@ namespace statements {
     struct info_t : base {
       vector<base*>* m_bases;
       scope* m_scope;
-      info_t(vector<base*>* bases, scope* scope) : m_bases(bases), m_scope(scope) {}
+      info_t(vector<base*>* bases, scope* ptr) : m_bases(bases), m_scope(ptr) {}
       int gen();
       ~info_t();
     };

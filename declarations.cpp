@@ -26,6 +26,7 @@ void cxx_compiler::declarations::destroy()
     dump::names::reset();
   class_or_namespace_name::after();
   class_or_namespace_name::last = 0;
+  parse::context_t::clear();
 }
 
 cxx_compiler::declarations::specifier::specifier(type_specifier* spec)
@@ -59,26 +60,26 @@ cxx_compiler::declarations::type_specifier::type_specifier(int n)
 		int debug = 1;
 	}
   if ( VOID_KW <= m_keyword && m_keyword <= UNSIGNED_KW )
-    parse::identifier::flag = parse::identifier::new_obj;
+    parse::identifier::mode = parse::identifier::new_obj;
 }
 
 cxx_compiler::declarations::type_specifier::type_specifier(const type* T)
  : m_keyword(0), m_type(T), m_usr(0)
 {
-  parse::identifier::flag = parse::identifier::new_obj;
+  parse::identifier::mode = parse::identifier::new_obj;
 }
 
 cxx_compiler::declarations::type_specifier::type_specifier(usr* u)
  : m_keyword(0), m_type(0), m_usr(u)
 {
-  parse::identifier::flag = parse::identifier::new_obj;
+  parse::identifier::mode = parse::identifier::new_obj;
 }
 
 cxx_compiler::declarations::type_specifier::type_specifier(tag* Tag)
  : m_keyword(0), m_type(0), m_usr(0)
 {
   m_type = Tag->m_types.second ? Tag->m_types.second : Tag->m_types.first;
-  parse::identifier::flag = parse::identifier::new_obj;
+  parse::identifier::mode = parse::identifier::new_obj;
 }
 
 namespace cxx_compiler { namespace declarations { namespace specifier_seq { namespace flag {
@@ -143,7 +144,7 @@ cxx_compiler::declarations::specifier_seq::info_t::info_t(info_t* prev, specifie
 
 void cxx_compiler::declarations::specifier_seq::info_t::clear()
 {
-  parse::identifier::flag = parse::identifier::look; s_stack.push(0);
+  parse::identifier::mode = parse::identifier::look; s_stack.push(0);
 }
 
 cxx_compiler::declarations::specifier_seq::flag::table::table()
@@ -537,7 +538,7 @@ cxx_compiler::declarations::action1(var* v, bool ini, bool lookuped)
     u = tmp;
   }
   if ( ini ){
-    parse::identifier::flag = parse::identifier::look;
+    parse::identifier::mode = parse::identifier::look;
     if ( duration::_static(u) ){
       with_initial* p = new with_initial(*u);
       delete u;

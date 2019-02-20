@@ -32,13 +32,14 @@ const cxx_compiler::type* cxx_compiler::declarations::declarators::reference::ac
   return reference_type::create(backpatch_type::create());
 }
 
-const cxx_compiler::type*
-cxx_compiler::declarations::declarators::function::action(const type* T,
-                                                          std::vector<const type*>* pdc,
-                                                          var* v,
-                                                          std::vector<int>* cvr)
+const cxx_compiler::type* cxx_compiler::declarations::declarators::
+function::action(const type* T,
+                 std::vector<const type*>* pdc,
+                 var* v,
+                 std::vector<int>* cvr)
 {
   using namespace std;
+  parse::context_t::clear();  
   auto_ptr<vector<const type*> > sweeper1(pdc);
   auto_ptr<vector<int> > sweeper2(cvr);
   usr* u = v ? v->usr_cast() : 0;
@@ -89,21 +90,21 @@ cxx_compiler::declarations::declarators::function::parameter(specifier_seq::info
       flag = u->m_flag = p->m_flag = usr::flag_t(flag & ~mask);
     }
     u = declarations::action1(u,false,false);
-	T = u->m_type;
-	if (PT* pt = T->ptr_gen()) {
+    T = u->m_type;
+    if (PT* pt = T->ptr_gen()) {
       T = u->m_type = pt;
-	  u->m_flag = usr::flag_t(u->m_flag & ~(usr::FUNCTION | usr::VL));
-	}
-	return T;
+      u->m_flag = usr::flag_t(u->m_flag & ~(usr::FUNCTION | usr::VL));
+    }
+    return T;
   }
   else {
     if ( !p->m_type || !p->m_tmp.empty() )
       p->update();
     usr::flag_t flag = p->m_flag;
-	if (flag & mask) {
-	  error::declarations::declarators::function::parameter::invalid_storage(parse::position, 0);
-	  flag = p->m_flag = usr::flag_t(flag & ~mask);
-	}
+    if (flag & mask) {
+      error::declarations::declarators::function::parameter::invalid_storage(parse::position, 0);
+      flag = p->m_flag = usr::flag_t(flag & ~mask);
+    }
     const type* T = p->m_type;
     if (PT* pt = T->ptr_gen())
       T = pt;
@@ -139,7 +140,7 @@ cxx_compiler::declarations::declarators::function::parameter(specifier_seq::info
   T = u->m_type;
   if (PT* pt = T->ptr_gen()) {
     T = u->m_type = pt;
-	u->m_flag = usr::flag_t(u->m_flag & ~(usr::FUNCTION | usr::VL));
+    u->m_flag = usr::flag_t(u->m_flag & ~(usr::FUNCTION | usr::VL));
   }
   return T;
 }
@@ -300,7 +301,7 @@ cxx_compiler::declarations::declarators::function::definition::begin(declaration
     u = ref->usr_cast();
   }
   auto_ptr<declarations::specifier_seq::info_t> sweeper(p);
-  parse::identifier::flag = parse::identifier::look;
+  parse::identifier::mode = parse::identifier::look;
   u = declarations::action1(u,false, u != v);
   vector<scope*>& children = scope::current->m_children;
   if ( children.empty() ){

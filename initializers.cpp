@@ -64,7 +64,7 @@ void cxx_compiler::declarations::initializers::action(var* v, info_t* i)
     if ( arg.not_constant )
       initialize_code(p);
   }
-  parse::identifier::flag = parse::identifier::new_obj;
+  parse::identifier::mode = parse::identifier::new_obj;
 }
 
 namespace cxx_compiler { namespace declarations { namespace initializers {
@@ -185,13 +185,8 @@ int cxx_compiler::declarations::initializers::clause::assign(var* y, argument* a
   if ( y->addrof_cast() ){
     vector<var*>& v = garbage;
     vector<var*>::reverse_iterator p = find(v.rbegin(),v.rend(),y);
-#if 0
-	assert(p != v.rend());
-    v.erase(p.base()-1);
-#else
     if (p != v.rend())
       v.erase(p.base()-1);
-#endif
   }
   arg->V[arg->off] = y;
   arg->nth_max = max(arg->nth_max,++arg->nth);

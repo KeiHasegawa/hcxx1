@@ -10,6 +10,13 @@
 #  CCC primary_expression: id_expression .
 #
 #---------------------------------------------
+#
+#  void f()
+#  {
+#    int n;  // Declaration statement. Use `declarator_id -> id_expression'
+#    n;  // Expression statement. Use `primary_expression -> id_expression'
+#  }
+#
 
 while ( <> ){
     chop;
@@ -67,7 +74,8 @@ while ( <> ){
 
 print <<EOF
   if ( yystate == $xxx ){
-    if ( cxx_compiler::parse::identifier::flag != cxx_compiler::parse::identifier::new_obj ) {
+    using namespace cxx_compiler::parse;
+    if (identifier::mode != identifier::new_obj) {
       YYDPRINTF((stderr, "rule.00 is applied\\n"));
       yystate = $yyy;
     }

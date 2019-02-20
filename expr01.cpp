@@ -705,7 +705,7 @@ cxx_compiler::expressions::postfix::member::begin(base* expr, bool dot)
   tag* Tag = T->get_tag();
   if ( Tag && Tag->m_kind != tag::ENUM ){
     scope::current = Tag;
-    parse::identifier::flag = parse::identifier::member;
+    parse::identifier::mode = parse::identifier::member;
   }
   else {
     using namespace error::expressions::postfix::member;
@@ -720,7 +720,7 @@ cxx_compiler::expressions::postfix::member::end(info_t* info, var* member)
 {
   info->m_member = member;
   scope::current = info->m_scope;
-  parse::identifier::flag = parse::identifier::look;
+  parse::identifier::mode = parse::identifier::look;
   if ( !handling.empty() )
     handling.pop();
   return info;
@@ -1215,9 +1215,9 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::fcast::gen()
 {
   using namespace std;
   using namespace declarations;
-  specifier_seq::info_t tmp(0,new specifier(m_type_specifier));
-  tmp.update();
-  const type* T = tmp.m_type;
+  specifier_seq::info_t* p = specifier_seq::info_t::s_stack.top();
+  p->update();
+  const type* T = p->m_type;
   vector<var*> arg;
   if ( m_list )
     transform(m_list->begin(),m_list->end(),back_inserter(arg),mem_fun(&base::gen));

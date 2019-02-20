@@ -26,41 +26,35 @@ while ( <> ){
   if ( /^yydestruct \(const char \*yymsg, int yytype, YYSTYPE \*yyvaluep\)$/ ){
       $yydestruct = 1;
   }
-  if ( $yydestruct == 1 && /^\}$/) {
-      print " #include \"rule.11\"\n";
-      $yydestruct = 0;
-  }
   print $_,"\n";
   if ( /yystate = 0/ ){
-    print " #include \"rule.07\"\n";
+    print "#include \"rule.07\"\n";
   }
   if ( /yystate = yydefgoto/ ){
-    print " #include \"rule.00\"\n";
+    print "#include \"rule.00\"\n";
   }
   if ( /yystate = yyn/ ){
-    print " #include \"rule.01\"\n";
-    print " #include \"rule.02\"\n";
+    print "#include \"rule.01\"\n";
+    print "#include \"rule.02\"\n";
   }
   if ( /goto yydefault;/ ){
-    print " #include \"rule.03\"\n";
-    print " #include \"rule.04\"\n";
-    print " #include \"rule.09\"\n";
-    print " #include \"rule.10\"\n";
+    print "#include \"rule.03\"\n";
+    print "#include \"rule.09\"\n";
+    print "#include \"rule.10\"\n";
   }
   if ( /yyn.*=.*yydefact\[yystate\];/ ){
-    print " #include \"rule.06\"\n";
+    print "#include \"rule.06\"\n";
   }
-  if ( /YYPOPSTACK \(1\)/ ) {
-      $backtrack = 1;
-      next;
+  if (/^yyerrlab:/) {
+      print<<EOF
+  if (!cxx_compiler::parse::context_t::all.empty()) {
+    cxx_compiler::parse::restore(&yystate, &yyss, &yyssp, yyssa, &yyvs, &yyvsp, yyvsa);
+    ++cxx_compiler::parse::context_t::retry[yystate];
+    YYDPRINTF((stderr, "retry!\\n"));
+    YY_STACK_PRINT(yyss, yyssp);
+    goto yynewstate;
   }
-  if ( $backtrack == 1 && /yystate = \*yyssp;/ ){
-      print " #include \"rule.12\"\n";
-      $backtrack = 0;
-      next;
-  }
-  if ( /Not known/ ){
-      print "hasegawa_magic:\n";
+EOF
   }
 }
 

@@ -1,8 +1,0 @@
-void g(char*);
-
-int f(void)
-{
-  char a[] = "hello";
-  g(&a[0]);
-  return sizeof "world";
-}

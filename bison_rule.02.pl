@@ -10,6 +10,15 @@
 #  CCC unary_operator: '&' .
 #
 #---------------------------------------------
+#
+#  Example:
+#
+#  void f(int n)
+#  {
+#    int& r = n;  // Declaration statement. Use ptr_operator -> '&'
+#    &r; // Expression statement. Use unary_operator -> '&'
+#  }
+
 while ( <> ){
     chop;
     if ( /^[Ss]tate (.*)/ ){
@@ -67,7 +76,7 @@ while ( <> ){
 
 print <<EOF
   if ( yystate == $xxx ){
-    if ( cxx_compiler::parse::identifier::flag != cxx_compiler::parse::identifier::new_obj ) {
+    if ( cxx_compiler::parse::identifier::mode != cxx_compiler::parse::identifier::new_obj ) {
       YYDPRINTF((stderr, "rule.02 is applied\\n"));
       yystate = $yyy;
     }

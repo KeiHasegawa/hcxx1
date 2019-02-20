@@ -1,33 +1,35 @@
 #include "stdafx.h"
 #include "cxx_core.h"
 #include "cxx_impl.h"
-#include "yy.h"
 #include "cxx_y.h"
+#include "yy.h"
+#include "rule.03.h"
 
-cxx_compiler::file_t cxx_compiler::parse::position;
-
-namespace cxx_compiler { namespace parse { namespace identifier {
-  flag_t flag;
-  bool g_peek_coloncolon;
-  bool g_maybe_absdecl;
-  int create(std::string, const type* = backpatch_type::create());
-  int lookup(std::string, scope*);
-} } } // end of namespace identifier, parse and cxx_compiler
+namespace cxx_compiler {
+  namespace parse {
+    file_t position;
+    namespace identifier {
+      mode_t mode;
+      int create(std::string, const type* = backpatch_type::create());
+      int lookup(std::string, scope*);
+    } // end of namespace identifier
+  } // end of namespace parse and
+} // end of namespace cxx_compiler
 
 int cxx_compiler::parse::identifier::judge(std::string name)
 {
-  if ( flag == peeking )
+  if ( mode == peeking )
     return create(name);
-  if ( g_maybe_absdecl ){
+  if (last_token == '(' && scope::current->m_id == scope::PARAM){
     if ( lookup(name,scope::current) == TYPEDEF_NAME_LEX )
       return TYPEDEF_NAME_LEX;
   }
   int c = peek();
-  if ( c == COLONCOLON_MK ){
-    g_peek_coloncolon = true;
-    return lookup(name,scope::current);
+  if (c == COLONCOLON_MK) {
+    if (int r = lookup(name,scope::current))
+      return r;
   }
-  if ( c == '(' ){
+  if (c == '(') {
     if ( scope::current->m_id == scope::TAG ){
       tag* Tg = static_cast<tag*>(scope::current);
       if ( Tg->m_name == name ){
@@ -45,10 +47,8 @@ int cxx_compiler::parse::identifier::judge(std::string name)
       }
     }
   }
-  g_peek_coloncolon = false;
-  if ( flag != new_obj )
-    return lookup(name,scope::current);
-  return create(name);
+
+  return mode != new_obj ? lookup(name, scope::current) : create(name);
 }
 
 int cxx_compiler::parse::identifier::create(std::string name, const type* T)
@@ -76,49 +76,49 @@ int cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
   using namespace std;
   const map<string, vector<usr*> >& usrs = ptr->m_usrs;
   map<string, vector<usr*> >::const_iterator p = usrs.find(name);
-  if ( p != usrs.end() ){
+  if (p != usrs.end()) {
     const vector<usr*>& v = p->second;
     usr* u = v.back();
     cxx_compiler_lval.m_usr = u;
-    if ( u->m_flag & usr::ENUM_MEMBER ){
+    if (u->m_flag & usr::ENUM_MEMBER) {
       cxx_compiler_lval.m_usr = static_cast<enum_member*>(u)->m_value;
       return INTEGER_LITERAL_LEX;
     }
-    if ( u->m_flag & usr::TYPEDEF ) {
+    if (u->m_flag & usr::TYPEDEF) {
       type_def* tdef = static_cast<type_def*>(u);
-	  tdef->m_refed.push_back(parse::position);
+      tdef->m_refed.push_back(parse::position);
       return TYPEDEF_NAME_LEX;
-	}
-    if ( u->m_flag & usr::OVERLOAD )
+    }
+    if (u->m_flag & usr::OVERLOAD)
       return IDENTIFIER_LEX;
-    if ( u->m_flag & usr::NAMESPACE ){
+    if (u->m_flag & usr::NAMESPACE) {
       cxx_compiler_lval.m_name_space = static_cast<name_space*>(u);
       return ORIGINAL_NAMESPACE_NAME_LEX;
     }
     const type* T = u->m_type;
-    if ( const pointer_type* G = T->ptr_gen() )
+    if (const pointer_type* G = T->ptr_gen())
       garbage.push_back(cxx_compiler_lval.m_var = new genaddr(G,T,u,0));
     return IDENTIFIER_LEX;
   }
   const map<string, tag*>& tags = ptr->m_tags;
   map<string, tag*>::const_iterator q = tags.find(name);
-  if ( q != tags.end() ){
-    tag* Tag = q->second;
+  if (q != tags.end()) {
+    tag* ptag = q->second;
     cxx_compiler_lval.m_tag = q->second;
-    return Tag->m_kind == tag::ENUM ? ENUM_NAME_LEX : CLASS_NAME_LEX;
+    return ptag->m_kind == tag::ENUM ? ENUM_NAME_LEX : CLASS_NAME_LEX;
   }
-  if ( flag == member ){
+  if (mode == member) {
     assert(scope::current->m_id == scope::TAG);
-    tag* Tg = static_cast<tag*>(scope::current);
-    if ( int n = bases_lookup(name,Tg) )
-      return n;
+    tag* ptag = static_cast<tag*>(scope::current);
+    if (int r = bases_lookup(name, ptag))
+      return r;
     error::undeclared(parse::position,name);
     return create(name,int_type::create());
   }
   else {
-    if ( ptr->m_id == scope::TAG ){
-      tag* Tg = static_cast<tag*>(ptr);
-      if ( int n = bases_lookup(name,Tg) )
+    if (ptr->m_id == scope::TAG) {
+      tag* ptag = static_cast<tag*>(ptr);
+      if ( int n = bases_lookup(name,ptag) )
         return n;
     }
     if ( ptr->m_parent )
@@ -126,11 +126,13 @@ int cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
     else {
       if ( name == "__func__" )
         return underscore_func::action();
-      if ( g_maybe_absdecl )
+#if 0  // compile out 2019.02.20
+      if (last_token == '(' && scope::current->m_id == scope::PARAM)
         return 0;
-      if ( peek() == ':' ) // identifier ':' statement
+#endif
+      if ( peek() == ':' ) // for labeled-statement
         return create(name);
-      if ( last_token == NAMESPACE_KW )
+      if (last_token == NAMESPACE_KW)
         return create(name);
       error::undeclared(parse::position,name);
       return create(name,int_type::create());
@@ -138,7 +140,7 @@ int cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
   }
 }
 
-cxx_compiler::parse::read cxx_compiler::parse::g_read;
+cxx_compiler::parse::read_t cxx_compiler::parse::g_read;
 
 int cxx_compiler::parse::peek()
 {
@@ -155,10 +157,10 @@ int cxx_compiler::parse::peek()
     return token.front().first;
   }
 
-  identifier::flag_t org = identifier::flag;
-  identifier::flag = identifier::peeking;
+  identifier::mode_t org = identifier::mode;
+  identifier::mode = identifier::peeking;
   int r = lex_and_save();
-  identifier::flag = org;
+  identifier::mode = org;
   return r;
 }
 
@@ -167,33 +169,52 @@ int cxx_compiler::parse::lex_and_save()
   using namespace std;
   int n = cxx_compiler_lex();
   g_read.m_token.push_back(make_pair(n,position));
+  common(n , g_read.m_lval);
+  return n;
+}
+
+void cxx_compiler::parse::common(int n, std::list<void*>& lval)
+{
   switch ( n ){
   case IDENTIFIER_LEX:
-    g_read.m_lval.push_back(cxx_compiler_lval.m_var);
+    lval.push_back(cxx_compiler_lval.m_var);
     break;
   case INTEGER_LITERAL_LEX:
   case CHARACTER_LITERAL_LEX:
   case FLOATING_LITERAL_LEX:
   case TYPEDEF_NAME_LEX:
-    g_read.m_lval.push_back(cxx_compiler_lval.m_usr);
+    lval.push_back(cxx_compiler_lval.m_usr);
     break;
   case STRING_LITERAL_LEX:
-    g_read.m_lval.push_back(cxx_compiler_lval.m_var);
+    lval.push_back(cxx_compiler_lval.m_var);
     break;
   case CLASS_NAME_LEX:
   case ENUM_NAME_LEX:
-    g_read.m_lval.push_back(cxx_compiler_lval.m_tag);
+    lval.push_back(cxx_compiler_lval.m_tag);
     break;
   case DEFAULT_KW:
-    g_read.m_lval.push_back(cxx_compiler_lval.m_file);
+    lval.push_back(cxx_compiler_lval.m_file);
     break;
   case ORIGINAL_NAMESPACE_NAME_LEX:
   case NAMESPACE_ALIAS_LEX:
-    g_read.m_lval.push_back(cxx_compiler_lval.m_name_space);
+    lval.push_back(cxx_compiler_lval.m_name_space);
     break;
   }
-  return n;
 }
+
+namespace cxx_compiler {
+  namespace parse {
+    inline int save_if()
+    {
+      if (!context_t::all.empty()) {
+        context_t& x = context_t::all.back();
+        x.m_read.m_token.push_back(make_pair(last_token,position));
+        common(last_token, x.m_read.m_lval);
+      }
+      return last_token;
+    }
+  } // end of namesapce parse
+} // end of namesapce cxx_compiler
 
 int cxx_compiler::parse::get_token()
 {
@@ -205,6 +226,12 @@ int cxx_compiler::parse::get_token()
     case IDENTIFIER_LEX:
       cxx_compiler_lval.m_var = static_cast<var*>(g_read.m_lval.front());
       g_read.m_lval.pop_front();
+      if (context_t::retry[DECL_FCAST_CONFLICT_STATE]) {
+        usr* u = static_cast<usr*>(cxx_compiler_lval.m_var);
+        assert(u->m_type->m_id == type::BACKPATCH);
+        string name = u->m_name;
+        last_token = identifier::lookup(name, scope::current);
+      }
       break;
     case INTEGER_LITERAL_LEX:
     case CHARACTER_LITERAL_LEX:
@@ -233,21 +260,22 @@ int cxx_compiler::parse::get_token()
       break;
     }
     if ( last_token == COLONCOLON_MK )
-      identifier::flag = identifier::look;
-    return last_token;
+      identifier::mode = identifier::look;
+    return save_if();
   }
 
   if ( member_function_body::g_restore.m_saved ){
     last_token = member_function_body::get_token();
     if ( last_token == COLONCOLON_MK )
-      identifier::flag = identifier::look;
-    return last_token;
+      identifier::mode = identifier::look;
+    return save_if();
   }
 
   last_token = cxx_compiler_lex();
   if ( last_token == COLONCOLON_MK )
-    identifier::flag = identifier::look;
-  return last_token;
+    identifier::mode = identifier::look;
+
+  return save_if();
 }
 
 namespace cxx_compiler { namespace parse { namespace identifier { namespace underscore_func {
@@ -387,7 +415,7 @@ namespace cxx_compiler { namespace parse { namespace parameter {
   inline void decide_dim()
   {
     using namespace std;
-	if (scope::current->m_id != scope::PARAM)
+    if (scope::current->m_id != scope::PARAM)
       return;
     const vector<usr*>& o = scope::current->m_order;
     for (auto u : o)
@@ -476,14 +504,14 @@ void cxx_compiler::parse::block::leave()
 
 namespace cxx_compiler { namespace parse { namespace member_function_body {
   std::map<usr*, saved> table;
-  restore g_restore;
+  restore_t g_restore;
   void save_brace();
 } } } // end of namespace parse, member_function_body and cxx_compiler
 
 void cxx_compiler::parse::member_function_body::save()
 {
   using namespace std;
-  identifier::flag = identifier::new_obj;
+  identifier::mode = identifier::new_obj;
   usr* key = fundef::current->m_usr;
   scope* ptr = scope::current->m_parent;
   assert(ptr->m_id == scope::PARAM);
@@ -491,7 +519,7 @@ void cxx_compiler::parse::member_function_body::save()
   table[key].m_token.push_back(make_pair('{',position));
   save_brace();
   g_read.m_token.push_front(make_pair('}',position));
-  identifier::flag = identifier::look;
+  identifier::mode = identifier::look;
 }
 
 void cxx_compiler::parse::member_function_body::save_brace()
@@ -573,8 +601,6 @@ int cxx_compiler::parse::member_function_body::get_token()
 
 int cxx_compiler::parse::last_token;
 
-std::stack<cxx_compiler::parse::backtrack> cxx_compiler::parse::backtrack::g_stack;
-
 std::string cxx_compiler::ucn::conv(std::string name)
 {
   using namespace std;
@@ -605,58 +631,43 @@ cxx_compiler::expressions::primary::info_t::info_t()
   m_var = cxx_compiler_lval.m_usr;
 }
 
-namespace cxx_compiler { namespace parse {
-  std::list<void*>::const_iterator debug_subr(std::ostream&, int, std::list<void*>::const_iterator);
-} }
-
-void cxx_compiler::parse::debug()
-{
-  using namespace std;
-  ostringstream os;
-  typedef list<pair<int, file_t> >::const_iterator IT;
-  list<void*>::const_iterator q = g_read.m_lval.begin();
-  for ( IT p = g_read.m_token.begin() ; p != g_read.m_token.end() ; ++p ){
-    int n = p->first;
-    q = debug_subr(os,n,q);
-  }
-  string debug = os.str();
-}
-
-std::list<void*>::const_iterator
-cxx_compiler::parse::debug_subr(std::ostream& os, int n, std::list<void*>::const_iterator q)
-{
-  if ( 33 <= n && n <= 126 ){
-    os << char(n) << ' ';
-    return q;
-  }
-  if ( n == IDENTIFIER_LEX ){
-    os << "IDENTIFIER_LEX";
-    var* v = static_cast<var*>(*q);
-    usr* u = v->usr_cast();
-    if ( u )
-      os << '(' << u->m_name << ')' << ' ';
-    else {
-      genaddr* ga = v->genaddr_cast();
-      assert(ga);
-      throw int();
+namespace cxx_compiler {
+  namespace parse {
+    vector<context_t> context_t::all;
+    map<int, int> context_t::retry;
+    void save(int state, short* b0, short* t0, YYSTYPE* b1, YYSTYPE* t1)
+    {
+      using namespace std;
+      vector<short> vs;
+      copy(b0, t0-1, back_inserter(vs));
+      vector<void*> vv;
+      for (; b1 != t1; ++b1) {
+        YYSTYPE tmp = *b1;
+        vv.push_back(tmp.m_base_clause);
+      }
+      context_t::all.push_back(context_t(state, vs, vv, cxx_compiler_char));
     }
-    return ++q;
-  }
-  if ( n == INTEGER_LITERAL_LEX ||
-       n == CHARACTER_LITERAL_LEX ||
-       n == FLOATING_LITERAL_LEX ||
-       n == TYPEDEF_NAME_LEX ){
-    usr* u = static_cast<usr*>(*q);
-    os << u->m_name << ' ';
-    return ++q;
-  }
-  throw int();
-  /*
-  STRING_LITERAL_LEX
-  CLASS_NAME_LEX
-  ENUM_NAME_LEX
-  DEFAULT_KW
-  ORIGINAL_NAMESPACE_NAME_LEX
-  NAMESPACE_ALIAS_LEX
-  */
-}
+    void restore(int* state, short** b0, short** t0, short* a0,
+                 YYSTYPE** b1, YYSTYPE** t1, YYSTYPE* a1)
+    {
+      assert(!context_t::all.empty());
+      const context_t& x = context_t::all.back();
+      *state = x.m_state;
+      copy(begin(x.m_stack0), end(x.m_stack0), a0);
+      *b0 = a0;
+      *t0 = a0 + x.m_stack0.size();
+      void** dst = reinterpret_cast<void**>(a1);
+      for (auto vp : x.m_stack1)
+        *dst++ = vp;
+      *b1 = a1;
+      *t1 = a1 + x.m_stack1.size();
+      cxx_compiler_char = x.m_char;
+      read_t tmp = g_read;
+      g_read = x.m_read;
+      copy(begin(tmp.m_token), end(tmp.m_token), back_inserter(g_read.m_token));
+      copy(begin(tmp.m_lval), end(tmp.m_lval), back_inserter(g_read.m_lval));
+      context_t::all.pop_back();
+    }
+  } // end of namesapce parse
+} // end of namesapce cxx_compiler
+

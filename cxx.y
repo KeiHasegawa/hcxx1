@@ -167,7 +167,7 @@ simple_declaration
     {
       using namespace cxx_compiler;
       delete $1;
-      parse::identifier::flag = parse::identifier::look;
+      parse::identifier::mode = parse::identifier::look;
       $$ = $2;
     }
   |                    init_declarator_list ';'
@@ -177,7 +177,7 @@ simple_declaration
       if ( !$1->m_tag )
         error::declarations::empty(parse::position);
       delete $1;
-      parse::identifier::flag = parse::identifier::look;
+      parse::identifier::mode = parse::identifier::look;
       $$ = 0;
     }
   |                                         ';' { $$ = 0; }
@@ -282,7 +282,12 @@ enum_specifier_begin
   ;
 
 enum_key
-  : ENUM_KW { $$ = ENUM_KW; cxx_compiler::parse::identifier::flag = cxx_compiler::parse::identifier::new_obj; }
+  : ENUM_KW
+    {
+      using namespace cxx_compiler;
+      $$ = ENUM_KW;
+      parse::identifier::mode = parse::identifier::new_obj;
+    }
   ;
 
 enumerator_list
@@ -292,11 +297,11 @@ enumerator_list
 
 enumerator_definition
   : enumerator                         { cxx_compiler::declarations::enumeration::definition($1,0); }
-  | enumerator '=' { cxx_compiler::parse::identifier::flag = cxx_compiler::parse::identifier::look; }
+  | enumerator '=' { cxx_compiler::parse::identifier::mode = cxx_compiler::parse::identifier::look; }
     constant_expression
     {
       cxx_compiler::declarations::enumeration::definition($1,$4);
-      cxx_compiler::parse::identifier::flag = cxx_compiler::parse::identifier::new_obj;
+      cxx_compiler::parse::identifier::mode = cxx_compiler::parse::identifier::new_obj;
     }
   ;
 
@@ -412,7 +417,7 @@ init_declarator_list
   : init_declarator
     { $$ = new std::vector<cxx_compiler::usr*>; $$->push_back($1); }
   | init_declarator_list ','
-    { cxx_compiler::parse::identifier::flag = cxx_compiler::parse::identifier::new_obj; }
+    { cxx_compiler::parse::identifier::mode = cxx_compiler::parse::identifier::new_obj; }
     init_declarator
     { $$ = $1; $$->push_back($4); }
   ;
@@ -608,7 +613,7 @@ begin_array
   : '['
     {
       using namespace cxx_compiler::parse::identifier;
-      flag = look;
+      mode = look;
     }
   ;
 
@@ -616,7 +621,7 @@ end_array
   : ']'
     {
       using namespace cxx_compiler::parse::identifier;
-      flag = new_obj;
+      mode = new_obj;
     }
   ;
 
@@ -678,11 +683,11 @@ designator_list
 
 designator
   : '[' constant_expression ']' { $$ = new cxx_compiler::declarations::initializers::designator::info_t($2,0); }
-  | '.' { cxx_compiler::parse::identifier::flag = cxx_compiler::parse::identifier::new_obj; }
+  | '.' { cxx_compiler::parse::identifier::mode = cxx_compiler::parse::identifier::new_obj; }
     IDENTIFIER_LEX
     {
       $$ = new cxx_compiler::declarations::initializers::designator::info_t(0,$3);
-      cxx_compiler::parse::identifier::flag = cxx_compiler::parse::identifier::look;
+      cxx_compiler::parse::identifier::mode = cxx_compiler::parse::identifier::look;
     }
   ;
 
@@ -690,13 +695,13 @@ type_id
   : type_specifier_seq abstract_declarator
     {
       $$ = cxx_compiler::declarations::declarators::type_id::action($2);
-      cxx_compiler::parse::identifier::flag = cxx_compiler::parse::identifier::look;
+      cxx_compiler::parse::identifier::mode = cxx_compiler::parse::identifier::look;
       delete $1;
     }
   | type_specifier_seq
     {
       $$ = cxx_compiler::declarations::declarators::type_id::action(0);
-      cxx_compiler::parse::identifier::flag = cxx_compiler::parse::identifier::look;
+      cxx_compiler::parse::identifier::mode = cxx_compiler::parse::identifier::look;
       delete $1;
     }
   ;
@@ -712,9 +717,9 @@ class_name
   ;
 
 class_key
-  : CLASS_KW   { cxx_compiler::parse::identifier::flag = cxx_compiler::parse::identifier::new_obj; $$ = CLASS_KW; }
-  | STRUCT_KW  { cxx_compiler::parse::identifier::flag = cxx_compiler::parse::identifier::new_obj; $$ = STRUCT_KW; }
-  | UNION_KW   { cxx_compiler::parse::identifier::flag = cxx_compiler::parse::identifier::new_obj; $$ = UNION_KW; }
+  : CLASS_KW   { cxx_compiler::parse::identifier::mode = cxx_compiler::parse::identifier::new_obj; $$ = CLASS_KW; }
+  | STRUCT_KW  { cxx_compiler::parse::identifier::mode = cxx_compiler::parse::identifier::new_obj; $$ = STRUCT_KW; }
+  | UNION_KW   { cxx_compiler::parse::identifier::mode = cxx_compiler::parse::identifier::new_obj; $$ = UNION_KW; }
   ;
 
 class_specifier
@@ -745,8 +750,8 @@ member_specification
   ;
 
 member_declaration
-  : decl_specifier_seq member_declarator_list ';' { delete $1; cxx_compiler::parse::identifier::flag = cxx_compiler::parse::identifier::look; }
-  | decl_specifier_seq                        ';' { delete $1; cxx_compiler::parse::identifier::flag = cxx_compiler::parse::identifier::look; }
+  : decl_specifier_seq member_declarator_list ';' { delete $1; cxx_compiler::parse::identifier::mode = cxx_compiler::parse::identifier::look; }
+  | decl_specifier_seq                        ';' { delete $1; cxx_compiler::parse::identifier::mode = cxx_compiler::parse::identifier::look; }
   |                    member_declarator_list ';'
   | function_definition ';'
   | function_definition
@@ -771,26 +776,26 @@ member_declarator
   | IDENTIFIER_LEX ':'
     {
       using namespace cxx_compiler::parse;
-      identifier::flag = identifier::look;
+      identifier::mode = identifier::look;
     }
     constant_expression
     {
       using namespace cxx_compiler;
       classes::members::bit_field($1,$4);
       using namespace parse;
-      identifier::flag = identifier::new_obj;
+      identifier::mode = identifier::new_obj;
     }
-  |                ':' { cxx_compiler::parse::identifier::flag = cxx_compiler::parse::identifier::look; } constant_expression
-    { cxx_compiler::classes::members::bit_field(0,$3); cxx_compiler::parse::identifier::flag = cxx_compiler::parse::identifier::new_obj; }
+  |                ':' { cxx_compiler::parse::identifier::mode = cxx_compiler::parse::identifier::look; } constant_expression
+    { cxx_compiler::classes::members::bit_field(0,$3); cxx_compiler::parse::identifier::mode = cxx_compiler::parse::identifier::new_obj; }
   ;
 
 constant_initializer
-  : '=' { cxx_compiler::parse::identifier::flag = cxx_compiler::parse::identifier::look; }
+  : '=' { cxx_compiler::parse::identifier::mode = cxx_compiler::parse::identifier::look; }
     constant_expression { $$ = $3; }
   ;
 
 base_clause
-  : ':' { cxx_compiler::parse::identifier::flag = cxx_compiler::parse::identifier::look; } base_specifier_list { $$ = $3; }
+  : ':' { cxx_compiler::parse::identifier::mode = cxx_compiler::parse::identifier::look; } base_specifier_list { $$ = $3; }
   ;
 
 base_specifier_list
@@ -1047,8 +1052,8 @@ postfix_expression
   | postfix_expression '[' expression ']' { $$ = new cxx_compiler::expressions::binary::info_t($1,'[',$3); }
   | postfix_expression '(' expression_list ')' { $$ = new cxx_compiler::expressions::postfix::call($1,$3); }
   | postfix_expression '('                 ')' { $$ = new cxx_compiler::expressions::postfix::call($1,0); }
-  | simple_type_specifier '(' expression_list ')' { $$ = new cxx_compiler::expressions::postfix::fcast($1,$3); }
-  | simple_type_specifier '('                 ')' { $$ = new cxx_compiler::expressions::postfix::fcast($1,0); }
+  | simple_type_specifier '(' expression_list ')' { $$ = new cxx_compiler::expressions::postfix::fcast($3); /* $1 is already deleted */ }
+  | simple_type_specifier '('                 ')' { $$ = new cxx_compiler::expressions::postfix::fcast(0);  /* $1 is already deleted */ }
   | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier IDENTIFIER_LEX '(' expression_list ')'
   | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier IDENTIFIER_LEX '('                 ')'
   | TYPENAME_KW               nested_name_specifier IDENTIFIER_LEX '(' expression_list ')'
@@ -1112,7 +1117,7 @@ unary_expression
     {
       using namespace cxx_compiler;
       $$ = new expressions::unary::Sizeof($3);
-      parse::identifier::flag = parse::identifier::look;
+      parse::identifier::mode = parse::identifier::look;
     }
   | new_expression
   | delete_expression
@@ -1186,7 +1191,7 @@ delete_expression
 
 cast_expression
   : unary_expression
-  | '(' type_id ')' { cxx_compiler::parse::identifier::flag = cxx_compiler::parse::identifier::look; }
+  | '(' type_id ')' { cxx_compiler::parse::identifier::mode = cxx_compiler::parse::identifier::look; }
     cast_expression { $$ = new cxx_compiler::expressions::cast::info_t($2,$5); }
   | BUILTIN_VA_START '(' cast_expression ',' cast_expression ')'
     { $$ = new cxx_compiler::expressions::_va_start::info_t($3,$5); }
@@ -1368,11 +1373,13 @@ exception_declaration
 statement
   : labeled_statement
   | expression_statement
+    { $$ = $1; cxx_compiler::parse::context_t::clear(); }
   | compound_statement
   | selection_statement
   | iteration_statement
   | jump_statement
   | declaration_statement
+    { $$ = $1; cxx_compiler::parse::context_t::clear(); }
   | try_block
   ;
 
@@ -1436,10 +1443,10 @@ jump_statement
   | RETURN_KW expression ';' { $$ = new cxx_compiler::statements::return_stmt::info_t($2); }
   | RETURN_KW            ';' { $$ = new cxx_compiler::statements::return_stmt::info_t(0); }
   | GOTO_KW
-    { cxx_compiler::parse::identifier::flag = cxx_compiler::parse::identifier::new_obj; }
+    { cxx_compiler::parse::identifier::mode = cxx_compiler::parse::identifier::new_obj; }
     IDENTIFIER_LEX ';'
     {
-      cxx_compiler::parse::identifier::flag = cxx_compiler::parse::identifier::look;
+      cxx_compiler::parse::identifier::mode = cxx_compiler::parse::identifier::look;
       $$ = new cxx_compiler::statements::goto_stmt::info_t($3);
     }
   ;

@@ -168,9 +168,9 @@ void cxx_compiler::classes::members::bit_field(var* v, expressions::base* expr)
 void cxx_compiler::class_or_namespace_name::action(scope* p)
 {
   if ( !before ){
-    if ( parse::identifier::flag != parse::identifier::new_obj )
+    if ( parse::identifier::mode != parse::identifier::new_obj )
       before = scope::current;
-    else if ( parse::identifier::g_peek_coloncolon )
+    else if (parse::peek() == COLONCOLON_MK)
       before = scope::current;
   }
   scope::current = p;
