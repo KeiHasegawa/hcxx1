@@ -446,7 +446,6 @@ struct usr : var {
 template<class T>
 struct constant : usr {
   T m_value;
-  static std::map<T, constant<T>*> table;
   bool lvalue() const { return false; }
   var* offref(const type*, var*);
   var* indirection();
@@ -734,7 +733,6 @@ struct constant : usr {
 
 template<> struct constant<float> : usr {
   float m_value;
-  static std::map<int, constant<float>*> table;
   bool lvalue() const { return false; }
   var* plus(){ return this; }
   var* minus();
@@ -927,7 +925,6 @@ template<> struct constant<float> : usr {
 
 template<> struct constant<double> : usr {
   double m_value;
-  static std::map<__int64, constant<double>*> table;
   bool lvalue() const { return false; }
   var* plus(){ return this; }
   var* minus();
@@ -1121,7 +1118,6 @@ template<> struct constant<double> : usr {
 template<> struct constant<long double> : usr {
   long double m_value;
   unsigned char* b;
-  static std::map<std::pair<__int64,__int64>, constant<long double>*> table;
   bool lvalue() const { return false; }
   var* plus(){ return this; }
   var* minus();
@@ -1314,8 +1310,6 @@ template<> struct constant<long double> : usr {
 
 template<> struct constant<void*> : usr {
   void* m_value;
-  static std::pair<std::map<std::pair<const type*, void*>, constant<void*>* >,std::map<std::pair<const type*, void*>, constant<void*>* > > table;
-  static void destroy_temporary(){ table.first.clear(); }
   bool lvalue() const { return false; }
   var* offref(const type*, var*);
   var* indirection();
@@ -1715,11 +1709,11 @@ class backpatch_type : public type {
   static backpatch_type obj;
   backpatch_type() : type(BACKPATCH) {}
 public:
-  void decl(std::ostream&, std::string) const { assert(0); }
+  void decl(std::ostream&, std::string) const;
   void encode(std::ostream&) const { assert(0); }
-  const type* patch(const type* T, usr*) const { return T; }
   int size() const { return 0; }
   bool scalar() const { return false; }
+  const type* patch(const type* T, usr*) const { return T; }
   bool backpatch() const { return true; }
   static const backpatch_type* create(){ return &obj; }
 };
@@ -1746,6 +1740,7 @@ public:
   const type* complete_type() const { return create(m_T->complete_type()); }
   const type* unqualified(int* cvr) const { if ( cvr ) *cvr |= 1; return m_T->unqualified(cvr); }
   const type* patch(const type*, usr*) const;
+  bool backpatch() const { return m_T->backpatch(); }
   bool modifiable() const { return false; }
   const type* promotion() const { return create(m_T->promotion()); }
   const type* varg() const { return create(m_T->varg()); }
@@ -1775,6 +1770,7 @@ public:
   bool compatible(const type* T) const;
   const type* composite(const type* T) const;
   const type* patch(const type*, usr*) const;
+  bool backpatch() const { return m_T->backpatch(); }
   int size() const { return m_T->size(); }
   bool scalar() const { return m_T->scalar(); }
   bool real() const { return m_T->real(); }
@@ -1807,6 +1803,7 @@ public:
   void decl(std::ostream&, std::string) const;
   void encode(std::ostream&) const;
   const type* patch(const type*, usr*) const;
+  bool backpatch() const { return m_T->backpatch(); }
   bool compatible(const type* T) const;
   const type* composite(const type* T) const;
   int size() const { return m_T->size(); }
@@ -1848,6 +1845,7 @@ public:
   const type* prev() const { return m_T->prev(); }
   void post(std::ostream&) const;
   const type* patch(const type*, usr*) const;
+  bool backpatch() const { return m_T->backpatch(); }
   const type* qualified(int) const;
   const type* complete_type() const;
   const pointer_type* ptr_gen() const;
@@ -1879,6 +1877,7 @@ public:
   bool scalar() const { return false; }
   bool modifiable() const { return m_T->modifiable(); }
   const type* patch(const type*, usr*) const;
+  bool backpatch() const { return m_T->backpatch(); }
   const type* qualified(int) const;
   const type* complete_type() const;
   const type* prev() const { return m_T->prev(); }
@@ -1909,6 +1908,7 @@ public:
   bool compatible(const type*) const;
   const type* composite(const type*) const;
   const type* patch(const type*, usr*) const;
+  bool backpatch() const { return m_T->backpatch(); }
   const type* referenced_type() const { return m_T; }
   int size() const;
   bool integer() const { return false; }
@@ -1933,6 +1933,7 @@ public:
   bool compatible(const type*) const;
   const type* composite(const type*) const;
   const type* patch(const type*, usr*) const;
+  bool backpatch() const { return m_T->backpatch(); }
   const type* referenced_type() const { return m_T; }
   int size() const;
   bool integer() const { return false; }
@@ -2048,6 +2049,7 @@ public:
   int size() const { return 0; }
   bool _signed() const { return m_integer->_signed(); }
   const type* patch(const type*, usr*) const;
+  bool backpatch() const { return m_integer->backpatch(); }
   int bit() const { return m_bit; }
   static const bit_field_type* create(int, const type*);
 };
@@ -2068,6 +2070,7 @@ public:
   bool scalar() const { return false; }
   bool modifiable() const { return m_T->modifiable(); }
   const type* patch(const type*, usr*) const;
+  bool backpatch() const { return m_T->backpatch(); }
   const type* qualified(int) const;
   const type* prev() const { return m_T->prev(); }
   void post(std::ostream&) const;
@@ -2106,6 +2109,7 @@ public:
     return m_T->m_id == type::FUNC ? 2 * sizeof(int) + sizeof(void*) : sizeof(int);
   }
   const type* backpatch(const type*) const;
+  bool backpatch() const { return m_T->backpatch(); }
   bool compatible(const type*) const;
   const type* composite(const type*) const;
   bool include_qualifier(const pointer_member_type*) const;

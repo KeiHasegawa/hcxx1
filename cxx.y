@@ -4,7 +4,7 @@
 
 %}
 
-%token ORIGINAL_NAMESPACE_NAME_LEX NAMESPACE_ALIAS_LEX IDENTIFIER_LEX
+%token ORIGINAL_NAMESPACE_NAME_LEX NAMESPACE_ALIAS_LEX IDENTIFIER_LEX PEEKED_NAME_LEX
 %token INTEGER_LITERAL_LEX CHARACTER_LITERAL_LEX FLOATING_LITERAL_LEX STRING_LITERAL_LEX
 %token TYPEDEF_KW AUTO_KW REGISTER_KW STATIC_KW EXTERN_KW MUTABLE_KW
 %token INLINE_KW VIRTUAL_KW EXPLICIT_KW FRIEND_KW
@@ -145,13 +145,14 @@ declaration_seq
   ;
 
 declaration
-  : block_declaration  { delete $1; }
+  : block_declaration           { delete $1; }
   | function_definition
   | template_declaration
   | explicit_instantiation
   | explicit_specialization
   | linkage_specification
   | namespace_definition
+  | error ';'
   ;
 
 block_declaration
@@ -296,12 +297,18 @@ enumerator_list
   ;
 
 enumerator_definition
-  : enumerator                         { cxx_compiler::declarations::enumeration::definition($1,0); }
-  | enumerator '=' { cxx_compiler::parse::identifier::mode = cxx_compiler::parse::identifier::look; }
+  : enumerator
+    { cxx_compiler::declarations::enumeration::definition($1,0); }
+  | enumerator '='
+    {
+      using namespace cxx_compiler::parse;
+      identifier::mode = identifier::look;
+    }
     constant_expression
     {
       cxx_compiler::declarations::enumeration::definition($1,$4);
-      cxx_compiler::parse::identifier::mode = cxx_compiler::parse::identifier::new_obj;
+      using namespace cxx_compiler::parse;
+      identifier::mode = identifier::new_obj;
     }
   ;
 
@@ -512,13 +519,21 @@ declarator_id
   | COLONCOLON_MK move_to_root nested_name_specifier type_name
   |                            nested_name_specifier type_name
   | COLONCOLON_MK move_to_root                       type_name
+  |                                                  type_name
+    {
+      /* Note that $1 is already deleted */
+      $$ = cxx_compiler::declarations::declarators::ctor();
+    }
   ;
 
 parameter_declaration_clause
   : parameter_declaration_list DOTS_MK
     { $$ = $1; $$->push_back(cxx_compiler::ellipsis_type::create()); }
   |                            DOTS_MK
-    { $$ = new std::vector<const cxx_compiler::type*>; $$->push_back(cxx_compiler::ellipsis_type::create()); }
+    {
+      $$ = new std::vector<const cxx_compiler::type*>;
+      $$->push_back(cxx_compiler::ellipsis_type::create());
+    }
   | parameter_declaration_list
   | { $$ = 0; cxx_compiler::declarations::specifier_seq::info_t::s_stack.pop(); }
   | parameter_declaration_list ',' DOTS_MK
@@ -614,6 +629,8 @@ begin_array
     {
       using namespace cxx_compiler::parse::identifier;
       mode = look;
+      using namespace cxx_compiler::declarations::specifier_seq;
+      info_t::s_stack.push(0);
     }
   ;
 
@@ -622,6 +639,8 @@ end_array
     {
       using namespace cxx_compiler::parse::identifier;
       mode = new_obj;
+      using namespace cxx_compiler::declarations::specifier_seq;
+      info_t::s_stack.pop();
     }
   ;
 
@@ -682,12 +701,22 @@ designator_list
   ;
 
 designator
-  : '[' constant_expression ']' { $$ = new cxx_compiler::declarations::initializers::designator::info_t($2,0); }
-  | '.' { cxx_compiler::parse::identifier::mode = cxx_compiler::parse::identifier::new_obj; }
+  : '[' constant_expression ']'
+    {
+      using namespace cxx_compiler::declarations::initializers;
+      $$ = new designator::info_t($2,0);
+    }
+  | '.'
+    {
+      using namespace cxx_compiler::parse;
+      identifier::mode = identifier::new_obj;
+    }
     IDENTIFIER_LEX
     {
-      $$ = new cxx_compiler::declarations::initializers::designator::info_t(0,$3);
-      cxx_compiler::parse::identifier::mode = cxx_compiler::parse::identifier::look;
+      using namespace cxx_compiler::declarations::initializers;
+      $$ = new designator::info_t(0,$3);
+      using namespace cxx_compiler::parse;
+      identifier::mode = identifier::look;
     }
   ;
 
@@ -777,30 +806,58 @@ member_declarator
     {
       using namespace cxx_compiler::parse;
       identifier::mode = identifier::look;
+      using namespace cxx_compiler::declarations::specifier_seq;
+      info_t::s_stack.push(0);
     }
     constant_expression
     {
       using namespace cxx_compiler;
-      classes::members::bit_field($1,$4);
       using namespace parse;
       identifier::mode = identifier::new_obj;
+      using namespace cxx_compiler::declarations::specifier_seq;
+      info_t::s_stack.pop();
+      classes::members::bit_field($1,$4);
     }
-  |                ':' { cxx_compiler::parse::identifier::mode = cxx_compiler::parse::identifier::look; } constant_expression
-    { cxx_compiler::classes::members::bit_field(0,$3); cxx_compiler::parse::identifier::mode = cxx_compiler::parse::identifier::new_obj; }
+  |                ':'
+    {
+      using namespace cxx_compiler::parse;
+      identifier::mode = identifier::look;
+      using namespace cxx_compiler::declarations::specifier_seq;
+      info_t::s_stack.push(0);
+    }
+    constant_expression
+    {
+      using namespace cxx_compiler::parse;
+      identifier::mode = identifier::new_obj;
+      using namespace cxx_compiler::declarations::specifier_seq;
+      info_t::s_stack.pop();
+      cxx_compiler::classes::members::bit_field(0,$3);
+    }
   ;
 
 constant_initializer
-  : '=' { cxx_compiler::parse::identifier::mode = cxx_compiler::parse::identifier::look; }
+  : '='
+    {
+      using namespace cxx_compiler::parse;
+      identifier::mode = identifier::look;
+    }
     constant_expression { $$ = $3; }
   ;
 
 base_clause
-  : ':' { cxx_compiler::parse::identifier::mode = cxx_compiler::parse::identifier::look; } base_specifier_list { $$ = $3; }
+  : ':'
+    {
+      using namespace cxx_compiler::parse;
+      identifier::mode = identifier::look;
+    }
+    base_specifier_list { $$ = $3; }
   ;
 
 base_specifier_list
-  : base_specifier { $$ = new std::vector<cxx_compiler::base*>; $$->push_back($1); }
-  | base_specifier_list ',' base_specifier { $$ = $1; $$->push_back($3); }
+  : base_specifier
+    { $$ = new std::vector<cxx_compiler::base*>; $$->push_back($1); }
+  | base_specifier_list ',' base_specifier
+    { $$ = $1; $$->push_back($3); }
   ;
 
 base_specifier
@@ -1043,8 +1100,10 @@ nested_name_specifier
   ;
 
 class_or_namespace_name
-  : class_name { cxx_compiler::class_or_namespace_name::action($1); }
-  | namespace_name { cxx_compiler::class_or_namespace_name::action($1); }
+  : class_name
+    { cxx_compiler::class_or_namespace_name::action($1); }
+  | namespace_name
+    { cxx_compiler::class_or_namespace_name::action($1); }
   ;
 
 postfix_expression
@@ -1386,8 +1445,10 @@ statement
 labeled_statement
   : IDENTIFIER_LEX ':' statement
     { $$ = new cxx_compiler::statements::label::info_t($1,$3); }
-  | CASE_KW constant_expression ':' statement { $$ = new cxx_compiler::statements::_case::info_t($2,$4); }
-  | DEFAULT_KW ':' statement { $$ = new cxx_compiler::statements::_default::info_t($1,$3); }
+  | CASE_KW constant_expression ':' statement
+    { $$ = new cxx_compiler::statements::_case::info_t($2,$4); }
+  | DEFAULT_KW ':' statement
+    { $$ = new cxx_compiler::statements::_default::info_t($1,$3); }
   ;
 
 expression_statement

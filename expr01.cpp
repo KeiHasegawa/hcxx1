@@ -702,9 +702,9 @@ cxx_compiler::expressions::postfix::member::begin(base* expr, bool dot)
     T = pt->referenced_type();
   }
   info_t* ret = new info_t(nm,v,dot,scope::current,expr->file());
-  tag* Tag = T->get_tag();
-  if ( Tag && Tag->m_kind != tag::ENUM ){
-    scope::current = Tag;
+  tag* ptr = T->get_tag();
+  if ( ptr && ptr->m_kind != tag::ENUM ){
+    scope::current = ptr;
     parse::identifier::mode = parse::identifier::member;
   }
   else {
@@ -1066,9 +1066,6 @@ const cxx_compiler::type* cxx_compiler::expressions::assignment::valid(const typ
 }
 
 bool cxx_compiler::expressions::constant_flag;
-
-std::map<__int64,cxx_compiler::constant<double>*> cxx_compiler::constant<double>::table;
-std::map<int,cxx_compiler::constant<float>*> cxx_compiler::constant<float>::table;
 
 cxx_compiler::var* cxx_compiler::var::ppmm(bool plus, bool post)
 {

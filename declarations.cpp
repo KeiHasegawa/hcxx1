@@ -16,11 +16,10 @@ void cxx_compiler::declarations::destroy()
   vector<scope*>& children = scope::current->m_children;
   for (auto p : children)
     delete p;
-  children.clear();
+  children.clear();  
   error::headered = false;
   if (!generator::last)
     type::destroy_tmp();
-  constant<void*>::destroy_temporary();
   declarators::array::variable_length::destroy_tmp();
   if ( cmdline::simple_medium )
     dump::names::reset();
@@ -56,9 +55,6 @@ cxx_compiler::declarations::specifier::specifier(type_specifier* spec)
 cxx_compiler::declarations::type_specifier::type_specifier(int n)
  : m_keyword(n), m_type(0), m_usr(0)
 {
-	if (parse::position.m_lineno == 1187) {
-		int debug = 1;
-	}
   if ( VOID_KW <= m_keyword && m_keyword <= UNSIGNED_KW )
     parse::identifier::mode = parse::identifier::new_obj;
 }
@@ -75,10 +71,10 @@ cxx_compiler::declarations::type_specifier::type_specifier(usr* u)
   parse::identifier::mode = parse::identifier::new_obj;
 }
 
-cxx_compiler::declarations::type_specifier::type_specifier(tag* Tag)
+cxx_compiler::declarations::type_specifier::type_specifier(tag* ptr)
  : m_keyword(0), m_type(0), m_usr(0)
 {
-  m_type = Tag->m_types.second ? Tag->m_types.second : Tag->m_types.first;
+  m_type = ptr->m_types.second ? ptr->m_types.second : ptr->m_types.first;
   parse::identifier::mode = parse::identifier::new_obj;
 }
 
@@ -139,7 +135,7 @@ cxx_compiler::declarations::specifier_seq::info_t::info_t(info_t* prev, specifie
   if ( s_stack.empty() || s_stack.top() )
     s_stack.push(this);
   else
-    s_stack.top() = this;  
+    s_stack.top() = this;
 }
 
 void cxx_compiler::declarations::specifier_seq::info_t::clear()
@@ -500,7 +496,8 @@ cxx_compiler::declarations::action1(var* v, bool ini, bool lookuped)
     u = v->usr_cast();
   }
   if ( specifier_seq::info_t::s_stack.empty() ){
-    if ( u->m_flag & usr::CTOR ){
+    usr::flag_t mask = usr::flag_t(usr::CTOR | usr::DTOR);
+    if (u->m_flag & mask) {
       assert(u->m_type->m_id == type::FUNC);
       u->m_type = u->m_type->patch(0,u);
     }
@@ -510,22 +507,21 @@ cxx_compiler::declarations::action1(var* v, bool ini, bool lookuped)
     }
   }
   else if ( specifier_seq::info_t* p = specifier_seq::info_t::s_stack.top() ){
-    if ( !(u->m_flag & usr::CTOR) ){
-      if ( !p->m_type || !p->m_tmp.empty() ){
-        declarations::specifier_seq::type::m_usr = u;
-        p->update();
-      }
-      if ( !p->m_type ){
-        implicit_int(u);
-        p->m_type = int_type::create();
-      }
-      u->m_flag = p->m_flag;
-      u->m_type = u->m_type->patch(p->m_type,u);
+    usr::flag_t mask = usr::flag_t(usr::CTOR | usr::DTOR);
+    assert(!(u->m_flag & mask));
+    if ( !p->m_type || !p->m_tmp.empty() ){
+      declarations::specifier_seq::type::m_usr = u;
+      p->update();
     }
+    if ( !p->m_type ){
+      implicit_int(u);
+      p->m_type = int_type::create();
+    }
+    u->m_flag = p->m_flag;
+    u->m_type = u->m_type->patch(p->m_type,u);
   }
   else {
-    usr::flag_t mask = usr::flag_t(usr::CTOR | usr::DTOR);
-    assert(u->m_flag & mask);
+    assert(u->m_flag & usr::DTOR);
     assert(u->m_type->m_id == type::FUNC);
     u->m_type = u->m_type->patch(0,u);
   }
@@ -626,7 +622,7 @@ cxx_compiler::declarations::action1(var* v, bool ini, bool lookuped)
     }
     u->m_type = u->m_type->vla2a();
   }
-  if ( b && u->m_type->m_id == type::RECORD ){
+  if ( !ini && b && u->m_type->m_id == type::RECORD ){
     typedef const record_type REC;
     REC* rec = static_cast<REC*>(u->m_type);
     tag* ptr = rec->get_tag();
@@ -636,11 +632,13 @@ cxx_compiler::declarations::action1(var* v, bool ini, bool lookuped)
     if ( p != usrs.end() ){
       const vector<usr*>& v = p->second;
       usr* ctor = v.back();
-      const func_type* ft = static_cast<const func_type*>(ctor->m_type);
+	  assert(ctor->m_type->m_id == type::FUNC);
+	  typedef const func_type FT;
+	  FT* ft = static_cast<FT*>(ctor->m_type);
       vector<var*> arg;
       call_impl::common(ft,ctor,&arg,false,u);
       usr::flag_t flag = ctor->m_flag;
-      if (!error::counter) {
+      if (!error::counter && !cmdline::no_inline_sub) {
         if (flag & usr::INLINE) {
           using namespace declarations::declarators::function::definition::static_inline::skip;
           table_t::const_iterator p = table.find(ctor);
@@ -690,8 +688,7 @@ cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr, bool lookuped)
   map<string, vector<usr*> >::const_iterator p = usrs.find(name);
   if ( p != usrs.end() ){
     usr* prev = p->second.back();
-    if ( prev == curr )
-      return curr;
+    assert(prev != curr);
     if ( conflict(prev,curr) ){
       using namespace error::declarations;
       redeclaration(prev,curr,false);

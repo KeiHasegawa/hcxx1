@@ -377,6 +377,7 @@ namespace cmdline {
   extern bool bb_optimize;
   extern bool dag_optimize;
   extern bool output_optinfo;
+  extern bool no_inline_sub;
 }
 
 namespace generator {
@@ -542,6 +543,7 @@ namespace declarations {
     namespace type_id {
       extern const type* action(const type*);
     } // end of namespace type_id
+    usr* ctor();
   } // end of namespace declarators
   namespace type_specifier_seq {
     struct info_t {
@@ -628,7 +630,9 @@ namespace declarations {
       info_t(var*);
     };
   } // end of namespace asm_definition
-  namespace new_type_id { extern const type* action(type_specifier_seq::info_t*); }
+  namespace new_type_id {
+    extern const type* action(type_specifier_seq::info_t*);
+  } // end of namespace new_type_id
 } // end of namespace declarations
 
 namespace conversion {

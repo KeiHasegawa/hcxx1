@@ -74,9 +74,15 @@ while ( <> ){
     }
 }
 
+if ($xxx == 0 || $yyy == 0) {
+  print STDERR "Error detected at $0\n";
+  exit 1;
+}
+
 print <<EOF
   if ( yystate == $xxx ){
-    if ( cxx_compiler::parse::identifier::mode != cxx_compiler::parse::identifier::new_obj ) {
+    using namespace cxx_compiler::parse;
+    if (identifier::mode != identifier::new_obj) {
       YYDPRINTF((stderr, "rule.02 is applied\\n"));
       yystate = $yyy;
     }

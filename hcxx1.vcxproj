@@ -179,7 +179,13 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(CYGWINDIR)\bin\tcsh -f gen_rule</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">rule.00;rule.01;rule.02;rule.03;rule.03.h;rule.06;rule.07;rule.08;rule.09;rule.10</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">rule.00;rule.01;rule.02;rule.03;rule.03.h;rule.04;rule.06;rule.07;rule.08;rule.09;rule.10</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">rule.00;rule.01;rule.02;rule.03;rule.03.h;rule.04;rule.06;rule.07;rule.08;rule.09;rule.10</Outputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(CYGWINDIR)\bin\tcsh -f gen_rule</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(CYGWINDIR)\bin\tcsh -f gen_rule</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(CYGWINDIR)\bin\tcsh -f gen_rule</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">rule.00;rule.01;rule.02;rule.03;rule.03.h;rule.04;rule.06;rule.07;rule.08;rule.09;rule.10</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">rule.00;rule.01;rule.02;rule.03;rule.03.h;rule.04;rule.06;rule.07;rule.08;rule.09;rule.10</Outputs>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
@@ -190,6 +196,7 @@
     <None Include="rule.01" />
     <None Include="rule.02" />
     <None Include="rule.03" />
+    <None Include="rule.04" />
     <None Include="rule.06" />
     <None Include="rule.07" />
     <None Include="rule.08" />

@@ -565,7 +565,7 @@ namespace cxx_compiler { namespace declarations { namespace declarators { namesp
             info_t* callee = pcallee.second;
             if (fn->m_name == name) {
               int before = vc.size();
-              if (!error::counter)
+              if (!error::counter && !cmdline::no_inline_sub)
                 substitute(vc, n, callee);
               int after = vc.size();
               delta += after - before;
@@ -799,3 +799,26 @@ cxx_compiler::declarations::declarators::type_id::action(const type* T)
     p->update();
   return T ? T->patch(p->m_type,0) : p->m_type;
 }
+
+namespace cxx_compiler {
+  namespace declarations {
+    namespace declarators {
+      usr* ctor()
+      {
+        assert(!specifier_seq::info_t::s_stack.empty());
+        specifier_seq::info_t* p = specifier_seq::info_t::s_stack.top();
+        auto_ptr<specifier_seq::info_t> sweeper(p);
+        assert(p->m_tag);
+        assert(p->m_type);
+        const type* T = p->m_type;
+        assert(T->m_id == type::INCOMPLETE_TAGGED);
+        typedef const incomplete_tagged_type ITT;
+        ITT* itt = static_cast<ITT*>(T);
+        tag* ptr = itt->get_tag();
+        string name = ptr->m_name;
+        T = backpatch_type::create();
+        return new usr(name, T, usr::CTOR, parse::position);
+      }
+    } // end of namespace declarators
+  } // end of namespace declarations
+} // end of namespace cxx_compiler

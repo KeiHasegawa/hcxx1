@@ -25,7 +25,6 @@ $opt_header = 0;
 
 GetOptions('header' => \$opt_header);
 
-
 while ( <> ){
     chop;
     next if ( !/^[Ss]tate (.*)/ );
@@ -69,6 +68,9 @@ while ( <> ){
     }
     goto label;
 }
+
+print STDERR "Error detected at $0\n";
+exit 1;
 
 label:
 print <<EOF

@@ -13,7 +13,7 @@ namespace cxx_compiler { namespace error {
   struct init_lang {
     init_lang();
   } obj;
-} } // end of namespace error and c_compiler
+} } // end of namespace error and cxx_compiler
 
 cxx_compiler::error::init_lang::init_lang()
 {
@@ -52,25 +52,31 @@ void cxx_compiler::error::cmdline::generator()
   ++counter;
 }
 
-void cxx_compiler_error(const char* msg)
+void cxx_compiler_error(const char*)
 {
   using namespace std;
   using namespace cxx_compiler;
 
   switch ( error::lang ){
-#ifndef __GNUC__
+#ifndef __GNUC__  // for garbled characters gcc version 7.3.0
   case error::jpn:
     error::header(parse::position,"エラー");
-    if ( *cxx_compiler_text )
-      cerr << '`' << cxx_compiler_text << "' で";
+    if (*cxx_compiler_text) {
+      cerr << '`';
+      istringstream ist(cxx_compiler_text); string s; ist >> s; cerr << s;
+      cerr << "' で";
+    }
     cerr << "構文エラーです.";
     break;
-#endif // __GNUC__
+#endif // __GNUC__ for garbled characters gcc version 7.3.0
   default:
     error::header(parse::position,"error");
     cerr << "syntax error";
-    if ( *cxx_compiler_text )
-      cerr << " before `" << cxx_compiler_text << "' token.";
+    if (*cxx_compiler_text) {
+      cerr << " before `";
+      istringstream ist(cxx_compiler_text); string s; ist >> s; cerr << s;
+      cerr << "' token.";
+    }
     break;
   }
   cerr << '\n';
@@ -1787,14 +1793,14 @@ void cxx_compiler::error::expressions::primary::literal::character::invalid(cons
 {
   using namespace std;
   switch ( lang ){
+#ifndef __GNUC__  // for garbled characters gcc version 7.3.0
   case jpn:
-#ifndef __GNUC__
     header(file,"エラー");
     cerr << "文字 `" << name << "` は型 `";
     T->decl(cerr,"");
     cerr << "' で表現できません.\n";
     break;
-#endif // __GNUC__
+#endif // __GNUC__ for garbled characters gcc version 7.3.0
   default:
     header(file,"error");
     cerr << "character constant `" << name << "` is invalid for `";

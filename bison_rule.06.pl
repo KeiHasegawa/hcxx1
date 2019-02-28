@@ -21,10 +21,13 @@ while ( <> ){
     $_ = <>; chop;
     next if ( !/type_name: class_name \./ );
     $_ = <>; chop;
-    next if ( !/(.*) class_or_namespace_name: class_name \./ );
+    next if ( !/([0-9]+) class_or_namespace_name: class_name \./ );
     $zzz = $1;
     goto label;
 }
+
+print STDERR "Error detected at $0\n";
+exit 1;
 
 label:
 print <<EOF

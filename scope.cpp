@@ -7,30 +7,6 @@
 cxx_compiler::scope cxx_compiler::scope::root;
 cxx_compiler::scope* cxx_compiler::scope::current = &cxx_compiler::scope::root;
 
-
-std::map<std::pair<__int64,__int64>,cxx_compiler::constant<long double>*> cxx_compiler::constant<long double>::table;
-
-#ifdef _DEBUG
-namespace cxx_compiler { namespace expressions { namespace primary { namespace literal { namespace floating {
-  struct sweeper {
-    ~sweeper()
-    {
-      using namespace std;
-      if ( generator::long_double ){
-        typedef pair<__int64,__int64> K;
-        typedef constant<long double> V;
-        map<K,V*>& m = constant<long double>::table;
-        typedef map<K,V*>::const_iterator IT;
-        for ( IT p = m.begin() ; p != m.end() ; ++p ){
-          V* v = p->second;
-          delete[] v->b;
-        }
-      }
-    }
-  } sweeper;
-} } } } } // end of namespace floating, literal, primary, expressions and cxx_compiler
-#endif // _DEBUG
-
 namespace cxx_compiler { namespace parameter {
   misc::pvector<tag> tags;
   tag* conv(const std::pair<std::string,tag*>& p)

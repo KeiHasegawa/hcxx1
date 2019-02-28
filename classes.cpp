@@ -42,11 +42,11 @@ cxx_compiler::classes::specifier::begin(int keyword, var* v, std::vector<base*>*
     scope::current = prev;
   }
   else {
-    tag* T = new tag(kind,name,file,bases);
-    T->m_parent = scope::current;
-    T->m_types.first = incomplete_tagged_type::create(T);
-    tags[name] = T;
-    scope::current = T;
+    tag* ptr = new tag(kind,name,file,bases);
+    ptr->m_parent = scope::current;
+    ptr->m_types.first = incomplete_tagged_type::create(ptr);
+    tags[name] = ptr;
+    scope::current = ptr;
   }
   declarations::specifier_seq::info_t::clear();
 }

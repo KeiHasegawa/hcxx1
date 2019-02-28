@@ -15,8 +15,8 @@
 #    };
 #  }
 #
-#  N::outer::inner x;
-#
+#  N::outer::inner x;  // outer : shift
+#                      // inner : recuded using BBB
 
 while ( <> ){
     chop;
@@ -24,29 +24,30 @@ while ( <> ){
     $xxx = $1;
     $_ = <>;
     $_ = <>; chop;
-    if ( !/nested_name_specifier: class_or_namespace_name COLONCOLON_MK \. nested_name_specifier/ ){
-	next;
-    }
-    $_ = <>; chop;
-    if ( !/class_or_namespace_name COLONCOLON_MK \./ ){
-	next;
-    }
-    $_ = <>; chop;
-    if ( !/class_or_namespace_name COLONCOLON_MK \. TEMPLATE_KW nested_name_specifier/ ){
-	next;
-    }
+    next if ( !/([0-9]+) nested_name_specifier: class_or_namespace_name COLONCOLON_MK \. nested_name_specifier/ );
+    $aaa = $1;
+    $_ = <>;    
+    next if ( !/([0-9]+) .* class_or_namespace_name COLONCOLON_MK \./ );
+    $bbb = $1;
+    $_ = <>;    
+    next if ( !/([0-9]+) .* class_or_namespace_name COLONCOLON_MK \. TEMPLATE_KW nested_name_specifier/ );
+    $ccc = $1;
     goto label;
 }
 
+print STDERR "Error detected at $0\n";
+print STDERR "aaa = $aaa", "\n";
+print STDERR "bbb = $bbb", "\n";
+print STDERR "ccc = $ccc", "\n";
+exit 1;
+
 label:
 print <<EOF
-  if (yystate == $xxx) {
-    if (cxx_compiler::parse::peek() != COLONCOLON_MK) {
-      YYDPRINTF((stderr, "rule.09 is applied\\n"));
-      goto yydefault;
-    }
+  if (yystate == $xxx && cxx_compiler::parse::peek() != COLONCOLON_MK) {
+    YYDPRINTF((stderr, "rule.09 is applied\\n"));
+    yyn = $bbb + 1;
+    goto yyreduce;
   }
 EOF
-
-
-
+    ;
+exit;

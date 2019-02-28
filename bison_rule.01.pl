@@ -89,6 +89,11 @@ while ( <> ){
     }
 }
 
+if ($xxx == 0 || $yyy == 0) {
+  print STDERR "Error detected at $0\n";
+  exit 1;
+}
+
 print <<EOF
   if ( yystate == $xxx ){
     using namespace cxx_compiler::parse;

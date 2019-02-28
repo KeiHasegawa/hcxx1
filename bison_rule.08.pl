@@ -20,6 +20,9 @@ while ( <> ){
     goto label;
 }
 
+print STDERR "Error detected at $0\n";
+exit 1;
+
 label:
 print <<EOF
   if (cxx_compiler::parse::member_function_body::saved && yystate == $xxx) {

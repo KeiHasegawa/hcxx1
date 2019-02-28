@@ -4,6 +4,7 @@ print "#include \"stdafx.h\"\n";
 print "#include \"yy.h\"\n";
 
 $yychar_converted = 0;
+$yydefault_converted = 0;
 $rule08_inserted = 0;
 
 while ( <> ){
@@ -20,6 +21,27 @@ while ( <> ){
     ++$yychar_converted;
     next;
   }
+  if ( /if \(yyn < 0 \|\| YYLAST < yyn \|\| yycheck\[yyn\] \!= yytoken\)/ ){
+    print $_, "\n";
+    $_ = <>; chop;
+    if (!/goto yydefault;/) {
+	print STDERR "Error detected at $0\n";
+	print STDERR "no goto yydefault;\n";
+	exit 1;
+    }
+    print <<EOF2
+  {
+#include "rule.04"
+    goto yydefault;
+  }
+#include "rule.03"
+#include "rule.09"
+#include "rule.10"
+EOF2
+	;
+    ++$yydefault_converted;
+    next;
+  }
   print $_,"\n";
   if ( /yystate = yydefgoto/ ){
     print "#include \"rule.00\"\n";
@@ -27,11 +49,6 @@ while ( <> ){
   if ( /yystate = yyn/ ){
     print "#include \"rule.01\"\n";
     print "#include \"rule.02\"\n";
-  }
-  if ( /goto yydefault;/ ){
-    print "#include \"rule.03\"\n";
-    print "#include \"rule.09\"\n";
-    print "#include \"rule.10\"\n";
   }
   if ( /yyn.*=.*yydefact\[yystate\];/ ){
     print "#include \"rule.06\"\n";
@@ -59,6 +76,12 @@ EOF
 if ($yychar_converted != 1) {
     print STDERR "Error detected at $0\n";
     print STDERR '$yychar_converted = ', $yychar_converted, "\n";
+    exit 1;
+}
+
+if ($yydefault_converted != 1) {
+    print STDERR "Error detected at $0\n";
+    print STDERR '$yydefault_converted = ', $yydefault_converted, "\n";
     exit 1;
 }
 

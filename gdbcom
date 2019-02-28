@@ -4,7 +4,7 @@
 #b cxx_compiler::declarations::action1
 #b cxx_compiler::parse::block::enter
 #b expr01.cpp:605
-run sample.txt --no-generator --output-medium --simple-medium --optimize 0
+run sample.txt --generator ~/lang/30_intel/src/intelxx.dll
 
 
 

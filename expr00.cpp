@@ -26,14 +26,14 @@ cxx_compiler::expressions::primary::info_t::~info_t()
 }
 
 namespace cxx_compiler { namespace expressions { namespace primary { namespace literal { namespace integer {
-  usr* new_obj(std::string);
+  usr* new_obj(string);
 } } } } } // end of namespace integer, literal, primary, expressions and cxx_compiler
 
 cxx_compiler::usr* cxx_compiler::expressions::primary::literal::integer::create(std::string name)
 {
   using namespace std;
-  map<std::string, vector<usr*> >& usrs = scope::root.m_usrs;
-  map<std::string, vector<usr*> >::const_iterator p =
+  map<string, vector<usr*> >& usrs = scope::root.m_usrs;
+  map<string, vector<usr*> >::const_iterator p =
     usrs.find(name);
   if ( p != usrs.end() )
     return p->second.back();
@@ -44,40 +44,43 @@ cxx_compiler::usr* cxx_compiler::expressions::primary::literal::integer::create(
 }
 
 namespace cxx_compiler { namespace expressions { namespace primary { namespace literal { namespace integer {
-  usr* int_(std::string, int, std::string);
-  usr* uint_(std::string, unsigned int, std::string);
-  usr* long_long_(std::string, __int64, std::string);
-  usr* ulong_long_(std::string, unsigned __int64, std::string);
+  usr* int_(string, int, string);
+  usr* uint_(string, unsigned int, string);
+  usr* long_long_(string, __int64, string);
+  usr* ulong_long_(string, unsigned __int64, string);
+  int expressible_int(const char* name, char** end);
+  unsigned int expressible_uint(const char* name, char** end);
 } } } } } // end of namespace integer, literal, primary, expressions and cxx_compiler
 
 cxx_compiler::usr* cxx_compiler::expressions::primary::literal::integer::new_obj(std::string name)
 {
   errno = 0;
   char* end;
-  int i = strtol(name.c_str(),&end,0);
+  const char* tmp = name.c_str();
+  int i = integer::expressible_int(tmp,&end);
   if ( errno != ERANGE ){
-    std::string suffix = end;
+    string suffix = end;
     return integer::int_(name,i,suffix);
   }
   if ( name[0] == '0' || *end == 'u' || *end == 'U' ){
     errno = 0;
-    unsigned int ui = strtoul(name.c_str(),&end,0);
+    unsigned int ui = integer::expressible_uint(tmp,&end);
     if ( errno != ERANGE ){
-      std::string suffix = end;
+      string suffix = end;
       return integer::uint_(name,ui,suffix);
     }
   }
   errno = 0;
   __int64 ll = strtoll(name.c_str(),&end,0);
   if ( errno != ERANGE ){
-    std::string suffix = end;
+    string suffix = end;
     return integer::long_long_(name,ll,suffix);
   }
   errno = 0;
   if ( name[0] == '0' || *end == 'u' || *end == 'U' || name[0] == '-' ){
     unsigned __int64 ull = strtoull(name.c_str(),&end,0);
     if ( errno != ERANGE ){
-      std::string suffix = end;
+      string suffix = end;
       return integer::ulong_long_(name,ull,suffix);
     }
   }
@@ -103,8 +106,34 @@ cxx_compiler::usr* cxx_compiler::expressions::primary::literal::integer::new_obj
   }
 }
 
+
+int cxx_compiler::expressions::primary::literal::integer::
+expressible_int(const char* name, char** end)
+{
+  long int x = strtol(name,end,0);  
+  if (sizeof(long) == sizeof(int))
+    return x;
+  assert(sizeof(long) == sizeof(long long) && sizeof(int) == 4);
+  if (x & (~0L << 31))
+    errno = ERANGE;
+  return x;
+}
+
+unsigned int cxx_compiler::expressions::primary::literal::integer::
+expressible_uint(const char* name, char** end)
+{
+  unsigned long int x = strtoul(name,end,0);  
+  if (sizeof(long) == sizeof(int))
+    return x;
+  assert(sizeof(long) == sizeof(long long));
+  unsigned int y = x;
+  if (x != y)
+    errno = ERANGE;
+  return y;
+}
+
 namespace cxx_compiler { namespace expressions { namespace primary { namespace literal { namespace integer {
-  template<class C> usr* common_int(std::string name, C value, const type* T, std::string suffix)
+  template<class C> usr* common_int(string name, C value, const type* T, string suffix)
   {
     if ( suffix.empty() ){
       constant<C>* c = new constant<C>(name,T,usr::NONE,parse::position);
@@ -186,7 +215,7 @@ cxx_compiler::usr* cxx_compiler::expressions::primary::literal::integer::uint_(s
 }
 
 namespace cxx_compiler { namespace expressions { namespace primary { namespace literal { namespace integer {
-  template<class C> usr* common_long_long(std::string name, C value, const type* T, std::string suffix)
+  template<class C> usr* common_long_long(string name, C value, const type* T, string suffix)
   {
     if ( suffix.empty() ){
       constant<C>* c = new constant<C>(name,T,usr::NONE,parse::position);
@@ -247,42 +276,39 @@ cxx_compiler::usr* cxx_compiler::expressions::primary::literal::integer::ulong_l
   return common_long_long(name,value,T,suffix);
 }
 
-template<class T> std::map<T, cxx_compiler::constant<T>*> cxx_compiler::constant<T>::table;
-
 namespace cxx_compiler { namespace expressions { namespace primary { namespace literal { namespace integer {
   template<class T> usr* common(T v, const type* (*pf)())
   {
     using namespace std;
-#ifndef __GNUC__
-    typedef map<T, constant<T>*>::const_iterator IT;
-    IT p = constant<T>::table.find(v);
-    if ( p != constant<T>::table.end() )
-      return p->second;
-#else // __GNUC__
-    if ( constant<T>::table.find(v) != constant<T>::table.end() )
-      return constant<T>::table.find(v)->second;
-#endif // __GNUC__
-    std::string name = new_name(".integer");
+    string name = new_name(".integer");
     const type* type = (*pf)();
     type = const_type::create(type);
     constant<T>* c = new constant<T>(name,type,usr::NONE,parse::position);
     c->m_scope = &scope::root;
     c->m_value = v;
-    constant<T>::table[v] = c;
-    map<std::string, vector<usr*> >& usrs = scope::root.m_usrs;
+    map<string, vector<usr*> >& usrs = scope::root.m_usrs;
     usrs[name].push_back(c);
     return c;
   }
+  template<class T> usr* common_wrapper(T v, const type* (*pf)())
+  {
+    using namespace std;
+    static map<T, usr*> table;
+    typename map<T, usr*>::const_iterator p = table.find(v);
+    if (p != table.end())
+      return p->second;
+    return table[v] = common<T>(v,pf);
+  }
 } } } } } // end of namespace integer, literal, primary, expressions and cxx_compiler
 
-cxx_compiler::usr* cxx_compiler::expressions::primary::literal::integer::create(char v){ return common(v,(const type* (*)())char_type::create); }
-cxx_compiler::usr* cxx_compiler::expressions::primary::literal::integer::create(signed char v){ return common(v,(const type* (*)())schar_type::create); }
-cxx_compiler::usr* cxx_compiler::expressions::primary::literal::integer::create(unsigned char v){ return common(v,(const type* (*)())uchar_type::create); }
-cxx_compiler::usr* cxx_compiler::expressions::primary::literal::integer::create(wchar_t v){ return common(v,(const type* (*)())wchar_type::create); }
-cxx_compiler::usr* cxx_compiler::expressions::primary::literal::integer::create(short int v){ return common(v,(const type* (*)())short_type::create); }
-cxx_compiler::usr* cxx_compiler::expressions::primary::literal::integer::create(unsigned short int v){ return common(v,(const type* (*)())ushort_type::create); }
-cxx_compiler::usr* cxx_compiler::expressions::primary::literal::integer::create(int v){ return common(v,(const type* (*)())int_type::create); }
-cxx_compiler::usr* cxx_compiler::expressions::primary::literal::integer::create(unsigned int v){ return common(v,(const type* (*)())uint_type::create); }
+cxx_compiler::usr* cxx_compiler::expressions::primary::literal::integer::create(char v){ return common_wrapper(v,(const type* (*)())char_type::create); }
+cxx_compiler::usr* cxx_compiler::expressions::primary::literal::integer::create(signed char v){ return common_wrapper(v,(const type* (*)())schar_type::create); }
+cxx_compiler::usr* cxx_compiler::expressions::primary::literal::integer::create(unsigned char v){ return common_wrapper(v,(const type* (*)())uchar_type::create); }
+cxx_compiler::usr* cxx_compiler::expressions::primary::literal::integer::create(wchar_t v){ return common_wrapper(v,(const type* (*)())wchar_type::create); }
+cxx_compiler::usr* cxx_compiler::expressions::primary::literal::integer::create(short int v){ return common_wrapper(v,(const type* (*)())short_type::create); }
+cxx_compiler::usr* cxx_compiler::expressions::primary::literal::integer::create(unsigned short int v){ return common_wrapper(v,(const type* (*)())ushort_type::create); }
+cxx_compiler::usr* cxx_compiler::expressions::primary::literal::integer::create(int v){ return common_wrapper(v,(const type* (*)())int_type::create); }
+cxx_compiler::usr* cxx_compiler::expressions::primary::literal::integer::create(unsigned int v){ return common_wrapper(v,(const type* (*)())uint_type::create); }
 
 cxx_compiler::usr*
 cxx_compiler::expressions::primary::literal::integer::create(long int v)
@@ -334,18 +360,18 @@ cxx_compiler::expressions::primary::literal::integer::create(unsigned long int v
   return table[v] = u;
 }
 
-cxx_compiler::usr* cxx_compiler::expressions::primary::literal::integer::create(__int64 v){ return common(v,(const type* (*)())long_long_type::create); }
-cxx_compiler::usr* cxx_compiler::expressions::primary::literal::integer::create(unsigned __int64 v){ return common(v,(const type* (*)())ulong_long_type::create); }
+cxx_compiler::usr* cxx_compiler::expressions::primary::literal::integer::create(__int64 v){ return common_wrapper(v,(const type* (*)())long_long_type::create); }
+cxx_compiler::usr* cxx_compiler::expressions::primary::literal::integer::create(unsigned __int64 v){ return common_wrapper(v,(const type* (*)())ulong_long_type::create); }
 
 namespace cxx_compiler { namespace expressions { namespace primary { namespace literal { namespace character {
-  usr* new_obj(std::string);
+  usr* new_obj(string);
 } } } } } // end of namespace character, literal, primary, expressions and cxx_compiler
 
 cxx_compiler::usr* cxx_compiler::expressions::primary::literal::character::create(std::string name)
 {
   using namespace std;
-  map<std::string, vector<usr*> >& usrs = scope::root.m_usrs;
-  map<std::string, vector<usr*> >::const_iterator p =
+  map<string, vector<usr*> >& usrs = scope::root.m_usrs;
+  map<string, vector<usr*> >::const_iterator p =
     usrs.find(name);
   if ( p != usrs.end() )
     return p->second.back();
@@ -356,18 +382,18 @@ cxx_compiler::usr* cxx_compiler::expressions::primary::literal::character::creat
 }
 
 namespace cxx_compiler { namespace expressions { namespace primary { namespace literal { namespace character {
-  struct simple_escape : misc::pmap<std::string, usr> {
+  struct simple_escape : misc::pmap<string, usr> {
     bool m_initialized;
     simple_escape() : m_initialized(false) {}
-    void helper(std::string, std::string, int);
+    void helper(string, string, int);
     void initialize();
   } m_simple_escape;
-  usr* escape(std::string);
+  usr* escape(string);
   namespace wide {
-    usr* get(std::string);
+    usr* get(string);
   }
-  usr* universal(std::string);
-  usr* normal(std::string);
+  usr* universal(string);
+  usr* normal(string);
 } } } } } // end of namespace character, literal, primary, expressions and cxx_compiler
 
 cxx_compiler::usr* cxx_compiler::expressions::primary::literal::character::new_obj(std::string name)
@@ -426,7 +452,7 @@ void cxx_compiler::expressions::primary::literal::character::simple_escape::help
 cxx_compiler::usr* cxx_compiler::expressions::primary::literal::character::escape(std::string name)
 {
   using namespace std;
-  std::string s = name;
+  string s = name;
   if ( s[0] == 'L' )
     s.erase(0,1);
   assert(s[0] == '\'');
@@ -444,7 +470,7 @@ cxx_compiler::usr* cxx_compiler::expressions::primary::literal::character::escap
   if ( end == &s[0] )
     return 0;
   if ( *end != '\'' ){
-    std::string t = "\'";
+    string t = "\'";
     t += end;
     usr* u = character::create(t);
     constant<char>* c = static_cast<constant<char>*>(u);
@@ -630,34 +656,20 @@ cxx_compiler::usr* cxx_compiler::expressions::primary::literal::floating::new_ob
     T = const_type::create(T);
     constant<X>* c = new constant<X>(name,T,usr::NONE,parse::position);
     c->m_value = x;
-    typedef int K;
-    K k = *reinterpret_cast<K*>(&x);
-    constant<X>::table[k] = c;
     return c;
   }
   else if ( suffix == 'l' || suffix == 'L' ){
     typedef long double X;
-    volatile X x = 0; x = value<X>()(name);
+    X x = value<X>()(name);
     const type* T = long_double_type::create();
     T = const_type::create(T);
     constant<X>* c = new constant<X>(name,T,usr::NONE,parse::position);
     c->m_value = x;
-    typedef pair<__int64,__int64> K;
-    K k;
     if ( generator::long_double ){
       int sz = long_double_type::create()->size();
       c->b = new unsigned char[sz];
       (*generator::long_double->bit)(c->b,name.c_str());
-      memcpy(&k,c->b,sz);
     }
-    else
-      memcpy(&k,(const void*)&x,sizeof x);
-    map<K,constant<X>*>::const_iterator p = constant<X>::table.find(k);
-    if ( p != constant<X>::table.end() ){
-      delete[] c->b;
-      c->b = p->second->b;
-    }
-    constant<X>::table[k] = c;
     return c;
   }
   else {
@@ -667,9 +679,6 @@ cxx_compiler::usr* cxx_compiler::expressions::primary::literal::floating::new_ob
     T = const_type::create(T);
     constant<X>* c = new constant<X>(name,T,usr::NONE,parse::position);
     c->m_value = x;
-    typedef __int64 K;
-    K k = *reinterpret_cast<K*>(&x);
-    constant<X>::table[k] = c;
     return c;
   }
 }
@@ -980,77 +989,87 @@ cxx_compiler::expressions::primary::literal::stringa::create(var* x, var* y)
   return create(os.str());
 }
 
-std::pair<std::map<std::pair<const cxx_compiler::type*, void*>, cxx_compiler::constant<void*>*>,std::map<std::pair<const cxx_compiler::type*, void*>, cxx_compiler::constant<void*>*> >
-cxx_compiler::constant<void*>::table;
+namespace cxx_compiler {
+  namespace expressions {
+    namespace primary {
+      namespace literal {
+        namespace pointer {
+          template<> usr* create<void*>(const type* T, void* v)
+          {
+            using namespace std;
+            typedef void* X;
+            bool temp = T->tmp();
+            typedef pair<const type*, X> KEY;
+            KEY key(T, v);
+            typedef map<KEY, constant<X>*> table_t;
+            static table_t table;
+            if (!temp) {
+              table_t::const_iterator p = table.find(key);
+              if (p != table.end())
+                return p->second;
+            }
+            string name = new_name(".pointer");
+            constant<X>* c = new constant<X>(name, T, usr::CONST_PTR, parse::position);
+            if (!temp)
+              table[key] = c;
+            c->m_value = v;
+            if (temp) {
+              map<string, vector<usr*> >& usrs = scope::current->m_usrs;
+              usrs[name].push_back(c);
+            }
+            else {
+              c->m_scope = &scope::root;
+              map<string, vector<usr*> >& usrs = scope::root.m_usrs;
+              usrs[name].push_back(c);
+            }
+            return c;
+          }
+          template<> usr* create<__int64>(const type* T, __int64 v)
+          {
+            using namespace std;
+            typedef __int64 X;
+            bool temp = T->tmp();
+            typedef pair<const type*,X> KEY;
+            KEY key(T, v);
+            typedef map<KEY, constant<X>*> table_t;
+            static table_t table;
+            if (!temp) {
+              table_t::const_iterator p = table.find(key);
+              if (p != table.end())
+                return p->second;
+            }
+            string name = new_name(".pointer");
+            constant<X>* c = new constant<X>(name, T, usr::CONST_PTR, parse::position);
+            if (!temp)
+              table[key] = c;
+            c->m_value = v;
+            if (temp) {
+              map<string, vector<usr*> >& usrs = scope::current->m_usrs;
+              usrs[name].push_back(c);
+            }
+            else {
+              c->m_scope = &scope::root;
+              map<string, vector<usr*> >& usrs = scope::root.m_usrs;
+              usrs[name].push_back(c);
+            }
+            return c;
+          }
+        } // end of namespace pointer
+      } // end of namespace literal
+    } // end of namespace primary
+  } // end of namespace expressions
+} // end of namespace cxx_compiler
 
 namespace cxx_compiler {
   namespace expressions {
     namespace primary {
       namespace literal {
-	namespace pointer {
-	  template<> usr* create<void*>(const type* T, void* v)
-	  {
-	    using namespace std;
-	    typedef void* X;
-	    bool temp = T->tmp();
-	    typedef pair<const type*, X> KEY;
-	    KEY key(T, v);
-	    typedef map<KEY, constant<X>*> table_t;
-	    static table_t table;
-	    if (!temp) {
-	      table_t::const_iterator p = table.find(key);
-	      if (p != table.end())
-		return p->second;
-	    }
-	    string name = new_name(".pointer");
-	    constant<X>* c = new constant<X>(name, T, usr::CONST_PTR, parse::position);
-	    if (!temp)
-	      table[key] = c;
-	    c->m_value = v;
-	    if (temp) {
-	      map<string, vector<usr*> >& usrs = scope::current->m_usrs;
-	      usrs[name].push_back(c);
-	    }
-	    else {
-	      c->m_scope = &scope::root;
-	      map<string, vector<usr*> >& usrs = scope::root.m_usrs;
-	      usrs[name].push_back(c);
-	    }
-	    return c;
-	  }
-	  template<> usr* create<__int64>(const type* T, __int64 v)
-	  {
-	    using namespace std;
-	    typedef __int64 X;
-	    bool temp = T->tmp();
-	    typedef pair<const type*,X> KEY;
-	    KEY key(T, v);
-	    typedef map<KEY, constant<X>*> table_t;
-	    static table_t table;
-	    if (!temp) {
-	      table_t::const_iterator p = table.find(key);
-	      if (p != table.end())
-		return p->second;
-	    }
-	    string name = new_name(".pointer");
-	    constant<X>* c = new constant<X>(name, T, usr::CONST_PTR, parse::position);
-	    if (!temp)
-	      table[key] = c;
-	    c->m_value = v;
-	    if (temp) {
-	      map<string, vector<usr*> >& usrs = scope::current->m_usrs;
-	      usrs[name].push_back(c);
-	    }
-	    else {
-	      c->m_scope = &scope::root;
-	      map<string, vector<usr*> >& usrs = scope::root.m_usrs;
-	      usrs[name].push_back(c);
-	    }
-	    return c;
-	  }
-	} // end of namespace pointer
-      } // end of namespace literal
-    } // end of namespace primary
+        namespace floating {
+          using namespace std;
+          template<class T> map<T, constant<T>* > table;
+        } // end of namespace floating      
+      } // end of namespace literal      
+    } // end of namespace primary    
   } // end of namespace expressions
 } // end of namespace cxx_compiler
 
@@ -1058,20 +1077,17 @@ cxx_compiler::usr* cxx_compiler::expressions::primary::literal::floating::create
 {
   using namespace std;
   typedef float X;
-  typedef int K;
-  K k;
-  memcpy(&k,&x,sizeof x);
-  map<K, constant<X>*>::const_iterator p = constant<X>::table.find(k);
-  if ( p != constant<X>::table.end() )
+  map<X, constant<X>*>::const_iterator p = table<X>.find(x);
+  if ( p != table<X>.end() )
     return p->second;
-  std::string name = new_name(".float");
+  string name = new_name(".float");
   const type* T = float_type::create();
   T = const_type::create(T);
   constant<X>* c = new constant<X>(name,T,usr::NONE,parse::position);
   c->m_scope = &scope::root;
   c->m_value = x;
-  constant<X>::table[k] = c;
-  map<std::string, vector<usr*> >& usrs = scope::root.m_usrs;
+  table<X>[x] = c;
+  map<string, vector<usr*> >& usrs = scope::root.m_usrs;
   usrs[name].push_back(c);
   return c;
 }
@@ -1080,20 +1096,17 @@ cxx_compiler::usr* cxx_compiler::expressions::primary::literal::floating::create
 {
   using namespace std;
   typedef double X;
-  typedef __int64 K;
-  K k;
-  memcpy(&k,&x,sizeof x);
-  map<K, constant<X>*>::const_iterator p = constant<X>::table.find(k);
-  if ( p != constant<X>::table.end() )
+  map<X, constant<X>*>::const_iterator p = table<X>.find(x);
+  if ( p != table<X>.end() )
     return p->second;
-  std::string name = new_name(".double");
+  string name = new_name(".double");
   const type* T = double_type::create();
   T = const_type::create(T);
   constant<X>* c = new constant<X>(name,T,usr::NONE,parse::position);
   c->m_scope = &scope::root;
   c->m_value = x;
-  constant<X>::table[k] = c;
-  map<std::string, vector<usr*> >& usrs = scope::root.m_usrs;
+  table<X>[x] = c;
+  map<string, vector<usr*> >& usrs = scope::root.m_usrs;
   usrs[name].push_back(c);
   return c;
 }
@@ -1102,20 +1115,17 @@ cxx_compiler::usr* cxx_compiler::expressions::primary::literal::floating::create
 {
   using namespace std;
   typedef long double X;
-  typedef pair<__int64,__int64> K;
-  K k;
-  memcpy(&k,&x,sizeof x);
-  map<K, constant<X>*>::const_iterator p = constant<X>::table.find(k);
-  if ( p != constant<X>::table.end() )
+  map<X, constant<X>*>::const_iterator p = table<X>.find(x);
+  if ( p != table<X>.end() )
     return p->second;
-  std::string name = new_name(".long double");
+  string name = new_name(".long double");
   const type* T = long_double_type::create();
   T = const_type::create(T);
   constant<X>* c = new constant<X>(name,T,usr::NONE,parse::position);
   c->m_scope = &scope::root;
   c->m_value = x;
-  constant<X>::table[k] = c;
-  map<std::string, vector<usr*> >& usrs = scope::root.m_usrs;
+  table<X>[x] = c;
+  map<string, vector<usr*> >& usrs = scope::root.m_usrs;
   usrs[name].push_back(c);
   return c;
 }
@@ -1123,24 +1133,14 @@ cxx_compiler::usr* cxx_compiler::expressions::primary::literal::floating::create
 cxx_compiler::usr* cxx_compiler::expressions::primary::literal::floating::create(unsigned char* b)
 {
   using namespace std;
-  typedef long double X;
-  typedef pair<__int64,__int64> K;
-  K k;
   int sz = long_double_type::create()->size();
-  memcpy(&k,b,sz);
-  map<K, constant<X>*>::const_iterator p = constant<X>::table.find(k);
-  if ( p != constant<X>::table.end() ){
-    delete[] b;
-    return p->second;
-  }
-  std::string name = new_name(".long double");
+  string name = new_name(".long double");
   const type* T = long_double_type::create();
   T = const_type::create(T);
-  constant<X>* c = new constant<X>(name,T,usr::NONE,parse::position);
+  constant<long double>* c = new constant<long double>(name,T,usr::NONE,parse::position);
   c->m_scope = &scope::root;
   c->b = b;
-  constant<X>::table[k] = c;
-  map<std::string, vector<usr*> >& usrs = scope::root.m_usrs;
+  map<string, vector<usr*> >& usrs = scope::root.m_usrs;
   usrs[name].push_back(c);
   return c;
 }
@@ -1149,16 +1149,17 @@ cxx_compiler::usr* cxx_compiler::expressions::primary::literal::boolean::create(
 {
   using namespace std;
   typedef bool X;
-  map<X, constant<X>*>::const_iterator p = constant<X>::table.find(x);
-  if ( p != constant<X>::table.end() )
+  static map<X, constant<X>*> table;
+  map<X, constant<X>*>::const_iterator p = table.find(x);
+  if ( p != table.end() )
     return p->second;
-  std::string name = x ? "true" : "false";
+  string name = x ? "true" : "false";
   const type* T = bool_type::create();
   constant<X>* c = new constant<X>(name,T,usr::NONE,parse::position);
   c->m_scope = &scope::root;
   c->m_value = x;
-  constant<X>::table[x] = c;
-  map<std::string, vector<usr*> >& usrs = scope::root.m_usrs;
+  table[x] = c;
+  map<string, vector<usr*> >& usrs = scope::root.m_usrs;
   usrs[name].push_back(c);
   return c;
 }
@@ -1264,6 +1265,5 @@ cxx_compiler::var* cxx_compiler::unqualified_id::dtor(tag* ptr)
   using namespace std;
   string name = "~" + ptr->m_name;
   const type* T = backpatch_type::create();
-  var* ret = new usr(name,T,usr::DTOR,parse::position);
-  return ret;
+  return new usr(name, T, usr::DTOR, parse::position);
 }

@@ -211,6 +211,19 @@ namespace cxx_compiler {
       return 0;
     }
 #endif // YYDEBUG
+    bool no_inline_sub;
+    int no_inline_sub_option(char** argv)
+    {
+      using namespace std;
+      if ( !argv ){
+	cerr << " : no inline substitution";
+	return 0;
+      }
+
+      no_inline_sub = true;
+      return 0;
+    }
+    
     int help_option(char**);
     table_t::table_t()
     {
@@ -226,7 +239,10 @@ namespace cxx_compiler {
       (*this)["--no-basic-block-optimize"] = nobb_optimize_option;
       (*this)["--no-dag-optimize"] = nodag_optimize_option;
       (*this)["--output-optinfo"] = output_optinfo_option;
+#ifdef YYDEBUG
       (*this)["--cxx-compiler-debug"] = cxx_compiler_debug_option;
+#endif // YYDEBUG      
+      (*this)["--no-inline-sub"] = no_inline_sub_option;
       (*this)["-h"] = help_option;
     }
   } // end of namespace cmdline
