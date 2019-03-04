@@ -166,12 +166,23 @@
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(CYGWINDIR)\bin\tcsh -f flex_script cxx.l</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">cxx_l.cpp</Outputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(CYGWINDIR)\bin\tcsh -f flex_script cxx.l</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(CYGWINDIR)\bin\tcsh -f flex_script cxx.l</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(CYGWINDIR)\bin\tcsh -f flex_script cxx.l</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">cxx_l.cpp</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cxx_l.cpp</Outputs>
     </CustomBuild>
     <CustomBuild Include="cxx.y">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(CYGWINDIR)\bin\tcsh -f bison_script cxx.y</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">cxx_y.cpp;cxx_y.h;cxx_y.output</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">cxx_y.cpp;cxx_y.h;cxx_y.output</Outputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(CYGWINDIR)\bin\tcsh -f bison_script cxx.y</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(CYGWINDIR)\bin\tcsh -f bison_script cxx.y</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(CYGWINDIR)\bin\tcsh -f bison_script cxx.y</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">cxx_y.cpp;cxx_y.h;cxx_y.output</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cxx_y.cpp;cxx_y.h;cxx_y.output</Outputs>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>

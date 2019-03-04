@@ -90,7 +90,9 @@ member_function_definition(std::pair<usr* const,parse::member_function_body::sav
   children.push_back(param);
   fundef::current = new fundef(u,param);
   parse::member_function_body::saved = &E.second;
+  file_t org = parse::position;
   cxx_compiler_parse();
+  parse::position = org;
   parse::member_function_body::saved = 0;
 }
 
@@ -120,7 +122,7 @@ void cxx_compiler::classes::members::action(var* v, expressions::base* expr)
     delete u;
     u = cm;
   }
-  declarations::action1(u,false,false);
+  declarations::action1(u,false);
   vector<scope*>& children = scope::current->m_children;
   if ( children.empty() )
     return;
@@ -162,7 +164,7 @@ void cxx_compiler::classes::members::bit_field(var* v, expressions::base* expr)
     u = new usr(u->m_name,T,usr::NONE,parse::position); 
   }
   u->m_type = T->patch(bit_field_type::create(bit,backpatch_type::create()),0);
-  declarations::action1(u,false,false);
+  declarations::action1(u,false);
 }
 
 void cxx_compiler::class_or_namespace_name::action(scope* p)

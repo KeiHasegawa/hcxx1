@@ -25,9 +25,14 @@ int cxx_compiler::parse::identifier::judge(std::string name)
     if (int r = lookup(name, scope::current))
       return r;
     error::undeclared(parse::position, name);
-    if (last_token == COLONCOLON_MK)
-      return create(name, int_type::create());
+    if (last_token == COLONCOLON_MK) {
+      int r = create(name, int_type::create());
+      usr* u = cxx_compiler_lval.m_usr;
+      scope::current->m_usrs[name].push_back(u);
+      return r;
+    }
     cxx_compiler_lval.m_name_space = new name_space(name, parse::position);
+    scope::current->m_usrs[name].push_back(cxx_compiler_lval.m_name_space);
     return ORIGINAL_NAMESPACE_NAME_LEX;
   }
   
@@ -40,13 +45,34 @@ int cxx_compiler::parse::identifier::judge(std::string name)
   if (mode == new_obj)
     return create(name);
 
+  /*
+    Bellow code doesn't work. For typedef int A ; typedef A B;
+
+    Originally, bellow code was inserted For static x; static x;
+    
+  using namespace declarations::specifier_seq;
+  const stack<info_t*>& s = info_t::s_stack;
+  if (!s.empty()) {
+    if (info_t* p = s.top())
+      if (!p->m_type)
+	return create(name);
+  }
+  */
+
   if (int r = lookup(name, scope::current)) {
     if (context_t::retry[DECL_FCAST_CONFLICT_STATE])
       return r;
     using namespace declarations::specifier_seq;
     const stack<info_t*>& s = info_t::s_stack;
-    if (s.empty())
+    if (s.empty()) {
+      if (last_token == EXTERN_KW && r == IDENTIFIER_LEX) {
+	// Rare case like:
+	// int n; extern n;
+	// For 2nd `n', return create(name) not return entry of symbol table.
+	return create(name);
+      }
       return r;
+    }
     info_t* p = s.top();
     if (!p)
       return r;
@@ -58,10 +84,19 @@ int cxx_compiler::parse::identifier::judge(std::string name)
     case ENUM_NAME_LEX:
       return r;
     }
+#if 1
+    // For static x; static x;
+    // For 2nd `x' return create(name) not return exsisting entry.
     return create(name);
+#else
+    return r;
+#endif
   }
   error::undeclared(parse::position, name);
-  return create(name, int_type::create());
+  int r = create(name, int_type::create());
+  usr* u = cxx_compiler_lval.m_usr;
+  scope::current->m_usrs[name].push_back(u);
+  return r;
 }
 
 int cxx_compiler::parse::identifier::create(std::string name, const type* T)
@@ -128,7 +163,10 @@ int cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
     if (int r = bases_lookup(name, ptag))
       return r;
     error::undeclared(parse::position,name);
-    return create(name,int_type::create());
+    int r = create(name,int_type::create());
+    usr* u = cxx_compiler_lval.m_usr;
+    scope::current->m_usrs[name].push_back(u);
+    return r;
   }
   else {
     if (ptr->m_id == scope::TAG) {
@@ -148,7 +186,10 @@ int cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
       if (last_token == NAMESPACE_KW)
         return create(name);
       error::undeclared(parse::position,name);
-      return create(name,int_type::create());
+      int r = create(name,int_type::create());
+      usr* u = cxx_compiler_lval.m_usr;
+      scope::current->m_usrs[name].push_back(u);
+      return r;
     }
   }
 }

@@ -376,16 +376,6 @@ void cxx_compiler::long_double_type::encode(std::ostream& os) const { os << 'e';
 
 cxx_compiler::backpatch_type cxx_compiler::backpatch_type::obj;
 
-void
-cxx_compiler::backpatch_type::decl(std::ostream& os, std::string name) const
-{
-  // If usr* `u' is installed to symbol table,
-  // assert(!u->m_type->backpatch()) should be passed normally.
-  // However some unexpected error (e.g. syntax error)
-  // may overwrite u->m_type where `u' is already installed to symbol table.
-  assert(error::counter);
-}
-
 namespace cxx_compiler {
   const_type::table_t const_type::tmp_tbl;
   const_type::table_t const_type::pmt_tbl;

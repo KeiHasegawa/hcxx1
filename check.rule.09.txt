@@ -1,0 +1,8 @@
+namespace N {
+  struct outer {
+    struct inner {
+    }; 
+  };  
+}
+
+N::outer::inner x;

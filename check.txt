@@ -1,0 +1,52 @@
+void f()
+{
+  int n;
+  n;
+}
+
+void g()
+{
+  int* p;
+  *p;
+}
+
+void h(int n)
+{
+  int& r = n;
+  &r;
+}
+
+void f2()
+{
+  int (n);
+  int (n+n);
+}
+
+struct T { void f(); };
+
+void T::f()
+{
+}
+
+struct S {
+  int f(){ A x; x = 1.0; return x + a; }
+  typedef double A;
+  int a;
+};
+
+namespace N {
+  struct outer {
+    struct inner {
+    }; 
+  };  
+}
+
+N::outer::inner x;
+
+struct T2 { T2(int); };
+
+void f2(int a)
+{
+  T2 t1();
+  T2 t2(a);
+}

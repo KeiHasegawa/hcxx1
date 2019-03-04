@@ -158,9 +158,9 @@ declaration
 block_declaration
   : simple_declaration
   | asm_definition
-  | namespace_alias_definition
-  | using_declaration
-  | using_directive
+  | namespace_alias_definition { assert(0); }
+  | using_declaration          { assert(0); }
+  | using_directive            { assert(0); }
   ;
 
 simple_declaration
@@ -222,22 +222,38 @@ type_specifier
 
 simple_type_specifier
   : COLONCOLON_MK move_to_root nested_name_specifier type_name
+    { $$ = $4; cxx_compiler::class_or_namespace_name::after(); }
   | COLONCOLON_MK move_to_root                       type_name
-  |                            nested_name_specifier type_name { $$ = $2; cxx_compiler::class_or_namespace_name::after(); }
+    { $$ = $3; cxx_compiler::class_or_namespace_name::after(); }
+  |                            nested_name_specifier type_name
+    { $$ = $2; cxx_compiler::class_or_namespace_name::after(); }
   |                                                  type_name
   | COLONCOLON_MK move_to_root nested_name_specifier TEMPLATE_KW template_id
+    { cxx_compiler::error::not_implemented(); }
   |                            nested_name_specifier TEMPLATE_KW template_id
-  | CHAR_KW { $$ = new cxx_compiler::declarations::type_specifier(CHAR_KW); }
-  | WCHAR_T_KW { $$ = new cxx_compiler::declarations::type_specifier(WCHAR_T_KW); }
-  | BOOL_KW { $$ = new cxx_compiler::declarations::type_specifier(BOOL_KW); }
-  | SHORT_KW { $$ = new cxx_compiler::declarations::type_specifier(SHORT_KW); }
-  | INT_KW { $$ = new cxx_compiler::declarations::type_specifier(INT_KW); }
-  | LONG_KW { $$ = new cxx_compiler::declarations::type_specifier(LONG_KW); }
-  | SIGNED_KW { $$ = new cxx_compiler::declarations::type_specifier(SIGNED_KW); }
-  | UNSIGNED_KW { $$ = new cxx_compiler::declarations::type_specifier(UNSIGNED_KW); }
-  | FLOAT_KW { $$ = new cxx_compiler::declarations::type_specifier(FLOAT_KW); }
-  | DOUBLE_KW { $$ = new cxx_compiler::declarations::type_specifier(DOUBLE_KW); }
-  | VOID_KW { $$ = new cxx_compiler::declarations::type_specifier(VOID_KW); }
+    { cxx_compiler::error::not_implemented(); }
+  | CHAR_KW
+    { $$ = new cxx_compiler::declarations::type_specifier(CHAR_KW); }
+  | WCHAR_T_KW
+    { $$ = new cxx_compiler::declarations::type_specifier(WCHAR_T_KW); }
+  | BOOL_KW
+    { $$ = new cxx_compiler::declarations::type_specifier(BOOL_KW); }
+  | SHORT_KW
+    { $$ = new cxx_compiler::declarations::type_specifier(SHORT_KW); }
+  | INT_KW
+    { $$ = new cxx_compiler::declarations::type_specifier(INT_KW); }
+  | LONG_KW
+    { $$ = new cxx_compiler::declarations::type_specifier(LONG_KW); }
+  | SIGNED_KW
+    { $$ = new cxx_compiler::declarations::type_specifier(SIGNED_KW); }
+  | UNSIGNED_KW
+    { $$ = new cxx_compiler::declarations::type_specifier(UNSIGNED_KW); }
+  | FLOAT_KW
+    { $$ = new cxx_compiler::declarations::type_specifier(FLOAT_KW); }
+  | DOUBLE_KW
+    { $$ = new cxx_compiler::declarations::type_specifier(DOUBLE_KW); }
+  | VOID_KW
+    { $$ = new cxx_compiler::declarations::type_specifier(VOID_KW); }
   ;
 
 type_name
@@ -248,27 +264,49 @@ type_name
 
 elaborated_type_specifier
   : class_key COLONCOLON_MK move_to_root nested_name_specifier IDENTIFIER_LEX
+    { cxx_compiler::error::not_implemented(); }
   | class_key               nested_name_specifier IDENTIFIER_LEX
+    { cxx_compiler::error::not_implemented(); }
   | class_key COLONCOLON_MK move_to_root IDENTIFIER_LEX
-  | class_key                                     IDENTIFIER_LEX { $$ = cxx_compiler::declarations::elaborated::action($1,$2); }
+    { cxx_compiler::error::not_implemented(); }
+  | class_key                                     IDENTIFIER_LEX
+   { $$ = cxx_compiler::declarations::elaborated::action($1,$2); }
   | class_key COLONCOLON_MK move_to_root nested_name_specifier TEMPLATE_KW template_id
+    { cxx_compiler::error::not_implemented(); }
   | class_key               nested_name_specifier TEMPLATE_KW template_id
+    { cxx_compiler::error::not_implemented(); }
   | class_key COLONCOLON_MK move_to_root                       TEMPLATE_KW template_id
+    { cxx_compiler::error::not_implemented(); }
   | class_key COLONCOLON_MK move_to_root nested_name_specifier             template_id
+    { cxx_compiler::error::not_implemented(); }
   | class_key                                     TEMPLATE_KW template_id
+    { cxx_compiler::error::not_implemented(); }
   | class_key COLONCOLON_MK move_to_root                                   template_id
+    { cxx_compiler::error::not_implemented(); }
   | class_key               nested_name_specifier             template_id
+    { cxx_compiler::error::not_implemented(); }
   | class_key                                                 template_id
+    { cxx_compiler::error::not_implemented(); }
   | enum_key COLONCOLON_MK move_to_root nested_name_specifier IDENTIFIER_LEX
+    { cxx_compiler::error::not_implemented(); }
   | enum_key               nested_name_specifier IDENTIFIER_LEX
+    { cxx_compiler::error::not_implemented(); }
   | enum_key COLONCOLON_MK move_to_root                       IDENTIFIER_LEX
-  | enum_key                                     IDENTIFIER_LEX { $$ = cxx_compiler::declarations::elaborated::action($1,$2); }
+    { cxx_compiler::error::not_implemented(); }
+  | enum_key                                     IDENTIFIER_LEX
+    { $$ = cxx_compiler::declarations::elaborated::action($1,$2); }
   | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier IDENTIFIER_LEX
+    { cxx_compiler::error::not_implemented(); }
   | TYPENAME_KW               nested_name_specifier IDENTIFIER_LEX
+    { cxx_compiler::error::not_implemented(); }
   | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier TEMPLATE_KW template_id
+    { cxx_compiler::error::not_implemented(); }
   | TYPENAME_KW               nested_name_specifier TEMPLATE_KW template_id
+    { cxx_compiler::error::not_implemented(); }
   | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier             template_id
+    { cxx_compiler::error::not_implemented(); }
   | TYPENAME_KW               nested_name_specifier             template_id
+    { cxx_compiler::error::not_implemented(); }
   ;
 
 enum_specifier
@@ -363,10 +401,15 @@ qualified_namespace_specifier
 
 using_declaration
   : USING_KW TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier unqualified_id ';'
+   { cxx_compiler::error::not_implemented(); }
   | USING_KW             COLONCOLON_MK move_to_root nested_name_specifier unqualified_id ';'
+   { cxx_compiler::error::not_implemented(); }
   | USING_KW TYPENAME_KW               nested_name_specifier unqualified_id ';'
+   { cxx_compiler::error::not_implemented(); }
   | USING_KW                           nested_name_specifier unqualified_id ';'
+   { cxx_compiler::error::not_implemented(); }
   | USING_KW COLONCOLON_MK move_to_root unqualified_id ';'
+   { cxx_compiler::error::not_implemented(); }
   ;
 
 using_directive
@@ -430,9 +473,9 @@ init_declarator_list
   ;
 
 init_declarator
-  : declarator { $1 = cxx_compiler::declarations::action1($1,true,false); }
+  : declarator { $1 = cxx_compiler::declarations::action1($1,true); }
     initializer { cxx_compiler::declarations::initializers::action($1,$3); }
-  | declarator { $$ = cxx_compiler::declarations::action1($1,false,false); }
+  | declarator { $$ = cxx_compiler::declarations::action1($1,false); }
   ;
 
 declarator
@@ -492,13 +535,13 @@ ptr_operator
   | '&'
     { $$ = cxx_compiler::declarations::declarators::reference::action(); }
   | COLONCOLON_MK move_to_root nested_name_specifier '*' cvr_qualifier_seq
-   
+    { cxx_compiler::error::not_implemented(); }
   |                            nested_name_specifier '*' cvr_qualifier_seq
-   
+    { cxx_compiler::error::not_implemented(); }
   | COLONCOLON_MK move_to_root nested_name_specifier '*'
-   
+    { cxx_compiler::error::not_implemented(); }
   |                            nested_name_specifier '*'
-   
+    { cxx_compiler::error::not_implemented(); }
   ;
 
 cvr_qualifier_seq
@@ -517,8 +560,11 @@ cvr_qualifier
 declarator_id
   : id_expression
   | COLONCOLON_MK move_to_root nested_name_specifier type_name
+    { cxx_compiler::error::not_implemented(); }
   |                            nested_name_specifier type_name
+    { cxx_compiler::error::not_implemented(); }
   | COLONCOLON_MK move_to_root                       type_name
+    { cxx_compiler::error::not_implemented(); }
   |                                                  type_name
     {
       /* Note that $1 is already deleted */
@@ -553,7 +599,7 @@ parameter_declaration
       $$ = cxx_compiler::declarations::declarators::function::parameter($1,$2);
     }
   | decl_specifier_seq declarator '=' assignment_expression
-   
+    { cxx_compiler::error::not_implemented(); }
   | decl_specifier_seq abstract_declarator
     {
       $$ = cxx_compiler::declarations::declarators::function::parameter($1,$2);
@@ -564,9 +610,9 @@ parameter_declaration
       $$ = cxx_compiler::declarations::declarators::function::parameter($1,zero);
     }
   | decl_specifier_seq abstract_declarator '=' assignment_expression
-   
+    { cxx_compiler::error::not_implemented(); }
   | decl_specifier_seq  '=' assignment_expression
-   
+    { cxx_compiler::error::not_implemented(); }
   ;
 
 abstract_declarator
@@ -588,11 +634,11 @@ direct_abstract_declarator
       $$ = cxx_compiler::declarations::declarators::function::action($1,$4,0,0);
     }
   |                            '(' enter_parameter parameter_declaration_clause leave_parameter ')' cvr_qualifier_seq exception_specification
-   
+    { cxx_compiler::error::not_implemented(); }
   |                            '(' enter_parameter parameter_declaration_clause leave_parameter ')'                   exception_specification
-   
+    { cxx_compiler::error::not_implemented(); }
   |                            '(' enter_parameter parameter_declaration_clause leave_parameter ')' cvr_qualifier_seq
-   
+    { cxx_compiler::error::not_implemented(); }
   | '(' enter_parameter parameter_declaration_clause leave_parameter ')'
     {
       $$ = cxx_compiler::declarations::declarators::function::action(cxx_compiler::backpatch_type::create(),$3,0,0);
@@ -743,6 +789,7 @@ type_specifier_seq
 class_name
   : CLASS_NAME_LEX
   | template_id
+    { cxx_compiler::error::not_implemented(); }
   ;
 
 class_key
@@ -862,24 +909,41 @@ base_specifier_list
 
 base_specifier
   : COLONCOLON_MK move_to_root nested_name_specifier class_name
+    { cxx_compiler::error::not_implemented(); }
   | COLONCOLON_MK move_to_root                       class_name
+    { cxx_compiler::error::not_implemented(); }
   |               nested_name_specifier class_name
+    { cxx_compiler::error::not_implemented(); }
   |                                     class_name { $$ = new cxx_compiler::base(0,false,$1); }
   | VIRTUAL_KW access_specifier COLONCOLON_MK move_to_root nested_name_specifier class_name
+    { cxx_compiler::error::not_implemented(); }
   | VIRTUAL_KW access_specifier COLONCOLON_MK move_to_root                       class_name
+    { cxx_compiler::error::not_implemented(); }
   | VIRTUAL_KW access_specifier               nested_name_specifier class_name
+    { cxx_compiler::error::not_implemented(); }
   | VIRTUAL_KW access_specifier                                     class_name
+    { cxx_compiler::error::not_implemented(); }
   | VIRTUAL_KW                  COLONCOLON_MK move_to_root nested_name_specifier class_name
+    { cxx_compiler::error::not_implemented(); }
   | VIRTUAL_KW                  COLONCOLON_MK move_to_root                       class_name
+    { cxx_compiler::error::not_implemented(); }
   | VIRTUAL_KW                                nested_name_specifier class_name
+    { cxx_compiler::error::not_implemented(); }
   | VIRTUAL_KW                                                      class_name { $$ = new cxx_compiler::base(0,true,$2); }
   | access_specifier VIRTUAL_KW COLONCOLON_MK move_to_root nested_name_specifier class_name
+    { cxx_compiler::error::not_implemented(); }
   | access_specifier VIRTUAL_KW COLONCOLON_MK move_to_root                       class_name
+    { cxx_compiler::error::not_implemented(); }
   | access_specifier VIRTUAL_KW               nested_name_specifier class_name
+    { cxx_compiler::error::not_implemented(); }
   | access_specifier VIRTUAL_KW                                     class_name
+    { cxx_compiler::error::not_implemented(); }
   | access_specifier            COLONCOLON_MK move_to_root nested_name_specifier class_name
+    { cxx_compiler::error::not_implemented(); }
   | access_specifier            COLONCOLON_MK move_to_root                       class_name
+    { cxx_compiler::error::not_implemented(); }
   | access_specifier                          nested_name_specifier class_name
+    { cxx_compiler::error::not_implemented(); }
   | access_specifier                                                class_name
     { $$ = new cxx_compiler::base($1,false,$2); }
   ;
@@ -1033,6 +1097,7 @@ explicit_specialization
 
 try_block
   : TRY_KW compound_statement handler_seq
+    { cxx_compiler::error::not_implemented(); }
   ;
 
 throw_expression
@@ -1074,19 +1139,27 @@ id_expression
 unqualified_id
   : IDENTIFIER_LEX  { $$ = cxx_compiler::unqualified_id::action($1); }
   | operator_function_id
+    { cxx_compiler::error::not_implemented(); }
   | conversion_function_id
+    { cxx_compiler::error::not_implemented(); }
   | '~' class_name { $$ = cxx_compiler::unqualified_id::dtor($2); }
   | template_id
+    { cxx_compiler::error::not_implemented(); }
   ;
 
 qualified_id
   : COLONCOLON_MK move_to_root nested_name_specifier TEMPLATE_KW unqualified_id
+    { cxx_compiler::error::not_implemented(); }
   | COLONCOLON_MK move_to_root nested_name_specifier             unqualified_id
+    { cxx_compiler::error::not_implemented(); }
   |                            nested_name_specifier TEMPLATE_KW unqualified_id
+    { cxx_compiler::error::not_implemented(); }
   |                            nested_name_specifier             unqualified_id { $$ = $2; }
   | COLONCOLON_MK move_to_root IDENTIFIER_LEX { $$ = $3; cxx_compiler::class_or_namespace_name::after(); }
   | COLONCOLON_MK move_to_root operator_function_id
+    { cxx_compiler::error::not_implemented(); }
   | COLONCOLON_MK move_to_root template_id
+    { cxx_compiler::error::not_implemented(); }
   ;
 
 move_to_root
@@ -1114,28 +1187,46 @@ postfix_expression
   | simple_type_specifier '(' expression_list ')' { $$ = new cxx_compiler::expressions::postfix::fcast($3); /* $1 is already deleted */ }
   | simple_type_specifier '('                 ')' { $$ = new cxx_compiler::expressions::postfix::fcast(0);  /* $1 is already deleted */ }
   | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier IDENTIFIER_LEX '(' expression_list ')'
+    { cxx_compiler::error::not_implemented(); }
   | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier IDENTIFIER_LEX '('                 ')'
+    { cxx_compiler::error::not_implemented(); }
   | TYPENAME_KW               nested_name_specifier IDENTIFIER_LEX '(' expression_list ')'
+    { cxx_compiler::error::not_implemented(); }
   | TYPENAME_KW               nested_name_specifier IDENTIFIER_LEX '('                 ')'
+    { cxx_compiler::error::not_implemented(); }
   | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier TEMPLATE_KW template_id '(' expression_list ')'
+    { cxx_compiler::error::not_implemented(); }
   | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier TEMPLATE_KW template_id '('                 ')'
+    { cxx_compiler::error::not_implemented(); }
   | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier             template_id '(' expression_list ')'
+    { cxx_compiler::error::not_implemented(); }
   | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier             template_id '('                 ')'
+    { cxx_compiler::error::not_implemented(); }
   | TYPENAME_KW               nested_name_specifier TEMPLATE_KW template_id '(' expression_list ')'
+    { cxx_compiler::error::not_implemented(); }
   | TYPENAME_KW               nested_name_specifier TEMPLATE_KW template_id '('                 ')'
+    { cxx_compiler::error::not_implemented(); }
   | TYPENAME_KW               nested_name_specifier             template_id '(' expression_list ')'
+    { cxx_compiler::error::not_implemented(); }
   | TYPENAME_KW               nested_name_specifier             template_id '('                 ')'
+    { cxx_compiler::error::not_implemented(); }
   | member_access_begin TEMPLATE_KW id_expression  { $$ = cxx_compiler::expressions::postfix::member::end($1,$3); }
   | member_access_begin             id_expression  { $$ = cxx_compiler::expressions::postfix::member::end($1,$2); }
   | member_access_begin pseudo_destructor_name     { $$ = cxx_compiler::expressions::postfix::member::end($1,0); }
   | postfix_expression PLUSPLUS_MK    { $$ = new cxx_compiler::expressions::postfix::ppmm($1,true); }
   | postfix_expression MINUSMINUS_MK  { $$ = new cxx_compiler::expressions::postfix::ppmm($1,false); }
   | DYNAMIC_CAST_KW     '<' type_id '>' '(' expression ')'
+    { cxx_compiler::error::not_implemented(); }
   | STATIC_CAST_KW      '<' type_id '>' '(' expression ')'
+    { cxx_compiler::error::not_implemented(); }
   | REINTERPRET_CAST_KW '<' type_id '>' '(' expression ')'
+    { cxx_compiler::error::not_implemented(); }
   | CONST_CAST_KW       '<' type_id '>' '(' expression ')'
+    { cxx_compiler::error::not_implemented(); }
   | TYPEID_KW '(' expression ')'
+    { cxx_compiler::error::not_implemented(); }
   | TYPEID_KW '(' type_id ')'
+    { cxx_compiler::error::not_implemented(); }
   | '(' type_id ')' '{' initializer_list '}' { $$ = new cxx_compiler::expressions::compound::info_t($2,$5); }
   | '(' type_id ')' '{' initializer_list ',' '}' { $$ = new cxx_compiler::expressions::compound::info_t($2,$5); }
   ;
@@ -1193,22 +1284,37 @@ unary_operator
 
 new_expression
   : COLONCOLON_MK move_to_root NEW_KW new_placement new_type_id new_initializer
+    { cxx_compiler::error::not_implemented(); }
   | COLONCOLON_MK move_to_root NEW_KW new_placement new_type_id
+    { cxx_compiler::error::not_implemented(); }
   | COLONCOLON_MK move_to_root NEW_KW               new_type_id new_initializer
+    { cxx_compiler::error::not_implemented(); }
   | COLONCOLON_MK move_to_root NEW_KW               new_type_id
+    { cxx_compiler::error::not_implemented(); }
   |                            NEW_KW new_placement new_type_id new_initializer
+    { cxx_compiler::error::not_implemented(); }
   |                            NEW_KW new_placement new_type_id
+    { cxx_compiler::error::not_implemented(); }
   |                            NEW_KW               new_type_id new_initializer
+    { cxx_compiler::error::not_implemented(); }
   |                            NEW_KW               new_type_id
     { $$ = new cxx_compiler::expressions::unary::New($2, cxx_compiler::parse::position); }
   | COLONCOLON_MK move_to_root NEW_KW new_placement '(' type_id ')' new_initializer
+    { cxx_compiler::error::not_implemented(); }
   | COLONCOLON_MK move_to_root NEW_KW new_placement '(' type_id ')'
+    { cxx_compiler::error::not_implemented(); }
   | COLONCOLON_MK move_to_root NEW_KW               '(' type_id ')' new_initializer
+    { cxx_compiler::error::not_implemented(); }
   | COLONCOLON_MK move_to_root NEW_KW               '(' type_id ')'
+    { cxx_compiler::error::not_implemented(); }
   |                            NEW_KW new_placement '(' type_id ')' new_initializer
+    { cxx_compiler::error::not_implemented(); }
   |                            NEW_KW new_placement '(' type_id ')'
+    { cxx_compiler::error::not_implemented(); }
   |                            NEW_KW '(' type_id ')' new_initializer
+    { cxx_compiler::error::not_implemented(); }
   |                            NEW_KW '(' type_id ')'
+    { cxx_compiler::error::not_implemented(); }
   ;
 
 new_placement
@@ -1222,7 +1328,7 @@ new_initializer
 
 new_type_id
   : type_specifier_seq new_declarator
-   
+    { cxx_compiler::error::not_implemented(); }
   | type_specifier_seq
     { $$ = cxx_compiler::declarations::new_type_id::action($1); }
   ;
@@ -1243,9 +1349,12 @@ direct_new_declarator
 
 delete_expression
   : COLONCOLON_MK move_to_root DELETE_KW         cast_expression
+    { cxx_compiler::error::not_implemented(); }
   |                            DELETE_KW         cast_expression { $$ = new cxx_compiler::expressions::unary::Delete($2); }
   | COLONCOLON_MK move_to_root DELETE_KW '[' ']' cast_expression
+    { cxx_compiler::error::not_implemented(); }
   |                            DELETE_KW '[' ']' cast_expression
+    { cxx_compiler::error::not_implemented(); }
   ;
 
 cast_expression
@@ -1355,6 +1464,7 @@ assignment_expression
   | logical_or_expression assignment_operator assignment_expression
     { $$ = new cxx_compiler::expressions::binary::info_t($1,$2,$3); }
   | throw_expression
+    { cxx_compiler::error::not_implemented(); }
   ;
 
 assignment_operator

@@ -428,7 +428,7 @@ cxx_compiler::declarations::specifier_seq::type::void_handler(const cxx_compiler
 }
 
 namespace cxx_compiler { namespace declarations { namespace specifier_seq { namespace type {
-  usr* m_usr;
+  usr* g_usr;
   const cxx_compiler::type* qualifier(const cxx_compiler::type*, int);
 } } } } // end of namespace type, specifier_seq, declarations and cxx_compiler
 
@@ -456,7 +456,7 @@ cxx_compiler::declarations::specifier_seq::type::qualifier(const cxx_compiler::t
   using namespace std;
   if ( !T ){
     using namespace error::declarations::specifier_seq::type;
-    type::m_usr ? implicit_int(type::m_usr) : implicit_int(parse::position);
+    type::g_usr ? implicit_int(type::g_usr) : implicit_int(parse::position);
     T = int_type::create();
   }
   return T->qualified(cvr);
@@ -475,31 +475,32 @@ std::stack<cxx_compiler::declarations::specifier_seq::info_t*>
 cxx_compiler::declarations::specifier_seq::info_t::s_stack;
 
 namespace cxx_compiler { namespace declarations {
-  extern usr* action2(usr*, bool);
+  void check_lookuped(usr*, specifier_seq::info_t*);
+  usr* exchange(bool lookuped, usr* new_one, usr* org);
+  usr* action2(usr*);
 } } // end of namespace declarations ans cxx_compiler
 
 cxx_compiler::usr*
-cxx_compiler::declarations::action1(var* v, bool ini, bool lookuped)
+cxx_compiler::declarations::action1(var* v, bool ini)
 {
   using namespace std;
   using namespace error::declarations::specifier_seq::type;
   usr* u = v->usr_cast();
-  if ( !u ){
-    /*
-     Definition like
-     struct S { void f(); };
-     void S::f(){ ... }
-     where, `f' is lookuped
-     */
-    genaddr* ga = v->genaddr_cast();
-    v = ga->m_ref;
-    u = v->usr_cast();
-  }
+  assert(u);
+  bool lookuped = !u->m_type->backpatch();
   if ( specifier_seq::info_t::s_stack.empty() ){
     usr::flag_t mask = usr::flag_t(usr::CTOR | usr::DTOR);
     if (u->m_flag & mask) {
       assert(u->m_type->m_id == type::FUNC);
-      u->m_type = u->m_type->patch(0,u);
+      if (lookuped) {
+        typedef const func_type FT;
+        FT* ft = static_cast<FT*>(u->m_type);
+        assert(!ft->return_type());
+      }
+      else {
+        assert(u->m_type->backpatch());
+        u->m_type = u->m_type->patch(0,u);
+      }
     }
     else {
       implicit_int(u);
@@ -510,32 +511,48 @@ cxx_compiler::declarations::action1(var* v, bool ini, bool lookuped)
     usr::flag_t mask = usr::flag_t(usr::CTOR | usr::DTOR);
     assert(!(u->m_flag & mask));
     if ( !p->m_type || !p->m_tmp.empty() ){
-      declarations::specifier_seq::type::m_usr = u;
+      declarations::specifier_seq::type::g_usr = u;
       p->update();
     }
     if ( !p->m_type ){
       implicit_int(u);
       p->m_type = int_type::create();
     }
-    u->m_flag = p->m_flag;
-    u->m_type = u->m_type->patch(p->m_type,u);
+    if (lookuped)
+      check_lookuped(u, p);
+    else {
+      u->m_flag = p->m_flag;
+      u->m_type = u->m_type->patch(p->m_type,u);
+    }
   }
   else {
-    assert(u->m_flag & usr::DTOR);
-    assert(u->m_type->m_id == type::FUNC);
-    u->m_type = u->m_type->patch(0,u);
+    if (u->m_flag & usr::DTOR) {
+      assert(u->m_type->m_id == type::FUNC);
+      if (lookuped) {
+	typedef const func_type FT;
+	FT* ft = static_cast<FT*>(u->m_type);
+	assert(!ft->return_type());
+      }
+      else {
+	assert(u->m_type->backpatch());
+	u->m_type = u->m_type->patch(0,u);
+      }
+    }
+    else {
+      // Rare case. Maybe already error happened.
+      assert(u->m_type->backpatch());
+      u->m_type = u->m_type->patch(int_type::create(),u);
+    }
   }
   if (u->m_flag & usr::TYPEDEF) {
     type_def* tmp = new type_def(*u);
-    delete u;
-    u = tmp;
+    u = exchange(lookuped, tmp, u);
   }
   if ( ini ){
     parse::identifier::mode = parse::identifier::look;
     if ( duration::_static(u) ){
-      with_initial* p = new with_initial(*u);
-      delete u;
-      u = p;
+      with_initial* tmp = new with_initial(*u);
+      u = exchange(lookuped, tmp, u);
       if ( scope::current != &scope::root )
         expressions::constant_flag = true;
     }
@@ -632,9 +649,9 @@ cxx_compiler::declarations::action1(var* v, bool ini, bool lookuped)
     if ( p != usrs.end() ){
       const vector<usr*>& v = p->second;
       usr* ctor = v.back();
-	  assert(ctor->m_type->m_id == type::FUNC);
-	  typedef const func_type FT;
-	  FT* ft = static_cast<FT*>(ctor->m_type);
+      assert(ctor->m_type->m_id == type::FUNC);
+      typedef const func_type FT;
+      FT* ft = static_cast<FT*>(ctor->m_type);
       vector<var*> arg;
       call_impl::common(ft,ctor,&arg,false,u);
       usr::flag_t flag = ctor->m_flag;
@@ -648,7 +665,8 @@ cxx_compiler::declarations::action1(var* v, bool ini, bool lookuped)
       }
     }
   }
-  return action2(u,lookuped);
+
+  return lookuped ? u : action2(u);
 }
 
 void cxx_compiler::declarations::check_object(usr* u)
@@ -668,7 +686,7 @@ namespace cxx_compiler { namespace declarations {
   usr* combine(usr*, usr*);
 } } // end of namespace declarations and cxx_compiler
 
-cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr, bool lookuped)
+cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr)
 {
   using namespace std;
   string name = curr->m_name;
@@ -710,8 +728,7 @@ cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr, bool lookuped)
       }
     }
   }
-  if ( lookuped )
-    return curr;
+
   usrs[name].push_back(curr);
   if (curr->m_scope->m_id != scope::PARAM || !(curr->m_flag & usr::ENUM_MEMBER))
     curr->m_scope->m_order.push_back(curr);
@@ -828,6 +845,38 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
     scope::current->m_usrs[name].push_back(curr);
     return new overload(prev,curr);
   }
+}
+
+void
+cxx_compiler::declarations::check_lookuped(usr* u, specifier_seq::info_t* p)
+{
+  u->m_flag = p->m_flag;
+  const type* Tu = u->m_type;
+  assert(!Tu->backpatch());
+  const type* Tp = p->m_type;
+  if (Tu->m_id  == type::FUNC) {
+    typedef const func_type FT;
+    FT* ft = static_cast<FT*>(Tu);
+    const type *T = ft->return_type();
+    if (!compatible(T, p->m_type)) {
+      error::not_implemented();
+    }
+  }
+}
+
+cxx_compiler::usr*
+cxx_compiler::declarations::exchange(bool lookuped, usr* new_one, usr* org)
+{
+  using namespace std;
+  if (lookuped) {
+    string name = org->m_name;
+    map<string, vector<usr*> >& usrs = org->m_scope->m_usrs;
+    vector<usr*>& v = usrs[name];
+    assert(v.back() == org);
+    v.back() = new_one;
+  }
+  delete org;
+  return new_one;
 }
 
 namespace cxx_compiler { namespace declarations { namespace elaborated {
@@ -982,7 +1031,7 @@ void cxx_compiler::declarations::enumeration::definition(var* v, expressions::ba
   u->m_type = const_type::create(int_type::create());
   u->m_flag = usr::ENUM_MEMBER;
   enum_member* member = new enum_member(*u,static_cast<usr*>(v));
-  declarations::action2(member,false);
+  declarations::action2(member);
   v = v->add(expressions::primary::literal::integer::create(1));
   prev = static_cast<usr*>(v);
 }

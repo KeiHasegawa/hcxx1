@@ -89,7 +89,7 @@ cxx_compiler::declarations::declarators::function::parameter(specifier_seq::info
       error::declarations::declarators::function::parameter::invalid_storage(parse::position,u);
       flag = u->m_flag = p->m_flag = usr::flag_t(flag & ~mask);
     }
-    u = declarations::action1(u,false,false);
+    u = declarations::action1(u,false);
     T = u->m_type;
     if (PT* pt = T->ptr_gen()) {
       T = u->m_type = pt;
@@ -136,7 +136,7 @@ cxx_compiler::declarations::declarators::function::parameter(specifier_seq::info
     error::declarations::declarators::function::parameter::invalid_storage(parse::position,u);
     flag = usr::flag_t(flag & ~mask);
   }
-  u = declarations::action1(u,false,false);
+  u = declarations::action1(u,false);
   T = u->m_type;
   if (PT* pt = T->ptr_gen()) {
     T = u->m_type = pt;
@@ -302,7 +302,7 @@ cxx_compiler::declarations::declarators::function::definition::begin(declaration
   }
   auto_ptr<declarations::specifier_seq::info_t> sweeper(p);
   parse::identifier::mode = parse::identifier::look;
-  u = declarations::action1(u,false, u != v);
+  u = declarations::action1(u,false);
   vector<scope*>& children = scope::current->m_children;
   if ( children.empty() ){
     using namespace error::declarations::declarators::function::definition;

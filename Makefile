@@ -143,5 +143,6 @@ clean:
 	$(RM) cxx_l.cpp* cxx_y.cpp* cxx_y.h
 	$(RM) $(RULES) $(RULES_HEADER)
 	$(RM) cxx_y.out*
+	$(RM) error_euc.cpp warning_euc.cpp error_utf.cpp warning_utf.cpp
 	$(RM) $(PROG) *.o *.stackdump *~
 	$(RM) .vs Debug Release x64

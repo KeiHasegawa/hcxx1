@@ -103,6 +103,7 @@ inline scope* get_pm(FUNCS_ELEMENT_TYPE& elem)
 namespace error {
   enum LANG { jpn, other };
   extern LANG lang;
+  void not_implemented();
   namespace cmdline {
     extern void open(string);
     extern void generator();
@@ -461,7 +462,7 @@ namespace declarations {
     extern int depth;
   } // end of namespace linkage
   extern void check_object(usr*);
-  extern usr* action1(var*, bool, bool);
+  extern usr* action1(var*, bool);
   namespace declarators {
     namespace pointer {
       extern const type* action(const type*, const type*);

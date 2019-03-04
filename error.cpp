@@ -26,6 +26,13 @@ cxx_compiler::error::init_lang::init_lang()
     lang = other;
 }
 
+void cxx_compiler::error::not_implemented()
+{
+  string prog = cxx_compiler::cmdline::prog;
+  cerr << prog  << " : " << "not implemented" << '\n';
+  assert(0);
+}
+
 void cxx_compiler::error::cmdline::open(std::string fn)
 {
   using namespace std;

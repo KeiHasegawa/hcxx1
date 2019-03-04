@@ -1,0 +1,5 @@
+struct S {
+  int f(){ A x; x = 1.0; return x + a; }
+  typedef double A;
+  int a;
+};

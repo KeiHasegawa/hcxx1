@@ -298,18 +298,18 @@ cxx_compiler::call_impl::common(const func_type* ft,
       usr* u = func->usr_cast();
       usr::flag_t flag = u->m_flag;
       if ( flag & usr::VIRTUAL )
-	func = ref_vftbl(u,obj);
+        func = ref_vftbl(u,obj);
       code.push_back(new param3ac(obj));
     }
     else {
       T = pointer_type::create(T);
       var* tmp = new var(T);
       if ( scope::current->m_id == scope::BLOCK ){
-	block* b = static_cast<block*>(scope::current);
-	b->m_vars.push_back(tmp);
+        block* b = static_cast<block*>(scope::current);
+        b->m_vars.push_back(tmp);
       }
       else
-	garbage.push_back(tmp);
+        garbage.push_back(tmp);
       code.push_back(new addr3ac(tmp,obj));
       code.push_back(new param3ac(tmp));
     }
@@ -511,7 +511,7 @@ namespace cxx_compiler { namespace declarations { namespace declarators { namesp
         block* ret = new block;
         ret->m_parent = scope::current;
         scope::current->m_children.push_back(ret);
-		const vector<usr*>& o = param->m_order;
+        const vector<usr*>& o = param->m_order;
         vector<var*>& v = ret->m_vars;
         transform(o.begin(),o.end(),back_inserter(v),
                   bind2nd(ptr_fun(new_usr),ret));
@@ -662,14 +662,14 @@ namespace cxx_compiler { namespace declarations { namespace declarators { namesp
     namespace defer {
       void last()
       {
-	using namespace std;
-	for (auto& p : refs) {
-	  const vector<ref_t>& v = p.second;
-	  assert(!v.empty());
-	  const ref_t& r = v[0];
-	  error::declarations::declarators::function::definition::
-	    static_inline::nodef(r.m_def, r.m_flag, r.m_name, r.m_use);
-	}
+        using namespace std;
+        for (auto& p : refs) {
+          const vector<ref_t>& v = p.second;
+          assert(!v.empty());
+          const ref_t& r = v[0];
+          error::declarations::declarators::function::definition::
+            static_inline::nodef(r.m_def, r.m_flag, r.m_name, r.m_use);
+        }
       }
     } // end of namespace defer
   }  // end of namespace static_inline
@@ -1034,8 +1034,8 @@ const cxx_compiler::type* cxx_compiler::expressions::assignment::valid(const typ
         if ( include(cvr_x, cvr_y))
           return px;
         else {
-	  if (discard)
-	    *discard = true;
+          if (discard)
+            *discard = true;
           return 0;
         }
       }
@@ -1043,8 +1043,8 @@ const cxx_compiler::type* cxx_compiler::expressions::assignment::valid(const typ
         if (include(cvr_x, cvr_y))
           return py;
         else {
-	  if (discard)
-	    *discard = true;
+          if (discard)
+            *discard = true;
           return 0;
         }
       }
@@ -1213,6 +1213,7 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::fcast::gen()
   using namespace std;
   using namespace declarations;
   specifier_seq::info_t* p = specifier_seq::info_t::s_stack.top();
+  auto_ptr<specifier_seq::info_t> sweeper(p);
   p->update();
   const type* T = p->m_type;
   vector<var*> arg;

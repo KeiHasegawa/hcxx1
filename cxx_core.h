@@ -1479,7 +1479,7 @@ struct type {
   virtual tag* get_tag() const { return 0; }
   virtual const type* complete_type() const { return this; }
   virtual const pointer_type* ptr_gen() const { return 0; }
-  virtual const type* patch(const type* T, usr*) const { return T; }
+  virtual const type* patch(const type*, usr*) const { return this; }
   virtual bool backpatch() const { return false; }
   virtual const type* qualified(int) const;
   virtual std::pair<int, const type*> current(int) const;
@@ -1709,7 +1709,7 @@ class backpatch_type : public type {
   static backpatch_type obj;
   backpatch_type() : type(BACKPATCH) {}
 public:
-  void decl(std::ostream&, std::string) const;
+  void decl(std::ostream&, std::string) const { assert(0); }
   void encode(std::ostream&) const { assert(0); }
   int size() const { return 0; }
   bool scalar() const { return false; }

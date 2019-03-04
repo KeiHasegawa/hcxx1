@@ -1,0 +1,7 @@
+struct T2 { T2(int); };
+
+void f2(int a)
+{
+  T2 t1();
+  T2 t2(a);
+}
