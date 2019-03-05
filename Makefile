@@ -70,7 +70,7 @@ warning_utf.cpp:warning_euc.cpp
 
 OBJS = $(SRCS:.cpp=.o)
 
-RULES = rule.00 rule.01 rule.02 rule.03 rule.04 \
+RULES = rule.00 rule.01 rule.02 rule.03 rule.04 rule.05 \
         rule.06 rule.07 rule.08 rule.09 rule.10
 
 RULES_HEADER = rule.03.h
@@ -110,6 +110,9 @@ rule.03.h:cxx_y.output bison_rule.03.pl
 
 rule.04:cxx_y.output bison_rule.04.pl
 	perl bison_rule.04.pl $< > $@
+
+rule.05:cxx_y.output bison_rule.05.pl
+	perl bison_rule.05.pl $< > $@
 
 rule.06:cxx_y.output bison_rule.06.pl
 	perl bison_rule.06.pl $< > $@

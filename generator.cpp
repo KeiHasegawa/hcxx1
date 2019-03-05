@@ -54,6 +54,12 @@ void cxx_compiler::generator::initialize()
 #ifdef _MSC_VER
   int hcxx1_seed = _MSC_VER;
   hcxx1_seed += 20000000;
+#ifdef _DEBUG
+  hcxx1_seed +=  1000000;
+#endif // _DEBUG
+#ifdef WIN32
+  hcxx1_seed +=   100000;
+#endif // WIN32
 #endif // _MSC_VER
 #ifdef __GNUC__
   int hcxx1_seed = (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__);

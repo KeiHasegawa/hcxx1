@@ -35,6 +35,7 @@ while ( <> ){
     goto yydefault;
   }
 #include "rule.03"
+#include "rule.05"
 #include "rule.09"
 #include "rule.10"
 EOF2

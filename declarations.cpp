@@ -540,8 +540,8 @@ cxx_compiler::declarations::action1(var* v, bool ini)
     }
     else {
       // Rare case. Maybe already error happened.
-      assert(u->m_type->backpatch());
-      u->m_type = u->m_type->patch(int_type::create(),u);
+      if (u->m_type->backpatch())
+	u->m_type = u->m_type->patch(int_type::create(),u);
     }
   }
   if (u->m_flag & usr::TYPEDEF) {

@@ -28,6 +28,10 @@ void T::f()
 {
 }
 
+typedef int X;
+void f3(double (X));
+void g3(int (*pf)());
+
 struct S {
   int f(){ A x; x = 1.0; return x + a; }
   typedef double A;

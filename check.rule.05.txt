@@ -1,15 +1,6 @@
-template<class T> class C {
-  T m_value;
-};
+typedef int T;
 
-C<char> x;
+void f(double (T));
 
-template<class T> T f(T a, T b)
-{
-  return a + b;
-}
 
-double g(double a, int b)
-{
-  return f<double>(a, b);
-}
+void g(int (*pf)());
