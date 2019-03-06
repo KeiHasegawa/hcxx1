@@ -70,16 +70,17 @@ warning_utf.cpp:warning_euc.cpp
 
 OBJS = $(SRCS:.cpp=.o)
 
-RULES = rule.00 rule.01 rule.02 rule.03 rule.04 rule.05 \
-        rule.06 rule.07 rule.08 rule.09 rule.10
+PATCHS = patch.00.p patch.01.p patch.02.p patch.03.p patch.04.p \
+	 patch.05.p patch.06.p patch.07.p patch.08.p patch.09.p \
+	 patch.10.p
 
-RULES_HEADER = rule.03.h
+PATCHS_HEADER = patch.03.q
 
-parse.o : $(RULES_HEADER)
+parse.o : $(PATCHS_HEADER)
 
 $(OBJS) : cxx_y.h
 
-cxx_y.o : $(RULES)
+cxx_y.o : $(PATCHS)
 
 cxx_l.cpp:flex_script cxx.l
 	./flex_script cxx.l
@@ -90,44 +91,18 @@ cxx_y.cpp:bison_script bison_conv.pl cxx.y
 cxx_y.h:bison_script bison_conv.pl cxx.y
 	./bison_script cxx.y
 
-cxx_y.output:bison_script bison_conv.pl cxx.y
+BISON_REP_FILE = cxx_y.output
+
+$(BISON_REP_FILE):bison_script bison_conv.pl cxx.y
 	./bison_script cxx.y
 
-rule.00:cxx_y.output bison_rule.00.pl
-	perl bison_rule.00.pl $< > $@
+$(PATCHS) : $(BISON_REP_FILE)
 
-rule.01:cxx_y.output bison_rule.01.pl
-	perl bison_rule.01.pl $< > $@
+%.p : %.pl
+	perl $< $(BISON_REP_FILE) > $@
 
-rule.02:cxx_y.output bison_rule.02.pl
-	perl bison_rule.02.pl $< > $@
-
-rule.03:cxx_y.output bison_rule.03.pl
-	perl bison_rule.03.pl $< > $@
-
-rule.03.h:cxx_y.output bison_rule.03.pl
-	perl bison_rule.03.pl -h $< > $@
-
-rule.04:cxx_y.output bison_rule.04.pl
-	perl bison_rule.04.pl $< > $@
-
-rule.05:cxx_y.output bison_rule.05.pl
-	perl bison_rule.05.pl $< > $@
-
-rule.06:cxx_y.output bison_rule.06.pl
-	perl bison_rule.06.pl $< > $@
-
-rule.07:cxx_y.output bison_rule.07.pl
-	perl bison_rule.07.pl $< > $@
-
-rule.08:cxx_y.output bison_rule.08.pl
-	perl bison_rule.08.pl $< > $@
-
-rule.09:cxx_y.output bison_rule.09.pl
-	perl bison_rule.09.pl $< > $@
-
-rule.10:cxx_y.output bison_rule.10.pl
-	perl bison_rule.10.pl $< > $@
+%.q : %.pl
+	perl $< -h $(BISON_REP_FILE) > $@
 
 DEBUG_FLAG = -g
 CXXFLAGS = -w $(DEBUG_FLAG) -DYYDEBUG
@@ -144,8 +119,8 @@ RM = rm -r -f
 
 clean:
 	$(RM) cxx_l.cpp* cxx_y.cpp* cxx_y.h
-	$(RM) $(RULES) $(RULES_HEADER)
-	$(RM) cxx_y.out*
+	$(RM) $(PATCHS) $(PATCHS_HEADER)
+	$(RM) $(BISON_REP_FILE)
 	$(RM) error_euc.cpp warning_euc.cpp error_utf.cpp warning_utf.cpp
 	$(RM) $(PROG) *.o *.stackdump *~
 	$(RM) .vs Debug Release x64

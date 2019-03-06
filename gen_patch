@@ -1,0 +1,7 @@
+#! /bin/csh -f
+
+foreach file ( patch.*.pl )
+    perl $file cxx_y.output > $file:r.p
+end
+
+perl patch.03.pl -h cxx_y.output > patch.03.q

@@ -5,7 +5,7 @@ print "#include \"yy.h\"\n";
 
 $yychar_converted = 0;
 $yydefault_converted = 0;
-$rule08_inserted = 0;
+$patch08_inserted = 0;
 
 while ( <> ){
   chop;
@@ -31,13 +31,13 @@ while ( <> ){
     }
     print <<EOF2
   {
-#include "rule.04"
+#include "patch.04.p"
     goto yydefault;
   }
-#include "rule.03"
-#include "rule.05"
-#include "rule.09"
-#include "rule.10"
+#include "patch.03.p"
+#include "patch.05.p"
+#include "patch.09.p"
+#include "patch.10.p"
 EOF2
 	;
     ++$yydefault_converted;
@@ -45,21 +45,21 @@ EOF2
   }
   print $_,"\n";
   if ( /yystate = yydefgoto/ ){
-    print "#include \"rule.00\"\n";
+    print "#include \"patch.00.p\"\n";
   }
   if ( /yystate = yyn/ ){
-    print "#include \"rule.01\"\n";
-    print "#include \"rule.02\"\n";
+    print "#include \"patch.01.p\"\n";
+    print "#include \"patch.02.p\"\n";
   }
   if ( /yyn.*=.*yydefact\[yystate\];/ ){
-    print "#include \"rule.06\"\n";
+    print "#include \"patch.06.p\"\n";
   }
   if ( /yystate = 0/ ){
-    print "#include \"rule.07\"\n";
+    print "#include \"patch.07.p\"\n";
   }
   if ( /YY_SYMBOL_PRINT \(\"-> \$\$ =\", yyr1\[yyn\], &yyval, &yyloc\);/ ){
-    print "#include \"rule.08\"\n";
-    ++$rule08_inserted;
+    print "#include \"patch.08.p\"\n";
+    ++$patch08_inserted;
   }
   if (/^yyerrlab:/) {
       print<<EOF
@@ -86,8 +86,8 @@ if ($yydefault_converted != 1) {
     exit 1;
 }
 
-if ($rule08_inserted != 1) {
+if ($patch08_inserted != 1) {
     print STDERR "Error detected at $0\n";
-    print STDERR '$rule08_inserted = ', $rule08_inserted, "\n";
+    print STDERR '$patch08_inserted = ', $patch08_inserted, "\n";
     exit 1;
 }

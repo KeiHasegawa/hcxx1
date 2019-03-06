@@ -3,7 +3,7 @@
 #include "cxx_impl.h"
 #include "cxx_y.h"
 #include "yy.h"
-#include "rule.03.h"
+#include "patch.03.q"
 
 namespace cxx_compiler {
   namespace parse {
