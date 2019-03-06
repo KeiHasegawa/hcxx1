@@ -140,8 +140,18 @@ translation_unit
   ;
 
 declaration_seq
-  : declaration                 { cxx_compiler::declarations::destroy(); }
-  | declaration_seq declaration { cxx_compiler::declarations::destroy(); }
+  : declaration
+    {
+      using namespace cxx_compiler;
+      scope::current = &scope::root;  // work around. sytax error may causes invalid scope::current.
+      declarations::destroy();
+    }
+  | declaration_seq declaration
+    {
+      using namespace cxx_compiler;
+      scope::current = &scope::root;  // work around. sytax error may causes invalid scope::current.
+      declarations::destroy();
+    }
   ;
 
 declaration
