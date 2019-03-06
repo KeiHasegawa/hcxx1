@@ -850,7 +850,7 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
 void
 cxx_compiler::declarations::check_lookuped(usr* u, specifier_seq::info_t* p)
 {
-  u->m_flag = p->m_flag;
+  u->m_flag = usr::flag_t(u->m_flag | p->m_flag);
   const type* Tu = u->m_type;
   assert(!Tu->backpatch());
   const type* Tp = p->m_type;
