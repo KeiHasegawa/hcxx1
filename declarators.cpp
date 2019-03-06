@@ -64,9 +64,8 @@ function::action(const type* T,
   }
 }
 
-const cxx_compiler::type*
-cxx_compiler::declarations::declarators::function::parameter(specifier_seq::info_t* p,
-                                                             var* v)
+const cxx_compiler::type* cxx_compiler::declarations::declarators::
+function::parameter(specifier_seq::info_t* p, var* v)
 {
   using namespace std;
   usr* u = static_cast<usr*>(v);
@@ -78,6 +77,7 @@ cxx_compiler::declarations::declarators::function::parameter(specifier_seq::info
     }
   } sweeper2;
   auto_ptr<specifier_seq::info_t> sweepr(p);
+  parse::context_t::clear();
   usr::flag_t mask = usr::flag_t(usr::TYPEDEF | usr::EXTERN | usr::STATIC | usr::AUTO);
   typedef const pointer_type PT;
   if ( u ){
@@ -112,9 +112,8 @@ cxx_compiler::declarations::declarators::function::parameter(specifier_seq::info
   }
 }
 
-const cxx_compiler::type*
-cxx_compiler::declarations::declarators::function::parameter(specifier_seq::info_t* p,
-                                                             const type* T)
+const cxx_compiler::type* cxx_compiler::declarations::declarators::
+function::parameter(specifier_seq::info_t* p, const type* T)
 {
   using namespace std;
   struct sweeper2 {
@@ -125,6 +124,7 @@ cxx_compiler::declarations::declarators::function::parameter(specifier_seq::info
     }
   } sweeper2;
   auto_ptr<specifier_seq::info_t> sweeper(p);
+  parse::context_t::clear();
   string name = new_name(".param");
   usr* u = new usr(name,T,usr::NONE,parse::position);
   typedef const pointer_type PT;

@@ -38,26 +38,21 @@ int cxx_compiler::parse::identifier::judge(std::string name)
   
   if (last_token == '(' && scope::current->m_id == scope::PARAM){
     // guess abstract-declarator
-    if ( lookup(name,scope::current) == TYPEDEF_NAME_LEX )
-      return TYPEDEF_NAME_LEX;
+    if (int r = lookup(name,scope::current)) {
+      switch (r) {
+      case ORIGINAL_NAMESPACE_NAME_LEX:
+      case NAMESPACE_ALIAS_LEX:
+      case TYPEDEF_NAME_LEX:
+      case CLASS_NAME_LEX:
+      case TEMPLATE_NAME_LEX:
+      case ENUM_NAME_LEX:
+	return r;
+      }
+    }
   }
 
   if (mode == new_obj)
     return create(name);
-
-  /*
-    Bellow code doesn't work. For typedef int A ; typedef A B;
-
-    Originally, bellow code was inserted For static x; static x;
-    
-  using namespace declarations::specifier_seq;
-  const stack<info_t*>& s = info_t::s_stack;
-  if (!s.empty()) {
-    if (info_t* p = s.top())
-      if (!p->m_type)
-	return create(name);
-  }
-  */
 
   if (int r = lookup(name, scope::current)) {
     if (context_t::retry[DECL_FCAST_CONFLICT_STATE])
@@ -84,13 +79,9 @@ int cxx_compiler::parse::identifier::judge(std::string name)
     case ENUM_NAME_LEX:
       return r;
     }
-#if 1
     // For static x; static x;
     // For 2nd `x' return create(name) not return exsisting entry.
     return create(name);
-#else
-    return r;
-#endif
   }
   error::undeclared(parse::position, name);
   int r = create(name, int_type::create());
