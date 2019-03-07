@@ -75,7 +75,6 @@ namespace parse {
   namespace parameter {
     extern void enter();
     extern void leave();
-    extern int depth;
   } // end of namespace parameter
   namespace block {
     extern void enter();

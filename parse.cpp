@@ -413,7 +413,6 @@ bool cxx_compiler::parse::is_last_decl = true;
 void cxx_compiler::parse::parameter::enter()
 {
   using namespace std;
-  ++depth;
   if (class_or_namespace_name::last) {
     scope::current = class_or_namespace_name::last;
     class_or_namespace_name::last = 0;
@@ -441,7 +440,6 @@ void cxx_compiler::parse::parameter::leave()
       org = scope::current;
   }
   scope::current = scope::current->m_parent;
-  --depth;
   if ( org ){
     vector<scope*>& children = org->m_parent->m_children;
     assert(children.back() == org);
@@ -449,8 +447,6 @@ void cxx_compiler::parse::parameter::leave()
     delete org;
   }
 }
-
-int cxx_compiler::parse::parameter::depth;
 
 namespace cxx_compiler { namespace parse { namespace parameter {
   inline void move(var *v)
