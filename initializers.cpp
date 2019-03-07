@@ -791,7 +791,7 @@ void cxx_compiler::declarations::initializers::initialize_code(with_initial* x)
   const func_type* ft = func_type::create(void_type::create(),dummy);
   usr::flag_t flag = usr::flag_t(usr::FUNCTION | usr::INITIALIZE_FUNCTION);
   usr* func = new usr(name,ft,flag,file_t());
-  scope* param = new scope;
+  scope* param = new scope(scope::PARAM);
   param->m_parent = &scope::root;
   scope::root.m_children.push_back(param);
   block* body = new block;

@@ -307,7 +307,7 @@ cxx_compiler::declarations::declarators::function::definition::begin(declaration
   if ( children.empty() ){
     using namespace error::declarations::declarators::function::definition;
     invalid(parse::position);
-    scope* param = new scope;
+    scope* param = new scope(scope::PARAM);
     param->m_parent = scope::current;
     children.push_back(param);
   }
@@ -595,8 +595,9 @@ namespace cxx_compiler { namespace declarations { namespace declarators { namesp
         info_t* info = new info_t(fdef,vc,vt);
         table[u] = info;
         vector<scope*>& ch = u->m_scope->m_children;
-        assert(ch.size() == 1 && ch[0] == fdef->m_param);
-        ch.clear();
+        assert(!ch.empty());
+        assert(ch.back() == fdef->m_param);
+        ch.pop_back();
         vc.clear();
         fundef::current = 0;
         if (!f)
@@ -645,8 +646,8 @@ cxx_compiler::declarations::declarators::function::definition::static_inline::in
   delete m_fundef;
 }
 
-void
-cxx_compiler::declarations::declarators::function::definition::static_inline::gencode(info_t* info)
+void cxx_compiler::declarations::declarators::
+function::definition::static_inline::gencode(info_t* info)
 {
   fundef* fdef = info->m_fundef;
   vector<tac*>& vc = info->m_code;
@@ -663,21 +664,23 @@ cxx_compiler::declarations::declarators::function::definition::static_inline::ge
     ss(scope* ptr) : m_org(0)
     {
       vector<scope*>& ch = scope::root.m_children;
-      if (ch.empty())
+      typedef vector<scope*>::iterator IT;
+      IT p = find_if(begin(ch), end(ch), bind2nd(ptr_fun(cmp), scope::PARAM));
+      if (p == end(ch))
         ch.push_back(ptr);
       else {
-        assert(ch.size() == 1);
-        m_org = ch[0];
-        ch[0] = ptr;
+        assert(p+1 == ch.end());
+        m_org = *p;
+        *p = ptr;
       }
     }
     ~ss()
     {
       vector<scope*>& ch = scope::root.m_children;
-      if (ch.size() == 1)
+      if (!ch.empty())
         ch.pop_back();
       else
-        assert(generator::last && ch.empty());
+        assert(generator::last);
       if (m_org)
         ch.push_back(m_org);
     }

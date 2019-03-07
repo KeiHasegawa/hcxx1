@@ -3,7 +3,7 @@
 #include "cxx_impl.h"
 #include "cxx_y.h"
 #include "yy.h"
-#include "patch.03.q"
+#include "rule.03.q"
 
 namespace cxx_compiler {
   namespace parse {
@@ -46,7 +46,7 @@ int cxx_compiler::parse::identifier::judge(std::string name)
       case CLASS_NAME_LEX:
       case TEMPLATE_NAME_LEX:
       case ENUM_NAME_LEX:
-	return r;
+        return r;
       }
     }
   }
@@ -61,10 +61,10 @@ int cxx_compiler::parse::identifier::judge(std::string name)
     const stack<info_t*>& s = info_t::s_stack;
     if (s.empty()) {
       if (last_token == EXTERN_KW && r == IDENTIFIER_LEX) {
-	// Rare case like:
-	// int n; extern n;
-	// For 2nd `n', return create(name) not return entry of symbol table.
-	return create(name);
+        // Rare case like:
+        // int n; extern n;
+        // For 2nd `n', return create(name) not return entry of symbol table.
+        return create(name);
       }
       return r;
     }
@@ -428,23 +428,40 @@ void cxx_compiler::parse::parameter::enter()
 void cxx_compiler::parse::parameter::leave()
 {
   using namespace std;
-  scope* org = 0;
-  if ( scope::current->m_parent == &scope::root ){
-    vector<scope*>& children = scope::root.m_children;
-    if ( children.size() != 1 )
-      org = scope::current;
+  switch (scope::current->m_id) {
+  case scope::NONE:
+  case scope::TAG:
+  case scope::NAMESPACE:
+    return;
   }
-  else {
-    scope::id_t id = scope::current->m_parent->m_id;
-    if ( id != scope::TAG && id != scope::NAMESPACE )
-      org = scope::current;
-  }
+  scope* org = scope::current;
   scope::current = scope::current->m_parent;
-  if ( org ){
-    vector<scope*>& children = org->m_parent->m_children;
+  vector<scope*>& children = scope::current->m_children;
+  scope::id_t id = scope::current->m_id;
+  switch (id) {
+  case scope::NONE:
+  case scope::TAG:
+  case scope::NAMESPACE:
+    if (children.size() > 1) {
+      /*
+       * void (*f(int a))(float a)
+       * {
+       *   ...
+       * } 
+       */
+      assert(children.back() == org);
+      scope* ptr = children[children.size()-2];
+      if (ptr->m_id == scope::PARAM) {
+        children.pop_back();
+        delete org;
+      }
+    }
+    break;
+  default:
     assert(children.back() == org);
     children.pop_back();
     delete org;
+    break;
   }
 }
 
@@ -494,8 +511,13 @@ void cxx_compiler::parse::block::enter()
 
   if ( scope::current == &scope::root ){
     vector<scope*>& children = scope::current->m_children;
-    assert(children.size() == 1);
-    scope::current = children.back();
+    typedef vector<scope*>::const_iterator IT;
+    IT p = find_if(begin(children), end(children),
+                   bind2nd(ptr_fun(cmp), scope::PARAM));
+    assert(p != end(children));
+    scope::current = *p;
+    IT end = children.end();
+    assert(find_if(++p, end, bind2nd(ptr_fun(cmp), scope::PARAM)) == end);
     return parameter::decide_dim(), new_block(), parameter::move();
   }
 
@@ -508,7 +530,7 @@ void cxx_compiler::parse::block::enter()
       parameter::decide_dim(), new_block(), parameter::move();
       usr::flag_t& flag = fundef::current->m_usr->m_flag;
       flag = usr::flag_t(flag | usr::INLINE);
-          return member_function_body::save();
+      return member_function_body::save();
     }
     if ( !(fundef::current->m_usr->m_flag & usr::STATIC) ){
       T = pointer_type::create(T);
@@ -594,8 +616,8 @@ void cxx_compiler::parse::member_function_body::save_brace()
       token.push_back(make_pair(n,position));      
       switch ( n ){
       case IDENTIFIER_LEX:
-	  case PEEKED_NAME_LEX:
-	  case INTEGER_LITERAL_LEX:
+          case PEEKED_NAME_LEX:
+          case INTEGER_LITERAL_LEX:
       case CHARACTER_LITERAL_LEX:
       case FLOATING_LITERAL_LEX:
         lval.push_back(static_cast<usr*>(g_read.m_lval.front()));
@@ -612,8 +634,8 @@ void cxx_compiler::parse::member_function_body::save_brace()
       token.push_back(make_pair(n,position));
       switch ( n ){
       case IDENTIFIER_LEX:
-	  case PEEKED_NAME_LEX:
-	  case INTEGER_LITERAL_LEX:
+          case PEEKED_NAME_LEX:
+          case INTEGER_LITERAL_LEX:
       case CHARACTER_LITERAL_LEX:
       case FLOATING_LITERAL_LEX:
         lval.push_back(cxx_compiler_lval.m_usr);

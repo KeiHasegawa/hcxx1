@@ -99,6 +99,11 @@ inline scope* get_pm(FUNCS_ELEMENT_TYPE& elem)
   return elem.first->m_param;
 }
 
+inline bool cmp(const scope* ptr, scope::id_t id)
+{
+  return ptr->m_id == id;
+}
+
 namespace error {
   enum LANG { jpn, other };
   extern LANG lang;

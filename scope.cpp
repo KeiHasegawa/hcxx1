@@ -26,8 +26,18 @@ cxx_compiler::scope::~scope()
     for (auto q : p.second)
       delete q;
   }
-  for (auto p : m_children)
-    delete p;
+  for (auto p : m_children) {
+    scope::id_t id = p->m_id;
+    switch (id) {
+    case scope::PARAM:
+    case scope::BLOCK:
+      delete p;
+      break;
+    default:
+      p->m_parent = 0;
+      break;
+    }
+  }
 }
 
 std::string cxx_compiler::tag::keyword(kind_t kind)
@@ -94,5 +104,6 @@ void cxx_compiler::original_namespace_definition(var* v)
   name_space* ptr = new name_space(name,parse::position);
   usrs[name].push_back(ptr);
   ptr->m_parent = scope::current;
+  ptr->m_parent->m_children.push_back(ptr);
   scope::current = ptr;
 }

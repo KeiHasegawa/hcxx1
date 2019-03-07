@@ -156,9 +156,9 @@ void cxx_compiler::generator::terminate()
       generator::m_close_file();
     if ( error::counter )
       unlink(cmdline::output.c_str());
-#ifdef WIN32
+#ifdef _MSC_VER
     FreeLibrary(m_module);
-#endif // WIN32
+#endif // _MSC_VER
 #ifdef unix
     dlclose(m_module);
 #endif // unix

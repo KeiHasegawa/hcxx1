@@ -11,8 +11,8 @@ cxx_compiler::var* cxx_compiler::expressions::binary::info_t::gen()
   int n = code.size();
   var* right = m_right->gen();
   switch ( m_op ){
-  case DOTASTER_MK :   throw int();
-  case ARROWASTER_MK : throw int();
+  case DOTASTER_MK :   error::not_implemented();
+  case ARROWASTER_MK : error::not_implemented();
   case '*' :           return left->mul(right);
   case '/' :           return left->div(right);
   case '%' :           return left->mod(right);

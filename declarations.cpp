@@ -14,9 +14,19 @@ void cxx_compiler::declarations::destroy()
     delete p;
   garbage.clear();
   vector<scope*>& children = scope::current->m_children;
-  for (auto p : children)
-    delete p;
-  children.clear();  
+  typedef vector<scope*>::iterator IT;
+  for (IT p = children.begin() ; p != children.end() ; ) {
+    switch ((*p)->m_id) {
+    case scope::TAG:
+    case scope::NAMESPACE:
+      ++p;
+      break;
+    default:
+      delete *p;
+      p = children.erase(p);
+      break;
+    }
+  }
   error::headered = false;
   if (!generator::last)
     type::destroy_tmp();

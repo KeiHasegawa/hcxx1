@@ -130,8 +130,12 @@ cxx_compiler::optimize::basic_block::action(fundef* fdef, std::vector<tac*>& v)
   {
     scope* p = fdef->m_param;
     vector<scope*>& children = p->m_children;
-    assert(children.size() == 1);
+    assert(!children.empty());
+    // children.size() == 1 is almost true.
+    // Rare case like:
+    // void f(struct S { ... } s, union U { ... } u) { ... }
     p = children.back();
+    assert(p->m_id == scope::BLOCK);
     symtab::simplify(p,&v);
   }
   symtab::literal::simplify(v);

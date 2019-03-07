@@ -44,6 +44,7 @@ cxx_compiler::classes::specifier::begin(int keyword, var* v, std::vector<base*>*
   else {
     tag* ptr = new tag(kind,name,file,bases);
     ptr->m_parent = scope::current;
+    ptr->m_parent->m_children.push_back(ptr);
     ptr->m_types.first = incomplete_tagged_type::create(ptr);
     tags[name] = ptr;
     scope::current = ptr;
@@ -111,9 +112,8 @@ void cxx_compiler::classes::members::action(var* v, expressions::base* expr)
   usr* cons = 0;
   if ( expr ){
     var* cexpr = expr->gen();
-    if ( !cexpr->isconstant() ){
-      throw int();
-    }
+    if ( !cexpr->isconstant() )
+      error::not_implemented();
     cons = cexpr->usr_cast();
   }
   usr* u = static_cast<usr*>(v);
@@ -124,13 +124,15 @@ void cxx_compiler::classes::members::action(var* v, expressions::base* expr)
   }
   declarations::action1(u,false);
   vector<scope*>& children = scope::current->m_children;
-  if ( children.empty() )
-    return;
-  assert(children.size() == 1);
-  scope* ptr = children.back();
-  assert(ptr->m_id == scope::PARAM);
-  delete ptr;
-  children.clear();
+  typedef vector<scope*>::iterator IT;
+  for ( IT p = begin(children) ; p != end(children) ; ) {
+    scope* ptr = *p;
+    scope::id_t id = ptr->m_id;
+    if (id == scope::PARAM)
+      p = children.erase(p);
+    else
+      ++p;
+  }
 }
 
 void cxx_compiler::classes::members::bit_field(var* v, expressions::base* expr)

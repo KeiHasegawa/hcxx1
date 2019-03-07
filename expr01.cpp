@@ -222,7 +222,7 @@ cxx_compiler::overload::call(std::vector<cxx_compiler::var*>* arg)
       garbage.push_back(ret);
     return ret;
   }
-  throw int();
+  error::not_implemented();
 }
 
 cxx_compiler::overload_impl::result*
@@ -486,7 +486,10 @@ namespace cxx_compiler { namespace declarations { namespace declarators { namesp
       {
         block* ret = new block;
         ret->m_parent = parent;
-        assert(ptr->m_id == scope::BLOCK);
+        if (ptr->m_id != scope::BLOCK) {
+	  assert(ptr->m_id == scope::TAG);
+	  return ret;
+	}
         block* b = static_cast<block*>(ptr);
         const map<string, vector<usr*> >& u = b->m_usrs;
         map<string, vector<usr*> >& d = ret->m_usrs;
