@@ -105,9 +105,9 @@ cxx_compiler::optimize::basic_block::action(fundef* fdef, std::vector<tac*>& v)
     cout << dump::names::ref(u) << ":\n";
     scope::current = org;
     for (auto p : v)
-      cout << '\t', dump::tac(cout, p), cout << '\n';
+      cout << '\t', dump::tacx(cout, p), cout << '\n';
     cout << '\n';
-    dump::scope();
+    dump::scopex();
   }
   vector<info_t*> bbs;
   create(v,bbs);

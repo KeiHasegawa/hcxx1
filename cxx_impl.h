@@ -401,12 +401,12 @@ namespace generator {
 } // end of namespace generator
 
 namespace dump {
-  extern void tac(ostream&, const tac*);
-  extern int scope(scope* = &scope::root, int = 0);
+  extern void tacx(ostream&, const tac*);
+  extern void scopex(scope* = &scope::root, int = 0);
   namespace names {
     extern void reset();
     extern string ref(var*);
-    extern string scope(cxx_compiler::scope*);
+    extern string scopey(scope*);
     extern string refb(optimize::basic_block::info_t*);
   } // end of namespace names
   extern void live(string, const map<optimize::basic_block::info_t*, set<var*> >&);

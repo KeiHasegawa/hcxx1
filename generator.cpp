@@ -103,7 +103,7 @@ void cxx_compiler::generator::initialize()
   void (*spell)(void*) = (void (*)(void*))dlsym(m_module,"generator_spell");
   if ( spell ){
     void* magic[] = {
-      (void*)&dump::tac,
+      (void*)&dump::tacx,
       (void*)&optimize::basic_block::create,
       };
     (*spell)(&magic[0]);

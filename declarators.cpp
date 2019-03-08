@@ -450,9 +450,9 @@ void cxx_compiler::declarations::declarators::function::definition::action(funde
     cout << dump::names::ref(u) << ":\n";
     scope::current = org;
     for (auto p : vc)
-      cout << '\t', dump::tac(cout, p), cout << '\n';
+      cout << '\t', dump::tacx(cout, p), cout << '\n';
     cout << '\n';
-    dump::scope();
+    dump::scopex();
   }
   if ( !error::counter ){
     if ( generator::generate ){
@@ -694,9 +694,9 @@ function::definition::static_inline::gencode(info_t* info)
     cout << dump::names::ref(u) << ":\n";
     scope::current = org;
     for (auto p : vc)
-      cout << '\t', dump::tac(cout, p), cout << '\n';
+      cout << '\t', dump::tacx(cout, p), cout << '\n';
     cout << '\n';
-    dump::scope();
+    dump::scopex();
   }
   if (!error::counter) {
     if (generator::generate) {

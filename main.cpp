@@ -26,7 +26,7 @@ int main(int argc, char** argv)
   if ( parse::is_last_decl ){
     if ( cmdline::output_medium ){
       cout << '\n';
-      dump::scope();
+      dump::scopex();
     }
     if ( !error::counter ){
       if ( generator::generate ){

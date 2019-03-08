@@ -826,9 +826,9 @@ void cxx_compiler::declarations::initializers::initialize_code(with_initial* x)
     scope::current = org;
     typedef vector<tac*>::const_iterator IT;
     for ( IT p = code.begin() ; p != code.end() ; ++p )
-      cout << '\t', dump::tac(cout,*p), cout << '\n';
+      cout << '\t', dump::tacx(cout,*p), cout << '\n';
     cout << '\n';
-    dump::scope();
+    dump::scopex();
   }
   if ( !error::counter ){
     if ( generator::generate ){
