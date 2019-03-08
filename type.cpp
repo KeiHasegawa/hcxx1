@@ -848,7 +848,7 @@ bool cxx_compiler::func_type::variably_modified() const
 const cxx_compiler::type* cxx_compiler::func_type::vla2a() const
 {
   using namespace std;
-  const type* T = m_T->vla2a();
+  const type* T = m_T ? m_T->vla2a() : 0;
   vector<const type*> param;
   transform(m_param.begin(), m_param.end(), back_inserter(param), mem_fun(&type::vla2a));
   return create(T, param);
@@ -1403,32 +1403,38 @@ namespace cxx_compiler { namespace record_impl {
   bool comp_size(usr*, usr*);
   bool comp_align(usr*, usr*);
   bool member_modifiable(usr*);
-  struct info {
+  struct info_t {
     std::vector<usr*>* m_member;
     std::vector<usr*>* m_vb_member;
     int m_virtual_base;
     usr* m_vbtbl;
     int m_virtual_func;
     usr* m_vftbl;
-    info(std::vector<usr*>* m, std::vector<usr*>* v)
+    info_t(std::vector<usr*>* m, std::vector<usr*>* v)
       : m_member(m), m_vb_member(v),  m_virtual_base(0), m_vbtbl(0), m_virtual_func(0), m_vftbl(0) {}
   };
-  int base_handler(base*, info*);
-  int member_handler(usr*, info*);
-  bool is_virtual_func(usr*);
+  void base_handler(base*, info_t*);
+  void member_handler(usr*, info_t*);
+  inline bool is_virtual_func(usr* u)
+  {
+    return u->m_flag & usr::VIRTUAL;
+  }
   struct set_vftbl {
     int m_offset;
     set_vftbl() : m_offset(0) {}
     std::pair<int, var*> operator()(usr*);
   };
-  bool is_virtual_base(base*);
+  inline bool is_virtual_base(base* pb)
+  {
+    return pb->m_virtual;
+  }
   struct set_vbtbl {
     int m_offset;
     int m_delta;
     set_vbtbl() : m_offset(0), m_delta(0) {}
     std::pair<int, var*> operator()(base*);
   };
-  void add_ctor(tag*, const info&);
+  void add_ctor(tag*, const info_t&);
 } } // end of namespace record_impl and cxx_compiler
 
 cxx_compiler::record_type::record_type(tag* ptr)
@@ -1438,42 +1444,57 @@ cxx_compiler::record_type::record_type(tag* ptr)
   using namespace record_impl;
   const vector<base*>* bases = m_tag->m_bases;
   vector<usr*> vb_member;
-  info arg(&m_member,&vb_member);
+  info_t arg(&m_member,&vb_member);
   if ( bases )
     for_each(bases->begin(),bases->end(),bind2nd(ptr_fun(base_handler),&arg));
   const vector<usr*>& member = m_tag->m_order;
   for_each(member.begin(),member.end(),bind2nd(ptr_fun(member_handler),&arg));
-  if ( int n = arg.m_virtual_func ){
+  if (int n = arg.m_virtual_func) {
     const type* T = void_type::create();
     T = pointer_type::create(T);
     T = array_type::create(T,n);
-    m_vftbl = new with_initial(".vftbl",T,file_t());
-    m_vftbl->m_flag = usr::STATIC_DEF;
+    string namet = ".vftbl";
+    m_vftbl = new with_initial(namet,T,file_t());
+    m_vftbl->m_flag = usr::flag_t(usr::STATIC | usr::STATIC_DEF);
+    m_tag->m_usrs[namet].push_back(m_vftbl);
+    if (arg.m_vftbl)
+      error::not_implemented();
+    arg.m_vftbl = m_vftbl;
     T = pointer_type::create(T);
-    usr* vfptr = new usr("",T,usr::NONE,file_t());
+    string namep = ".vfptr";
+    usr* vfptr = new usr(namep,T,usr::NONE,file_t());
+    m_tag->m_usrs[namep].push_back(vfptr);
     m_member.insert(m_member.begin(),vfptr);
     remove_copy_if(member.begin(),member.end(),back_inserter(m_vftbl_contents),
       not1(ptr_fun(is_virtual_func)));
     map<int, var*>& value = m_vftbl->m_value;
-    transform(m_vftbl_contents.begin(),m_vftbl_contents.end(),inserter(value,value.begin()),set_vftbl());
+    transform(m_vftbl_contents.begin(),m_vftbl_contents.end(),
+              inserter(value,value.begin()),set_vftbl());
   }
-  if ( int n = arg.m_virtual_base ){
+  if (int n = arg.m_virtual_base) {
     const type* T = int_type::create();
     T = array_type::create(T,n);
     m_vbtbl = new with_initial(".vbtbl",T,file_t());
     m_vbtbl->m_flag = usr::STATIC_DEF;
+    if (arg.m_vbtbl)
+      error::not_implemented();
+    else
+      arg.m_vbtbl = m_vbtbl;
     T = pointer_type::create(T);
-    usr* vbptr = new usr("",T,usr::NONE,file_t());
+    usr* vbptr = new usr(".vbptr",T,usr::NONE,file_t());
     m_member.insert(m_member.begin(),vbptr);
     remove_copy_if(bases->begin(),bases->end(),back_inserter(m_vbtbl_contents),
       not1(ptr_fun(is_virtual_base)));
     map<int, var*>& value = m_vbtbl->m_value;
-    transform(m_vbtbl_contents.begin(),m_vbtbl_contents.end(),inserter(value,value.begin()),set_vbtbl());
+    transform(m_vbtbl_contents.begin(),m_vbtbl_contents.end(),
+              inserter(value,value.begin()),set_vbtbl());
   }
-  add_ctor(m_tag,arg);
-  if ( m_member.empty() ){
-    usr* u = new usr("",char_type::create(),usr::NONE,file_t());
+  add_ctor(m_tag, arg);
+  if (m_member.empty()) {
+    string name = ".dummy";
+    usr* u = new usr(name, char_type::create(),usr::NONE,file_t());
     m_member.push_back(u);
+    m_tag->m_usrs[name].push_back(u);
   }
   if ( m_tag->m_kind == tag::STRUCT ){
     usr* last = *m_member.rbegin();
@@ -1666,7 +1687,7 @@ bool cxx_compiler::record_impl::member_modifiable(usr* member)
   return member->m_type->modifiable();
 }
 
-int cxx_compiler::record_impl::base_handler(base* p, info* arg)
+void cxx_compiler::record_impl::base_handler(base* p, info_t* arg)
 {
   using namespace std;
   bool vb = is_virtual_base(p);
@@ -1674,31 +1695,23 @@ int cxx_compiler::record_impl::base_handler(base* p, info* arg)
     ++arg->m_virtual_base;
   tag* ptr = p->m_tag;
   const vector<usr*>& member = ptr->m_order;
-  info tmp(vb && arg->m_vb_member ? arg->m_vb_member : arg->m_member, 0);
+  info_t tmp(vb && arg->m_vb_member ? arg->m_vb_member : arg->m_member, 0);
   for_each(member.begin(),member.end(),bind2nd(ptr_fun(member_handler),&tmp));
-  return 0;
 }
 
-int cxx_compiler::record_impl::member_handler(usr* u, info* arg)
+void cxx_compiler::record_impl::member_handler(usr* u, info_t* arg)
 {
   using namespace std;
   if ( is_virtual_func(u) ){
     ++arg->m_virtual_func;
-    return 0;
+    return;
   }
   usr::flag_t flag = u->m_flag;
   if ( flag & usr::FUNCTION )
-    return 0;
+    return;
   if ( flag & usr::STATIC )
-    return 0;
+    return;
   arg->m_member->push_back(u);
-  return 0;
-}
-
-bool cxx_compiler::record_impl::is_virtual_func(usr* u)
-{
-  usr::flag_t flag = u->m_flag;
-  return flag & usr::VIRTUAL;
 }
 
 std::pair<int, cxx_compiler::var*>
@@ -1711,11 +1724,6 @@ cxx_compiler::record_impl::set_vftbl::operator()(usr* vf)
   int delta = T->size();
   m_offset += delta;
   return make_pair(offset, new addrof(T,vf,0));
-}
-
-bool cxx_compiler::record_impl::is_virtual_base(cxx_compiler::base* b)
-{
-  return b->m_virtual;
 }
 
 std::pair<int, cxx_compiler::var*>
@@ -1731,7 +1739,7 @@ cxx_compiler::record_impl::set_vbtbl::operator()(base* vb)
   return make_pair(offset, delta);
 }
 
-void cxx_compiler::record_impl::add_ctor(tag* ptr, const info& arg)
+void cxx_compiler::record_impl::add_ctor(tag* ptr, const info_t& arg)
 {
   using namespace std;
 
@@ -1745,12 +1753,14 @@ void cxx_compiler::record_impl::add_ctor(tag* ptr, const info& arg)
     vector<const type*> param;
     param.push_back(void_type::create());
     const type* T = func_type::create(0,param);
-    usr::flag_t flag = usr::flag_t(usr::FUNCTION | usr::INLINE);
+    usr::flag_t flag = usr::flag_t(usr::CTOR | usr::FUNCTION | usr::INLINE);
     ctor = new usr(tgn,T,flag,file_t());
     ptr->m_usrs[tgn].push_back(ctor);
   }
   else {
     const vector<usr*>& v = p->second;
+    if (v.size() != 1)
+      error::not_implemented();
     ctor = v.back();
   }
 
@@ -1783,14 +1793,17 @@ void cxx_compiler::record_impl::add_ctor(tag* ptr, const info& arg)
     var* tmp = new var(T);
     b->m_vars.push_back(tmp);
     code.push_back(new addr3ac(tmp,arg.m_vftbl));
+    var* ptr = new var(pointer_type::create(T));
+    b->m_vars.push_back(ptr);
     if ( arg.m_virtual_base ){
-      var* ptr = new var(pointer_type::create(T));
       var* size = expressions::primary::literal::integer::create(T->size());
       code.push_back(new add3ac(ptr,This,size));
       code.push_back(new invladdr3ac(ptr,tmp));
     }
-    else
-      code.push_back(new invladdr3ac(This,tmp));
+    else {
+      code.push_back(new cast3ac(ptr,This, ptr->m_type));
+      code.push_back(new invladdr3ac(ptr,tmp));
+    }
   }
   fundef* fdef = new fundef(ctor,param);
   declarations::declarators::function::definition::action(fdef, code);

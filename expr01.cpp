@@ -637,6 +637,8 @@ namespace cxx_compiler { namespace declarations { namespace declarators { namesp
         return;
       block* pb = create(fdef->m_param);
       int n = p.first;
+      if (func->m_scope->m_id == scope::TAG && !(func->m_flag & usr::STATIC))
+	++n;
       const vector<var*>& vars = pb->m_vars;
       assert(vars.size() == n);
       assert(pos >= n);
