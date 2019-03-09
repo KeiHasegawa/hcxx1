@@ -20,10 +20,12 @@ namespace cxx_compiler { namespace declarations { namespace initializers {
 void cxx_compiler::declarations::initializers::action(var* v, info_t* i)
 {
   using namespace std;
+  assert(v->usr_cast());
   usr* u = static_cast<usr*>(v);
   auto_ptr<info_t> sweeper(i);
   argument::dst = u;
-  with_initial* p = u->with_initial_cast();
+  usr::flag_t flag = u->m_flag;
+  with_initial* p = (flag & usr::WITH_INI) ? static_cast<with_initial*>(u) : 0;
   argument arg(u->m_type,p ? p->m_value : m_table[u].m_value,0,0,-1,-1,-1,-1);
   int n = code.size();
   i->m_clause ? clause::gencode(i->m_clause,&arg) : expr_list(i->m_exprs,&arg);

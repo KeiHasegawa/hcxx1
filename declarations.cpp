@@ -758,7 +758,7 @@ bool cxx_compiler::declarations::conflict(usr* x, usr* y)
       return true;
   }
   if ( scope::current == &scope::root ){
-    if ( x->with_initial_cast() && y->with_initial_cast() )
+    if ((x->m_flag & usr::WITH_INI) && (y->m_flag & usr::WITH_INI))
       return true;
   }
   return conflict(x->m_type,y->m_type);

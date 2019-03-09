@@ -393,8 +393,6 @@ struct var {
   virtual ~var(){}
 };
 
-struct with_initial;
-
 struct usr : var {
   std::string m_name;
   enum flag_t {
@@ -437,7 +435,6 @@ struct usr : var {
   var* assign(var*);
   static std::string keyword(flag_t);
   usr* usr_cast(){ return this; }
-  virtual with_initial* with_initial_cast(){ return 0; }
   virtual int initialize();
   usr(std::string name, const type* T, flag_t flag, const file_t& file)
     : var(T), m_name(name), m_flag(flag), m_file(file) {}
@@ -1385,14 +1382,12 @@ template<> struct constant<void*> : usr {
 };
 
 struct with_initial : usr {
-  std::map<int,var*> m_value;
+  std::map<int, var*> m_value;
 
   with_initial(const usr& u) : usr(u) { m_flag = flag_t(m_flag|usr::WITH_INI); }
 
   with_initial(std::string name, const type* T, const file_t& file)
     : usr(name,T,flag_t(usr::STATIC|usr::WITH_INI),file) {}
-
-  with_initial* with_initial_cast(){ return this; }
 };
 
 struct type_def : usr {
