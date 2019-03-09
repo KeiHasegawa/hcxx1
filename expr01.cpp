@@ -1226,7 +1226,7 @@ cxx_compiler::expressions::postfix::fcast::fcast(declarations::type_specifier* p
   m_type = info.m_type;
 }
 
-cxx_compiler::expressions::postfix::fcast::fcast(vector<base*>* list)
+cxx_compiler::expressions::postfix::fcast::fcast(std::vector<base*>* list)
   : m_list(list), m_file(parse::position)
 {
   using namespace parse;
