@@ -79,23 +79,30 @@ const cxx_compiler::type* cxx_compiler::classes::specifier::action()
   return ret;
 }
 
-void cxx_compiler::classes::specifier::
-member_function_definition(std::pair<usr* const,parse::member_function_body::save_t>& E)
-{
-  using namespace std;
-  usr* u = E.first;
-  u->m_type = u->m_type->complete_type();
-  scope::current = u->m_scope;
-  vector<scope*>& children = scope::current->m_children;
-  scope* param = E.second.m_param;
-  children.push_back(param);
-  fundef::current = new fundef(u,param);
-  parse::member_function_body::saved = &E.second;
-  file_t org = parse::position;
-  cxx_compiler_parse();
-  parse::position = org;
-  parse::member_function_body::saved = 0;
-}
+namespace cxx_compiler {
+  namespace classes {
+    namespace specifier {
+      using namespace std;
+      void
+      member_function_definition(pair<usr* const,
+                                      parse::member_function_body::save_t>& E)
+      {
+        usr* u = E.first;
+        u->m_type = u->m_type->complete_type();
+        scope::current = u->m_scope;
+        vector<scope*>& children = scope::current->m_children;
+        scope* param = E.second.m_param;
+        children.push_back(param);
+        fundef::current = new fundef(u,param);
+        parse::member_function_body::saved = &E.second;
+        file_t org = parse::position;
+        cxx_compiler_parse();
+        parse::position = org;
+        parse::member_function_body::saved = 0;
+      }
+    } // end of namespace specifier
+  } // end of namespace classes
+} // end of namespace cxx_compiler
 
 namespace cxx_compiler {
   struct constant_member : usr {

@@ -244,6 +244,9 @@ namespace error {
         extern void not_record(const file_t&, const var*);
         extern void not_pointer(const file_t&, const var*);
       } // end of namespace member
+      namespace fcast {
+	extern void too_many_arg(const file_t&);
+      } // end of namespace fcast
     } // end of namespace postfix
     namespace ppmm {
       extern void not_lvalue(const file_t&, bool, const var*);
@@ -747,12 +750,13 @@ namespace expressions {
       ~ppmm(){ delete m_expr; }
     };
     struct fcast : base {
+      const type* m_type;
       vector<base*>* m_list;
       file_t m_file;
       var* gen();
       const file_t& file() const { return m_file; }
-      fcast(vector<base*>* list)
-        : m_list(list), m_file(parse::position) {}
+      fcast(declarations::type_specifier*);
+      fcast(vector<base*>* list);
     };
   } // end of namespace postfix
   namespace unary {

@@ -77,6 +77,7 @@ PATCHS = patch.00.p patch.01.p patch.02.p patch.03.p patch.04.p \
 PATCHS_HEADER = patch.03.q
 
 parse.o : $(PATCHS_HEADER)
+expr01.o : $(PATCHS_HEADER)
 
 $(OBJS) : cxx_y.h
 

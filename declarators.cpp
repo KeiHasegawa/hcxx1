@@ -389,7 +389,8 @@ namespace cxx_compiler {
   std::vector<FUNCS_ELEMENT_TYPE> funcs;
 } // end of namespace cxx_compiler
 
-void cxx_compiler::declarations::declarators::function::definition::action(statements::base* stmt)
+void cxx_compiler::declarations::declarators::function::definition::
+action(statements::base* stmt)
 {
   using namespace std;
   auto_ptr<statements::base> sweeper(stmt);
@@ -398,12 +399,16 @@ void cxx_compiler::declarations::declarators::function::definition::action(state
   const map<usr*, save_t>& tbl = parse::member_function_body::table;
   map<usr*, save_t>::const_iterator p = tbl.find(u);
   if (p != tbl.end() && !parse::member_function_body::saved) {
+    // member function body is already saved
     const save_t& tmp = p->second;
-    scope* ptr = tmp.m_param;
-    ptr = ptr->m_parent;
-    vector<scope*>& c = ptr->m_children;
-    assert(c.size() == 1);
-    c.clear();
+    scope* param = tmp.m_param;
+    scope* ptr = param->m_parent;
+    assert(ptr->m_id == scope::TAG);
+    vector<scope*>& children = ptr->m_children;
+    typedef vector<scope*>::iterator IT;
+    IT it = find(begin(children), end(children), param);
+    assert(it != end(children));
+    children.erase(it);
   }
   else {
     file_t org = parse::position;

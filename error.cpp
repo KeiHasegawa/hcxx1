@@ -30,7 +30,7 @@ void cxx_compiler::error::not_implemented()
 {
   string prog = cxx_compiler::cmdline::prog;
   cerr << prog  << " : " << "not implemented" << '\n';
-  assert(0);
+  exit(1);
 }
 
 void cxx_compiler::error::cmdline::open(std::string fn)
@@ -2182,6 +2182,23 @@ void cxx_compiler::error::expressions::postfix::member::not_pointer(const file_t
     if ( u )
       cerr << " for `" << u->m_name << "'";
     cerr << ".\n";
+    break;
+  }
+  ++counter;
+}
+
+void
+cxx_compiler::error::expressions::postfix::fcast::too_many_arg(const file_t& file)
+{
+  using namespace std;
+  switch (lang) {
+  case jpn:
+    header(file,"エラー");
+    cerr << "函数スタイルのキャストに対して引数が多すぎます.\n";
+    break;
+  default:
+    header(file,"error");
+    cerr << "Too many arguments for function style cast.\n";
     break;
   }
   ++counter;

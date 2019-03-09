@@ -2,6 +2,7 @@
 #include "stdafx.h"
 #include "cxx_core.h"
 #include "cxx_impl.h"
+#include "patch.03.q"
 
 namespace cxx_compiler { namespace subscript_impl {
   var* size(const type*);
@@ -1213,23 +1214,72 @@ cxx_compiler::var* cxx_compiler::generated::ppmm(bool plus, bool post)
   return this;
 }
 
-cxx_compiler::var* cxx_compiler::expressions::postfix::fcast::gen()
+cxx_compiler::expressions::postfix::fcast::fcast(declarations::type_specifier* p)
+  : m_list(0), m_file(parse::position)
 {
-  using namespace std;
+  using namespace parse;
   using namespace declarations;
+  assert(!context_t::retry[DECL_FCAST_CONFLICT_STATE]);
+  specifier* spec = new specifier(p);
+  specifier_seq::info_t info(0, spec);
+  info.update();
+  m_type = info.m_type;
+}
+
+cxx_compiler::expressions::postfix::fcast::fcast(vector<base*>* list)
+  : m_list(list), m_file(parse::position)
+{
+  using namespace parse;
+  using namespace declarations;
+  assert(context_t::retry[DECL_FCAST_CONFLICT_STATE]);
+  assert(!specifier_seq::info_t::s_stack.empty());
   specifier_seq::info_t* p = specifier_seq::info_t::s_stack.top();
   auto_ptr<specifier_seq::info_t> sweeper(p);
   p->update();
-  const type* T = p->m_type;
+  m_type = p->m_type;
+}
+
+cxx_compiler::var* cxx_compiler::expressions::postfix::fcast::gen()
+{
+  using namespace std;
   vector<var*> arg;
-  if ( m_list )
-    transform(m_list->begin(),m_list->end(),back_inserter(arg),mem_fun(&base::gen));
-  if ( arg.empty() ){
-    var* zero = primary::literal::integer::create(0);
-    return zero->cast(T);
+  if ( m_list ) {
+    transform(m_list->begin(),m_list->end(),back_inserter(arg),
+	      mem_fun(&base::gen));
+  }
+
+  if (m_type->scalar()) {
+    switch (arg.size()) {
+    case 0:
+      {
+	var* zero = primary::literal::integer::create(0);
+	return zero->cast(m_type);
+      }
+    case 1:
+      return arg.back()->cast(m_type);
+    default:
+      {
+	error::expressions::postfix::fcast::too_many_arg(m_file);
+	var* ret = new var(m_type);
+	if (scope::current->m_id == scope::BLOCK) {
+	  block* b = static_cast<block*>(scope::current);
+	  b->m_vars.push_back(ret);
+	}
+	else
+	  garbage.push_back(ret);
+	return ret;
+      }
+    }
+  }
+
+  var* ret = new var(m_type);
+  if (scope::current->m_id == scope::BLOCK) {
+    block* b = static_cast<block*>(scope::current);
+    b->m_vars.push_back(ret);
   }
   else
-    return arg.back()->cast(T);
+    garbage.push_back(ret);
+  return ret;
 }
 
 namespace cxx_compiler {
