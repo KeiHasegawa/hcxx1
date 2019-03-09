@@ -1452,10 +1452,11 @@ cxx_compiler::record_type::record_type(tag* ptr)
   if (int n = arg.m_virtual_func) {
     const type* T = void_type::create();
     T = pointer_type::create(T);
+    T = const_type::create(T);
     T = array_type::create(T,n);
     string namet = ".vftbl";
-    m_vftbl = new with_initial(namet,T,file_t());
-    m_vftbl->m_flag = usr::flag_t(usr::STATIC | usr::STATIC_DEF);
+    m_vftbl = new with_initial(namet, T, file_t());
+    m_vftbl->m_flag = usr::flag_t(m_vftbl->m_flag| usr::STATIC | usr::STATIC_DEF);
     m_tag->m_usrs[namet].push_back(m_vftbl);
     if (arg.m_vftbl)
       error::not_implemented();
