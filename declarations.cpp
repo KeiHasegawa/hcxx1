@@ -1042,7 +1042,9 @@ void cxx_compiler::declarations::enumeration::definition(var* v, expressions::ba
   u->m_flag = usr::ENUM_MEMBER;
   enum_member* member = new enum_member(*u,static_cast<usr*>(v));
   declarations::action2(member);
-  v = v->add(expressions::primary::literal::integer::create(1));
+  var* one = expressions::primary::literal::integer::create(1);
+  conversion::arithmetic::gen(&v, &one);
+  v = v->add(one);
   prev = static_cast<usr*>(v);
 }
 

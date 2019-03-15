@@ -1040,7 +1040,8 @@ cxx_compiler::var* cxx_compiler::array_type::vsize() const
   var* size = m_T->vsize();
   if ( !size )
     return 0;
-  usr* dim = expressions::primary::literal::integer::create(m_dim);
+  var* dim = expressions::primary::literal::integer::create(m_dim);
+  conversion::arithmetic::gen(&size, &dim);
   return size->mul(dim);
 }
 
@@ -2155,12 +2156,16 @@ cxx_compiler::var* cxx_compiler::varray_type::vsize() const
 {
   using namespace std;
   const type* T = m_T->complete_type();
-  if ( var* vs = T->vsize() )
-    return m_dim->mul(vs);
+  var* dim = m_dim;
+  if ( var* vs = T->vsize() ) {
+    conversion::arithmetic::gen(&dim, &vs);
+    return dim->mul(vs);
+  }
 
   int n = T->size();
-  usr* size = expressions::primary::literal::integer::create(n);
-  return m_dim->mul(size);
+  var* size = expressions::primary::literal::integer::create(n);
+  conversion::arithmetic::gen(&dim, &size);
+  return dim->mul(size);
 }
 
 void cxx_compiler::varray_type::decide_dim() const

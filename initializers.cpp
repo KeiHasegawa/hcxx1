@@ -512,10 +512,12 @@ int cxx_compiler::declarations::initializers::bit_field(var* y, argument* arg)
   BF* bf = static_cast<BF*>(member->m_type);
   const type* T = bf->integer_type();
   y = y->cast(T);
-  usr* a = refbit::mask(bf->bit());
+  var* a = refbit::mask(bf->bit());
+  conversion::arithmetic::gen(&y, &a);
   y = y->bit_and(a);
   int pos = rec->position(member);
   var* p = expressions::primary::literal::integer::create(pos);
+  conversion::arithmetic::gen(&y, &p);
   y = y->lsh(p);
   var*& x = arg->V[arg->off];
   if ( !x ){
@@ -523,8 +525,10 @@ int cxx_compiler::declarations::initializers::bit_field(var* y, argument* arg)
     arg->nth_max = max(arg->nth_max,++arg->nth);
     return arg->off;
   }
-  usr* b = refbit::mask(bf->bit(),pos);
+  var* b = refbit::mask(bf->bit(),pos);
+  conversion::arithmetic::gen(&x, &b);
   x = x->bit_and(b);
+  conversion::arithmetic::gen(&x, &y);
   x = x->bit_or(y);
   arg->nth_max = max(arg->nth_max,++arg->nth);
   const usr::flag_t& flag = member->m_flag;

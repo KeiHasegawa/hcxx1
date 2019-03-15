@@ -960,7 +960,12 @@ namespace statements {
         case_t(var* v, to3ac* t, expressions::base* b, scope* s)
           : m_label(v), m_to(t), m_expr(b), m_scope(s) {}
         static bool cmp(case_t x, var* y)
-        { return x.m_label->eq(y)->value() != 0; }
+        {
+	  var* tmp = x.m_label;
+	  conversion::arithmetic::gen(&tmp, &y);
+	  tmp = tmp->eq(y);
+	  return tmp->value() != 0;
+	}
       };
       vector<case_t> m_cases;
       struct default_t {

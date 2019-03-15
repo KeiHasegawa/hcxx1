@@ -213,29 +213,7 @@ cxx_compiler::var* cxx_compiler::genaddr::indirection()
 }
 
 namespace cxx_compiler {
-  template<> var* constant<bool>::indirection()
-  { return var::indirection(); }
-  template<> var* constant<char>::indirection()
-  { return var::indirection(); }
-  template<> var* constant<signed char>::indirection()
-  { return var::indirection(); }    
-  template<> var* constant<unsigned char>::indirection()
-  { return var::indirection(); }
-  template<> var* constant<wchar_t>::indirection()
-  { return var::indirection(); }
-  template<> var* constant<short int>::indirection()
-  { return var::indirection(); }
-  template<> var* constant<unsigned short int>::indirection()
-  { return var::indirection(); }
-  template<> var* constant<int>::indirection()
-  { return var::indirection(); }
-  template<> var* constant<unsigned int>::indirection()
-  { return var::indirection(); }
-  template<> var* constant<long int>::indirection()
-  { return var::indirection(); }
-  template<> var* constant<unsigned long int>::indirection()
-  { return var::indirection(); }
-  template<> var* constant<__int64>::indirection()
+  var* constant<__int64>::indirection()
   {
     if (m_flag & CONST_PTR) {
       assert(sizeof(void*) < m_type->size());
@@ -247,17 +225,22 @@ namespace cxx_compiler {
     }
     return var::indirection();
   }
-  template<> var* constant<unsigned __int64>::indirection()
-  { return var::indirection(); }
+  var* constant<void*>::indirection()
+  {
+    typedef const pointer_type PT;
+    PT* pt = static_cast<PT*>(m_type);
+    var* ret = new refimm<void*>(pt,m_value);
+    garbage.push_back(ret);
+    return ret;
+  }
 } // end of namespace cxx_compiler
 
-cxx_compiler::var* cxx_compiler::constant<void*>::indirection()
+cxx_compiler::var* cxx_compiler::with_initial::indirection()
 {
-  typedef const pointer_type PT;
-  PT* pt = static_cast<PT*>(m_type);
-  var* ret = new refimm<void*>(pt,m_value);
-  garbage.push_back(ret);
-  return ret;
+  var* y = rvalue();
+  if (y != this)
+    return y->indirection();
+  return usr::indirection();
 }
 
 cxx_compiler::var* cxx_compiler::var::address()
@@ -456,19 +439,14 @@ namespace cxx_compiler {
   template<>
   var* constant<unsigned short int>::minus()
   { return constant_impl::minus(this); }
-  template<>
   var* constant<int>::minus()
   { return constant_impl::minus(this); }
-  template<>
   var* constant<unsigned int>::minus()
   { return constant_impl::minus(this); }
-  template<>
   var* constant<long int>::minus()
   { return constant_impl::minus(this); }
-  template<>
   var* constant<unsigned long int>::minus()
   { return constant_impl::minus(this); }
-  template<>
   var* constant<__int64>::minus()
   {
     if (m_flag & CONST_PTR) {
@@ -477,7 +455,6 @@ namespace cxx_compiler {
     }
     return constant_impl::minus(this);
   }
-  template<>
   var* constant<unsigned __int64>::minus()
   { return constant_impl::minus(this); }
 } // end of namespace cxx_compiler
@@ -617,22 +594,16 @@ namespace cxx_compiler {
   template<>
   var* constant<unsigned short int>::_not()
   { return zero() ? expressions::primary::literal::integer::create(1) : expressions::primary::literal::integer::create(0); }
-  template<>
   var* constant<int>::_not()
   { return zero() ? expressions::primary::literal::integer::create(1) : expressions::primary::literal::integer::create(0); }
-  template<>
   var* constant<unsigned int>::_not()
   { return zero() ? expressions::primary::literal::integer::create(1) : expressions::primary::literal::integer::create(0); }
-  template<>
   var* constant<long int>::_not()
   { return zero() ? expressions::primary::literal::integer::create(1) : expressions::primary::literal::integer::create(0); }
-  template<>
   var* constant<unsigned long int>::_not()
   { return zero() ? expressions::primary::literal::integer::create(1) : expressions::primary::literal::integer::create(0); }
-  template<>
   var* constant<__int64>::_not()
   { return zero() ? expressions::primary::literal::integer::create(1) : expressions::primary::literal::integer::create(0); }
-  template<>
   var* constant<unsigned __int64>::_not()
   { return zero() ? expressions::primary::literal::integer::create(1) : expressions::primary::literal::integer::create(0); }
 } // end of namespace cxx_comiler
@@ -709,19 +680,14 @@ namespace cxx_compiler {
   template<>
   var* constant<unsigned short int>::tilde()
   { return constant_impl::tilde(this); }
-  template<>
   var* constant<int>::tilde()
   { return constant_impl::tilde(this); }
-  template<>
   var* constant<unsigned int>::tilde()
   { return constant_impl::tilde(this); }
-  template<>
   var* constant<long int>::tilde()
   { return constant_impl::tilde(this); }
-  template<>
   var* constant<unsigned long int>::tilde()
   { return constant_impl::tilde(this); }
-  template<>
   var* constant<__int64>::tilde()
   {
     if (m_flag & CONST_PTR) {
@@ -730,7 +696,6 @@ namespace cxx_compiler {
     }
     return constant_impl::tilde(this);
   }
-  template<>
   var* constant<unsigned __int64>::tilde()
   { return constant_impl::tilde(this); }
 } // end of namespace cxx_compiler

@@ -37,6 +37,7 @@ cxx_compiler::var* cxx_compiler::var::subscripting(var* y)
     not_object(parse::position,T);
     return array;
   }
+  conversion::arithmetic::gen(&size, &index);
   var* offset = size->mul(index);
   assert(offset->m_type->integer());
   return array->offref(T,offset);
@@ -86,6 +87,7 @@ cxx_compiler::var* cxx_compiler::genaddr::subscripting(var* y)
     not_object(parse::position,T);
     return this;
   }
+  conversion::arithmetic::gen(&size, &index);
   var* offset = size->mul(index);
   assert(offset->m_type->integer());
   return offref(T,offset);
@@ -835,8 +837,11 @@ cxx_compiler::var* cxx_compiler::refaddr::offref(const type* T, var* offset)
     garbage.push_back(ret);
     return ret;
   }
-  if ( int n = m_addrof.m_offset )
-    offset = offset->add(expressions::primary::literal::integer::create(n));
+  if ( int n = m_addrof.m_offset ) {
+    var* tmp = expressions::primary::literal::integer::create(n);
+    conversion::arithmetic::gen(&offset, &tmp);
+    offset = offset->add(tmp);
+  }
   var* ret = new refsomewhere(pointer_type::create(T),m_addrof.m_ref,offset);
   garbage.push_back(ret);
   return ret;
@@ -844,6 +849,7 @@ cxx_compiler::var* cxx_compiler::refaddr::offref(const type* T, var* offset)
 
 cxx_compiler::var* cxx_compiler::refsomewhere::offref(const type* T, var* offset)
 {
+  conversion::arithmetic::gen(&offset, &m_offset);
   offset = offset->add(m_offset);
   var* ret = new refsomewhere(pointer_type::create(T),m_ref,offset);
   garbage.push_back(ret);
@@ -860,8 +866,11 @@ cxx_compiler::var* cxx_compiler::genaddr::offref(const type* T, var* offset)
     garbage.push_back(ret);
     return ret;
   }
-  if ( m_offset )
-    offset = offset->add(expressions::primary::literal::integer::create(m_offset));
+  if ( m_offset ) {
+    var* tmp = expressions::primary::literal::integer::create(m_offset);
+    conversion::arithmetic::gen(&offset, &tmp);
+    offset = offset->add(tmp);
+  }
   var* ret = new refsomewhere(pt,m_ref,offset);
   garbage.push_back(ret);
   return ret;
@@ -879,8 +888,11 @@ cxx_compiler::var* cxx_compiler::addrof::offref(const type* T, var* offset)
     garbage.push_back(ret);
     return ret;
   }
-  if ( m_offset )
-    offset = offset->add(expressions::primary::literal::integer::create(m_offset));
+  if ( m_offset ) {
+    var* tmp = expressions::primary::literal::integer::create(m_offset);
+    conversion::arithmetic::gen(&offset, &tmp);
+    offset = offset->add(tmp);
+  }
   if ( const pointer_type* G = T->ptr_gen() ){
     var* ret = new generated(G,T);
     block* b = (scope::current->m_id == scope::BLOCK) ? static_cast<block*>(scope::current) : 0;
@@ -898,29 +910,7 @@ cxx_compiler::var* cxx_compiler::addrof::offref(const type* T, var* offset)
 }
 
 namespace cxx_compiler {
-  template<> var* constant<bool>::offref(const type* T, var* offset)
-  { return var::offref(T, offset); }
-  template<> var* constant<char>::offref(const type* T, var* offset)
-  { return var::offref(T, offset); }
-  template<> var* constant<signed char>::offref(const type* T, var* offset)
-  { return var::offref(T, offset); }    
-  template<> var* constant<unsigned char>::offref(const type* T, var* offset)
-  { return var::offref(T, offset); }
-  template<> var* constant<wchar_t>::offref(const type* T, var* offset)
-  { return var::offref(T, offset); }
-  template<> var* constant<short int>::offref(const type* T, var* offset)
-  { return var::offref(T, offset); }
-  template<> var* constant<unsigned short int>::offref(const type* T, var* offset)
-  { return var::offref(T, offset); }
-  template<> var* constant<int>::offref(const type* T, var* offset)
-  { return var::offref(T, offset); }
-  template<> var* constant<unsigned int>::offref(const type* T, var* offset)
-  { return var::offref(T, offset); }
-  template<> var* constant<long int>::offref(const type* T, var* offset)
-  { return var::offref(T, offset); }
-  template<> var* constant<unsigned long int>::offref(const type* T, var* offset)
-  { return var::offref(T, offset); }
-  template<> var* constant<__int64>::offref(const type* T, var* offset)
+  var* constant<__int64>::offref(const type* T, var* offset)
   {
     if (m_flag & CONST_PTR) {
       assert(sizeof(void*) < m_type->size());
@@ -935,22 +925,21 @@ namespace cxx_compiler {
     }
     return var::offref(T, offset);
   }
-  template<> var* constant<unsigned __int64>::offref(const type* T, var* offset)
-  { return var::offref(T, offset); }
+  var* constant<void*>::offref(const type* T, var* offset)
+  {
+    if ( offset->isconstant() ){
+      int off = offset->value();
+      unsigned char* p = reinterpret_cast<unsigned char*>(m_value);
+      p += off;
+      void* q = reinterpret_cast<void*>(p);
+      var* ret = new refimm<void*>(pointer_type::create(T),q);
+      garbage.push_back(ret);
+      return ret;
+    }
+    return var::offref(T,offset);
+  }
 } // end of namespace cxx_compiler
 
-cxx_compiler::var* cxx_compiler::constant<void*>::offref(const type* T, var* offset)
-{
-  if ( offset->isconstant() ){
-    int off = offset->value();
-    unsigned char* p = reinterpret_cast<unsigned char*>(m_value);
-    p += off;
-    var* ret = new refimm<void*>(pointer_type::create(T),reinterpret_cast<void*>(p));
-    garbage.push_back(ret);
-    return ret;
-  }
-  return var::offref(T,offset);
-}
 
 std::vector<cxx_compiler::tac*> cxx_compiler::code;
 

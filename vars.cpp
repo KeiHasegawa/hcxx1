@@ -16,6 +16,18 @@ cxx_compiler::genaddr::genaddr(const pointer_type* G, const type* T, var* ref, i
   }
 }
 
+cxx_compiler::var* cxx_compiler::with_initial::rvalue()
+{
+  if (!m_type->scalar())
+    return usr::rvalue();
+  if (m_type->modifiable())
+    return usr::rvalue();
+  assert(m_value.size() == 1);
+  map<int, var*>::const_iterator p = m_value.find(0);
+  assert(p != m_value.end());
+  return p->second;
+}
+
 cxx_compiler::var* cxx_compiler::genaddr::rvalue()
 {
   using namespace std;
@@ -82,7 +94,17 @@ cxx_compiler::var * cxx_compiler::refaddr::rvalue()
   else
     garbage.push_back(ret);
   var* off = expressions::primary::literal::integer::create(m_addrof.m_offset);
-  code.push_back(new roff3ac(ret,m_addrof.m_ref,off));
+
+  var* ref = m_addrof.m_ref;
+  const type* Tr = ref->m_type;
+  Tr = Tr->complete_type();
+  if (Tr->aggregate())
+    code.push_back(new roff3ac(ret,ref,off));
+  else {
+    assert(!m_addrof.m_offset);
+    ref = ref->rvalue();
+    code.push_back(new assign3ac(ret, ref));
+  }
   return ret;
 }
 

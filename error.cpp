@@ -756,6 +756,12 @@ cxx_compiler::error::expressions::binary::table::table()
   (*this)['^'] = "^";
   (*this)[ANDAND_MK] = "&&";
   (*this)[OROR_MK] = "||";
+  (*this)[MUL_ASSIGN_MK] = "*";
+  (*this)[DIV_ASSIGN_MK] = "/";
+  (*this)[MOD_ASSIGN_MK] = "%";
+  (*this)[AND_ASSIGN_MK] = "&";
+  (*this)[XOR_ASSIGN_MK] = "^";
+  (*this)[OR_ASSIGN_MK]  = "|";
 }
 
 void cxx_compiler::error::expressions::assignment::not_lvalue(const file_t& file)
