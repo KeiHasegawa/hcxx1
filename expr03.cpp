@@ -393,22 +393,16 @@ namespace cxx_compiler {
   template<>
   var* constant<unsigned short int>::cast(const type* type)
   { return constant_impl::cast(type,this); }
-  template<>
   var* constant<int>::cast(const type* type)
   { return constant_impl::cast(type,this); }
-  template<>
   var* constant<unsigned int>::cast(const type* type)
   { return constant_impl::cast(type,this); }
-  template<>
   var* constant<long int>::cast(const type* type)
   { return constant_impl::cast(type,this); }
-  template<>
   var* constant<unsigned long int>::cast(const type* type)
   { return constant_impl::cast(type,this); }
-  template<>
   var* constant<__int64>::cast(const type* type)
   { return constant_impl::cast(type,this); }
-  template<>
   var* constant<unsigned __int64>::cast(const type* type)
   { return constant_impl::cast(type,this); }
 } // end of namespace cxx_compiler

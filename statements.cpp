@@ -366,17 +366,11 @@ namespace cxx_compiler {
   void constant<short int>::if_code(statements::if_stmt::info_t* info){ statements::if_stmt::common(this,info); }
   template<>
   void constant<unsigned short int>::if_code(statements::if_stmt::info_t* info){ statements::if_stmt::common(this,info); }
-  template<>
   void constant<int>::if_code(statements::if_stmt::info_t* info){ statements::if_stmt::common(this,info); }
-  template<>
   void constant<unsigned int>::if_code(statements::if_stmt::info_t* info){ statements::if_stmt::common(this,info); }
-  template<>
   void constant<long int>::if_code(statements::if_stmt::info_t* info){ statements::if_stmt::common(this,info); }
-  template<>
   void constant<unsigned long int>::if_code(statements::if_stmt::info_t* info){ statements::if_stmt::common(this,info); }
-  template<>
   void constant<__int64>::if_code(statements::if_stmt::info_t* info){ statements::if_stmt::common(this,info); }
-  template<>
   void constant<unsigned __int64>::if_code(statements::if_stmt::info_t* info){ statements::if_stmt::common(this,info); }
 } // end of namespace cxx_compiler
 
@@ -629,17 +623,11 @@ namespace cxx_compiler {
   void constant<short int>::while_code(statements::while_stmt::info_t* info, to3ac* begin){ statements::while_stmt::common(this,info,begin); }
   template<>
   void constant<unsigned short int>::while_code(statements::while_stmt::info_t* info, to3ac* begin){ statements::while_stmt::common(this,info,begin); }
-  template<>
   void constant<int>::while_code(statements::while_stmt::info_t* info, to3ac* begin){ statements::while_stmt::common(this,info,begin); }
-  template<>
   void constant<unsigned int>::while_code(statements::while_stmt::info_t* info, to3ac* begin){ statements::while_stmt::common(this,info,begin); }
-  template<>
   void constant<long int>::while_code(statements::while_stmt::info_t* info, to3ac* begin){ statements::while_stmt::common(this,info,begin); }
-  template<>
   void constant<unsigned long int>::while_code(statements::while_stmt::info_t* info, to3ac* begin){ statements::while_stmt::common(this,info,begin); }
-  template<>
   void constant<__int64>::while_code(statements::while_stmt::info_t* info, to3ac* begin){ statements::while_stmt::common(this,info,begin); }
-  template<>
   void constant<unsigned __int64>::while_code(statements::while_stmt::info_t* info, to3ac* begin){ statements::while_stmt::common(this,info,begin); }
 } // end of namespace cxx_compiler
 
@@ -777,17 +765,11 @@ namespace cxx_compiler {
   void constant<short int>::do_code(statements::do_stmt::info_t* info, to3ac* begin){ statements::do_stmt::common(this,info,begin); }
   template<>
   void constant<unsigned short int>::do_code(statements::do_stmt::info_t* info, to3ac* begin){ statements::do_stmt::common(this,info,begin); }
-  template<>
   void constant<int>::do_code(statements::do_stmt::info_t* info, to3ac* begin){ statements::do_stmt::common(this,info,begin); }
-  template<>
   void constant<unsigned int>::do_code(statements::do_stmt::info_t* info, to3ac* begin){ statements::do_stmt::common(this,info,begin); }
-  template<>
   void constant<long int>::do_code(statements::do_stmt::info_t* info, to3ac* begin){ statements::do_stmt::common(this,info,begin); }
-  template<>
   void constant<unsigned long int>::do_code(statements::do_stmt::info_t* info, to3ac* begin){ statements::do_stmt::common(this,info,begin); }
-  template<>
   void constant<__int64>::do_code(statements::do_stmt::info_t* info, to3ac* begin){ statements::do_stmt::common(this,info,begin); }
-  template<>
   void constant<unsigned __int64>::do_code(statements::do_stmt::info_t* info, to3ac* begin){ statements::do_stmt::common(this,info,begin); }
 } // end of namespace cxx_compiler
 
@@ -965,17 +947,11 @@ namespace cxx_compiler {
   void constant<short int>::for_code(statements::for_stmt::info_t* info, to3ac* begin){ statements::for_stmt::common(this,info,begin); }
   template<>
   void constant<unsigned short int>::for_code(statements::for_stmt::info_t* info, to3ac* begin){ statements::for_stmt::common(this,info,begin); }
-  template<>
   void constant<int>::for_code(statements::for_stmt::info_t* info, to3ac* begin){ statements::for_stmt::common(this,info,begin); }
-  template<>
   void constant<unsigned int>::for_code(statements::for_stmt::info_t* info, to3ac* begin){ statements::for_stmt::common(this,info,begin); }
-  template<>
   void constant<long int>::for_code(statements::for_stmt::info_t* info, to3ac* begin){ statements::for_stmt::common(this,info,begin); }
-  template<>
   void constant<unsigned long int>::for_code(statements::for_stmt::info_t* info, to3ac* begin){ statements::for_stmt::common(this,info,begin); }
-  template<>
   void constant<__int64>::for_code(statements::for_stmt::info_t* info, to3ac* begin){ statements::for_stmt::common(this,info,begin); }
-  template<>
   void constant<unsigned __int64>::for_code(statements::for_stmt::info_t* info, to3ac* begin){ statements::for_stmt::common(this,info,begin); }
 } // end of namespace cxx_compiler
 
