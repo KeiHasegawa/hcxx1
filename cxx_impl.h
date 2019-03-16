@@ -755,8 +755,7 @@ namespace expressions {
       file_t m_file;
       var* gen();
       const file_t& file() const { return m_file; }
-      fcast(declarations::type_specifier*);
-      fcast(vector<base*>* list);
+      fcast(declarations::type_specifier*, vector<base*>* list);
     };
   } // end of namespace postfix
   namespace unary {

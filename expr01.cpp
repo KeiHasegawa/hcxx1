@@ -1203,29 +1203,29 @@ cxx_compiler::var* cxx_compiler::generated::ppmm(bool plus, bool post)
   return this;
 }
 
-cxx_compiler::expressions::postfix::fcast::fcast(declarations::type_specifier* p)
-  : m_list(0), m_file(parse::position)
-{
-  using namespace parse;
-  using namespace declarations;
-  assert(!context_t::retry[DECL_FCAST_CONFLICT_STATE]);
-  specifier* spec = new specifier(p);
-  specifier_seq::info_t info(0, spec);
-  info.update();
-  m_type = info.m_type;
-}
-
-cxx_compiler::expressions::postfix::fcast::fcast(std::vector<base*>* list)
+cxx_compiler::expressions::postfix::
+fcast::fcast(declarations::type_specifier* ptr, std::vector<base*>* list)
   : m_list(list), m_file(parse::position)
 {
   using namespace parse;
   using namespace declarations;
-  assert(context_t::retry[DECL_FCAST_CONFLICT_STATE]);
-  assert(!specifier_seq::info_t::s_stack.empty());
-  specifier_seq::info_t* p = specifier_seq::info_t::s_stack.top();
-  auto_ptr<specifier_seq::info_t> sweeper(p);
-  p->update();
-  m_type = p->m_type;
+  if (m_list) {
+    if (context_t::retry[DECL_FCAST_CONFLICT_STATE]) {
+      // Note that `ptr' is already deleted.
+      assert(!specifier_seq::info_t::s_stack.empty());
+      specifier_seq::info_t* p = specifier_seq::info_t::s_stack.top();
+      auto_ptr<specifier_seq::info_t> sweeper(p);
+      p->update();
+      m_type = p->m_type;
+      return;
+    }
+  }
+
+  assert(!context_t::retry[DECL_FCAST_CONFLICT_STATE]);
+  specifier* spec = new specifier(ptr);
+  specifier_seq::info_t info(0, spec);
+  info.update();
+  m_type = info.m_type;
 }
 
 cxx_compiler::var* cxx_compiler::expressions::postfix::fcast::gen()

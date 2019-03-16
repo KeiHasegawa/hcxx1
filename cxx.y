@@ -1196,12 +1196,11 @@ postfix_expression
   | postfix_expression '('                 ')' { $$ = new cxx_compiler::expressions::postfix::call($1,0); }
   | simple_type_specifier '(' expression_list ')'
     {
-      /* $1 is already deleted */
-      $$ = new cxx_compiler::expressions::postfix::fcast($3);
+      $$ = new cxx_compiler::expressions::postfix::fcast($1, $3);
     }
   | simple_type_specifier '('                 ')'
     {
-      $$ = new cxx_compiler::expressions::postfix::fcast($1);
+      $$ = new cxx_compiler::expressions::postfix::fcast($1, 0);
     }
   | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier IDENTIFIER_LEX '(' expression_list ')'
     { cxx_compiler::error::not_implemented(); }
