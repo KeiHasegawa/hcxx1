@@ -1,15 +1,10 @@
-template<class T> class C {
-  T m_value;
+struct outer {
+  struct inner { };
+  outer();
 };
 
-C<char> x;
+outer::inner x;
 
-template<class T> T f(T a, T b)
-{
-  return a + b;
-}
+void f();
 
-double g(double a, int b)
-{
-  return f<double>(a, b);
-}
+outer::outer() { f(); }

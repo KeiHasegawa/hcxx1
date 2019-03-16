@@ -827,6 +827,20 @@ namespace cxx_compiler {
         T = backpatch_type::create();
         return new usr(name, T, usr::CTOR, parse::position);
       }
+      usr* ctor(type_specifier* spec)
+      {
+	using namespace std;
+	auto_ptr<type_specifier> sweeper(spec);
+	const type* T = spec->m_type;
+	assert(T);
+	assert(T->m_id == type::RECORD);
+	typedef const record_type REC;
+	REC* rec = static_cast<REC*>(T);
+	tag* ptr = rec->get_tag();
+	string name = ptr->m_name;
+	T = backpatch_type::create();
+	return new usr(name, T, usr::CTOR, parse::position);
+      }
     } // end of namespace declarators
   } // end of namespace declarations
 } // end of namespace cxx_compiler

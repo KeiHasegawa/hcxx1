@@ -552,6 +552,7 @@ namespace declarations {
       extern const type* action(const type*);
     } // end of namespace type_id
     usr* ctor();
+    usr* ctor(type_specifier*);
   } // end of namespace declarators
   namespace type_specifier_seq {
     struct info_t {

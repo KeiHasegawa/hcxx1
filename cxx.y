@@ -572,7 +572,7 @@ declarator_id
   | COLONCOLON_MK move_to_root nested_name_specifier type_name
     { cxx_compiler::error::not_implemented(); }
   |                            nested_name_specifier type_name
-    { cxx_compiler::error::not_implemented(); }
+    { $$ = cxx_compiler::declarations::declarators::ctor($2); }
   | COLONCOLON_MK move_to_root                       type_name
     { cxx_compiler::error::not_implemented(); }
   |                                                  type_name
