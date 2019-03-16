@@ -779,21 +779,29 @@ designator
 type_id
   : type_specifier_seq abstract_declarator
     {
+      using namespace cxx_compiler;
       $$ = cxx_compiler::declarations::declarators::type_id::action($2);
-      cxx_compiler::parse::identifier::mode = cxx_compiler::parse::identifier::look;
+      parse::identifier::mode = parse::identifier::look;
       delete $1;
     }
   | type_specifier_seq
     {
+      using namespace cxx_compiler;
       $$ = cxx_compiler::declarations::declarators::type_id::action(0);
-      cxx_compiler::parse::identifier::mode = cxx_compiler::parse::identifier::look;
+      parse::identifier::mode = parse::identifier::look;
       delete $1;
     }
   ;
 
 type_specifier_seq
-  : type_specifier type_specifier_seq { $$ = new cxx_compiler::declarations::type_specifier_seq::info_t($1,$2); }
-  | type_specifier { $$ = new cxx_compiler::declarations::type_specifier_seq::info_t($1,0); }
+  : type_specifier type_specifier_seq
+    {
+      $$ = new cxx_compiler::declarations::type_specifier_seq::info_t($1,$2);
+    }
+  | type_specifier
+    {
+      $$ = new cxx_compiler::declarations::type_specifier_seq::info_t($1,0);
+    }
   ;
 
 class_name
@@ -803,9 +811,21 @@ class_name
   ;
 
 class_key
-  : CLASS_KW   { cxx_compiler::parse::identifier::mode = cxx_compiler::parse::identifier::new_obj; $$ = CLASS_KW; }
-  | STRUCT_KW  { cxx_compiler::parse::identifier::mode = cxx_compiler::parse::identifier::new_obj; $$ = STRUCT_KW; }
-  | UNION_KW   { cxx_compiler::parse::identifier::mode = cxx_compiler::parse::identifier::new_obj; $$ = UNION_KW; }
+  : CLASS_KW
+    {
+      using namespace cxx_compiler;
+      parse::identifier::mode = parse::identifier::new_obj; $$ = CLASS_KW;
+    }
+  | STRUCT_KW
+    {
+      using namespace cxx_compiler;
+      parse::identifier::mode = parse::identifier::new_obj; $$ = STRUCT_KW;
+    }
+  | UNION_KW
+    {
+      using namespace cxx_compiler;
+      parse::identifier::mode = parse::identifier::new_obj; $$ = UNION_KW;
+    }
   ;
 
 class_specifier
@@ -1194,11 +1214,11 @@ postfix_expression
   | postfix_expression '[' expression ']' { $$ = new cxx_compiler::expressions::binary::info_t($1,'[',$3); }
   | postfix_expression '(' expression_list ')' { $$ = new cxx_compiler::expressions::postfix::call($1,$3); }
   | postfix_expression '('                 ')' { $$ = new cxx_compiler::expressions::postfix::call($1,0); }
-  | simple_type_specifier '(' expression_list ')'
+  | simple_type_specifier '(' fcast_prev  expression_list ')'
     {
-      $$ = new cxx_compiler::expressions::postfix::fcast($1, $3);
+      $$ = new cxx_compiler::expressions::postfix::fcast($1, $4);
     }
-  | simple_type_specifier '('                 ')'
+  | simple_type_specifier '(' fcast_prev                  ')'
     {
       $$ = new cxx_compiler::expressions::postfix::fcast($1, 0);
     }
@@ -1245,6 +1265,14 @@ postfix_expression
     { cxx_compiler::error::not_implemented(); }
   | '(' type_id ')' '{' initializer_list '}' { $$ = new cxx_compiler::expressions::compound::info_t($2,$5); }
   | '(' type_id ')' '{' initializer_list ',' '}' { $$ = new cxx_compiler::expressions::compound::info_t($2,$5); }
+  ;
+
+fcast_prev
+  :
+    {
+      using namespace cxx_compiler;
+      parse::identifier::mode = parse::identifier::look;
+    }
   ;
 
 member_access_begin
