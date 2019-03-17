@@ -39,7 +39,8 @@ function::action(const type* T,
                  std::vector<int>* cvr)
 {
   using namespace std;
-  parse::context_t::clear();  
+  if (pdc)
+    parse::context_t::clear();  
   auto_ptr<vector<const type*> > sweeper1(pdc);
   auto_ptr<vector<int> > sweeper2(cvr);
   usr* u = v ? v->usr_cast() : 0;

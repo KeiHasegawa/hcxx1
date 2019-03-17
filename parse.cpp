@@ -253,13 +253,14 @@ void cxx_compiler::parse::common(int n, std::list<void*>& lval)
 
 namespace cxx_compiler {
   namespace parse {
-    inline int save_if()
+    inline void save_each(context_t& x)
     {
-      if (!context_t::all.empty()) {
-        context_t& x = context_t::all.back();
-        x.m_read.m_token.push_back(make_pair(last_token,position));
-        common(last_token, x.m_read.m_lval);
-      }
+      x.m_read.m_token.push_back(make_pair(last_token,position));
+      common(last_token, x.m_read.m_lval);
+    }
+    inline int save_for_retry()
+    {
+      for_each(begin(context_t::all), end(context_t::all), save_each);
       return last_token;
     }
   } // end of namesapce parse
@@ -322,21 +323,21 @@ int cxx_compiler::parse::get_token()
     }
     if ( last_token == COLONCOLON_MK )
       identifier::mode = identifier::look;
-    return save_if();
+    return save_for_retry();
   }
 
   if (member_function_body::saved) {
     last_token = member_function_body::get_token();
     if (last_token == COLONCOLON_MK)
       identifier::mode = identifier::look;
-    return save_if();
+    return save_for_retry();
   }
 
   last_token = cxx_compiler_lex();
   if ( last_token == COLONCOLON_MK )
     identifier::mode = identifier::look;
 
-  return save_if();
+  return save_for_retry();
 }
 
 namespace cxx_compiler { namespace parse { namespace identifier { namespace underscore_func {

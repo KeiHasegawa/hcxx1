@@ -75,8 +75,9 @@ exit 1;
 label:
 print <<EOF
   if (yystate == $xxx && yychar == '(') {
-    if (!cxx_compiler::parse::context_t::retry[$xxx])
-      cxx_compiler::parse::save(yystate, yyss, yyssp, yyvs, yyvsp);
+    using namespace cxx_compiler::parse;
+    if (!context_t::retry[$xxx])
+      save(yystate, yyss, yyssp, yyvs, yyvsp);
     else {
       YYDPRINTF((stderr, "rule.10 is applied\\n"));
       yyn = $aaa + 1;
