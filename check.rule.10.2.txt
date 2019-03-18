@@ -1,0 +1,6 @@
+double f();
+
+void g(int a)
+{
+  int(f())+a;
+}

@@ -63,3 +63,10 @@ struct outer2 {
 outer2::inner2 x2;
 
 outer2::outer2() { f(); }
+
+double f4();
+
+void g4(int a)
+{
+  int(f4())+a;
+}
