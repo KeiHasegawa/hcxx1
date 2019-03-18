@@ -1245,7 +1245,7 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::fcast::gen()
 	return zero->cast(m_type);
       }
     case 1:
-      return arg.back()->cast(m_type);
+      return arg.back()->rvalue()->cast(m_type);
     default:
       {
 	error::expressions::postfix::fcast::too_many_arg(m_file);

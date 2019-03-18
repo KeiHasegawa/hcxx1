@@ -19,11 +19,20 @@
 #    T t2(a);  // variable definition
 #  }
 #
+#  Example 2 of '-2' option
+#
+#  int b();
+#  void f(int a)
+#  {
+#     int(b())+a;  // expression statement
+#                  // at reading '+',  int(b()) is not a declaration.
+#  }
+#
 use Getopt::Long;
 
 $opt_header = 0;
 
-GetOptions('header' => \$opt_header);
+GetOptions('header' => \$opt_header, '2' => \$opt_2);
 
 while ( <> ){
     chop;
@@ -64,7 +73,10 @@ while ( <> ){
 	next;
     }
     if ($opt_header) {
-	goto label2;
+	goto label_header;
+    }
+    if ($opt_2) {
+	goto label_2;
     }
     goto label;
 }
@@ -74,21 +86,49 @@ exit 1;
 
 label:
 print <<EOF
-  if (yystate == $xxx && yychar == '(') {
+  if (yystate == $xxx) {
     using namespace cxx_compiler::parse;
-    if (!context_t::retry[$xxx])
-      save(yystate, yyss, yyssp, yyvs, yyvsp);
-    else {
-      YYDPRINTF((stderr, "rule.10 is applied\\n"));
-      yyn = $aaa + 1;
-      goto yyreduce;
+    switch (yychar) {
+    case '(': case '[':
+      if (!context_t::retry[$xxx])
+        save(yystate, yyss, yyssp, yyvs, yyvsp);
+      else {
+        YYDPRINTF((stderr, "rule.10 is applied\\n"));
+        yyn = $aaa + 1;
+        goto yyreduce;
+      }
     }
   }
 EOF
     ;
 exit;
 
-label2:
-print <<EOF2
+label_headr;
+print <<EOF_header
 const int DECLARATOR_ID_CONFLICT_STATE = $xxx ;
-EOF2
+EOF_header
+    ;
+exit; 
+
+label_2:
+print <<EOF_2
+  if (yystate == $xxx) {
+    using namespace cxx_compiler::parse;
+    switch (yychar) {
+    case '(': case '[': case '=': case ';': case ')': case '{':
+    case ',': case THROW_KW:
+      break; 
+    default:
+      if (!context_t::all.empty()) {
+	context_t& x = context_t::all.back();
+	if (x.m_state == $xxx) {
+          YYDPRINTF((stderr, "rule.10.2 is applied\\n"));
+          context_t::all.pop_back();
+          goto yyerrlab;
+	}
+      }
+    }
+  }
+EOF_2
+    ;
+exit; 

@@ -5,3 +5,4 @@ foreach file ( patch.*.pl )
 end
 
 perl patch.03.pl -h cxx_y.output > patch.03.q
+perl patch.10.pl -2 cxx_y.output > patch.10.p2

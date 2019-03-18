@@ -32,6 +32,7 @@ while ( <> ){
     print <<EOF2
   {
 #include "patch.04.p"
+#include "patch.10.p2"
     goto yydefault;
   }
 #include "patch.03.p"

@@ -72,7 +72,7 @@ OBJS = $(SRCS:.cpp=.o)
 
 PATCHS = patch.00.p patch.01.p patch.02.p patch.03.p patch.04.p \
 	 patch.05.p patch.06.p patch.07.p patch.08.p patch.09.p \
-	 patch.10.p patch.11.p
+	 patch.10.p patch.10.p2 patch.11.p
 
 PATCHS_HEADER = patch.03.q
 
@@ -101,6 +101,9 @@ $(PATCHS) : $(BISON_REP_FILE)
 
 %.p : %.pl
 	perl $< $(BISON_REP_FILE) > $@
+
+%.p2 : %.pl
+	perl $< -2 $(BISON_REP_FILE) > $@
 
 %.q : %.pl
 	perl $< -h $(BISON_REP_FILE) > $@

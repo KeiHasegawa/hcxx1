@@ -289,7 +289,7 @@ int cxx_compiler::parse::get_token()
       g_read.m_lval.pop_front();
       if (context_t::retry[DECL_FCAST_CONFLICT_STATE]) {
         usr* u = static_cast<usr*>(cxx_compiler_lval.m_var);
-        assert(u->m_type->m_id == type::BACKPATCH);
+        assert(u->m_type->backpatch());
         string name = u->m_name;
         last_token = identifier::lookup(name, scope::current);
         delete u;
