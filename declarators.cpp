@@ -4,11 +4,21 @@
 #include "yy.h"
 #include "cxx_y.h"
 
-const cxx_compiler::type* cxx_compiler::declarations::declarators::pointer::action(std::vector<int>* p)
+const cxx_compiler::type* cxx_compiler::declarations::declarators::pointer::
+action(std::vector<int>* p, bool pm)
 {
   using namespace std;
   auto_ptr<vector<int> > sweeper(p);
-  const type* T = pointer_type::create(backpatch_type::create());
+  const type* T = backpatch_type::create();
+  if (pm) {
+    if (scope::current->m_id != scope::TAG)
+      error::not_implemented();
+    tag* ptr = static_cast<tag*>(scope::current);
+    T = pointer_member_type::create(ptr, T);
+  }
+  else
+    T = pointer_type::create(T);
+
   if ( p ){
     const vector<int>& v = *p;
     if ( find(v.begin(),v.end(),CONST_KW) != v.end() )

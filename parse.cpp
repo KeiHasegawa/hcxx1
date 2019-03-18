@@ -321,8 +321,10 @@ int cxx_compiler::parse::get_token()
       g_read.m_lval.pop_front();
       break;
     }
-    if ( last_token == COLONCOLON_MK )
-      identifier::mode = identifier::look;
+    if (last_token == COLONCOLON_MK) {
+      if (peek() != '*')
+	identifier::mode = identifier::look;
+    }
     return save_for_retry();
   }
 

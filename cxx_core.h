@@ -1685,7 +1685,7 @@ public:
   {
     return m_T->m_id == type::FUNC ? 2 * sizeof(int) + sizeof(void*) : sizeof(int);
   }
-  const type* backpatch(const type*) const;
+  const type* patch(const type*, usr*) const;
   bool backpatch() const { return m_T->backpatch(); }
   bool compatible(const type*) const;
   const type* composite(const type*) const;

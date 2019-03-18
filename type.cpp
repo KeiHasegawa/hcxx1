@@ -2269,6 +2269,13 @@ cxx_compiler::pointer_member_type::composite(const type* T) const
   return T ? create(m_tag, T) : 0;
 }
 
+const cxx_compiler::type*
+cxx_compiler::pointer_member_type::patch(const type* T, usr* u) const
+{
+  T = m_T->patch(T, u);
+  return create(m_tag, T);
+}
+
 void cxx_compiler::pointer_member_type::destroy_tmp()
 {
   for (auto p : tmp_tbl)

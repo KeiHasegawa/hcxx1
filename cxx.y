@@ -539,19 +539,45 @@ direct_declarator
 
 ptr_operator
   : '*' cvr_qualifier_seq
-    { $$ = cxx_compiler::declarations::declarators::pointer::action($2); }
+    {
+      using namespace cxx_compiler::declarations::declarators;
+      $$ = pointer::action($2, false);
+    }
   | '*'
-    { $$ = cxx_compiler::declarations::declarators::pointer::action(0); }
+    {
+      using namespace cxx_compiler::declarations::declarators;
+      $$ = pointer::action(0, false);
+     }
   | '&'
     { $$ = cxx_compiler::declarations::declarators::reference::action(); }
   | COLONCOLON_MK move_to_root nested_name_specifier '*' cvr_qualifier_seq
-    { cxx_compiler::error::not_implemented(); }
+    {
+      using namespace cxx_compiler;
+      using namespace declarations::declarators;
+      $$ = pointer::action($5, true);
+      class_or_namespace_name::after();
+    }
   |                            nested_name_specifier '*' cvr_qualifier_seq
-    { cxx_compiler::error::not_implemented(); }
+    {
+      using namespace cxx_compiler;
+      using namespace declarations::declarators;
+      $$ = pointer::action($3, true);
+      class_or_namespace_name::after();
+    }
   | COLONCOLON_MK move_to_root nested_name_specifier '*'
-    { cxx_compiler::error::not_implemented(); }
+    {
+      using namespace cxx_compiler;
+      using namespace declarations::declarators;
+      $$ = pointer::action(0, true);
+      class_or_namespace_name::after();
+    }
   |                            nested_name_specifier '*'
-    { cxx_compiler::error::not_implemented(); }
+    {
+      using namespace cxx_compiler;
+      using namespace declarations::declarators;
+      $$ = pointer::action(0, true);
+      class_or_namespace_name::after();
+    }
   ;
 
 cvr_qualifier_seq
@@ -877,8 +903,21 @@ member_declarator_list
 member_declarator
   : declarator
     { cxx_compiler::classes::members::action($1,0); }
-  | declarator constant_initializer
-    { cxx_compiler::classes::members::action($1,$2); }
+  | declarator
+    {
+      using namespace cxx_compiler::parse;
+      identifier::mode = identifier::look;
+      using namespace cxx_compiler::declarations::specifier_seq;
+      info_t::s_stack.push(0);
+    } constant_initializer
+    {
+      using namespace cxx_compiler;
+      using namespace parse;
+      identifier::mode = identifier::new_obj;
+      using namespace cxx_compiler::declarations::specifier_seq;
+      info_t::s_stack.pop();
+      cxx_compiler::classes::members::action($1,$3);
+    }
   | IDENTIFIER_LEX ':'
     {
       using namespace cxx_compiler::parse;
@@ -913,12 +952,7 @@ member_declarator
   ;
 
 constant_initializer
-  : '='
-    {
-      using namespace cxx_compiler::parse;
-      identifier::mode = identifier::look;
-    }
-    constant_expression { $$ = $3; }
+  : '=' constant_expression { $$ = $2; }
   ;
 
 base_clause

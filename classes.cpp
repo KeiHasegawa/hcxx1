@@ -104,32 +104,36 @@ namespace cxx_compiler {
   } // end of namespace classes
 } // end of namespace cxx_compiler
 
-namespace cxx_compiler {
-  struct constant_member : usr {
-    usr* m_constant;
-    constant_member(usr* u, usr* c) : usr(*u), m_constant(c) {}
-    bool isconstant(bool) const { return true; }
-    __int64 value() const { return m_constant->value(); }
-  };
-} // end of namespace cxx_compiler
-
 void cxx_compiler::classes::members::action(var* v, expressions::base* expr)
 {
   using namespace std;
   usr* cons = 0;
   if ( expr ){
     var* cexpr = expr->gen();
+    cexpr = cexpr->rvalue();
     if ( !cexpr->isconstant() )
       error::not_implemented();
     cons = cexpr->usr_cast();
   }
+  assert(v->usr_cast());
   usr* u = static_cast<usr*>(v);
-  if ( cons ){
-    constant_member* cm = new constant_member(u,cons);
+  if (cons) {
+    with_initial* p = new with_initial(*u);
+    p->m_value[0] = cons;
     delete u;
-    u = cm;
+    u = p;
   }
-  declarations::action1(u,false);
+  u = declarations::action1(u, false);
+  if (cons) {
+    usr::flag_t flag = u->m_flag;
+    usr::flag_t mask = usr::flag_t(usr::STATIC | usr::VIRTUAL);
+    if (!(flag & mask))
+      error::not_implemented();
+    if (flag & usr::STATIC)
+      u->m_flag = usr::flag_t(usr::WITH_INI | usr::STATIC_DEF);
+    if (flag & usr::VIRTUAL)
+      error::not_implemented();
+  }
   vector<scope*>& children = scope::current->m_children;
   typedef vector<scope*>::iterator IT;
   for ( IT p = begin(children) ; p != end(children) ; ) {

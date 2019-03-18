@@ -1,10 +1,15 @@
-#b cxx_compiler::declarations::initializers::action
-#run sample.txt --no-generator --cxx-compiler-debug
-
-#b cxx_compiler::declarations::action1
-#b cxx_compiler::parse::block::enter
-#b expr01.cpp:605
-run sample.txt --generator ~/lang/30_intel/src/intelxx.dll
+#b cxx_compiler_error
+#b cxx_compiler::error::not_implemented
+#b cxx_compiler::class_or_namespace_name::action
+#command
+#b cxx_compiler::declarations::declarators::pointer::action
+#b cxx_compiler::declarations::declarators::function::parameter
+#end
+#--cxx-compiler-debug
+#b cxx_compiler::parse::identifier::judge
+#b cxx_compiler::class_or_namespace_name::action
+b cxx_compiler::expressions::unary::Operator::gen
+run sample.txt --no-generator --output-medium --simple-medium 
 
 
 
