@@ -465,8 +465,8 @@ namespace declarations {
     const type* action(int, var*);
   } // end of namespace elaborated
   namespace linkage {
-    extern void action(var*);
-    extern int depth;
+    extern void action(var*, bool brace);
+    extern vector<bool> braces;
   } // end of namespace linkage
   extern void check_object(usr*);
   extern usr* action1(var*, bool);

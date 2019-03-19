@@ -649,33 +649,6 @@ cxx_compiler::declarations::action1(var* v, bool ini)
     }
     u->m_type = u->m_type->vla2a();
   }
-  if ( !ini && b && u->m_type->m_id == type::RECORD ){
-    typedef const record_type REC;
-    REC* rec = static_cast<REC*>(u->m_type);
-    tag* ptr = rec->get_tag();
-    string name = ptr->m_name;
-    const map<string, vector<usr*> >& usrs = ptr->m_usrs;
-    map<string, vector<usr*> >::const_iterator p = usrs.find(name);
-    if ( p != usrs.end() ){
-      const vector<usr*>& v = p->second;
-      usr* ctor = v.back();
-      assert(ctor->m_type->m_id == type::FUNC);
-      typedef const func_type FT;
-      FT* ft = static_cast<FT*>(ctor->m_type);
-      vector<var*> arg;
-      call_impl::common(ft,ctor,&arg,false,u);
-      usr::flag_t flag = ctor->m_flag;
-      if (!error::counter && !cmdline::no_inline_sub) {
-        if (flag & usr::INLINE) {
-          using namespace declarations::declarators::function::definition::static_inline::skip;
-          table_t::const_iterator p = table.find(ctor);
-          if (p != table.end())
-            substitute(code, code.size()-1, p->second);
-        }
-      }
-    }
-  }
-
   return lookuped ? u : action2(u);
 }
 
@@ -708,8 +681,19 @@ cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr)
   else {
     usr::flag_t flag = curr->m_flag;
     if ( !(flag & usr::TYPEDEF ) ){
-      if ( declarations::linkage::depth || name == "main" )
-        curr->m_flag = usr::flag_t(curr->m_flag | usr::C_SYMBOL);
+      if (name == "main")
+        curr->m_flag = usr::flag_t(flag | usr::C_SYMBOL);
+      else if (!declarations::linkage::braces.empty()) {
+	switch (scope::current->m_id) {
+	case scope::NONE: case scope::NAMESPACE:
+	  {
+	    curr->m_flag = usr::flag_t(flag | usr::C_SYMBOL);
+	    bool brace = declarations::linkage::braces.back();
+	    if (!brace)
+	      curr->m_flag = usr::flag_t(curr->m_flag | usr::EXTERN);
+	  }
+	}
+      }
     }
   }
   map<string, vector<usr*> >& usrs = curr->m_scope->m_usrs;
@@ -905,7 +889,7 @@ const cxx_compiler::type* cxx_compiler::declarations::elaborated::action(int key
     return p.second ? p.second : p.first;
   }
   else {
-    scope* ptr = linkage::depth ? &scope::root : scope::current;
+    scope* ptr = linkage::braces.empty() ? scope::current : &scope::root;
     tag::kind_t kind = classes::specifier::get(keyword);
     const file_t& file = u->m_file;
     tag* T = new tag(kind,name,file,0);
@@ -928,7 +912,7 @@ cxx_compiler::tag* cxx_compiler::declarations::elaborated::lookup(std::string na
     return 0;
 }
 
-void cxx_compiler::declarations::linkage::action(var* v)
+void cxx_compiler::declarations::linkage::action(var* v, bool brace)
 {
   using namespace std;
   // check if `v' is "C"
@@ -946,10 +930,10 @@ void cxx_compiler::declarations::linkage::action(var* v)
   usr* e = static_cast<usr*>(d->second);
   constant<char>* f = static_cast<constant<char>*>(e);
   assert(f->m_value == '\0');
-  ++depth;
+  braces.push_back(brace);
 }
 
-int cxx_compiler::declarations::linkage::depth;
+std::vector<bool> cxx_compiler::declarations::linkage::braces;
 
 cxx_compiler::declarations::type_specifier_seq::info_t::info_t(type_specifier* specifier, info_t* follow)
 {
