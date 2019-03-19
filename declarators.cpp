@@ -448,9 +448,12 @@ void cxx_compiler::declarations::declarators::function::definition::action(funde
   if (!error::counter && cmdline::optimize_level >= 1)
     optimize::action(fdef, vc);
   usr::flag_t flag = fdef->m_usr->m_flag;
-  usr::flag_t mask = usr::flag_t(usr::INLINE | usr::STATIC);
-  if (flag & mask)
+  if (flag & usr::INLINE)
     return skip::add(fdef, vc, true);
+  if (flag & usr::STATIC) {
+    if (fdef->m_usr->m_scope->m_id != scope::TAG)
+      return skip::add(fdef, vc, true);
+  }
 
   skip::chk_t arg(fdef);
   for_each(vc.begin(), vc.end(), bind2nd(ptr_fun(skip::check), &arg));
@@ -505,6 +508,11 @@ namespace cxx_compiler { namespace declarations { namespace declarators { namesp
     usr::flag_t mask = usr::flag_t(usr::STATIC | usr::INLINE);
     if (!(flag & mask))
       return;
+
+    if ((flag & usr::STATIC) && !(flag & usr::INLINE)) {
+      if (u->m_scope->m_id == scope::TAG)
+	return;
+    }
 
     table_t::iterator it = table.find(u);
     if (it != table.end()) {

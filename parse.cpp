@@ -322,7 +322,10 @@ int cxx_compiler::parse::get_token()
       break;
     }
     if (last_token == COLONCOLON_MK) {
-      if (peek() != '*')
+#if 0  // compile out 3/19 19:20
+       // #if 1 -> Bug : /home/khasegawa/lang/43_ISO_IEC_14882/7_Declarations/5_Linkage_specifications/1_ok/test003.cpp
+      if (scope::current->m_id != scope::TAG && peek() != '*')
+#endif
 	identifier::mode = identifier::look;
     }
     return save_for_retry();
