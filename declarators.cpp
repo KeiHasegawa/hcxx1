@@ -4,11 +4,21 @@
 #include "yy.h"
 #include "cxx_y.h"
 
-const cxx_compiler::type* cxx_compiler::declarations::declarators::pointer::action(std::vector<int>* p)
+const cxx_compiler::type* cxx_compiler::declarations::declarators::pointer::
+action(std::vector<int>* p, bool pm)
 {
   using namespace std;
   auto_ptr<vector<int> > sweeper(p);
-  const type* T = pointer_type::create(backpatch_type::create());
+  const type* T = backpatch_type::create();
+  if (pm) {
+    if (scope::current->m_id != scope::TAG)
+      error::not_implemented();
+    tag* ptr = static_cast<tag*>(scope::current);
+    T = pointer_member_type::create(ptr, T);
+  }
+  else
+    T = pointer_type::create(T);
+
   if ( p ){
     const vector<int>& v = *p;
     if ( find(v.begin(),v.end(),CONST_KW) != v.end() )
@@ -438,9 +448,12 @@ void cxx_compiler::declarations::declarators::function::definition::action(funde
   if (!error::counter && cmdline::optimize_level >= 1)
     optimize::action(fdef, vc);
   usr::flag_t flag = fdef->m_usr->m_flag;
-  usr::flag_t mask = usr::flag_t(usr::INLINE | usr::STATIC);
-  if (flag & mask)
+  if (flag & usr::INLINE)
     return skip::add(fdef, vc, true);
+  if (flag & usr::STATIC) {
+    if (fdef->m_usr->m_scope->m_id != scope::TAG)
+      return skip::add(fdef, vc, true);
+  }
 
   skip::chk_t arg(fdef);
   for_each(vc.begin(), vc.end(), bind2nd(ptr_fun(skip::check), &arg));
@@ -495,6 +508,11 @@ namespace cxx_compiler { namespace declarations { namespace declarators { namesp
     usr::flag_t mask = usr::flag_t(usr::STATIC | usr::INLINE);
     if (!(flag & mask))
       return;
+
+    if ((flag & usr::STATIC) && !(flag & usr::INLINE)) {
+      if (u->m_scope->m_id == scope::TAG)
+	return;
+    }
 
     table_t::iterator it = table.find(u);
     if (it != table.end()) {

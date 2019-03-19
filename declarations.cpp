@@ -495,8 +495,8 @@ cxx_compiler::declarations::action1(var* v, bool ini)
 {
   using namespace std;
   using namespace error::declarations::specifier_seq::type;
-  usr* u = v->usr_cast();
-  assert(u);
+  assert(v->usr_cast());
+  usr* u = static_cast<usr*>(v);
   bool lookuped = !u->m_type->backpatch();
   if ( specifier_seq::info_t::s_stack.empty() ){
     usr::flag_t mask = usr::flag_t(usr::CTOR | usr::DTOR);

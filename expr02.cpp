@@ -105,7 +105,7 @@ cxx_compiler::var* cxx_compiler::expressions::unary::New::gen()
 {
   using namespace std;
   int n = m_T->size();
-  var* sz = expressions::primary::literal::integer::create(n);
+  var* sz = sizeof_impl::common(n);
   code.push_back(new param3ac(sz));
   string name = "new";
   map<string, vector<usr*> >& usrs = scope::root.m_usrs;

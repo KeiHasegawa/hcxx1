@@ -23,7 +23,9 @@ ifneq (,$(findstring Darwin,$(UNAME)))
 	WARNING_CPP = warning_utf.cpp
 endif
 
-SRCS =	classes.cpp \
+SRCS =	cxx_l.cpp \
+	cxx_y.cpp \
+	classes.cpp \
 	cmdline.cpp \
 	conversion.cpp \
 	declarations.cpp \
@@ -53,8 +55,6 @@ SRCS =	classes.cpp \
 	type.cpp \
 	vars.cpp \
 	$(WARNING_CPP) \
-	cxx_l.cpp \
-	cxx_y.cpp \
 
 error_euc.cpp:error.cpp
 	sjis2euc.exe < $< > $@

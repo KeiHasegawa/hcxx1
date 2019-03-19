@@ -473,7 +473,7 @@ namespace declarations {
   namespace declarators {
     namespace pointer {
       extern const type* action(const type*, const type*);
-      extern const type* action(vector<int>*);
+      extern const type* action(vector<int>*, bool pm);
     } // end of namespace pointer
     namespace reference {
       extern const type* action();
