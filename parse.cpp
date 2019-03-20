@@ -322,10 +322,7 @@ int cxx_compiler::parse::get_token()
       break;
     }
     if (last_token == COLONCOLON_MK) {
-#if 0  // compile out 3/19 19:20
-       // #if 1 -> Bug : 43_ISO_IEC_14882/7_Declarations/5_Linkage_specifications/1_ok/test003.cpp
       if (scope::current->m_id != scope::TAG && peek() != '*')
-#endif
 	identifier::mode = identifier::look;
     }
     return save_for_retry();
@@ -515,53 +512,49 @@ void cxx_compiler::parse::block::enter()
 {
   using namespace std;
 
-  if ( scope::current == &scope::root ){
-    vector<scope*>& children = scope::current->m_children;
-    typedef vector<scope*>::const_iterator IT;
-    IT p = find_if(begin(children), end(children),
-                   bind2nd(ptr_fun(cmp), scope::PARAM));
-    assert(p != end(children));
-    scope::current = *p;
-    IT end = children.end();
-    assert(find_if(++p, end, bind2nd(ptr_fun(cmp), scope::PARAM)) == end);
-    return parameter::decide_dim(), new_block(), parameter::move();
-  }
-
-  if ( scope::current->m_id == scope::TAG ){
-    tag* tg = static_cast<tag*>(scope::current);
-    const type* T = tg->m_types.second;
-    vector<scope*>& children = scope::current->m_children;
-    scope::current = children.back();
-    if (!T) {
-      parameter::decide_dim(), new_block(), parameter::move();
-      usr::flag_t& flag = fundef::current->m_usr->m_flag;
-      flag = usr::flag_t(flag | usr::INLINE);
-      return member_function_body::save();
+  switch (scope::current->m_id) {
+  case scope::NONE: case scope::NAMESPACE:
+    {
+      vector<scope*>& children = scope::current->m_children;
+      typedef vector<scope*>::const_iterator IT;
+      IT p = find_if(begin(children), end(children),
+		     bind2nd(ptr_fun(cmp), scope::PARAM));
+      assert(p != end(children));
+      scope::current = *p;
+      IT end = children.end();
+      assert(find_if(++p, end, bind2nd(ptr_fun(cmp), scope::PARAM)) == end);
+      return parameter::decide_dim(), new_block(), parameter::move();
     }
-    if ( !(fundef::current->m_usr->m_flag & usr::STATIC) ){
-      T = pointer_type::create(T);
-      string name = "this";
-      usr* u = new usr(name,T,usr::NONE,file_t());
-      scope::current->m_usrs[name].push_back(u);
-      scope::current->m_order.push_back(u);
+  case scope::TAG:
+    {
+      tag* tg = static_cast<tag*>(scope::current);
+      const type* T = tg->m_types.second;
+      vector<scope*>& children = scope::current->m_children;
+      scope::current = children.back();
+      if (!T) {
+	parameter::decide_dim(), new_block(), parameter::move();
+	usr::flag_t& flag = fundef::current->m_usr->m_flag;
+	flag = usr::flag_t(flag | usr::INLINE);
+	return member_function_body::save();
+      }
+      if ( !(fundef::current->m_usr->m_flag & usr::STATIC) ){
+	T = pointer_type::create(T);
+	string name = "this";
+	usr* u = new usr(name,T,usr::NONE,file_t());
+	scope::current->m_usrs[name].push_back(u);
+	scope::current->m_order.push_back(u);
+      }
+      vector<scope*>& c = scope::current->m_children;
+      if ( !c.empty() ){
+	assert(c.size() == 1);
+	scope::current = c.back();
+	return;
+      }
+      return parameter::decide_dim(), new_block(), parameter::move();
     }
-    vector<scope*>& c = scope::current->m_children;
-    if ( !c.empty() ){
-      assert(c.size() == 1);
-      scope::current = c.back();
-      return;
-    }
-    return parameter::decide_dim(), new_block(), parameter::move();
+  default:
+    return new_block();
   }
-
-  if ( scope::current->m_id == scope::NAMESPACE ){
-    vector<scope*>& c = scope::current->m_children;
-    assert(c.size() == 1);
-    scope::current = c.back();
-    return parameter::decide_dim(), new_block(), parameter::move();
-  }
-
-  new_block();
 }
 
 void cxx_compiler::parse::block::new_block()

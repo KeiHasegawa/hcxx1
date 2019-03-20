@@ -1668,8 +1668,8 @@ public:
 class pointer_member_type : public type {
   const tag* m_tag;
   const type* m_T;
-  pointer_member_type(const tag* tag, const type* T)
-    : type(POINTER_MEMBER), m_tag(tag), m_T(T) {}
+  pointer_member_type(const tag* ptr, const type* T)
+    : type(POINTER_MEMBER), m_tag(ptr), m_T(T) {}
   typedef std::map<std::pair<const tag*, const type*>, const pointer_member_type*> table_t;
   static table_t tmp_tbl, pmt_tbl;
 public:
@@ -1689,7 +1689,8 @@ public:
   bool backpatch() const { return m_T->backpatch(); }
   bool compatible(const type*) const;
   const type* composite(const type*) const;
-  bool include_qualifier(const pointer_member_type*) const;
+  const tag* ctag() const { return m_tag; }
+  const type* referenced_type() const { return m_T; }
   static const pointer_member_type* create(const tag*, const type*);
   static void destroy_tmp();
   static void collect_tmp(std::vector<const type*>&);

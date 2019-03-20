@@ -2,6 +2,7 @@
 #include "stdafx.h"
 #include "cxx_core.h"
 #include "cxx_impl.h"
+#include "cxx_y.h"
 
 cxx_compiler::var* cxx_compiler::expressions::primary::info_t::gen()
 {
@@ -1164,15 +1165,40 @@ cxx_compiler::usr* cxx_compiler::expressions::primary::literal::boolean::create(
   return c;
 }
 
-namespace cxx_compiler { namespace unqualified_id {
-  struct search_info_t {
-    tag* m_tag;
-    std::vector<base*> m_route;
-    search_info_t(tag* ptr) : m_tag(ptr) {}
-  };
-  int base_search(base*, search_info_t*);
-  block* get_block();
-} } // end of namespace unqualified_id and cxx_compiler
+namespace cxx_compiler {
+  namespace unqualified_id {
+    var* from_member(usr* u);
+    var* from_nonmember(usr* u);
+    struct search_info_t {
+      tag* m_tag;
+      std::vector<base*> m_route;
+      search_info_t(tag* ptr) : m_tag(ptr) {}
+    };
+    int base_search(base*, search_info_t*);
+    block* get_block();
+    struct nonstatic_member_ref : usr {
+      nonstatic_member_ref(usr* u) : usr(*u) {}
+      var* rvalue()
+      {
+	error::not_implemented();
+      }
+      var* address()
+      {
+	assert(m_scope->m_id == scope::TAG);
+	tag* ptr = static_cast<tag*>(m_scope);
+	const type* T = pointer_member_type::create(ptr, m_type);
+	var* ret = new var(T);
+	if (scope::current->m_id == scope::BLOCK) {
+	  block* b = static_cast<block*>(scope::current);
+	  b->m_vars.push_back(ret);
+	}
+	else
+	  garbage.push_back(ret);
+	return ret;
+      }
+    };
+  } // end of namespace unqualified_id
+} // end of namespace cxx_compiler
 
 cxx_compiler::var* cxx_compiler::unqualified_id::action(var* v)
 {
@@ -1184,8 +1210,16 @@ cxx_compiler::var* cxx_compiler::unqualified_id::action(var* v)
     return u;
   usr* func = fundef::current->m_usr;
   scope* p = func->m_scope;
-  if ( p->m_id != scope::TAG )
-    return u;
+  scope::id_t id = p->m_id;
+  return (id == scope::TAG) ? from_member(u) : from_nonmember(u);
+}
+
+cxx_compiler::var* cxx_compiler::unqualified_id::from_member(usr* u)
+{
+  usr* func = fundef::current->m_usr;
+  assert(func);
+  scope* p = func->m_scope;
+  assert(p->m_id == scope::TAG);
   tag* tp = static_cast<tag*>(p);
   scope* q = u->m_scope;
   if ( q->m_id != scope::TAG )
@@ -1266,4 +1300,23 @@ cxx_compiler::var* cxx_compiler::unqualified_id::dtor(tag* ptr)
   string name = "~" + ptr->m_name;
   const type* T = backpatch_type::create();
   return new usr(name, T, usr::DTOR, parse::position);
+}
+
+cxx_compiler::var* cxx_compiler::unqualified_id::from_nonmember(usr* u)
+{
+  if (!class_or_namespace_name::before)
+    return u;
+  usr* func = fundef::current->m_usr;
+  assert(func);
+  scope* p = func->m_scope;
+  assert(p->m_id != scope::TAG);
+  scope* q = u->m_scope;
+  if (q->m_id !=  scope::TAG)
+    return u;
+  usr::flag_t flag = u->m_flag;
+  if (flag & usr::STATIC)
+    return u;
+  var* ret = new nonstatic_member_ref(u);
+  garbage.push_back(ret);
+  return ret;
 }

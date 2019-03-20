@@ -1057,6 +1057,29 @@ const cxx_compiler::type* cxx_compiler::expressions::assignment::valid(const typ
     const type* T = ref->referenced_type();
     return valid(T,src,discard);
   }
+
+  if (xx->m_id == type::POINTER_MEMBER) {
+    typedef const pointer_member_type PMT;
+    PMT* px = static_cast<PMT*>(xx);
+    if (yy->m_id == type::POINTER_MEMBER) {
+      PMT* py = static_cast<PMT*>(yy);
+      if (px->ctag() == py->ctag()) { 
+	const type* Tx = px->referenced_type();
+	const type* Ty = py->referenced_type();
+	int cvr_x = 0, cvr_y = 0;
+	Tx = Tx->unqualified(&cvr_x);
+	Ty = Ty->unqualified(&cvr_y);
+	if (compatible(Tx, Ty)){
+	  if (!discard || include(cvr_x, cvr_y))
+	    return px;
+	  else {
+	    *discard = true;
+	    return 0;
+	  }
+	}
+      }
+    }
+  }
   return 0;
 }
 

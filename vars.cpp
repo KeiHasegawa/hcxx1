@@ -206,13 +206,14 @@ namespace cxx_compiler {
 cxx_compiler::var* cxx_compiler::refbit::rvalue()
 {
   using namespace std;
+  using namespace expressions::primary::literal;
   const type* T = m_result;
   var* ret = new var(T);
   block* b = scope::current->m_id == scope::BLOCK ? static_cast<block*>(scope::current) : 0;
   assert(b);
   b->m_vars.push_back(ret);
   if ( m_dot ){
-    var* offset = expressions::primary::literal::integer::create(m_addrof.m_offset);
+    var* offset = integer::create(m_addrof.m_offset);
     code.push_back(new roff3ac(ret,m_addrof.m_ref,offset));
   }
   else {
@@ -220,7 +221,7 @@ cxx_compiler::var* cxx_compiler::refbit::rvalue()
     if ( m_addrof.m_offset ){
       ptr = new var(m_type);
       b->m_vars.push_back(ptr);
-      usr* off = expressions::primary::literal::integer::create(m_addrof.m_offset);
+      usr* off = integer::create(m_addrof.m_offset);
       code.push_back(new add3ac(ptr,m_addrof.m_ref,off));
     }
     code.push_back(new invraddr3ac(ret,ptr));
@@ -233,27 +234,28 @@ cxx_compiler::var* cxx_compiler::refbit::rvalue()
       code.push_back(new cast3ac(tmp,ret,U));
       ret = tmp;
     }
-    usr* pos = expressions::primary::literal::integer::create(m_position);
+    usr* pos = integer::create(m_position);
     var* tmp = new var(T);
     b->m_vars.push_back(tmp);
     code.push_back(new rsh3ac(tmp,ret,pos));
     ret = tmp;
   }
+
   usr* m = mask(m_bit);
   var* tmp = new var(T);
   b->m_vars.push_back(tmp);
   code.push_back(new and3ac(tmp,ret,m));
   ret = tmp;
-  if (T->_signed()) {
-    usr* m = expressions::primary::literal::integer::create(1 << (m_bit-1));
+  if (T->_signed() && m_bit > 1) {
+    usr* m = integer::create(1 << (m_bit-1));
     var* tmp = new var(T);
     b->m_vars.push_back(tmp);
     code.push_back(new and3ac(tmp,ret,m));
-    usr* zero = expressions::primary::literal::integer::create(0);
+    usr* zero = integer::create(0);
     goto3ac* go = new goto3ac(goto3ac::EQ,tmp,zero);
     code.push_back(go);
     {
-      usr* ext = expressions::primary::literal::integer::create((~0 << m_bit));
+      usr* ext = integer::create((~0 << m_bit));
       code.push_back(new or3ac(ret,ret,ext));
     }
     to3ac* to = new to3ac;

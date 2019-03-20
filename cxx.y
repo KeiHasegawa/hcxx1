@@ -2,6 +2,17 @@
 #include "cxx_core.h"
 #include "cxx_impl.h"
 
+namespace cxx_compiler {
+  // work around. sytax error may causes invalid scope::current.
+  inline void neaten()
+  {
+    while (scope::current->m_id == scope::BLOCK ||
+	   scope::current->m_id == scope::PARAM ||
+	   scope::current->m_id == scope::TAG) {
+      scope::current = scope::current->m_parent;
+    }
+  }
+} // end of namespace cxx_compiler
 %}
 
 %token ORIGINAL_NAMESPACE_NAME_LEX NAMESPACE_ALIAS_LEX IDENTIFIER_LEX PEEKED_NAME_LEX
@@ -143,13 +154,13 @@ declaration_seq
   : declaration
     {
       using namespace cxx_compiler;
-      scope::current = &scope::root;  // work around. sytax error may causes invalid scope::current.
+      neaten();
       declarations::destroy();
     }
   | declaration_seq declaration
     {
       using namespace cxx_compiler;
-      scope::current = &scope::root;  // work around. sytax error may causes invalid scope::current.
+      neaten();
       declarations::destroy();
     }
   ;
@@ -168,9 +179,9 @@ declaration
 block_declaration
   : simple_declaration
   | asm_definition
-  | namespace_alias_definition { assert(0); }
-  | using_declaration          { assert(0); }
-  | using_directive            { assert(0); }
+  | namespace_alias_definition { cxx_compiler::error::not_implemented(); }
+  | using_declaration          { cxx_compiler::error::not_implemented(); }
+  | using_directive            { cxx_compiler::error::not_implemented(); }
   ;
 
 simple_declaration
@@ -464,13 +475,13 @@ reg_list : string_literal
          ;
 
 linkage_specification
-  : linkage_specification_begin declaration_seq '}' { --cxx_compiler::declarations::linkage::depth; }
-  | linkage_specification_begin                 '}' { --cxx_compiler::declarations::linkage::depth; }
-  | EXTERN_KW STRING_LITERAL_LEX { cxx_compiler::declarations::linkage::action($2); } declaration { --cxx_compiler::declarations::linkage::depth; }
+  : linkage_specification_begin declaration_seq '}' { cxx_compiler::declarations::linkage::braces.pop_back(); }
+  | linkage_specification_begin                 '}' { cxx_compiler::declarations::linkage::braces.pop_back(); }
+  | EXTERN_KW STRING_LITERAL_LEX { cxx_compiler::declarations::linkage::action($2, false); } declaration { cxx_compiler::declarations::linkage::braces.pop_back(); }
   ;
 
 linkage_specification_begin
-  : EXTERN_KW STRING_LITERAL_LEX '{' { cxx_compiler::declarations::linkage::action($2); }
+  : EXTERN_KW STRING_LITERAL_LEX '{' { cxx_compiler::declarations::linkage::action($2, true); }
   ;
 
 init_declarator_list
@@ -1701,7 +1712,8 @@ jump_statement
   ;
 
 declaration_statement
-  : block_declaration { $$ = new cxx_compiler::statements::declaration::info_t($1,false); }
+  : block_declaration
+    { $$ = new cxx_compiler::statements::declaration::info_t($1,false); }
   ;
 
 enter_parameter

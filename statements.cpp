@@ -1152,8 +1152,8 @@ namespace cxx_compiler { namespace statements { namespace declaration {
   extern void check_storage(usr*);
 } } } // end of namespace declaration, statements and cxx_compiler
 
-cxx_compiler::statements::declaration::info_t::info_t(std::vector<usr*>* usrs,
-                                                      bool for_stmt)
+cxx_compiler::statements::declaration::info_t::
+info_t(std::vector<usr*>* usrs, bool for_stmt)
   : m_usrs(usrs)
 {
   using namespace std;

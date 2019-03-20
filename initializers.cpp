@@ -86,6 +86,35 @@ int cxx_compiler::usr::initialize()
   }
   using namespace declarations::declarators::array;
   variable_length::allocate(this);
+  if ( b ) {
+    const type* T = m_type->unqualified();
+    if (T->m_id == type::RECORD ){
+      typedef const record_type REC;
+      REC* rec = static_cast<REC*>(T);
+      tag* ptr = rec->get_tag();
+      string name = ptr->m_name;
+      const map<string, vector<usr*> >& usrs = ptr->m_usrs;
+      map<string, vector<usr*> >::const_iterator p = usrs.find(name);
+      if ( p != usrs.end() ){
+	const vector<usr*>& v = p->second;
+	usr* ctor = v.back();
+	assert(ctor->m_type->m_id == type::FUNC);
+	typedef const func_type FT;
+	FT* ft = static_cast<FT*>(ctor->m_type);
+	vector<var*> arg;
+	call_impl::common(ft,ctor,&arg,false,this);
+	usr::flag_t flag = ctor->m_flag;
+	if (!error::counter && !cmdline::no_inline_sub) {
+	  if (flag & usr::INLINE) {
+	    using namespace declarations::declarators::function::definition::static_inline::skip;
+	    table_t::const_iterator p = table.find(ctor);
+	    if (p != table.end())
+	      substitute(code, code.size()-1, p->second);
+	  }
+	}
+      }
+    }
+  }
   return 0;
 }
 
