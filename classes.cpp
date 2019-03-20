@@ -130,7 +130,7 @@ void cxx_compiler::classes::members::action(var* v, expressions::base* expr)
     if (!(flag & mask))
       error::not_implemented();
     if (flag & usr::STATIC)
-      u->m_flag = usr::flag_t(usr::WITH_INI | usr::STATIC_DEF);
+      u->m_flag = usr::flag_t(flag | usr::WITH_INI | usr::STATIC_DEF);
     if (flag & usr::VIRTUAL)
       error::not_implemented();
   }
