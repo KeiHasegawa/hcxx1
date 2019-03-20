@@ -1181,6 +1181,7 @@ namespace cxx_compiler {
       var* rvalue()
       {
 	error::not_implemented();
+	return 0;
       }
       var* address()
       {
