@@ -248,20 +248,33 @@ cxx_compiler::overload_impl::trial(usr* u, std::vector<cxx_compiler::var*>* arg)
   return new result(tmp);
 }
 
-namespace cxx_compiler { namespace call_impl {
-  std::pair<int,int> num_of_range(const std::vector<const type*>&);
-  struct convert {
-    const std::vector<const type*>& m_param;
-    var* m_func;
-    bool m_trial;
-    int m_counter;
-    convert(const std::vector<const type*>& param, var* func, bool trial)
-      : m_param(param), m_func(func), m_counter(-1), m_trial(trial) {}
-    var* operator()(var*);
-  };
-  tac* gen_param(var*);
-  var* ref_vftbl(usr* vf, var* vp);
-} } // end of namespace call_impl and cxx_compiler
+namespace cxx_compiler {
+  namespace call_impl {
+    using namespace std;
+    pair<int,int> num_of_range(const vector<const type*>&);
+    struct convert {
+      const vector<const type*>& m_param;
+      var* m_func;
+      bool m_trial;
+      int m_counter;
+      convert(const vector<const type*>& param, var* func, bool trial)
+	: m_param(param), m_func(func), m_counter(-1), m_trial(trial) {}
+      var* operator()(var*);
+    };
+    tac* gen_param(var*);
+    var* ref_vftbl(usr* vf, var* vp);
+    bool has_vbtbl(tag* ptag)
+    {
+      if (!ptag->m_bases)
+	return false;
+      vector<base*>& bases = *ptag->m_bases;
+      typedef vector<base*>::const_iterator IT;
+      IT p = find_if(begin(bases), end(bases),
+		     [](base* b){ return b->m_virtual; });
+      return p != end(bases);
+    }
+  } // end of namespace call_impl
+ } // end of namespace cxx_compiler
 
 cxx_compiler::var*
 cxx_compiler::call_impl::common(const func_type* ft,
@@ -406,7 +419,7 @@ cxx_compiler::var* cxx_compiler::call_impl::ref_vftbl(usr* vf, var* vp)
   const func_type* ft = static_cast<const func_type*>(T);
   const pointer_type* pt = pointer_type::create(ft);
   var* tmp = 0;
-  if ( !rec->vbtbl() ){
+  if ( !has_vbtbl(ptag) ){
     var* t0 = new var(pt);
     if ( b )
       b->m_vars.push_back(t0);
@@ -1042,6 +1055,31 @@ const cxx_compiler::type* cxx_compiler::expressions::assignment::valid(const typ
             *discard = true;
           return 0;
         }
+      }
+      if (Tx->m_id == type::RECORD) {
+	typedef const record_type REC;
+	REC* rx = static_cast<REC*>(Tx);
+	tag* xtag = rx->get_tag();
+	if (Ty->m_id == type::RECORD) {
+	  REC* ry = static_cast<REC*>(Ty);
+	  tag* ytag = ry->get_tag();
+	  if (ytag->m_bases) {
+	    const vector<cxx_compiler::base*>& bases = *ytag->m_bases;
+	    typedef vector<cxx_compiler::base*>::const_iterator IT;
+	    IT p = find_if(begin(bases), end(bases),
+			   [&xtag](const cxx_compiler::base* pb)
+			   { return pb->m_tag == xtag; });
+	    if (p != end(bases)) {
+	      if (include(cvr_x, cvr_y))
+		return px;
+	      else {
+		if (discard)
+		  *discard = true;
+		return 0;
+	      }
+	    }
+	  }
+	}
       }
     }
   }

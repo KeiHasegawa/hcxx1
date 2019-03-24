@@ -1378,170 +1378,269 @@ const cxx_compiler::incomplete_tagged_type* cxx_compiler::incomplete_tagged_type
   return ret;
 }
 
-namespace cxx_compiler { namespace record_impl {
-  struct layouter {
-    std::insert_iterator<std::map<std::string, std::pair<int, usr*> > > X;
-    std::insert_iterator<std::map<usr*, int> > Y;
-    usr* m_last;
-    struct current {
-      usr* m_member;
-      const type* m_integer;
-      int m_position;
-      current(usr* member = 0, const type* T = 0)
-        : m_member(member), m_integer(T), m_position(0) {}
-    } m_current;
-    int operator()(int, usr*);
-    layouter(std::insert_iterator<std::map<std::string, std::pair<int, usr*> > > XX,
-             std::insert_iterator<std::map<usr*, int> > YY,
-             usr* last)
-             : X(XX), Y(YY), m_last(last) {}
-  };
-  struct grounder {
-    std::insert_iterator<std::map<usr*, int> > Y;
-    std::pair<std::string, std::pair<int, usr*> > operator()(usr*);
-    grounder(std::insert_iterator<std::map<usr*, int> > YY) : Y(YY) {}
-  };
-  bool comp_size(usr*, usr*);
-  bool comp_align(usr*, usr*);
-  bool member_modifiable(usr*);
-  struct info_t {
-    std::vector<usr*>* m_member;
-    std::vector<usr*>* m_vb_member;
-    int m_virtual_base;
-    usr* m_vbtbl;
-    int m_virtual_func;
-    usr* m_vftbl;
-    info_t(std::vector<usr*>* m, std::vector<usr*>* v)
-      : m_member(m), m_vb_member(v),  m_virtual_base(0), m_vbtbl(0), m_virtual_func(0), m_vftbl(0) {}
-  };
-  void base_handler(base*, info_t*);
-  void member_handler(usr*, info_t*);
-  inline bool is_virtual_func(usr* u)
-  {
-    return u->m_flag & usr::VIRTUAL;
-  }
-  struct set_vftbl {
-    int m_offset;
-    set_vftbl() : m_offset(0) {}
-    std::pair<int, var*> operator()(usr*);
-  };
-  inline bool is_virtual_base(base* pb)
-  {
-    return pb->m_virtual;
-  }
-  struct set_vbtbl {
-    int m_offset;
-    int m_delta;
-    set_vbtbl() : m_offset(0), m_delta(0) {}
-    std::pair<int, var*> operator()(base*);
-  };
-  void add_ctor(tag*, const info_t&);
-} } // end of namespace record_impl and cxx_compiler
+namespace cxx_compiler {
+  namespace record_impl {
+    using namespace std;
+    struct layouter {
+      insert_iterator<map<string, pair<int, usr*> > > X;
+      insert_iterator<map<usr*, int> > Y;
+      usr* m_last;
+      struct current {
+	usr* m_member;
+	const type* m_integer;
+	int m_position;
+	current(usr* member = 0, const type* T = 0)
+	  : m_member(member), m_integer(T), m_position(0) {}
+      } m_current;
+      int operator()(int, usr*);
+      layouter(insert_iterator<map<string, pair<int, usr*> > > XX,
+	       insert_iterator<map<usr*, int> > YY,
+	       usr* last)
+	: X(XX), Y(YY), m_last(last) {}
+    };
+    struct grounder {
+      insert_iterator<map<usr*, int> > Y;
+      pair<string, pair<int, usr*> > operator()(usr*);
+      grounder(insert_iterator<map<usr*, int> > YY) : Y(YY) {}
+    };
+    struct base_layouter {
+      map<base*, int>& m_base_offset;
+      base_layouter(map<base*, int>& bo) : m_base_offset(bo) {}
+      int operator()(int n, base* b)
+      {
+	tag* ptr = b->m_tag;
+	pair<const type*, const type*> x = ptr->m_types;
+	const type* T = x.second;
+	if (!T)
+	  error::not_implemented();
+	int m = T->size();
+	assert(m);
+	if (!b->m_virtual)
+	  m_base_offset[b] = n;
+	return n + m;
+      }
+    };
+    inline int base_vf(int n, base* b)
+    {
+      tag* ptr = b->m_tag;
+      const type* T = ptr->m_types.second;
+      assert(T);
+      assert(T->m_id == type::RECORD);
+      typedef const record_type REC;
+      REC* rec = static_cast<REC*>(T);
+      with_initial* vftbl = rec->vftbl();
+      if (vftbl)
+	n += vftbl->m_value.size();
+      return n;
+    }
+    struct copy_base_vf {
+      vector<usr*>& m_vftbl_contents;
+      copy_base_vf(vector<usr*>& v) : m_vftbl_contents(v) {}
+      void operator()(base* b)
+      {
+	tag* ptr = b->m_tag;
+	const type* T = ptr->m_types.second;
+	assert(T);
+	assert(T->m_id == type::RECORD);
+	typedef const record_type REC;
+	REC* rec = static_cast<REC*>(T);
+	const vector<usr*>& v = rec->vftbl_contents();
+	copy(begin(v), end(v), back_inserter(m_vftbl_contents));
+      }
+    };
+    struct override_vf {
+      vector<usr*>& m_vftbl_contents;
+      override_vf(vector<usr*>& v) : m_vftbl_contents(v) {}
+      static bool match(usr* x, usr* y)
+      {
+	if (x->m_name == y->m_name)
+	  return compatible(x->m_type, y->m_type);
+	return false;
+      }
+      void operator()(usr* u)
+      {
+	usr::flag_t flag = u->m_flag;
+	if (!(flag & usr::FUNCTION))
+	  return;
+	typedef vector<usr*>::iterator IT;
+	IT p = find_if(begin(m_vftbl_contents), end(m_vftbl_contents),
+		       bind2nd(ptr_fun(match), u));
+	if (p != end(m_vftbl_contents))
+	  *p = u;
+      }
+    };
+    bool comp_size(usr*, usr*);
+    bool comp_align(usr*, usr*);
+    bool member_modifiable(usr*);
+    bool base_modifiable(base*);
+    struct set_vftbl {
+      int m_offset;
+      set_vftbl() : m_offset(0) {}
+      pair<int, var*> operator()(usr*);
+    };
+    struct set_vbtbl {
+      int m_offset;
+      int m_delta;
+      set_vbtbl() : m_offset(0), m_delta(0) {}
+      pair<int, var*> operator()(base*);
+    };
+    void add_ctor(tag*, with_initial* vbtbl, with_initial* vftbl);
+    const string vftbl_name = ".vftbl";
+    const string vbtbl_name = ".vbtbl";
+    const string vfptr_name = ".vfptr";
+    const string vbptr_name = ".vbptr";
+    const usr::flag_t vtbl_flag
+    = usr::flag_t(usr::WITH_INI| usr::STATIC | usr::STATIC_DEF);
+    bool has(base* b, string name)
+    {
+      tag* ptr = b->m_tag;
+      typedef map<string, vector<usr*> >::const_iterator IT;
+      IT p = ptr->m_usrs.find(name);
+      return p != ptr->m_usrs.end();
+    }
+  } // end of namespace record_imp
+} // end of namespace cxx_compiler
 
 cxx_compiler::record_type::record_type(tag* ptr)
-  : type(RECORD), m_tag(ptr), m_vbtbl(0), m_vftbl(0)
+  : type(RECORD), m_size(0), m_modifiable(true),
+    m_tag(ptr), m_vbtbl(0), m_vftbl(0)
 {
   using namespace std;
   using namespace record_impl;
   const vector<base*>* bases = m_tag->m_bases;
-  vector<usr*> vb_member;
-  info_t arg(&m_member,&vb_member);
-  if ( bases )
-    for_each(bases->begin(),bases->end(),bind2nd(ptr_fun(base_handler),&arg));
-  const vector<usr*>& member = m_tag->m_order;
-  for_each(member.begin(),member.end(),bind2nd(ptr_fun(member_handler),&arg));
-  if (int n = arg.m_virtual_func) {
+  int nvf = 0;
+  if (bases) {
+    int nvb = count_if(begin(*bases), end(*bases),
+		       [](base* b){ return b->m_virtual; });
+    if (m_tag->m_kind != tag::UNION) {
+      m_size = accumulate(begin(*bases), end(*bases), 0,
+			  base_layouter(m_base_offset));
+    }
+    else {
+      /*
+      transform(begin(bases), end(bases),
+		inserter(m_layout,m_layout.begin()),
+		grounder(inserter(m_position,m_position.begin())));
+      */
+      error::not_implemented();
+    }
+    if (nvb) {
+      const type* T = int_type::create();
+      T = const_type::create(T);
+      T = array_type::create(T, nvb);
+      m_vbtbl = new with_initial(vbtbl_name,T,file_t());
+      m_vbtbl->m_flag = vtbl_flag;
+      T = pointer_type::create(T);
+      usr* vbptr = new usr(vbptr_name,T,usr::NONE,file_t());
+      m_member.insert(m_member.begin(),vbptr);
+      map<int, var*>& value = m_vbtbl->m_value;
+      for_each(begin(*bases), end(*bases), 
+	       [](base* b){ if (b->m_virtual) /* set_vbtbl(b) */; });
+    }
+    nvf = accumulate(begin(*bases), end(*bases), 0, base_vf);
+  }
+  const vector<usr*>& order = m_tag->m_order;
+  nvf += count_if(begin(order),end(order),
+		 [](usr* u){ return u->m_flag & usr::VIRTUAL; });
+  copy_if(begin(order),end(order),back_inserter(m_member),
+	  [](usr* u) {
+	    usr::flag_t flag = u->m_flag;
+	    usr::flag_t mask = usr::flag_t(usr::FUNCTION | usr::STATIC);
+	    return !(flag & mask);
+	  });
+  if (nvf) {
     const type* T = void_type::create();
     T = pointer_type::create(T);
     T = const_type::create(T);
-    T = array_type::create(T,n);
-    string namet = ".vftbl";
-    m_vftbl = new with_initial(namet, T, file_t());
-    m_vftbl->m_flag = usr::flag_t(m_vftbl->m_flag| usr::STATIC | usr::STATIC_DEF);
-    m_tag->m_usrs[namet].push_back(m_vftbl);
-    if (arg.m_vftbl)
-      error::not_implemented();
-    arg.m_vftbl = m_vftbl;
+    T = array_type::create(T, nvf);
+    m_vftbl = new with_initial(vftbl_name, T, file_t());
+    m_vftbl->m_flag = vtbl_flag;
+    m_tag->m_usrs[vftbl_name].push_back(m_vftbl);
     T = pointer_type::create(T);
-    string namep = ".vfptr";
-    usr* vfptr = new usr(namep,T,usr::NONE,file_t());
-    m_tag->m_usrs[namep].push_back(vfptr);
+    usr* vfptr = new usr(vfptr_name,T,usr::NONE,file_t());
+    m_tag->m_usrs[vfptr_name].push_back(vfptr);
     m_member.insert(m_member.begin(),vfptr);
-    remove_copy_if(member.begin(),member.end(),back_inserter(m_vftbl_contents),
-      not1(ptr_fun(is_virtual_func)));
+    if (bases) {
+      for_each(begin(*bases), end(*bases), copy_base_vf(m_vftbl_contents));
+      for_each(begin(order), end(order), override_vf(m_vftbl_contents));
+    }
+    copy_if(begin(order), end(order), back_inserter(m_vftbl_contents),
+	    [](usr* u){ return u->m_flag & usr::VIRTUAL; });
     map<int, var*>& value = m_vftbl->m_value;
     transform(m_vftbl_contents.begin(),m_vftbl_contents.end(),
               inserter(value,value.begin()),set_vftbl());
   }
-  if (int n = arg.m_virtual_base) {
-    const type* T = int_type::create();
-    T = array_type::create(T,n);
-    m_vbtbl = new with_initial(".vbtbl",T,file_t());
-    m_vbtbl->m_flag = usr::STATIC_DEF;
-    if (arg.m_vbtbl)
-      error::not_implemented();
-    else
-      arg.m_vbtbl = m_vbtbl;
-    T = pointer_type::create(T);
-    usr* vbptr = new usr(".vbptr",T,usr::NONE,file_t());
-    m_member.insert(m_member.begin(),vbptr);
-    remove_copy_if(bases->begin(),bases->end(),back_inserter(m_vbtbl_contents),
-      not1(ptr_fun(is_virtual_base)));
-    map<int, var*>& value = m_vbtbl->m_value;
-    transform(m_vbtbl_contents.begin(),m_vbtbl_contents.end(),
-              inserter(value,value.begin()),set_vbtbl());
-  }
-  add_ctor(m_tag, arg);
-  if (m_member.empty()) {
+  add_ctor(m_tag, m_vbtbl, m_vftbl);
+  if (!bases && m_member.empty()) {
     string name = ".dummy";
     usr* u = new usr(name, char_type::create(),usr::NONE,file_t());
     m_member.push_back(u);
     m_tag->m_usrs[name].push_back(u);
   }
-  if ( m_tag->m_kind == tag::STRUCT ){
-    usr* last = *m_member.rbegin();
-    m_size = accumulate(m_member.begin(),m_member.end(),0,
-                        layouter(inserter(m_layout,m_layout.begin()),inserter(m_position,m_position.begin()),last));
-    const type* T = m_member[0]->m_type;
-    typedef const bit_field_type BF;
-    if ( T->m_id == type::BIT_FIELD ){
-      BF* bf = static_cast<BF*>(T);
-      T = bf->integer_type();
-    }
-    T = m_member.back()->m_type;
-    if ( T->m_id == type::BIT_FIELD ){
-      BF* bf = static_cast<BF*>(T);
-      T = bf->integer_type();
-      m_size += T->size();
-      usr::flag_t& flag = m_member.back()->m_flag;
-      flag = usr::flag_t(flag | usr::MSB_FIELD);
+  if (m_tag->m_kind != tag::UNION) {
+    usr* last = m_member.empty() ? 0 : *m_member.rbegin();
+    m_size = accumulate(begin(m_member),end(m_member), m_size,
+                        layouter(inserter(m_layout,m_layout.begin()),
+				 inserter(m_position,m_position.begin()),
+				 last));
+    if (!m_member.empty()) {
+      const type* T = m_member[0]->m_type;
+      typedef const bit_field_type BF;
+      if ( T->m_id == type::BIT_FIELD ){
+	BF* bf = static_cast<BF*>(T);
+	T = bf->integer_type();
+      }
+      T = m_member.back()->m_type;
+      if ( T->m_id == type::BIT_FIELD ){
+	BF* bf = static_cast<BF*>(T);
+	T = bf->integer_type();
+	m_size += T->size();
+	usr::flag_t& flag = m_member.back()->m_flag;
+	flag = usr::flag_t(flag | usr::MSB_FIELD);
+      }
     }
   }
   else {
-    transform(m_member.begin(),m_member.end(),inserter(m_layout,m_layout.begin()),
-      grounder(inserter(m_position,m_position.begin())));
-    {
-      vector<usr*>::const_iterator p = max_element(m_member.begin(),m_member.end(),comp_size);
-      const type* T = (*p)->m_type;
-      if ( T->m_id == type::BIT_FIELD ){
-        typedef const bit_field_type BF;
-        BF* bf = static_cast<BF*>(T);
-        T = bf->integer_type();
+    if (!m_member.empty()) {
+      transform(m_member.begin(),m_member.end(),
+		inserter(m_layout,m_layout.begin()),
+		grounder(inserter(m_position,m_position.begin())));
+      {
+	vector<usr*>::const_iterator p = max_element(m_member.begin(),m_member.end(),comp_size);
+	const type* T = (*p)->m_type;
+	if ( T->m_id == type::BIT_FIELD ){
+	  typedef const bit_field_type BF;
+	  BF* bf = static_cast<BF*>(T);
+	  T = bf->integer_type();
+	}
+	m_size = T->size();
       }
-      m_size = T->size();
-    }
-    {
-      vector<usr*>::const_iterator p = max_element(m_member.begin(),m_member.end(),comp_align);
-      const type* T = (*p)->m_type;
-      if ( T->m_id == type::BIT_FIELD ){
-        typedef const bit_field_type BF;
-        BF* bf = static_cast<BF*>(T);
-        T = bf->integer_type();
+      {
+	vector<usr*>::const_iterator p =
+	  max_element(m_member.begin(),m_member.end(),comp_align);
+	const type* T = (*p)->m_type;
+	if ( T->m_id == type::BIT_FIELD ){
+	  typedef const bit_field_type BF;
+	  BF* bf = static_cast<BF*>(T);
+	  T = bf->integer_type();
+	}
       }
     }
   }
-  m_modifiable =
-    find_if(m_member.begin(),m_member.end(),not1(ptr_fun(member_modifiable))) == m_member.end();
+  if (bases) {
+    typedef vector<base*>::const_iterator IT;
+    IT p =
+      find_if(begin(*bases), end(*bases), not1(ptr_fun(base_modifiable)));
+    if (p != end(*bases))
+      m_modifiable = false;
+  }
+  if (m_modifiable) {
+    typedef vector<usr*>::const_iterator IT;
+    IT p = find_if(begin(m_member), end(m_member),
+		   not1(ptr_fun(member_modifiable)));
+    if (p != end(m_member))
+      m_modifiable = false;
+  }
   int al = align();
   if ( int n = m_size % al ) {
     m_size += al - n;
@@ -1684,36 +1783,18 @@ bool cxx_compiler::record_impl::comp_align(usr* x, usr* y)
   return xx->align() < yy->align();
 }
 
-bool cxx_compiler::record_impl::member_modifiable(usr* member)
+bool cxx_compiler::record_impl::member_modifiable(usr* u)
 {
-  return member->m_type->modifiable();
+  const type* T = u->m_type;
+  return T->modifiable();
 }
 
-void cxx_compiler::record_impl::base_handler(base* p, info_t* arg)
+bool cxx_compiler::record_impl::base_modifiable(base* b)
 {
-  using namespace std;
-  bool vb = is_virtual_base(p);
-  if ( vb )
-    ++arg->m_virtual_base;
-  tag* ptr = p->m_tag;
-  const vector<usr*>& member = ptr->m_order;
-  info_t tmp(vb && arg->m_vb_member ? arg->m_vb_member : arg->m_member, 0);
-  for_each(member.begin(),member.end(),bind2nd(ptr_fun(member_handler),&tmp));
-}
-
-void cxx_compiler::record_impl::member_handler(usr* u, info_t* arg)
-{
-  using namespace std;
-  if ( is_virtual_func(u) ){
-    ++arg->m_virtual_func;
-    return;
-  }
-  usr::flag_t flag = u->m_flag;
-  if ( flag & usr::FUNCTION )
-    return;
-  if ( flag & usr::STATIC )
-    return;
-  arg->m_member->push_back(u);
+  tag* ptr = b->m_tag;
+  const type* T = ptr->m_types.second;
+  assert(T);
+  return T->modifiable();
 }
 
 std::pair<int, cxx_compiler::var*>
@@ -1741,11 +1822,13 @@ cxx_compiler::record_impl::set_vbtbl::operator()(base* vb)
   return make_pair(offset, delta);
 }
 
-void cxx_compiler::record_impl::add_ctor(tag* ptr, const info_t& arg)
+void cxx_compiler::record_impl::add_ctor(tag* ptr,
+					 with_initial* vbtbl,
+					 with_initial* vftbl)
 {
   using namespace std;
 
-  if ( !arg.m_virtual_base && !arg.m_virtual_func )
+  if (!vbtbl && !vftbl)
     return;
 
   usr* ctor = 0;
@@ -1781,24 +1864,25 @@ void cxx_compiler::record_impl::add_ctor(tag* ptr, const info_t& arg)
   param->m_children.push_back(b);
 
   assert(code.empty());
-  if ( arg.m_virtual_base ){
-    const type* T = arg.m_vbtbl->m_type;
+  if (vbtbl) {
+    const type* T = vbtbl->m_type;
     T = pointer_type::create(T);
     var* tmp = new var(T);
     b->m_vars.push_back(tmp);
-    code.push_back(new addr3ac(tmp,arg.m_vbtbl));
+    code.push_back(new addr3ac(tmp, vbtbl));
     code.push_back(new invladdr3ac(This,tmp));
   }
-  if ( arg.m_virtual_func ){
-    const type* T = arg.m_vftbl->m_type;
+  if (vftbl) {
+    const type* T = vftbl->m_type;
     T = pointer_type::create(T);
     var* tmp = new var(T);
     b->m_vars.push_back(tmp);
-    code.push_back(new addr3ac(tmp,arg.m_vftbl));
+    code.push_back(new addr3ac(tmp, vftbl));
     var* ptr = new var(pointer_type::create(T));
     b->m_vars.push_back(ptr);
-    if ( arg.m_virtual_base ){
-      var* size = expressions::primary::literal::integer::create(T->size());
+    if (vbtbl) {
+      using namespace expressions::primary::literal;
+      var* size = integer::create(T->size());
       code.push_back(new add3ac(ptr,This,size));
       code.push_back(new invladdr3ac(ptr,tmp));
     }
@@ -1852,14 +1936,36 @@ const cxx_compiler::type* cxx_compiler::record_type::composite(const type* T) co
   return m_tag == that->get_tag() ? this : 0;
 }
 
-std::pair<int, cxx_compiler::usr*> cxx_compiler::record_type::offset(std::string name) const
+std::pair<int, cxx_compiler::usr*>
+cxx_compiler::record_type::offset(std::string name) const
 {
   using namespace std;
+  using namespace record_impl;
   map<string, pair<int, usr*> >::const_iterator p = m_layout.find(name);
   if ( p != m_layout.end() )
     return p->second;
-  else
-    return make_pair(-1,static_cast<usr*>(0));
+  vector<base*>* bases = m_tag->m_bases;
+  if (bases) {
+    typedef vector<base*>::const_iterator IT;
+    IT p = find_if(begin(*bases), end(*bases), bind2nd(ptr_fun(has), name));
+    if (p != end(*bases)) {
+      base* b = *p;
+      typedef map<base*, int>::const_iterator IT;
+      IT it = m_base_offset.find(b);
+      assert(it != m_base_offset.end());
+      int bo = it->second;
+      tag* ptr = b->m_tag;
+      const type* T = ptr->m_types.second;
+      assert(T->m_id == type::RECORD);
+      typedef const record_type REC;
+      REC* rec = static_cast<REC*>(T);
+      pair<int, usr*> ret = rec->offset(name);
+      ret.first += bo;
+      return ret;
+    }
+  }
+
+  return make_pair(-1,static_cast<usr*>(0));
 }
 
 int cxx_compiler::record_type::position(usr* member) const

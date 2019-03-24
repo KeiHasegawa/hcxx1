@@ -970,7 +970,8 @@ template<> struct constant<void*> : usr {
 struct with_initial : usr {
   std::map<int, var*> m_value;
 
-  with_initial(const usr& u) : usr(u) { m_flag = flag_t(m_flag|usr::WITH_INI); }
+  with_initial(const usr& u)
+    : usr(u) { m_flag = flag_t(m_flag|usr::WITH_INI); }
 
   with_initial(std::string name, const type* T, const file_t& file)
     : usr(name,T,flag_t(usr::STATIC|usr::WITH_INI),file) {}
@@ -1564,7 +1565,7 @@ class record_type : public type {
   static table_t tmp_tbl;
   
   with_initial* m_vbtbl;
-  std::vector<base*> m_vbtbl_contents;
+  std::map<base*, int> m_base_offset;
   with_initial* m_vftbl;
   std::vector<usr*> m_vftbl_contents;
   record_type(tag*);
@@ -1583,9 +1584,7 @@ public:
   tag* get_tag() const { return m_tag; }
   bool aggregate() const { return true; }
   bool tmp() const;
-  usr* vbtbl() const { return m_vbtbl; }
-  const std::vector<base*>& vbtbl_contents() const { return m_vbtbl_contents; }
-  usr* vftbl() const { return m_vftbl; }
+  with_initial* vftbl() const { return m_vftbl; }
   const std::vector<usr*>& vftbl_contents() const { return m_vftbl_contents; }
   static const record_type* create(tag*);
   static void destroy_tmp();
