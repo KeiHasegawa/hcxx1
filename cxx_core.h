@@ -318,7 +318,7 @@ struct usr : var {
   };
   flag_t m_flag;
   file_t m_file;
-  virtual bool lvalue() const { return true; }
+  bool lvalue() const { return true; }
   var* address();
   var* assign(var*);
   static std::string keyword(flag_t);

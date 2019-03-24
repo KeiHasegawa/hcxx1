@@ -128,8 +128,17 @@ void cxx_compiler::declarations::initializers::gencode(usr* u)
     vector<tac*>& c = data.m_code;
     copy(c.begin(),c.end(),back_inserter(code));
     map<int,var*>& value = data.m_value;
-    if ( value.size() == 1 && u->m_type->scalar() == value[0]->m_type->scalar() )
-      code.push_back(new assign3ac(u,value[0]));
+    if (value.size() == 1 &&
+	u->m_type->scalar() == value[0]->m_type->scalar()) {
+      const type* Tx = u->m_type;
+      Tx = Tx->unqualified();
+      const type* Ty = value[0]->m_type;
+      Ty = Ty->unqualified();
+      if (Tx->m_id == type::REFERENCE && Ty->m_id != type::REFERENCE)
+	code.push_back(new addr3ac(u,value[0]));
+      else
+	code.push_back(new assign3ac(u,value[0]));
+    }
     else
       for_each(value.begin(),value.end(),bind1st(ptr_fun(gen_loff),u));
     m_table.erase(p);

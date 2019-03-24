@@ -1004,7 +1004,8 @@ namespace cxx_compiler {
   } // end of namespace expressions
 } // end of namespace cxx_compiler
 
-const cxx_compiler::type* cxx_compiler::expressions::assignment::valid(const type* T, var* src, bool* discard)
+const cxx_compiler::type*
+cxx_compiler::expressions::assignment::valid(const type* T, var* src, bool* discard)
 {
   const type* xx = T;
   const type* yy = src->m_type;
@@ -1089,7 +1090,7 @@ const cxx_compiler::type* cxx_compiler::expressions::assignment::valid(const typ
       return xx;
   }
 
-  if ( xx->m_id == type::REFERENCE ){
+  if (xx->m_id == type::REFERENCE) {
     typedef const reference_type REF;
     REF* ref = static_cast<REF*>(xx);
     const type* T = ref->referenced_type();
