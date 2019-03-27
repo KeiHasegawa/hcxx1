@@ -442,6 +442,27 @@ void cxx_compiler::error::declarations::declarators::vm::file_scope(const usr* u
   ++counter;
 }
 
+void cxx_compiler::error::declarations::declarators::reference::missing_initializer(const usr* u)
+{
+  using namespace std;
+  string name = u->m_name;
+  switch ( lang ){
+  case jpn:
+    header(u->m_file,"エラー");
+    cerr << "`";
+    cerr << name;
+    cerr << "' の初期化指定子がありません.\n";
+    break;
+  default:
+    header(u->m_file,"error");
+    cerr << "missng initializer for `";
+    cerr << name;
+    cerr << "'.\n";
+    break;
+  }
+  ++counter;
+}
+
 void cxx_compiler::error::classes::bit_field::zero(const usr* u)
 {
   using namespace std;

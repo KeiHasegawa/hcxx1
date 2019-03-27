@@ -376,11 +376,13 @@ std::pair<int,int> cxx_compiler::call_impl::num_of_range(const std::vector<const
 cxx_compiler::var* cxx_compiler::call_impl::convert::operator()(var* arg)
 {
   using namespace std;
-  arg = arg->rvalue();
   if ( ++m_counter == m_param.size() )
     --m_counter;
   const type* T = m_param[m_counter];
   T = T->complete_type();
+  const type* U = T->unqualified();
+  if (U->m_id != type::REFERENCE)
+    arg = arg->rvalue();
   if ( T->m_id == type::ELLIPSIS ){
     const type* T2 = arg->m_type;
     if ( T2->compatible(T2->varg()) )
@@ -390,14 +392,43 @@ cxx_compiler::var* cxx_compiler::call_impl::convert::operator()(var* arg)
   T = T->unqualified();
   bool discard = false;
   T = expressions::assignment::valid(T,arg,&discard);
-  if ( !T ){
+  if (!T) {
     if ( m_trial )
       return 0;
     using namespace error::expressions::postfix::call;
     mismatch_argument(parse::position,m_counter,discard,m_func);
     return arg;
   }
-  return arg->cast(T);
+  arg = arg->cast(T);
+  if (U->m_id == type::REFERENCE) {
+    typedef const reference_type RT;
+    RT* rt = static_cast<RT*>(U);
+    const type* R = rt->referenced_type();
+    R = R->unqualified();
+    if (R == T) {
+      var* tmp = new var(U);
+      if (scope::current->m_id == scope::BLOCK) {
+	block* b = static_cast<block*>(scope::current);
+	b->m_vars.push_back(tmp);
+      }
+      else
+	garbage.push_back(tmp);
+      if (arg->isconstant()) {
+	var* tmp2 = new var(R);
+	if (scope::current->m_id == scope::BLOCK) {
+	  block* b = static_cast<block*>(scope::current);
+	  b->m_vars.push_back(tmp2);
+	}
+	else
+	  garbage.push_back(tmp2);
+	code.push_back(new assign3ac(tmp2, arg));
+	arg = tmp2;
+      }
+      code.push_back(new addr3ac(tmp, arg));
+      arg = tmp;
+    }
+  }
+  return arg;
 }
 
 cxx_compiler::var* cxx_compiler::call_impl::ref_vftbl(usr* vf, var* vp)
@@ -996,7 +1027,7 @@ namespace cxx_compiler {
             insert(make_pair(7, i));
         }
       } table;
-      inline bool include(int x, int y)
+      bool include(int x, int y)
       {
         return table.find(make_pair(x, y)) != table.end();
       }
@@ -1083,18 +1114,21 @@ cxx_compiler::expressions::assignment::valid(const type* T, var* src, bool* disc
 	}
       }
     }
-  }
-
-  if ( xx->m_id == type::POINTER ){
     if (yy->integer() && src->zero())
       return xx;
+    return 0;
   }
 
   if (xx->m_id == type::REFERENCE) {
     typedef const reference_type REF;
     REF* ref = static_cast<REF*>(xx);
     const type* T = ref->referenced_type();
-    return valid(T,src,discard);
+    const type* X = src->m_type;
+    if (T == X)
+      return T;
+    if (!T->modifiable() || !X->modifiable())
+      return valid(T,src,discard);
+    return 0;
   }
 
   if (xx->m_id == type::POINTER_MEMBER) {
@@ -1118,6 +1152,7 @@ cxx_compiler::expressions::assignment::valid(const type* T, var* src, bool* disc
 	}
       }
     }
+    return 0;
   }
   return 0;
 }

@@ -319,6 +319,7 @@ struct usr : var {
   flag_t m_flag;
   file_t m_file;
   bool lvalue() const { return true; }
+  var* rvalue();
   var* address();
   var* assign(var*);
   static std::string keyword(flag_t);

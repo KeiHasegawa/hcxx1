@@ -21,12 +21,16 @@ cxx_compiler::var* cxx_compiler::usr::assign(var* op)
   y->m_type = y->m_type->complete_type();
   bool discard = false;
   T = expressions::assignment::valid(T,y,&discard);
-  if ( !T ){
+  if (!T) {
     invalid(parse::position,this,discard);
     T = int_type::create();
   }
-  y = y->cast(T);
-  code.push_back(new assign3ac(this,y));
+  if (m_type->m_id == type::REFERENCE)
+    code.push_back(new invladdr3ac(this,y));
+  else {
+    y = y->cast(T);
+    code.push_back(new assign3ac(this,y));
+  }
   if ( !y->isconstant() )
     return y;
   var* x = new var(T);

@@ -71,7 +71,8 @@ const cxx_compiler::type* cxx_compiler::classes::specifier::action()
   tag* ptr = static_cast<tag*>(scope::current);
   const type* ret = record_type::create(ptr);
   ptr->m_types.second = ret;
-  map<usr*, parse::member_function_body::save_t>& tbl = parse::member_function_body::table;
+  map<usr*, parse::member_function_body::save_t>& tbl =
+    parse::member_function_body::table;
   for_each(tbl.begin(),tbl.end(),member_function_definition);
   tbl.clear();
   scope::current = ptr->m_parent;
@@ -204,3 +205,39 @@ void cxx_compiler::class_or_namespace_name::after()
   class_or_namespace_name::before = 0;
 }
 
+namespace cxx_compiler {
+  namespace declarations {
+    namespace declarators {
+      namespace function {
+	namespace definition {
+	  void mem_initializer::action(var* v, vector<expressions::base*>* p)
+	  {
+	    assert(fundef::current);
+	    usr* fun = fundef::current->m_usr;
+	    usr::flag_t flag = fun->m_flag;
+	    if (!(flag & usr::CTOR)) {
+	      error::not_implemented();
+	      return;
+	    }
+	    assert(scope::current->m_id == scope::TAG);
+	    tag* ptr = static_cast<tag*>(scope::current);
+	    const type* T = ptr->m_types.second;
+	    assert(T);
+	    assert(T->m_id == type::RECORD);
+	    typedef const record_type REC;
+	    REC* rec = static_cast<REC*>(T);
+	    assert(v->usr_cast());
+	    usr* u = static_cast<usr*>(v);
+	    string name = u->m_name;
+	    pair<int, usr*> x = rec->offset(name);
+	    int offset = x.first;
+	    if (offset < 0) {
+	      error::not_implemented();
+	    }
+	    
+	  }
+	} // end of namespace mem_initializer
+      } // end of namespace function
+    } // end of namespace declarators
+  } // end of namespace declarations
+}  // end of namespace cxx_compiler

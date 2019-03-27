@@ -134,8 +134,41 @@ void cxx_compiler::declarations::initializers::gencode(usr* u)
       Tx = Tx->unqualified();
       const type* Ty = value[0]->m_type;
       Ty = Ty->unqualified();
-      if (Tx->m_id == type::REFERENCE && Ty->m_id != type::REFERENCE)
-	code.push_back(new addr3ac(u,value[0]));
+      if (Tx->m_id == type::REFERENCE && Ty->m_id != type::REFERENCE) {
+	var* v = value[0];
+	if (v->isconstant()) {
+	  var* tmp = new var(u->m_type);
+	  if (scope::current->m_id == scope::BLOCK) {
+	    block* b = static_cast<block*>(scope::current);
+	    b->m_vars.push_back(tmp);
+	  }
+	  else
+	    garbage.push_back(tmp);
+	  code.push_back(new assign3ac(tmp, v));
+	  v = tmp;
+	  code.push_back(new addr3ac(u, v));
+	}
+	else {
+	  addrof* addr = v->addrof_cast();
+	  assert(addr);
+	  var* ref = addr->m_ref;
+	  if (int offset = addr->m_offset) {
+	    using namespace expressions::primary::literal;
+	    var* off = integer::create(offset);
+	    var* tmp = new var(u->m_type);
+	    if (scope::current->m_id == scope::BLOCK) {
+	      block* b = static_cast<block*>(scope::current);
+	      b->m_vars.push_back(tmp);
+	    }
+	    else
+	      garbage.push_back(tmp);
+	    code.push_back(new addr3ac(tmp, ref));
+	    code.push_back(new add3ac(u, tmp, off));
+	  }
+	  else
+	    code.push_back(new addr3ac(u, ref));
+	}
+      }
       else
 	code.push_back(new assign3ac(u,value[0]));
     }
@@ -173,8 +206,9 @@ int cxx_compiler::declarations::initializers::clause::helper(expressions::base* 
 
 int cxx_compiler::declarations::initializers::gen_loff(usr* dst, std::pair<int,var*> p)
 {
+  using namespace expressions::primary::literal;
   int offset = p.first;
-  var* off = expressions::primary::literal::integer::create(offset);
+  var* off = integer::create(offset);
   var* src = p.second;
   code.push_back(new loff3ac(dst,off,src));
   return 0;
@@ -192,13 +226,16 @@ namespace cxx_compiler { namespace declarations { namespace initializers {
 int cxx_compiler::declarations::initializers::clause::assign(var* y, argument* arg)
 {
   using namespace std;
-  y = y->rvalue();
-  if ( duration::_static(argument::dst) && !y->isconstant(true) )
+  const type* T = arg->T;
+  const type* U = T->unqualified();
+  if (U->m_id != type::REFERENCE)
+    y = y->rvalue();
+  if (duration::_static(argument::dst) && !y->isconstant(true)
+      && U->m_id != type::REFERENCE)
     arg->not_constant = true;
 
   if ( int r = char_array_string::action(y,arg) )
     return r;
-  const type* T = arg->T;
   if ( arg->nth >= 0 ){
     pair<int, const type*> ret = T->current(arg->nth);
     if ( ret.first < 0 ){
@@ -211,13 +248,29 @@ int cxx_compiler::declarations::initializers::clause::assign(var* y, argument* a
       return assign_special(y,arg);
     arg->off_max = max(arg->off_max, arg->off = ret.first);
   }
+
+  if (U->m_id == type::REFERENCE) {
+    typedef const reference_type RT;
+    RT* rt = static_cast<RT*>(U);
+    const type* Tx = rt->referenced_type();
+    const type* Ty = y->m_type; 
+    int cvr_x = 0, cvr_y = 0;
+    Tx->unqualified(&cvr_x);
+    Ty->unqualified(&cvr_y);
+    if (!expressions::assignment::include(cvr_x, cvr_y)) {
+      using namespace error::declarations::initializers;
+      invalid_assign(parse::position,argument::dst,true);
+      return arg->off;
+    }
+  }
   bool discard = false;
   T = expressions::assignment::valid(T,y,&discard);
-  if ( !T ){
+  if (!T) {
     using namespace error::declarations::initializers;
     invalid_assign(parse::position,argument::dst,discard);
     return arg->off;
   }
+
   typedef const bit_field_type BF;
   if ( T->m_id == type::BIT_FIELD )
     return bit_field(y,arg);
@@ -228,7 +281,16 @@ int cxx_compiler::declarations::initializers::clause::assign(var* y, argument* a
     if (p != v.rend())
       v.erase(p.base()-1);
   }
-  arg->V[arg->off] = y;
+  if (U->m_id == type::REFERENCE) {
+    typedef const reference_type RT;
+    RT* rt = static_cast<RT*>(U);
+    const type* R = rt->referenced_type();
+    assert(y->lvalue() || !R->modifiable());
+    const type* pt = pointer_type::create(y->m_type);
+    arg->V[arg->off] = new addrof(pt, y, 0);
+  }
+  else
+    arg->V[arg->off] = y;
   arg->nth_max = max(arg->nth_max,++arg->nth);
   arg->off_max = max(arg->off_max, arg->off += T->size());
   return arg->off;

@@ -83,7 +83,7 @@ namespace parse {
   namespace member_function_body {
     struct save_t {
       scope* m_param;
-	  read_t m_read;
+      read_t m_read;
       save_t() : m_param(0) {}
     };
     extern map<usr*, save_t> table;
@@ -172,6 +172,9 @@ namespace error {
         extern void file_scope(const usr*);
         extern void invalid_linkage(const usr*);
       } // end of namespace vm
+      namespace reference {
+	extern void missing_initializer(const usr*);
+      } // end of namespace reference
     } // end of namespace declarators
     namespace enumeration {
       extern void not_constant(const usr*);
@@ -538,6 +541,9 @@ namespace declarations {
             void last();
           } // end of namespace defer
         } // end of namespace static_inline
+	namespace mem_initializer {
+	  void action(var*, vector<expressions::base*>*);
+	} // end of mem_initializer
       } // end of namespace definition
     } // end of namespace function
     namespace array {
@@ -878,6 +884,7 @@ namespace expressions {
   } // end of namespace conditional
   namespace assignment {
     extern const type* valid(const type*, var*, bool*);
+    extern bool include(int cvr_x, int cvr_y);
   } // end of namespace assignment
   extern bool constant_flag;
 } // end of namespace expressions

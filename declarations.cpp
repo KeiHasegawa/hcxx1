@@ -649,6 +649,17 @@ cxx_compiler::declarations::action1(var* v, bool ini)
     }
     u->m_type = u->m_type->vla2a();
   }
+  const type* U = u->m_type->unqualified();
+  if (U->m_id == type::REFERENCE) {
+    if (!(flag & usr::EXTERN)) {
+      if (scope::current->m_id != scope::PARAM) {
+	if (!ini) {
+	  using namespace error::declarations::declarators;
+	  reference::missing_initializer(u);
+	}
+      }
+    }
+  }
   return lookuped ? u : action2(u);
 }
 

@@ -84,14 +84,15 @@ std::string cxx_compiler::dump::initial(const std::pair<int,cxx_compiler::var*>&
   ostringstream os;
   os << '(' << p.first << ',';
   var* v = p.second;
-  addrof* addr = dynamic_cast<addrof*>(v);
-  if ( addr ){
+  addrof* addr = v->addrof_cast();
+  if (addr) {
     os << "addrof(";
     v = addr->m_ref;
   }
+  assert(v->usr_cast());
   usr* u = static_cast<usr*>(v);
   os << names::ref(u);
-  if ( addr ){
+  if (addr) {
     os << ')';
     if ( int offset = addr->m_offset )
       os << '+' << offset;

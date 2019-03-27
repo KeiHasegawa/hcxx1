@@ -103,7 +103,7 @@ namespace cxx_compiler {
 }
 
 %type<m_var> IDENTIFIER_LEX unqualified_id id_expression declarator_id direct_declarator declarator enumerator
-%type<m_var> qualified_id
+%type<m_var> qualified_id mem_initializer_id
 %type<m_usr> INTEGER_LITERAL_LEX CHARACTER_LITERAL_LEX FLOATING_LITERAL_LEX TYPEDEF_NAME_LEX init_declarator
 %type<m_usr> boolean_literal
 %type<m_usrs> block_declaration simple_declaration init_declarator_list
@@ -1040,14 +1040,26 @@ mem_initializer_list
 
 mem_initializer
   : mem_initializer_id '(' expression_list ')'
+    {
+      using namespace cxx_compiler::declarations::declarators;
+      function::definition::mem_initializer::action($1, $3);
+    }
   | mem_initializer_id '('                 ')'
+    {
+      using namespace cxx_compiler::declarations::declarators;
+      function::definition::mem_initializer::action($1, 0);
+    }
   ;
 
 mem_initializer_id
   : COLONCOLON_MK move_to_root nested_name_specifier class_name
+    { cxx_compiler::error::not_implemented(); }
   | COLONCOLON_MK move_to_root                       class_name
+    { cxx_compiler::error::not_implemented(); }
   |               nested_name_specifier class_name
+    { cxx_compiler::error::not_implemented(); }
   |                                     class_name
+    { cxx_compiler::error::not_implemented(); }
   | IDENTIFIER_LEX
   ;
 
@@ -1581,17 +1593,33 @@ constant_expression
   ;
 
 function_definition_begin1
-  :                    declarator                  { cxx_compiler::declarations::declarators::function::definition::begin(0,$1); }
-  |                    declarator ctor_initializer { cxx_compiler::declarations::declarators::function::definition::begin(0,$1); }
-  | decl_specifier_seq declarator                  { cxx_compiler::declarations::declarators::function::definition::begin($1,$2); }
-  | decl_specifier_seq declarator ctor_initializer { cxx_compiler::declarations::declarators::function::definition::begin($1,$2); }
+  : declarator
+    {
+      using namespace cxx_compiler::declarations::declarators;
+      function::definition::begin(0,$1);
+    }
+  | declarator ctor_initializer
+    {
+      using namespace cxx_compiler::declarations::declarators;
+      function::definition::begin(0,$1);
+    }
+  | decl_specifier_seq declarator
+    {
+      using namespace cxx_compiler::declarations::declarators;
+      function::definition::begin($1,$2);
+    }
+  | decl_specifier_seq declarator ctor_initializer
+    {
+      using namespace cxx_compiler::declarations::declarators;
+      function::definition::begin($1,$2);
+    }
   ;
 
 function_definition_begin2
   :                    declarator
-   
+    { cxx_compiler::error::not_implemented(); }   
   | decl_specifier_seq declarator
-   
+    { cxx_compiler::error::not_implemented(); }   
   ;
 
 function_definition

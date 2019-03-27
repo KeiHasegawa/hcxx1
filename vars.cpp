@@ -16,6 +16,25 @@ cxx_compiler::genaddr::genaddr(const pointer_type* G, const type* T, var* ref, i
   }
 }
 
+cxx_compiler::var* cxx_compiler::usr::rvalue()
+{
+  const type* T = m_type->unqualified();
+  if (T->m_id != type::REFERENCE)
+    return var::rvalue();
+  typedef const reference_type RT;
+  RT* rt = static_cast<RT*>(T);
+  T = rt->referenced_type();
+  var* ret = new var(T);
+  if (scope::current->m_id == scope::BLOCK) {
+    block* b = static_cast<block*>(scope::current);
+    b->m_vars.push_back(ret);
+  }
+  else
+    garbage.push_back(ret);
+  code.push_back(new invraddr3ac(ret,this));
+  return ret;
+}
+
 cxx_compiler::var* cxx_compiler::with_initial::rvalue()
 {
   if (!m_type->scalar())
@@ -68,7 +87,7 @@ cxx_compiler::var* cxx_compiler::ref::rvalue()
     return ret;
   }
   var* ret = new var(T);
-  if ( scope::current->m_id == scope::BLOCK ){
+  if (scope::current->m_id == scope::BLOCK) {
     block* b = static_cast<block*>(scope::current);
     b->m_vars.push_back(ret);
   }
