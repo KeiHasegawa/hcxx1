@@ -6,11 +6,18 @@ namespace cxx_compiler {
   // work around. sytax error may causes invalid scope::current.
   inline void neaten()
   {
-    while (scope::current->m_id == scope::BLOCK ||
-	   scope::current->m_id == scope::PARAM ||
-	   scope::current->m_id == scope::TAG) {
-      scope::current = scope::current->m_parent;
+    if (error::counter) {
+      while (scope::current->m_id == scope::BLOCK ||
+	     scope::current->m_id == scope::PARAM ||
+	     scope::current->m_id == scope::TAG) {
+	scope::current = scope::current->m_parent;
+      }
     }
+    using namespace class_or_namespace_name;
+    typedef vector<scope*>::iterator IT;
+    IT p = find(begin(before), end(before), scope::current);
+    if (p != end(before))
+      before.erase(p+1, end(before));
   }
 } // end of namespace cxx_compiler
 %}
@@ -173,6 +180,11 @@ declaration
   | explicit_specialization
   | linkage_specification
   | namespace_definition
+    {
+      using namespace cxx_compiler::class_or_namespace_name;
+      assert(!before.empty());
+      before.pop_back();
+    }
   | error ';'
   ;
 
@@ -244,14 +256,14 @@ type_specifier
 simple_type_specifier
   : COLONCOLON_MK move_to_root nested_name_specifier type_name
     { $$ = $4; cxx_compiler::class_or_namespace_name::after(); }
-  | COLONCOLON_MK move_to_root                       type_name
+  | COLONCOLON_MK move_to_root type_name
     { $$ = $3; cxx_compiler::class_or_namespace_name::after(); }
-  |                            nested_name_specifier type_name
+  | nested_name_specifier type_name
     { $$ = $2; cxx_compiler::class_or_namespace_name::after(); }
-  |                                                  type_name
+  | type_name
   | COLONCOLON_MK move_to_root nested_name_specifier TEMPLATE_KW template_id
     { cxx_compiler::error::not_implemented(); }
-  |                            nested_name_specifier TEMPLATE_KW template_id
+  | nested_name_specifier TEMPLATE_KW template_id
     { cxx_compiler::error::not_implemented(); }
   | CHAR_KW
     { $$ = new cxx_compiler::declarations::type_specifier(CHAR_KW); }
@@ -395,12 +407,23 @@ namespace_body
   ;
 
 extension_namespace_definition
-  : NAMESPACE_KW ORIGINAL_NAMESPACE_NAME_LEX '{' namespace_body '}'
+  : NAMESPACE_KW ORIGINAL_NAMESPACE_NAME_LEX '{'
+    { cxx_compiler::extension_namespace_definition($2); }
+    namespace_body '}'
+    {
+      using namespace cxx_compiler;
+      scope::current = scope::current->m_parent;
+    }
   ;
 
 original_namespace_definition
-  : NAMESPACE_KW IDENTIFIER_LEX '{' { cxx_compiler::original_namespace_definition($2); }
-    namespace_body '}' { cxx_compiler::scope::current = cxx_compiler::scope::current->m_parent; }
+  : NAMESPACE_KW IDENTIFIER_LEX '{'
+    { cxx_compiler::original_namespace_definition($2); }
+    namespace_body '}'
+    {
+      using namespace cxx_compiler;
+      scope::current = scope::current->m_parent;
+    }
   ;
 
 namespace_name
@@ -568,7 +591,7 @@ ptr_operator
       $$ = pointer::action($5, true);
       class_or_namespace_name::after();
     }
-  |                            nested_name_specifier '*' cvr_qualifier_seq
+  | nested_name_specifier '*' cvr_qualifier_seq
     {
       using namespace cxx_compiler;
       using namespace declarations::declarators;
@@ -582,7 +605,7 @@ ptr_operator
       $$ = pointer::action(0, true);
       class_or_namespace_name::after();
     }
-  |                            nested_name_specifier '*'
+  | nested_name_specifier '*'
     {
       using namespace cxx_compiler;
       using namespace declarations::declarators;
@@ -1237,12 +1260,14 @@ unqualified_id
 qualified_id
   : COLONCOLON_MK move_to_root nested_name_specifier TEMPLATE_KW unqualified_id
     { cxx_compiler::error::not_implemented(); }
-  | COLONCOLON_MK move_to_root nested_name_specifier             unqualified_id
+  | COLONCOLON_MK move_to_root nested_name_specifier unqualified_id
     { cxx_compiler::error::not_implemented(); }
-  |                            nested_name_specifier TEMPLATE_KW unqualified_id
+  | nested_name_specifier TEMPLATE_KW unqualified_id
     { cxx_compiler::error::not_implemented(); }
-  |                            nested_name_specifier             unqualified_id { $$ = $2; }
-  | COLONCOLON_MK move_to_root IDENTIFIER_LEX { $$ = $3; cxx_compiler::class_or_namespace_name::after(); }
+  | nested_name_specifier unqualified_id
+    { $$ = $2; }
+  | COLONCOLON_MK move_to_root IDENTIFIER_LEX
+    { $$ = $3; cxx_compiler::class_or_namespace_name::after(); }
   | COLONCOLON_MK move_to_root operator_function_id
     { cxx_compiler::error::not_implemented(); }
   | COLONCOLON_MK move_to_root template_id
@@ -1250,7 +1275,10 @@ qualified_id
   ;
 
 move_to_root
-  : { cxx_compiler::class_or_namespace_name::action(&cxx_compiler::scope::root); }
+  : {
+      using namespace cxx_compiler;
+      scope::current = &cxx_compiler::scope::root;
+    }
   ;
 
 nested_name_specifier
@@ -1261,9 +1289,9 @@ nested_name_specifier
 
 class_or_namespace_name
   : class_name
-    { cxx_compiler::class_or_namespace_name::action($1); }
+    { cxx_compiler::scope::current = $1; }
   | namespace_name
-    { cxx_compiler::class_or_namespace_name::action($1); }
+    { cxx_compiler::scope::current = $1; }
   ;
 
 postfix_expression

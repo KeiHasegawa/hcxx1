@@ -1255,10 +1255,12 @@ struct overload : usr {
 };
 
 namespace class_or_namespace_name {
-  extern void action(scope*);
-  extern scope* before;
+  extern vector<scope*> before;
   extern scope* last;
   extern void after();
+  struct sweeper {
+    ~sweeper(){ after(); }
+  };
 } // end of namespace class_or_namespace_name
 
 namespace unqualified_id {
@@ -1275,6 +1277,8 @@ namespace call_impl {
 } // end of namespace call_impl
 
 void original_namespace_definition(var*);
+
+void extension_namespace_definition(var*);
 
 inline bool compatible(const type* x, const type* y)
 {

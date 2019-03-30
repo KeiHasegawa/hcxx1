@@ -532,6 +532,11 @@ namespace cxx_compiler { namespace declarations { namespace declarators { namesp
       scope* new_block(scope* ptr, scope* parent)
       {
         block* ret = new block;
+	{
+	  using namespace class_or_namespace_name;
+	  assert(before.back() == ret);
+	  before.pop_back();
+	}
         ret->m_parent = parent;
         if (ptr->m_id != scope::BLOCK) {
 	  assert(ptr->m_id == scope::TAG);
@@ -559,6 +564,11 @@ namespace cxx_compiler { namespace declarations { namespace declarators { namesp
       {
         symtab.clear();
         block* ret = new block;
+	{
+	  using namespace class_or_namespace_name;
+	  assert(before.back() == ret);
+	  before.pop_back();
+	}
         ret->m_parent = scope::current;
         scope::current->m_children.push_back(ret);
         const vector<usr*>& o = param->m_order;

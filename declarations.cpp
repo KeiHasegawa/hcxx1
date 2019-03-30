@@ -490,6 +490,10 @@ namespace cxx_compiler { namespace declarations {
   usr* action2(usr*);
 } } // end of namespace declarations ans cxx_compiler
 
+void debug_break()
+{
+}
+
 cxx_compiler::usr*
 cxx_compiler::declarations::action1(var* v, bool ini)
 {
@@ -497,6 +501,9 @@ cxx_compiler::declarations::action1(var* v, bool ini)
   using namespace error::declarations::specifier_seq::type;
   assert(v->usr_cast());
   usr* u = static_cast<usr*>(v);
+  if (u->m_name == "x") {
+    debug_break();
+  }
   bool lookuped = !u->m_type->backpatch();
   if ( specifier_seq::info_t::s_stack.empty() ){
     usr::flag_t mask = usr::flag_t(usr::CTOR | usr::DTOR);
@@ -891,11 +898,12 @@ namespace cxx_compiler { namespace declarations { namespace elaborated {
 const cxx_compiler::type* cxx_compiler::declarations::elaborated::action(int keyword, var* v)
 {
   using namespace std;
+  assert(v->usr_cast());
   usr* u = static_cast<usr*>(v);
   auto_ptr<usr> sweeper(u);
   string name = u->m_name;
   tag* T = lookup(name,scope::current);
-  if ( T ){
+  if (T) {
     const pair<const type*, const type*>& p = T->m_types;
     return p.second ? p.second : p.first;
   }
@@ -906,6 +914,9 @@ const cxx_compiler::type* cxx_compiler::declarations::elaborated::action(int key
     tag* T = new tag(kind,name,file,0);
     ptr->m_tags[name] = T;
     T->m_parent = ptr;
+    using namespace class_or_namespace_name;
+    assert(!before.empty());
+    before.pop_back();
     return T->m_types.first = incomplete_tagged_type::create(T);
   }
 }
@@ -1043,9 +1054,14 @@ void cxx_compiler::declarations::enumeration::definition(var* v, expressions::ba
   prev = static_cast<usr*>(v);
 }
 
-const cxx_compiler::type* cxx_compiler::declarations::enumeration::end(tag* Tag)
+const cxx_compiler::type*
+cxx_compiler::declarations::enumeration::end(tag* ptr)
 {
-  return Tag->m_types.second = enum_type::create(Tag,prev->m_type);
+  using namespace class_or_namespace_name;
+  assert(!before.empty());
+  if (before.back() == ptr)
+    before.pop_back();
+  return ptr->m_types.second = enum_type::create(ptr, prev->m_type);
 }
 
 bool cxx_compiler::declarations::duration::_static(const usr* u)

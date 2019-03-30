@@ -1305,18 +1305,29 @@ cxx_compiler::var* cxx_compiler::unqualified_id::dtor(tag* ptr)
 
 cxx_compiler::var* cxx_compiler::unqualified_id::from_nonmember(usr* u)
 {
-  if (!class_or_namespace_name::before)
+  using namespace parse;
+  if (identifier::mode == identifier::member)
     return u;
-  usr* func = fundef::current->m_usr;
-  assert(func);
-  scope* p = func->m_scope;
-  assert(p->m_id != scope::TAG);
+  using namespace class_or_namespace_name;
+  assert(!before.empty());
+  scope* ptr = before.back();
+  if (ptr == scope::current)
+    return u;
   scope* q = u->m_scope;
-  if (q->m_id !=  scope::TAG)
+  if (q->m_id != scope::TAG)
     return u;
   usr::flag_t flag = u->m_flag;
   if (flag & usr::STATIC)
     return u;
+  if (!fundef::current)
+    return u;
+  usr* func = fundef::current->m_usr;
+  assert(func);
+  if (func->m_scope == u->m_scope) {
+    usr::flag_t flag = func->m_flag;
+    if (!(flag & usr::STATIC))
+      return u;
+  }
   var* ret = new nonstatic_member_ref(u);
   garbage.push_back(ret);
   return ret;

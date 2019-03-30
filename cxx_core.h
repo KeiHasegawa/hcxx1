@@ -16,7 +16,7 @@ struct scope {
   static scope* current;
   static scope root;
   std::vector<usr*> m_order;
-  scope(id_t id = NONE) : m_id(id), m_parent(0) {}
+  scope(id_t id);
   virtual ~scope();
 };
 

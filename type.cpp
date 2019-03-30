@@ -1850,6 +1850,10 @@ void cxx_compiler::record_impl::add_ctor(tag* ptr,
   }
 
   scope* param = new scope(scope::PARAM);
+  using namespace class_or_namespace_name;
+  assert(!before.empty());
+  assert(before.back() == param);
+  before.pop_back();
   param->m_parent = ptr;
   ptr->m_children.push_back(param);
   string name = "this";
@@ -1860,6 +1864,9 @@ void cxx_compiler::record_impl::add_ctor(tag* ptr,
   param->m_usrs[name].push_back(This);
 
   block* b = new block;
+  assert(!before.empty());
+  assert(before.back() == b);
+  before.pop_back();
   b->m_parent = param;
   param->m_children.push_back(b);
 

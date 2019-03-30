@@ -40,6 +40,7 @@ cxx_compiler::classes::specifier::begin(int keyword, var* v, std::vector<base*>*
     }
     prev->m_file.push_back(file);
     scope::current = prev;
+    class_or_namespace_name::before.push_back(prev);
   }
   else {
     tag* ptr = new tag(kind,name,file,bases);
@@ -68,15 +69,22 @@ namespace cxx_compiler { namespace classes { namespace specifier {
 const cxx_compiler::type* cxx_compiler::classes::specifier::action()
 {
   using namespace std;
+  assert(scope::current->m_id == scope::TAG);
   tag* ptr = static_cast<tag*>(scope::current);
   const type* ret = record_type::create(ptr);
   ptr->m_types.second = ret;
   map<usr*, parse::member_function_body::save_t>& tbl =
     parse::member_function_body::table;
+  if (tbl.empty()) {
+    using namespace class_or_namespace_name;
+    assert(!before.empty());
+    assert(scope::current == before.back());
+    before.pop_back();
+    scope::current = ptr->m_parent;
+    return ret;
+  }
   for_each(tbl.begin(),tbl.end(),member_function_definition);
   tbl.clear();
-  scope::current = ptr->m_parent;
-  class_or_namespace_name::after();
   return ret;
 }
 
@@ -181,28 +189,20 @@ void cxx_compiler::classes::members::bit_field(var* v, expressions::base* expr)
   declarations::action1(u,false);
 }
 
-void cxx_compiler::class_or_namespace_name::action(scope* p)
-{
-  if ( !before ){
-    if ( parse::identifier::mode != parse::identifier::new_obj )
-      before = scope::current;
-    else if (parse::peek() == COLONCOLON_MK)
-      before = scope::current;
-  }
-  scope::current = p;
-}
-
-cxx_compiler::scope* cxx_compiler::class_or_namespace_name::before;
-
-cxx_compiler::scope* cxx_compiler::class_or_namespace_name::last;
+namespace cxx_compiler {
+  namespace class_or_namespace_name {
+    using namespace std;
+    vector<scope*> before;
+    scope* last;
+  } // end of namespace class_or_namespace_name
+} // end of namespace cxx_compiler
 
 void cxx_compiler::class_or_namespace_name::after()
 {
-  if ( !class_or_namespace_name::before )
-    return;
-  class_or_namespace_name::last = scope::current;
-  scope::current = class_or_namespace_name::before;
-  class_or_namespace_name::before = 0;
+  assert(!before.empty());
+  assert(before.back());
+  last = scope::current;
+  scope::current = before.back();
 }
 
 namespace cxx_compiler {

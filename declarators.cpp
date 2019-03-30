@@ -319,6 +319,10 @@ cxx_compiler::declarations::declarators::function::definition::begin(declaration
     using namespace error::declarations::declarators::function::definition;
     invalid(parse::position);
     scope* param = new scope(scope::PARAM);
+    using namespace class_or_namespace_name;
+    assert(!before.empty());
+    assert(before.back() == param);
+    before.pop_back();
     param->m_parent = scope::current;
     children.push_back(param);
   }

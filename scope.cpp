@@ -4,6 +4,11 @@
 #include "yy.h"
 #include "cxx_y.h"
 
+cxx_compiler::scope::scope(id_t id = NONE) : m_id(id), m_parent(0)
+{
+  class_or_namespace_name::before.push_back(this);
+}
+
 cxx_compiler::scope cxx_compiler::scope::root;
 cxx_compiler::scope* cxx_compiler::scope::current = &cxx_compiler::scope::root;
 
@@ -97,6 +102,7 @@ cxx_compiler::tag::~tag()
 void cxx_compiler::original_namespace_definition(var* v)
 {
   using namespace std;
+  assert(v->usr_cast());
   usr* u = static_cast<usr*>(v);
   auto_ptr<usr> sweeper(u);
   string name = u->m_name;
@@ -106,4 +112,16 @@ void cxx_compiler::original_namespace_definition(var* v)
   ptr->m_parent = scope::current;
   ptr->m_parent->m_children.push_back(ptr);
   scope::current = ptr;
+}
+
+void cxx_compiler::extension_namespace_definition(var* v)
+{
+  assert(v->usr_cast());
+  usr* u = static_cast<usr*>(v);
+  usr::flag_t flag = u->m_flag;
+  assert(flag & usr::NAMESPACE);
+  name_space* ptr = static_cast<name_space*>(u);
+  scope::current = ptr;
+  using namespace class_or_namespace_name;
+  before.push_back(scope::current);
 }

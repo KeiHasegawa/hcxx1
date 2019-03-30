@@ -285,7 +285,22 @@ int cxx_compiler::declarations::initializers::clause::assign(var* y, argument* a
     typedef const reference_type RT;
     RT* rt = static_cast<RT*>(U);
     const type* R = rt->referenced_type();
-    assert(y->lvalue() || !R->modifiable());
+    if (y->isconstant()) {
+      if (scope::current->m_id == scope::BLOCK) {
+	block* b = static_cast<block*>(scope::current);
+	var* tmp = new var(y->m_type);
+	b->m_vars.push_back(tmp);
+	code.push_back(new assign3ac(tmp, y));
+	y = tmp;
+      }
+      else {
+	string name = new_name(".tmp");
+	with_initial* tmp = new with_initial(name, y->m_type, parse::position);
+	scope::root.m_usrs[name].push_back(tmp);
+	tmp->m_value[0] = y;
+	y = tmp;
+      }
+    }
     const type* pt = pointer_type::create(y->m_type);
     arg->V[arg->off] = new addrof(pt, y, 0);
   }
@@ -898,9 +913,16 @@ void cxx_compiler::declarations::initializers::initialize_code(with_initial* x)
   usr::flag_t flag = usr::flag_t(usr::FUNCTION | usr::INITIALIZE_FUNCTION);
   usr* func = new usr(name,ft,flag,file_t());
   scope* param = new scope(scope::PARAM);
+  using namespace class_or_namespace_name;
+  assert(!before.empty());
+  assert(before.back() == param);
+  before.pop_back();
   param->m_parent = &scope::root;
   scope::root.m_children.push_back(param);
   block* body = new block;
+  assert(!before.empty());
+  assert(before.back() == body);
+  before.pop_back();
   body->m_parent = param;
   param->m_children.push_back(body);
   fundef::current = new fundef(func,param);

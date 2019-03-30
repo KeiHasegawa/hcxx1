@@ -417,8 +417,11 @@ void cxx_compiler::parse::parameter::enter()
 {
   using namespace std;
   if (class_or_namespace_name::last) {
-    scope::current = class_or_namespace_name::last;
-    class_or_namespace_name::last = 0;
+    using namespace class_or_namespace_name;
+    assert(!before.empty());
+    before.back() = scope::current;
+    scope::current = last;
+    last = 0;
   }
   vector<scope*>& children = scope::current->m_children;
   scope* param = new scope(scope::PARAM);
@@ -437,6 +440,10 @@ void cxx_compiler::parse::parameter::leave()
   case scope::NAMESPACE:
     return;
   }
+  using namespace class_or_namespace_name;
+  assert(!before.empty());
+  assert(before.back() == scope::current);
+  before.pop_back();
   scope* org = scope::current;
   scope::current = scope::current->m_parent;
   vector<scope*>& children = scope::current->m_children;
@@ -461,6 +468,7 @@ void cxx_compiler::parse::parameter::leave()
     }
     break;
   default:
+    assert(!children.empty());
     assert(children.back() == org);
     children.pop_back();
     delete org;
@@ -548,6 +556,8 @@ void cxx_compiler::parse::block::enter()
       if ( !c.empty() ){
 	assert(c.size() == 1);
 	scope::current = c.back();
+	using namespace class_or_namespace_name;
+	before.push_back(scope::current);
 	return;
       }
       return parameter::decide_dim(), new_block(), parameter::move();
@@ -569,6 +579,10 @@ void cxx_compiler::parse::block::new_block()
 
 void cxx_compiler::parse::block::leave()
 {
+  using namespace class_or_namespace_name;
+  assert(!before.empty());
+  assert(scope::current == before.back());
+  before.pop_back();
   scope::current = scope::current->m_parent;
   if ( scope::current->m_parent == &scope::root )
     scope::current = &scope::root;
