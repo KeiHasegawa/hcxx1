@@ -324,7 +324,7 @@ struct usr : var {
   var* assign(var*);
   static std::string keyword(flag_t);
   usr* usr_cast(){ return this; }
-  virtual int initialize();
+  virtual void initialize();
   usr(std::string name, const type* T, flag_t flag, const file_t& file)
     : var(T), m_name(name), m_flag(flag), m_file(file) {}
 };

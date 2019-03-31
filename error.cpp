@@ -1823,6 +1823,23 @@ void cxx_compiler::error::declarations::initializers::with_extern(const usr* u)
   ++counter;
 }
 
+void cxx_compiler::error::declarations::initializers::no_ctor(const usr* u)
+{
+  using namespace std;
+  string name = u->m_name;
+  switch (lang) {
+  case jpn:
+    header(u->m_file,"エラー");
+    cerr << '`' << name << "' に対するコンストラクタがありません.\n";
+    break;
+  default:
+    header(u->m_file,"error");
+    cerr << "no constructor for `" << name << ".\n";
+    break;
+  }
+  ++counter;
+}
+
 void cxx_compiler::error::expressions::primary::literal::character::invalid(const file_t& file, std::string name, const type* T)
 {
   using namespace std;

@@ -9,7 +9,7 @@ namespace cxx_compiler { namespace declarations { namespace initializers {
     std::vector<tac*> m_code;
     std::map<int, var*> m_value;
   };
-  std::map<usr*, gendata> m_table;
+  std::map<usr*, gendata> table;
   usr* argument::dst;
   namespace clause {
     extern int gencode(info_t*, argument*);
@@ -26,7 +26,7 @@ void cxx_compiler::declarations::initializers::action(var* v, info_t* i)
   argument::dst = u;
   usr::flag_t flag = u->m_flag;
   with_initial* p = (flag & usr::WITH_INI) ? static_cast<with_initial*>(u) : 0;
-  argument arg(u->m_type,p ? p->m_value : m_table[u].m_value,0,0,-1,-1,-1,-1);
+  argument arg(u->m_type,p ? p->m_value : table[u].m_value,0,0,-1,-1,-1,-1);
   int n = code.size();
   i->m_clause ? clause::gencode(i->m_clause,&arg) : expr_list(i->m_exprs,&arg);
   if ( p ){
@@ -46,7 +46,7 @@ void cxx_compiler::declarations::initializers::action(var* v, info_t* i)
   }
   else {
     int m = code.size();
-    gendata& data = m_table[u];
+    gendata& data = table[u];
     copy(code.begin()+n,code.begin()+m,back_inserter(data.m_code));
     code.resize(n);
   }
@@ -73,57 +73,85 @@ namespace cxx_compiler { namespace declarations { namespace initializers {
   extern void gencode(usr*);
 } } } // end of namespace initializers, declarations and cxx_compiler
 
-int cxx_compiler::usr::initialize()
+void cxx_compiler::usr::initialize()
 {
   declarations::initializers::gencode(this);
-  block* b = scope::current->m_id == scope::BLOCK ? static_cast<block*>(scope::current) : 0;
-  if ( b && m_type->variably_modified() ){
-    if ( m_flag & usr::EXTERN ){
-      using namespace error::declarations::declarators::vm;
-      invalid_linkage(this);
-      m_flag = usr::flag_t(m_flag & ~usr::EXTERN);
+  if (scope::current->m_id == scope::BLOCK) {
+    block* b = static_cast<block*>(scope::current);
+    if ( m_type->variably_modified() ){
+      if ( m_flag & usr::EXTERN ){
+	using namespace error::declarations::declarators::vm;
+	invalid_linkage(this);
+	m_flag = usr::flag_t(m_flag & ~usr::EXTERN);
+      }
     }
   }
+  
   using namespace declarations::declarators::array;
   variable_length::allocate(this);
-  if ( b ) {
-    const type* T = m_type->unqualified();
-    if (T->m_id == type::RECORD ){
-      typedef const record_type REC;
-      REC* rec = static_cast<REC*>(T);
-      tag* ptr = rec->get_tag();
-      string name = ptr->m_name;
-      const map<string, vector<usr*> >& usrs = ptr->m_usrs;
-      map<string, vector<usr*> >::const_iterator p = usrs.find(name);
-      if ( p != usrs.end() ){
-	const vector<usr*>& v = p->second;
-	usr* ctor = v.back();
+}
+
+namespace cxx_compiler {
+  namespace declarations {
+    namespace initializers {
+      bool param_void(usr* u)
+      {
+	const type* T = u->m_type;
+	assert(T->m_id == type::FUNC);
+	typedef const func_type FT;
+	FT* ft = static_cast<FT*>(T);
+	const vector<const type*> & param = ft->param();
+	if (param.size() != 1)
+	  return false;
+	T = param[0];
+	return T->m_id == type::VOID;
+      }
+      void call_default_ctor(usr* u)
+      {
+	const type* T = u->m_type;
+	T = T->unqualified();
+	if (T->m_id != type::RECORD )
+	  return;
+	typedef const record_type REC;
+	REC* rec = static_cast<REC*>(T);
+	tag* ptr = rec->get_tag();
+	string name = ptr->m_name;
+	const map<string, vector<usr*> >& usrs = ptr->m_usrs;
+	map<string, vector<usr*> >::const_iterator p = usrs.find(name);
+	if (p == usrs.end())
+	  return;
+	const vector<usr*>& ctors = p->second;
+	typedef vector<usr*>::const_iterator IT;
+	IT q = find_if(begin(ctors), end(ctors), param_void);
+	if (q == end(ctors))
+	  return;
+	usr* ctor = *q;
 	assert(ctor->m_type->m_id == type::FUNC);
 	typedef const func_type FT;
 	FT* ft = static_cast<FT*>(ctor->m_type);
-	vector<var*> arg;
-	call_impl::common(ft,ctor,&arg,false,this);
+	vector<var*> empty;
+	call_impl::common(ft,ctor,&empty,false,u);
 	usr::flag_t flag = ctor->m_flag;
 	if (!error::counter && !cmdline::no_inline_sub) {
 	  if (flag & usr::INLINE) {
-	    using namespace declarations::declarators::function::definition::static_inline::skip;
-	    table_t::const_iterator p = table.find(ctor);
-	    if (p != table.end())
+	    using namespace declarations::declarators::function::definition;
+	    using namespace static_inline;
+	    skip::table_t::const_iterator p = skip::table.find(ctor);
+	    if (p != skip::table.end())
 	      substitute(code, code.size()-1, p->second);
 	  }
 	}
       }
-    }
-  }
-  return 0;
-}
+    } // end of nmeaspace initializers
+  } // end of nmeaspace declarations
+} // end of nmeaspace cxx_compiler
 
 void cxx_compiler::declarations::initializers::gencode(usr* u)
 {
   using namespace std;
   using namespace declarations::declarators::function::definition::static_inline;
-  map<usr*, gendata>::iterator p = m_table.find(u);
-  if ( p != m_table.end() ){
+  map<usr*, gendata>::iterator p = table.find(u);
+  if ( p != table.end() ){
     gendata& data = p->second;
     vector<tac*>& c = data.m_code;
     copy(c.begin(),c.end(),back_inserter(code));
@@ -174,8 +202,10 @@ void cxx_compiler::declarations::initializers::gencode(usr* u)
     }
     else
       for_each(value.begin(),value.end(),bind1st(ptr_fun(gen_loff),u));
-    m_table.erase(p);
+    table.erase(p);
   }
+  else
+    call_default_ctor(u);
 }
 
 namespace cxx_compiler { namespace declarations { namespace initializers { namespace clause {
@@ -183,35 +213,88 @@ namespace cxx_compiler { namespace declarations { namespace initializers { names
   extern int lsting(std::vector<element*>*, argument*);
 } } } } // end of namespace clause, initializers, declarations and cxx_compiler
 
-int cxx_compiler::declarations::initializers::clause::gencode(info_t* c, argument* arg)
+int cxx_compiler::declarations::initializers::clause::
+gencode(info_t* c, argument* arg)
 {
   return c->m_expr ? assign(c->m_expr->gen(),arg) : lsting(c->m_list,arg);
 }
 
-namespace cxx_compiler { namespace declarations { namespace initializers { namespace clause {
-  extern int helper(expressions::base*, argument*);
-} } } } // end of namespace clause, initializers, declarations and cxx_compiler
+namespace cxx_compiler {
+  namespace declarations {
+    namespace initializers {
+      bool match(usr* ctor, vector<var*>* arg)
+      {
+	assert(ctor->m_type->m_id == type::FUNC);
+	typedef const func_type FT;
+	FT* ft = static_cast<FT*>(ctor->m_type);
+	int n = code.size();
+	var* r = call_impl::common(ft,ctor,arg,true,argument::dst);
+	vector<tac*>& c = table[argument::dst].m_code;
+	copy(begin(code)+n, end(code), back_inserter(c));
+	code.resize(n);
+	return r;
+      }
+    } // end of namespace initializers
+  } // end of namespace declarations
+} // end of namespace cxx_compiler
 
-int cxx_compiler::declarations::initializers::expr_list(std::vector<expressions::base*>* v, argument* arg)
+int cxx_compiler::declarations::initializers::
+expr_list(std::vector<expressions::base*>* v, argument* arg)
 {
   using namespace std;
-  for_each(v->begin(),v->end(),bind2nd(ptr_fun(clause::helper),arg));
+  assert(!v->empty());
+  const type* T = arg->T;
+  if (T->scalar()) {
+    if (v->size() == 1) {
+      expressions::base* expr = (*v)[0];
+      return clause::assign(expr->gen(),arg);
+    }
+    using namespace error::declarations::initializers;
+    exceed(argument::dst);
+    return 0;
+  }
+
+  T = T->unqualified();
+  if (T->m_id != type::RECORD) {
+    error::not_implemented();
+    return 0;
+  }
+
+  typedef const record_type REC;
+  REC* rec = static_cast<REC*>(T);
+  tag* ptr = rec->get_tag();
+  string name = ptr->m_name;
+  typedef map<string, vector<usr*> >::const_iterator IT;
+  IT p = ptr->m_usrs.find(name);
+  if (p == ptr->m_usrs.end()) {
+    using namespace error::declarations::initializers;
+    no_ctor(argument::dst);
+    return 0;
+  }
+
+  vector<var*> res;
+  transform(begin(*v), end(*v), back_inserter(res),
+	    mem_fun(&expressions::base::gen));
+
+  const vector<usr*>& ctors = p->second;
+  typedef vector<usr*>::const_iterator CIT;
+  CIT q = find_if(begin(ctors), end(ctors), bind2nd(ptr_fun(match), &res));
+  if (q == end(ctors)) {
+    error::not_implemented();
+    return 0;
+  }
+
   return 0;
 }
 
-int cxx_compiler::declarations::initializers::clause::helper(expressions::base* expr, argument* arg)
-{
-  return assign(expr->gen(),arg);
-}
-
-int cxx_compiler::declarations::initializers::gen_loff(usr* dst, std::pair<int,var*> p)
+void cxx_compiler::declarations::initializers::
+gen_loff(usr* dst, std::pair<int,var*> p)
 {
   using namespace expressions::primary::literal;
   int offset = p.first;
   var* off = integer::create(offset);
   var* src = p.second;
   code.push_back(new loff3ac(dst,off,src));
-  return 0;
 }
 
 namespace cxx_compiler { namespace declarations { namespace initializers {
@@ -223,7 +306,8 @@ namespace cxx_compiler { namespace declarations { namespace initializers {
   extern int bit_field(var*, argument*);
 } } } // end of namespace initializers, declarations and cxx_compiler
 
-int cxx_compiler::declarations::initializers::clause::assign(var* y, argument* arg)
+int cxx_compiler::declarations::initializers::clause::
+assign(var* y, argument* arg)
 {
   using namespace std;
   const type* T = arg->T;

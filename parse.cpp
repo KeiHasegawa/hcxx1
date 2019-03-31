@@ -550,7 +550,11 @@ void cxx_compiler::parse::block::enter()
 	string name = "this";
 	usr* u = new usr(name,T,usr::NONE,file_t());
 	scope::current->m_usrs[name].push_back(u);
-	scope::current->m_order.push_back(u);
+	vector<usr*>& order = scope::current->m_order;
+	vector<usr*> tmp = order;
+	order.clear();
+	order.push_back(u);
+	copy(begin(tmp), end(tmp), back_inserter(order));
       }
       vector<scope*>& c = scope::current->m_children;
       if ( !c.empty() ){

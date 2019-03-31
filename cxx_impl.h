@@ -186,6 +186,7 @@ namespace error {
       extern void not_object(const usr*);
       extern void invalid_assign(const file_t&, const usr*, bool);
       extern void with_extern(const usr*);
+      extern void no_ctor(const usr*);
       namespace designator {
         extern void invalid_subscripting(const file_t&, const type*);
         extern void not_integer(const file_t&);
@@ -626,7 +627,7 @@ namespace declarations {
       int gencode(element*, argument*);
     } // end of namespace lst
     extern int fill_zero(argument*);
-    extern int gen_loff(usr*, pair<int,var*>);
+    extern void gen_loff(usr*, pair<int,var*>);
     extern void initialize_code(with_initial*);
   } // end of namespace initializers
   namespace enumeration {
@@ -641,7 +642,7 @@ namespace declarations {
   namespace asm_definition {
     struct info_t : usr {
       string m_inst;
-      int initialize();
+      void initialize();
       info_t(var*);
     };
   } // end of namespace asm_definition

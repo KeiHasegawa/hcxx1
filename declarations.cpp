@@ -490,10 +490,6 @@ namespace cxx_compiler { namespace declarations {
   usr* action2(usr*);
 } } // end of namespace declarations ans cxx_compiler
 
-void debug_break()
-{
-}
-
 cxx_compiler::usr*
 cxx_compiler::declarations::action1(var* v, bool ini)
 {
@@ -501,9 +497,6 @@ cxx_compiler::declarations::action1(var* v, bool ini)
   using namespace error::declarations::specifier_seq::type;
   assert(v->usr_cast());
   usr* u = static_cast<usr*>(v);
-  if (u->m_name == "x") {
-    debug_break();
-  }
   bool lookuped = !u->m_type->backpatch();
   if ( specifier_seq::info_t::s_stack.empty() ){
     usr::flag_t mask = usr::flag_t(usr::CTOR | usr::DTOR);
@@ -838,6 +831,8 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
       b = usr::flag_t(b | usr::STATIC);
     else if ( a & usr::INLINE )
       b = usr::flag_t(b | usr::INLINE);
+    if (a & usr::C_SYMBOL)
+      b = usr::flag_t(b | usr::C_SYMBOL);
   }
   else if ( scope::current->m_id == scope::TAG ){
     usr::flag_t a = prev->m_flag;
@@ -1117,13 +1112,12 @@ cxx_compiler::declarations::asm_definition::info_t::info_t(var* v) : usr("",0,us
   m_inst = u->m_name;
 }
 
-int cxx_compiler::declarations::asm_definition::info_t::initialize()
+void cxx_compiler::declarations::asm_definition::info_t::initialize()
 {
   using namespace std;
   string inst = m_inst.substr(1,m_inst.length()-2);
   code.push_back(new asm3ac(inst));
   delete this;
-  return 0;
 }
 
 const cxx_compiler::type* cxx_compiler::declarations::new_type_id::action(type_specifier_seq::info_t* p)
