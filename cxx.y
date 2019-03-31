@@ -916,9 +916,19 @@ member_specification
   ;
 
 member_declaration
-  : decl_specifier_seq member_declarator_list ';' { delete $1; cxx_compiler::parse::identifier::mode = cxx_compiler::parse::identifier::look; }
-  | decl_specifier_seq                        ';' { delete $1; cxx_compiler::parse::identifier::mode = cxx_compiler::parse::identifier::look; }
-  |                    member_declarator_list ';'
+  : decl_specifier_seq member_declarator_list ';'
+    {
+      delete $1;
+      using namespace cxx_compiler::parse;
+      identifier::mode = identifier::look;
+    }
+  | decl_specifier_seq                        ';'
+    {
+      delete $1;
+      using namespace cxx_compiler::parse;
+      identifier::mode = identifier::look;
+    }
+  | member_declarator_list ';'
   | function_definition ';'
   | function_definition
   | COLONCOLON_MK move_to_root nested_name_specifier TEMPLATE_KW unqualified_id ';'
