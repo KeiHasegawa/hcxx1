@@ -842,9 +842,9 @@ void cxx_compiler::log01::do_code(statements::do_stmt::info_t* info, to3ac* begi
     delete *q;
     q = code.erase(q);
     sweep(q);
-	// `static_cast<to3ac*>(*p)' is runtime error in Visual Studio 2017.
-	end = static_cast<to3ac*>(code[m_zero]);
-	end->m_goto.clear();
+    // `static_cast<to3ac*>(*p)' is runtime error in Visual Studio 2017.
+    end = static_cast<to3ac*>(code[m_zero]);
+    end->m_goto.clear();
   }
   break_stmt::outer& b = *info;
   for_each(b.begin(),b.end(),bind2nd(ptr_fun(misc::update),end));

@@ -204,10 +204,10 @@ namespace cxx_compiler {
     switch (T->m_id) {
     case type::ENUM:
       {
-	typedef const enum_type ET;
-	ET* et = static_cast<ET*>(T);
-	T = et->get_integer();
-	return unsigned_type(T);
+        typedef const enum_type ET;
+        ET* et = static_cast<ET*>(T);
+        T = et->get_integer();
+        return unsigned_type(T);
       }
     case type::CHAR: return uchar_type::create();
     case type::SCHAR: return uchar_type::create();

@@ -107,7 +107,7 @@ namespace cxx_compiler { namespace constant_impl {
         if ( !Tz->scalar() ){
           using namespace error::expressions;
           binary::invalid(parse::position,
-			  ANDAND ? ANDAND_MK : OROR_MK,y->m_type,Tz);
+                          ANDAND ? ANDAND_MK : OROR_MK,y->m_type,Tz);
         }
         for_each(code.begin()+n,code.end(),[](tac* p){ delete p; });
         code.resize(n);
@@ -123,7 +123,7 @@ namespace cxx_compiler { namespace constant_impl {
         if ( !Tz->scalar() ){
           using namespace error::expressions;
           binary::invalid(parse::position,
-			  ANDAND ? ANDAND_MK : OROR_MK,y->m_type,Tz);
+                          ANDAND ? ANDAND_MK : OROR_MK,y->m_type,Tz);
         }
         for_each(code.begin()+n,code.end(),[](tac* p){ delete p; });
         code.resize(n);

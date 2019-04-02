@@ -426,6 +426,15 @@ action(statements::base* stmt)
     children.erase(it);
   }
   else {
+    typedef map<usr*, mem_initializer::VALUE>::iterator IT;
+    IT p = mem_initializer::table.find(u);
+    if (p != mem_initializer::table.end()) {
+      mem_initializer::VALUE& v = p->second;
+      for_each(begin(v), end(v),
+               [](pair<var*, vector<expressions::base*>*> x)
+               { mem_initializer::action(x.first, x.second); });
+      mem_initializer::table.erase(p);
+    }
     file_t org = parse::position;
     stmt->gen();
     parse::position = org;
@@ -515,7 +524,7 @@ namespace cxx_compiler { namespace declarations { namespace declarators { namesp
 
     if ((flag & usr::STATIC) && !(flag & usr::INLINE)) {
       if (u->m_scope->m_id == scope::TAG)
-	return;
+        return;
     }
 
     table_t::iterator it = table.find(u);
@@ -852,17 +861,17 @@ namespace cxx_compiler {
       }
       usr* ctor(type_specifier* spec)
       {
-	using namespace std;
-	auto_ptr<type_specifier> sweeper(spec);
-	const type* T = spec->m_type;
-	assert(T);
-	assert(T->m_id == type::RECORD);
-	typedef const record_type REC;
-	REC* rec = static_cast<REC*>(T);
-	tag* ptr = rec->get_tag();
-	string name = ptr->m_name;
-	T = backpatch_type::create();
-	return new usr(name, T, usr::CTOR, parse::position);
+        using namespace std;
+        auto_ptr<type_specifier> sweeper(spec);
+        const type* T = spec->m_type;
+        assert(T);
+        assert(T->m_id == type::RECORD);
+        typedef const record_type REC;
+        REC* rec = static_cast<REC*>(T);
+        tag* ptr = rec->get_tag();
+        string name = ptr->m_name;
+        T = backpatch_type::create();
+        return new usr(name, T, usr::CTOR, parse::position);
       }
     } // end of namespace declarators
   } // end of namespace declarations

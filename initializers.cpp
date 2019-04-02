@@ -4,18 +4,23 @@
 #include "yy.h"
 #include "cxx_y.h"
 
-namespace cxx_compiler { namespace declarations { namespace initializers {
-  struct gendata {
-    std::vector<tac*> m_code;
-    std::map<int, var*> m_value;
-  };
-  std::map<usr*, gendata> table;
-  usr* argument::dst;
-  namespace clause {
-    extern int gencode(info_t*, argument*);
-  }
-  extern int expr_list(std::vector<expressions::base*>*, argument*);
-} } } // end of namespace initializers, declarations and cxx_compiler
+namespace cxx_compiler {
+  namespace declarations {
+    namespace initializers {
+      using namespace std;
+      struct gendata {
+        vector<tac*> m_code;
+        map<int, var*> m_value;
+      };
+      map<usr*, gendata> table;
+      usr* argument::dst;
+      namespace clause {
+        extern int gencode(info_t*, argument*);
+      }  // end of namespace clause
+      extern int expr_list(vector<expressions::base*>*, argument*);
+    }  // end of namespace initializers
+  }  // end of namespace declarations
+}  // end of namespace cxx_compiler
 
 void cxx_compiler::declarations::initializers::action(var* v, info_t* i)
 {
@@ -58,7 +63,7 @@ void cxx_compiler::declarations::initializers::action(var* v, info_t* i)
       T = array->element_type();
       int n = arg.off_max;
       int m = T->size();
-	  if ( m )
+          if ( m )
         u->m_type = array_type::create(T,(n + m - 1)/ m);
     }
   }
@@ -69,9 +74,13 @@ void cxx_compiler::declarations::initializers::action(var* v, info_t* i)
   parse::identifier::mode = parse::identifier::new_obj;
 }
 
-namespace cxx_compiler { namespace declarations { namespace initializers {
-  extern void gencode(usr*);
-} } } // end of namespace initializers, declarations and cxx_compiler
+namespace cxx_compiler {
+  namespace declarations {
+    namespace initializers {
+      extern void gencode(usr*);
+    }  // end of namespace initializers
+  }  // end of namespace declarations
+}  // end of namespace cxx_compiler
 
 void cxx_compiler::usr::initialize()
 {
@@ -80,13 +89,12 @@ void cxx_compiler::usr::initialize()
     block* b = static_cast<block*>(scope::current);
     if ( m_type->variably_modified() ){
       if ( m_flag & usr::EXTERN ){
-	using namespace error::declarations::declarators::vm;
-	invalid_linkage(this);
-	m_flag = usr::flag_t(m_flag & ~usr::EXTERN);
+        using namespace error::declarations::declarators::vm;
+        invalid_linkage(this);
+        m_flag = usr::flag_t(m_flag & ~usr::EXTERN);
       }
     }
   }
-  
   using namespace declarations::declarators::array;
   variable_length::allocate(this);
 }
@@ -96,51 +104,51 @@ namespace cxx_compiler {
     namespace initializers {
       bool param_void(usr* u)
       {
-	const type* T = u->m_type;
-	assert(T->m_id == type::FUNC);
-	typedef const func_type FT;
-	FT* ft = static_cast<FT*>(T);
-	const vector<const type*> & param = ft->param();
-	if (param.size() != 1)
-	  return false;
-	T = param[0];
-	return T->m_id == type::VOID;
+        const type* T = u->m_type;
+        assert(T->m_id == type::FUNC);
+        typedef const func_type FT;
+        FT* ft = static_cast<FT*>(T);
+        const vector<const type*> & param = ft->param();
+        if (param.size() != 1)
+          return false;
+        T = param[0];
+        return T->m_id == type::VOID;
       }
       void call_default_ctor(usr* u)
       {
-	const type* T = u->m_type;
-	T = T->unqualified();
-	if (T->m_id != type::RECORD )
-	  return;
-	typedef const record_type REC;
-	REC* rec = static_cast<REC*>(T);
-	tag* ptr = rec->get_tag();
-	string name = ptr->m_name;
-	const map<string, vector<usr*> >& usrs = ptr->m_usrs;
-	map<string, vector<usr*> >::const_iterator p = usrs.find(name);
-	if (p == usrs.end())
-	  return;
-	const vector<usr*>& ctors = p->second;
-	typedef vector<usr*>::const_iterator IT;
-	IT q = find_if(begin(ctors), end(ctors), param_void);
-	if (q == end(ctors))
-	  return;
-	usr* ctor = *q;
-	assert(ctor->m_type->m_id == type::FUNC);
-	typedef const func_type FT;
-	FT* ft = static_cast<FT*>(ctor->m_type);
-	vector<var*> empty;
-	call_impl::common(ft,ctor,&empty,false,u);
-	usr::flag_t flag = ctor->m_flag;
-	if (!error::counter && !cmdline::no_inline_sub) {
-	  if (flag & usr::INLINE) {
-	    using namespace declarations::declarators::function::definition;
-	    using namespace static_inline;
-	    skip::table_t::const_iterator p = skip::table.find(ctor);
-	    if (p != skip::table.end())
-	      substitute(code, code.size()-1, p->second);
-	  }
-	}
+        const type* T = u->m_type;
+        T = T->unqualified();
+        if (T->m_id != type::RECORD )
+          return;
+        typedef const record_type REC;
+        REC* rec = static_cast<REC*>(T);
+        tag* ptr = rec->get_tag();
+        string name = ptr->m_name;
+        const map<string, vector<usr*> >& usrs = ptr->m_usrs;
+        map<string, vector<usr*> >::const_iterator p = usrs.find(name);
+        if (p == usrs.end())
+          return;
+        const vector<usr*>& ctors = p->second;
+        typedef vector<usr*>::const_iterator IT;
+        IT q = find_if(begin(ctors), end(ctors), param_void);
+        if (q == end(ctors))
+          return;
+        usr* ctor = *q;
+        assert(ctor->m_type->m_id == type::FUNC);
+        typedef const func_type FT;
+        FT* ft = static_cast<FT*>(ctor->m_type);
+        vector<var*> empty;
+        call_impl::common(ft,ctor,&empty,false,u);
+        usr::flag_t flag = ctor->m_flag;
+        if (!error::counter && !cmdline::no_inline_sub) {
+          if (flag & usr::INLINE) {
+            using namespace declarations::declarators::function::definition;
+            using namespace static_inline;
+            skip::table_t::const_iterator p = skip::table.find(ctor);
+            if (p != skip::table.end())
+              substitute(code, code.size()-1, p->second);
+          }
+        }
       }
     } // end of nmeaspace initializers
   } // end of nmeaspace declarations
@@ -149,7 +157,8 @@ namespace cxx_compiler {
 void cxx_compiler::declarations::initializers::gencode(usr* u)
 {
   using namespace std;
-  using namespace declarations::declarators::function::definition::static_inline;
+  using namespace declarations::declarators::function::definition;
+  using namespace static_inline;
   map<usr*, gendata>::iterator p = table.find(u);
   if ( p != table.end() ){
     gendata& data = p->second;
@@ -157,48 +166,48 @@ void cxx_compiler::declarations::initializers::gencode(usr* u)
     copy(c.begin(),c.end(),back_inserter(code));
     map<int,var*>& value = data.m_value;
     if (value.size() == 1 &&
-	u->m_type->scalar() == value[0]->m_type->scalar()) {
+        u->m_type->scalar() == value[0]->m_type->scalar()) {
       const type* Tx = u->m_type;
       Tx = Tx->unqualified();
       const type* Ty = value[0]->m_type;
       Ty = Ty->unqualified();
       if (Tx->m_id == type::REFERENCE && Ty->m_id != type::REFERENCE) {
-	var* v = value[0];
-	if (v->isconstant()) {
-	  var* tmp = new var(u->m_type);
-	  if (scope::current->m_id == scope::BLOCK) {
-	    block* b = static_cast<block*>(scope::current);
-	    b->m_vars.push_back(tmp);
-	  }
-	  else
-	    garbage.push_back(tmp);
-	  code.push_back(new assign3ac(tmp, v));
-	  v = tmp;
-	  code.push_back(new addr3ac(u, v));
-	}
-	else {
-	  addrof* addr = v->addrof_cast();
-	  assert(addr);
-	  var* ref = addr->m_ref;
-	  if (int offset = addr->m_offset) {
-	    using namespace expressions::primary::literal;
-	    var* off = integer::create(offset);
-	    var* tmp = new var(u->m_type);
-	    if (scope::current->m_id == scope::BLOCK) {
-	      block* b = static_cast<block*>(scope::current);
-	      b->m_vars.push_back(tmp);
-	    }
-	    else
-	      garbage.push_back(tmp);
-	    code.push_back(new addr3ac(tmp, ref));
-	    code.push_back(new add3ac(u, tmp, off));
-	  }
-	  else
-	    code.push_back(new addr3ac(u, ref));
-	}
+        var* v = value[0];
+        if (v->isconstant()) {
+          var* tmp = new var(u->m_type);
+          if (scope::current->m_id == scope::BLOCK) {
+            block* b = static_cast<block*>(scope::current);
+            b->m_vars.push_back(tmp);
+          }
+          else
+            garbage.push_back(tmp);
+          code.push_back(new assign3ac(tmp, v));
+          v = tmp;
+          code.push_back(new addr3ac(u, v));
+        }
+        else {
+          addrof* addr = v->addrof_cast();
+          assert(addr);
+          var* ref = addr->m_ref;
+          if (int offset = addr->m_offset) {
+            using namespace expressions::primary::literal;
+            var* off = integer::create(offset);
+            var* tmp = new var(u->m_type);
+            if (scope::current->m_id == scope::BLOCK) {
+              block* b = static_cast<block*>(scope::current);
+              b->m_vars.push_back(tmp);
+            }
+            else
+              garbage.push_back(tmp);
+            code.push_back(new addr3ac(tmp, ref));
+            code.push_back(new add3ac(u, tmp, off));
+          }
+          else
+            code.push_back(new addr3ac(u, ref));
+        }
       }
       else
-	code.push_back(new assign3ac(u,value[0]));
+        code.push_back(new assign3ac(u,value[0]));
     }
     else
       for_each(value.begin(),value.end(),bind1st(ptr_fun(gen_loff),u));
@@ -208,10 +217,16 @@ void cxx_compiler::declarations::initializers::gencode(usr* u)
     call_default_ctor(u);
 }
 
-namespace cxx_compiler { namespace declarations { namespace initializers { namespace clause {
-  extern int assign(var*, argument*);
-  extern int lsting(std::vector<element*>*, argument*);
-} } } } // end of namespace clause, initializers, declarations and cxx_compiler
+namespace cxx_compiler {
+  namespace declarations {
+    namespace initializers {
+      namespace clause {
+        extern int assign(var*, argument*);
+        extern int lsting(std::vector<element*>*, argument*);
+      }  // end of namespace clause
+    }  // end of namespace initializers
+  }  // end of namespace declarations
+}  // end of namespace cxx_compiler
 
 int cxx_compiler::declarations::initializers::clause::
 gencode(info_t* c, argument* arg)
@@ -224,15 +239,15 @@ namespace cxx_compiler {
     namespace initializers {
       bool match(usr* ctor, vector<var*>* arg)
       {
-	assert(ctor->m_type->m_id == type::FUNC);
-	typedef const func_type FT;
-	FT* ft = static_cast<FT*>(ctor->m_type);
-	int n = code.size();
-	var* r = call_impl::common(ft,ctor,arg,true,argument::dst);
-	vector<tac*>& c = table[argument::dst].m_code;
-	copy(begin(code)+n, end(code), back_inserter(c));
-	code.resize(n);
-	return r;
+        assert(ctor->m_type->m_id == type::FUNC);
+        typedef const func_type FT;
+        FT* ft = static_cast<FT*>(ctor->m_type);
+        int n = code.size();
+        var* r = call_impl::common(ft,ctor,arg,true,argument::dst);
+        vector<tac*>& c = table[argument::dst].m_code;
+        copy(begin(code)+n, end(code), back_inserter(c));
+        code.resize(n);
+        return r;
       }
     } // end of namespace initializers
   } // end of namespace declarations
@@ -274,7 +289,7 @@ expr_list(std::vector<expressions::base*>* v, argument* arg)
 
   vector<var*> res;
   transform(begin(*v), end(*v), back_inserter(res),
-	    mem_fun(&expressions::base::gen));
+            mem_fun(&expressions::base::gen));
 
   const vector<usr*>& ctors = p->second;
   typedef vector<usr*>::const_iterator CIT;
@@ -297,14 +312,19 @@ gen_loff(usr* dst, std::pair<int,var*> p)
   code.push_back(new loff3ac(dst,off,src));
 }
 
-namespace cxx_compiler { namespace declarations { namespace initializers {
-  namespace char_array_string {
-    extern int action(var*, argument*);
-  }
-  extern int assign_special(var*, argument*);
-  extern int merge(std::pair<std::map<int,var*>*,int>, std::pair<int,var*>);
-  extern int bit_field(var*, argument*);
-} } } // end of namespace initializers, declarations and cxx_compiler
+namespace cxx_compiler {
+  namespace declarations {
+    namespace initializers {
+      namespace char_array_string {
+        extern int action(var*, argument*);
+      }  // end of namespace char_array_string
+      using namespace std;
+      extern int assign_special(var*, argument*);
+      extern int merge(pair<map<int,var*>*,int>, pair<int,var*>);
+      extern int bit_field(var*, argument*);
+    }  // end of namespace initializers
+  }  // end of namespace declarations
+}  // end of namespace cxx_compiler
 
 int cxx_compiler::declarations::initializers::clause::
 assign(var* y, argument* arg)
@@ -371,18 +391,18 @@ assign(var* y, argument* arg)
     const type* R = rt->referenced_type();
     if (y->isconstant()) {
       if (scope::current->m_id == scope::BLOCK) {
-	block* b = static_cast<block*>(scope::current);
-	var* tmp = new var(y->m_type);
-	b->m_vars.push_back(tmp);
-	code.push_back(new assign3ac(tmp, y));
-	y = tmp;
+        block* b = static_cast<block*>(scope::current);
+        var* tmp = new var(y->m_type);
+        b->m_vars.push_back(tmp);
+        code.push_back(new assign3ac(tmp, y));
+        y = tmp;
       }
       else {
-	string name = new_name(".tmp");
-	with_initial* tmp = new with_initial(name, y->m_type, parse::position);
-	scope::root.m_usrs[name].push_back(tmp);
-	tmp->m_value[0] = y;
-	y = tmp;
+        string name = new_name(".tmp");
+        with_initial* tmp = new with_initial(name, y->m_type, parse::position);
+        scope::root.m_usrs[name].push_back(tmp);
+        tmp->m_value[0] = y;
+        y = tmp;
       }
     }
     const type* pt = pointer_type::create(y->m_type);
@@ -396,7 +416,8 @@ assign(var* y, argument* arg)
 }
 
 int
-cxx_compiler::declarations::initializers::clause::lsting(std::vector<element*>* v, argument* arg)
+cxx_compiler::declarations::initializers::clause::
+lsting(std::vector<element*>* v, argument* arg)
 {
   using namespace std;
   const type* T = arg->T;
@@ -414,7 +435,8 @@ cxx_compiler::declarations::initializers::clause::lsting(std::vector<element*>* 
   argument tmp(T,u,0,0,0,0,0,v->size());
   for_each(v->begin(),v->end(),bind2nd(ptr_fun(lst::gencode),&tmp));
   fill_zero(&tmp);
-  for_each(u.begin(),u.end(),bind1st(ptr_fun(initializers::merge),make_pair(&arg->V,arg->off)));
+  for_each(u.begin(),u.end(),
+           bind1st(ptr_fun(initializers::merge), make_pair(&arg->V,arg->off)));
   arg->nth_max = max(arg->nth_max, ++arg->nth);
   arg->off_max = max(arg->off_max, arg->off += tmp.off_max);
   if ( tmp.not_constant )
@@ -422,26 +444,33 @@ cxx_compiler::declarations::initializers::clause::lsting(std::vector<element*>* 
   return arg->off;
 }
 
-namespace cxx_compiler { namespace declarations { namespace initializers { namespace char_array_string {
-  usr* is_string(var*);
-  const array_type* char_array(const type*, int, bool*);
-  struct eval {
-    argument& arg;
-    bool m_wide;
-    bool m_escape;
-    int m_hex_mode;
-    char m_prev;
-    bool m_shiftjis_state;
-    int m_jis_state;
-    int m_euc_state;
-    eval(argument& a, bool wide)
-      : arg(a), m_wide(wide), m_escape(false), m_hex_mode(0), m_prev(0),
-        m_shiftjis_state(false), m_jis_state(0), m_euc_state(0) {}
-    int operator()(int);
-  };
-} } } } // end of namespace char_array_string, initializers, declarations and cxx_compiler
+namespace cxx_compiler {
+  namespace declarations {
+    namespace initializers {
+      namespace char_array_string {
+        usr* is_string(var*);
+        const array_type* char_array(const type*, int, bool*);
+        struct eval {
+          argument& arg;
+          bool m_wide;
+          bool m_escape;
+          int m_hex_mode;
+          char m_prev;
+          bool m_shiftjis_state;
+          int m_jis_state;
+          int m_euc_state;
+          eval(argument& a, bool wide)
+            : arg(a), m_wide(wide), m_escape(false), m_hex_mode(0), m_prev(0),
+              m_shiftjis_state(false), m_jis_state(0), m_euc_state(0) {}
+          int operator()(int);
+        };
+      }  // end of namespace char_array_string
+    }  // end of namespace initializers
+  }  // end of namespace declarations
+}  // end of namespace cxx_compiler
 
-int cxx_compiler::declarations::initializers::char_array_string::action(var* y, argument* arg)
+int cxx_compiler::declarations::initializers::char_array_string::
+action(var* y, argument* arg)
 {
   usr* s = is_string(y);
   if ( !s )
@@ -468,8 +497,10 @@ int cxx_compiler::declarations::initializers::char_array_string::action(var* y, 
     tmp.nth_max = max(tmp.nth_max,++tmp.nth);
   }
   fill_zero(&tmp);
-  for_each(u.begin(),u.end(),bind1st(ptr_fun(merge),make_pair(&arg->V,arg->off)));
-  arg->nth_max = max(arg->nth_max,brace ? arg->nth += tmp.nth_max : ++arg->nth);
+  for_each(u.begin(),u.end(),
+           bind1st(ptr_fun(merge), make_pair(&arg->V,arg->off)));
+  arg->nth_max = max(arg->nth_max,
+                     brace ? arg->nth += tmp.nth_max : ++arg->nth);
   arg->off_max = max(arg->off_max, arg->off += tmp.off);
   if ( tmp.not_constant )
     arg->not_constant = true;
@@ -491,12 +522,19 @@ cxx_compiler::declarations::initializers::char_array_string::is_string(var* y)
   return 0;
 }
 
-namespace cxx_compiler { namespace declarations { namespace initializers { namespace char_array_string {
-  const array_type* char_array(const type*);
-} } } } // end of namespace char_array_string, initializers, declarations and cxx_compiler
+namespace cxx_compiler {
+  namespace declarations {
+    namespace initializers {
+      namespace char_array_string {
+        const array_type* char_array(const type*);
+      }  // end of namespace char_array_string
+    }  // end of namespace initializers
+  }  // end of namespace declarations
+}  // end of namespace cxx_compiler
 
 const cxx_compiler::array_type*
-cxx_compiler::declarations::initializers::char_array_string::char_array(const type* T, int nth, bool* brace)
+cxx_compiler::declarations::initializers::char_array_string::
+char_array(const type* T, int nth, bool* brace)
 {
   using namespace std;
   if ( nth < 0 )
@@ -514,7 +552,8 @@ cxx_compiler::declarations::initializers::char_array_string::char_array(const ty
 }
 
 const cxx_compiler::array_type*
-cxx_compiler::declarations::initializers::char_array_string::char_array(const type* T)
+cxx_compiler::declarations::initializers::char_array_string::
+char_array(const type* T)
 {
   if ( T->m_id != type::ARRAY )
     return 0;
@@ -527,7 +566,8 @@ cxx_compiler::declarations::initializers::char_array_string::char_array(const ty
   return array;
 }
 
-int cxx_compiler::declarations::initializers::char_array_string::eval::operator()(int c)
+int cxx_compiler::declarations::initializers::char_array_string::eval::
+operator()(int c)
 {
   using namespace std;
   using namespace expressions::primary::literal;
@@ -637,12 +677,17 @@ int cxx_compiler::declarations::initializers::char_array_string::eval::operator(
   return arg.off;
 }
 
-namespace cxx_compiler { namespace declarations { namespace initializers {
-  int order(const record_type*, int);
-  int member_size(const record_type*);
-} } } // end of namespace initializers, declarations and cxx_compiler
+namespace cxx_compiler {
+  namespace declarations {
+    namespace initializers {
+      int order(const record_type*, int);
+      int member_size(const record_type*);
+    }  // end of namespace initializers
+  }  // end of namespace declarations
+}  // end of namespace cxx_compiler
 
-int cxx_compiler::declarations::initializers::assign_special(var* y, argument* arg)
+int cxx_compiler::declarations::initializers::
+assign_special(var* y, argument* arg)
 {
   using namespace std;
   const type* T = arg->T;
@@ -664,7 +709,8 @@ int cxx_compiler::declarations::initializers::assign_special(var* y, argument* a
   argument tmp(T,u,offset,offset,nth,nth,arg->list_pos,arg->list_len);
   clause::assign(y,&tmp);
   fill_zero(&tmp);
-  for_each(u.begin(),u.end(),bind1st(ptr_fun(initializers::merge),make_pair(&arg->V,ret.first)));
+  for_each(u.begin(),u.end(), bind1st(ptr_fun(initializers::merge),
+                                      make_pair(&arg->V,ret.first)));
   if ( tmp.nth == (array ? array->dim() : member_size(rec)) )
     arg->nth_max = max(arg->nth_max,++arg->nth), tmp.off = 0;
   arg->off_max = max(arg->off_max, arg->off = arg->nth * size + tmp.off);
@@ -673,7 +719,8 @@ int cxx_compiler::declarations::initializers::assign_special(var* y, argument* a
   return arg->off;
 }
 
-int cxx_compiler::declarations::initializers::order(const record_type* rec, int y)
+int
+cxx_compiler::declarations::initializers::order(const record_type* rec, int y)
 {
   using namespace std;
   tag* T = rec->get_tag();
@@ -692,7 +739,8 @@ int cxx_compiler::declarations::initializers::order(const record_type* rec, int 
   return nth;
 }
 
-int cxx_compiler::declarations::initializers::member_size(const record_type* rec)
+int
+cxx_compiler::declarations::initializers::member_size(const record_type* rec)
 {
   using namespace std;
   tag* T = rec->get_tag();
@@ -736,13 +784,19 @@ int cxx_compiler::declarations::initializers::bit_field(var* y, argument* arg)
   return arg->off;
 }
 
-namespace cxx_compiler { namespace declarations { namespace initializers {
-  int designation(std::vector<designator::info_t*>*, clause::info_t*, argument*);
-} } } // end of namespace list, initializers, declarations and cxx_compiler
+namespace cxx_compiler {
+  namespace declarations {
+    namespace initializers {
+      using namespace std;
+      int designation(vector<designator::info_t*>*, clause::info_t*,
+                      argument*);
+    }  // end of namespace initializers
+  }  // end of namespace declarations
+}  // end of namespace cxx_compiler
 
 int
-cxx_compiler::declarations::initializers::lst::gencode(element* p,
-                                                       argument* arg)
+cxx_compiler::declarations::initializers::lst::
+gencode(element* p, argument* arg)
 {
   using namespace std;
   if ( vector<designator::info_t*>* d = p->m_designation )
@@ -751,16 +805,20 @@ cxx_compiler::declarations::initializers::lst::gencode(element* p,
     return ++arg->list_pos, clause::gencode(p->m_clause,arg);
 }
 
-namespace cxx_compiler { namespace declarations { namespace initializers {
-  namespace designator {
-    int action(info_t*, argument*);
-  }
-  const type* complete(const type*, int);
-} } } // end of namespace list, initializers, declarations and cxx_compiler
+namespace cxx_compiler {
+  namespace declarations {
+    namespace initializers {
+      namespace designator {
+        int action(info_t*, argument*);
+      }  // end of namespace designator
+      const type* complete(const type*, int);
+    }  // end of namespace initializers
+  }  // end of namespace declarations
+}  // end of namespace cxx_compiler
 
-int cxx_compiler::declarations::initializers::designation(std::vector<designator::info_t*>* des,
-                                                          clause::info_t* ini,
-                                                          argument* arg)
+int cxx_compiler::declarations::initializers::
+designation(std::vector<designator::info_t*>* des, clause::info_t* ini,
+            argument* arg)
 {
   using namespace std;
 
@@ -768,7 +826,8 @@ int cxx_compiler::declarations::initializers::designation(std::vector<designator
   argument tmp1(arg->T,u1,0,0,-1,-1,-1,-1);
   for_each(des->begin(),des->end(),bind2nd(ptr_fun(designator::action),&tmp1));
   u1.erase(u1.begin(),u1.lower_bound(arg->off_max));
-  for_each(u1.begin(),u1.end(),bind1st(ptr_fun(initializers::merge),make_pair(&arg->V,0)));
+  for_each(u1.begin(),u1.end(),
+           bind1st(ptr_fun(initializers::merge),make_pair(&arg->V,0)));
   arg->nth_max = max(arg->nth_max, arg->nth = tmp1.nth + 1);
   if ( tmp1.not_constant )
     arg->not_constant = true;
@@ -777,23 +836,27 @@ int cxx_compiler::declarations::initializers::designation(std::vector<designator
   ++arg->list_pos;
   argument tmp2(tmp1.T,u2,0,0,-1,-1,arg->list_pos,arg->list_len);
   clause::gencode(ini,&tmp2);
-  for_each(u2.begin(),u2.end(),bind1st(ptr_fun(initializers::merge),make_pair(&arg->V,tmp1.off)));
+  for_each(u2.begin(),u2.end(),
+           bind1st(ptr_fun(initializers::merge),make_pair(&arg->V,tmp1.off)));
   arg->off_max = max(arg->off_max, arg->off = tmp1.off + tmp2.off);
   if ( tmp2.not_constant )
     arg->not_constant = true;
   
   map<int, var*> u3;
-  argument tmp3(complete(arg->T,arg->off_max),u3,0,0,0,0,arg->list_pos,arg->list_len);
+  const type* T = complete(arg->T,arg->off_max);
+  argument tmp3(T,u3,0,0,0,0,arg->list_pos,arg->list_len);
   fill_zero(&tmp3);
   u3.erase(u3.begin(),u3.lower_bound(arg->off_max));
-  for_each(u3.begin(),u3.end(),bind1st(ptr_fun(initializers::merge),make_pair(&arg->V,0)));
+  for_each(u3.begin(),u3.end(),
+           bind1st(ptr_fun(initializers::merge),make_pair(&arg->V,0)));
   if ( tmp3.not_constant )
     arg->not_constant = true;
   
   return arg->off;
 }
 
-const cxx_compiler::type* cxx_compiler::declarations::initializers::complete(const type* T, int offset)
+const cxx_compiler::type*
+cxx_compiler::declarations::initializers::complete(const type* T, int offset)
 {
   if ( T->m_id != type::ARRAY )
     return T;
@@ -809,17 +872,25 @@ const cxx_compiler::type* cxx_compiler::declarations::initializers::complete(con
   return array_type::create(T,dim);
 }
 
-namespace cxx_compiler { namespace declarations { namespace initializers { namespace designator {
-  int subscripting(expressions::base*, argument*);
-  int dot(usr*, argument*);
-} } } } // end of namespace designator, initializers, declarations and cxx_compiler
+namespace cxx_compiler {
+  namespace declarations {
+    namespace initializers {
+      namespace designator {
+        int subscripting(expressions::base*, argument*);
+        int dot(usr*, argument*);
+      }  // end of namespace designator
+    }  // end of namespace initializers
+  }  // end of namespace declarations
+}  // end of namespace cxx_compiler
 
-int cxx_compiler::declarations::initializers::designator::action(info_t* p, argument* arg)
+int cxx_compiler::declarations::initializers::designator::
+action(info_t* p, argument* arg)
 {
   return p->m_expr ? subscripting(p->m_expr,arg) : dot(p->m_usr,arg);
 }
 
-int cxx_compiler::declarations::initializers::designator::subscripting(expressions::base* expr, argument* arg)
+int cxx_compiler::declarations::initializers::designator::
+subscripting(expressions::base* expr, argument* arg)
 {
   using namespace std;
   if ( arg->T->m_id != type::ARRAY ){
@@ -846,7 +917,8 @@ int cxx_compiler::declarations::initializers::designator::subscripting(expressio
   const type* T = array_type::create(array->element_type(),nth);
   argument tmp(T,u,0,0,0,0,0,0);
   fill_zero(&tmp);
-  for_each(u.begin(),u.end(),bind1st(ptr_fun(initializers::merge),make_pair(&arg->V,arg->off)));
+  for_each(u.begin(),u.end(),
+           bind1st(ptr_fun(initializers::merge),make_pair(&arg->V,arg->off)));
   arg->T = array->element_type();
   arg->off_max = max(arg->off_max, arg->off += tmp.off_max);
   arg->nth_max = max(arg->nth_max, arg->nth = tmp.nth_max);
@@ -855,7 +927,8 @@ int cxx_compiler::declarations::initializers::designator::subscripting(expressio
   return arg->off;
 }
 
-int cxx_compiler::declarations::initializers::designator::dot(usr* member, argument* arg)
+int cxx_compiler::declarations::initializers::designator::
+dot(usr* member, argument* arg)
 {
   using namespace std;
   arg->T = arg->T->unqualified();
@@ -879,7 +952,8 @@ int cxx_compiler::declarations::initializers::designator::dot(usr* member, argum
   argument tmp(rec,u,0,0,0,0,0,0);
   fill_zero(&tmp);
   u.erase(u.lower_bound(offset),u.end());
-  for_each(u.begin(),u.end(),bind1st(ptr_fun(initializers::merge),make_pair(&arg->V,arg->off)));
+  for_each(u.begin(),u.end(),
+           bind1st(ptr_fun(initializers::merge),make_pair(&arg->V,arg->off)));
   arg->T = member->m_type;
   arg->off_max = max(arg->off_max, arg->off += offset);
   arg->nth_max = max(arg->nth_max, arg->nth = order(rec,offset));
@@ -888,7 +962,8 @@ int cxx_compiler::declarations::initializers::designator::dot(usr* member, argum
   return arg->off;
 }
 
-int cxx_compiler::declarations::initializers::merge(std::pair<std::map<int,var*>*,int> x, std::pair<int,var*> y)
+int cxx_compiler::declarations::initializers::
+merge(std::pair<std::map<int,var*>*,int> x, std::pair<int,var*> y)
 {
   using namespace std;
   map<int,var*>& V = *x.first;
@@ -932,7 +1007,8 @@ int cxx_compiler::declarations::initializers::fill_zero(argument* arg)
       map<int, var*> u;
       argument tmp(T,u,0,0,0,0,0,0);
       fill_zero(&tmp);
-      for_each(u.begin(),u.end(),bind1st(ptr_fun(initializers::merge),make_pair(&arg->V,arg->off)));
+      for_each(u.begin(),u.end(), bind1st(ptr_fun(initializers::merge),
+                                          make_pair(&arg->V,arg->off)));
       arg->off_max = max(arg->off_max, arg->off += tmp.off);
       if ( tmp.not_constant )
         arg->not_constant = true;
@@ -981,11 +1057,15 @@ cxx_compiler::declarations::initializers::designator::info_t::~info_t()
   delete m_usr;
 }
 
-namespace cxx_compiler { namespace declarations { namespace initializers {
-  int change_scope1(tac*, block*);
-  void scalar(std::map<int, var*>::iterator, var*, block*);
-  void aggregate(std::map<int, var*>::iterator, var*, block*);
-} } } // end of namespace initializers, declarations ans cxx_compiler
+namespace cxx_compiler {
+  namespace declarations {
+    namespace initializers {
+      void change_scope1(tac*, block*);
+      void scalar(std::map<int, var*>::iterator, var*, block*);
+      void aggregate(std::map<int, var*>::iterator, var*, block*);
+    }  // end of namespace initializers
+  }  // end of namespace declarations
+}  // end of namespace cxx_compiler
 
 void cxx_compiler::declarations::initializers::initialize_code(with_initial* x)
 {
@@ -1058,11 +1138,15 @@ void cxx_compiler::declarations::initializers::initialize_code(with_initial* x)
   destroy();
 }
 
-namespace cxx_compiler { namespace declarations { namespace initializers {
-  void change_scope2(var*, block*);
-} } } // end of namespace initializers, declarations ans cxx_compiler
+namespace cxx_compiler {
+  namespace declarations {
+    namespace initializers {
+      void change_scope2(var*, block*);
+    }  // end of namespace initializers
+  }  // end of namespace declarations
+}  // end of namespace cxx_compiler
 
-int cxx_compiler::declarations::initializers::change_scope1(tac* p, block* b)
+void cxx_compiler::declarations::initializers::change_scope1(tac* p, block* b)
 {
   if ( var* x = p->x )
     change_scope2(x,b);
@@ -1070,7 +1154,6 @@ int cxx_compiler::declarations::initializers::change_scope1(tac* p, block* b)
     change_scope2(y,b);
   if ( var* z = p->z )
     change_scope2(z,b);
-  return 0;
 }
 
 void cxx_compiler::declarations::initializers::change_scope2(var* x, block* b)
@@ -1085,8 +1168,8 @@ void cxx_compiler::declarations::initializers::change_scope2(var* x, block* b)
   }
 }
 
-void cxx_compiler::declarations::initializers::scalar(std::map<int, var*>::iterator it,
-  var* x, block* body)
+void cxx_compiler::declarations::initializers::
+scalar(std::map<int, var*>::iterator it, var* x, block* body)
 {
   using namespace std;
   var* y = it->second;
@@ -1098,8 +1181,8 @@ void cxx_compiler::declarations::initializers::scalar(std::map<int, var*>::itera
 }
 
 void
-cxx_compiler::declarations::initializers::aggregate(std::map<int, var*>::iterator it,
-  var* x, block* body)
+cxx_compiler::declarations::initializers::
+aggregate(std::map<int, var*>::iterator it, var* x, block* body)
 {
   using namespace std;
   var* y = it->second;

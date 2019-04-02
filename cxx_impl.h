@@ -47,10 +47,11 @@ namespace parse {
   struct context_t {
     int m_state;
     vector<short> m_stack0;
-	vector<void*> m_stack1;
+    vector<void*> m_stack1;
     int m_char;
     read_t m_read;
-    context_t(int state, const vector<short>& vs, const vector<void*>& vv, int c)
+    context_t(int state, const vector<short>& vs, const vector<void*>& vv,
+              int c)
     : m_state(state), m_stack0(vs), m_stack1(vv), m_char(c) {}
     static vector<context_t> all;
     static map<int, int> retry;
@@ -58,7 +59,7 @@ namespace parse {
   };
   extern void save(int state, short* b0, short* t0, YYSTYPE* b1, YYSTYPE* t1);
   extern void restore(int* state, short** b0, short** t0, short* a0,
-		      YYSTYPE** b1, YYSTYPE** t1, YYSTYPE* a1);
+                      YYSTYPE** b1, YYSTYPE** t1, YYSTYPE* a1);
   extern void common(int token, list<void*>& lval);
   
   extern read_t g_read;
@@ -173,7 +174,7 @@ namespace error {
         extern void invalid_linkage(const usr*);
       } // end of namespace vm
       namespace reference {
-	extern void missing_initializer(const usr*);
+        extern void missing_initializer(const usr*);
       } // end of namespace reference
     } // end of namespace declarators
     namespace enumeration {
@@ -249,7 +250,7 @@ namespace error {
         extern void not_pointer(const file_t&, const var*);
       } // end of namespace member
       namespace fcast {
-	extern void too_many_arg(const file_t&);
+        extern void too_many_arg(const file_t&);
       } // end of namespace fcast
     } // end of namespace postfix
     namespace ppmm {
@@ -542,9 +543,11 @@ namespace declarations {
             void last();
           } // end of namespace defer
         } // end of namespace static_inline
-	namespace mem_initializer {
-	  void action(var*, vector<expressions::base*>*);
-	} // end of mem_initializer
+        namespace mem_initializer {
+          typedef vector<pair<var*, vector<expressions::base*>*> > VALUE;
+          extern map<usr*, VALUE> table;
+          void action(var*, vector<expressions::base*>*);
+        } // end of mem_initializer
       } // end of namespace definition
     } // end of namespace function
     namespace array {
@@ -969,11 +972,11 @@ namespace statements {
           : m_label(v), m_to(t), m_expr(b), m_scope(s) {}
         static bool cmp(case_t x, var* y)
         {
-	  var* tmp = x.m_label;
-	  conversion::arithmetic::gen(&tmp, &y);
-	  tmp = tmp->eq(y);
-	  return tmp->value() != 0;
-	}
+          var* tmp = x.m_label;
+          conversion::arithmetic::gen(&tmp, &y);
+          tmp = tmp->eq(y);
+          return tmp->value() != 0;
+        }
       };
       vector<case_t> m_cases;
       struct default_t {
@@ -981,7 +984,8 @@ namespace statements {
         file_t m_file;
         scope* m_scope;
         default_t() : m_to(0), m_scope(0) {}
-        default_t(to3ac* t, const file_t& f, scope* s) : m_to(t), m_file(f), m_scope(s) {}
+        default_t(to3ac* t, const file_t& f, scope* s)
+        : m_to(t), m_file(f), m_scope(s) {}
       };
       default_t m_default;
       int gen();

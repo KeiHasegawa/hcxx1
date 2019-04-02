@@ -267,9 +267,9 @@ namespace cxx_compiler { namespace constant_impl {
   {
     if ( generator::long_double ){
       if (!z->b)
-	return var_impl::div(y, z);
+        return var_impl::div(y, z);
       if ( var* v = fop3(y,z,generator::long_double->div) )
-	return v;
+        return v;
     }
     if (!z->m_value)
       return var_impl::div(y, z);

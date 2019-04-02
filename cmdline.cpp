@@ -27,45 +27,45 @@ namespace cxx_compiler {
 #endif // _MSC_VER
       prog = *argv;
       while ( *++argv ){
-	if ( **argv == '-' ){
-	  table_t::const_iterator p = table.find(*argv);
-	  if ( p != table.end() )
-	    argv += (p->second)(argv);
-	  else
-	    warning::cmdline::option(*argv);
-	}
-	else {
-	  if ( input.empty() ){
-	    input = *argv;
-	    if (output.empty()) {
-	      output = input;
-	      string::size_type pos = output.find_last_of(separator);
-	      if ( pos != string::npos )
-		output.erase(0,pos+1);
-	      pos = output.find_last_of('.');
-	      if ( pos != string::npos )
-		output.erase(pos);
-	      output += ".s";
-	    }
-	  }
-	  else
-	    warning::cmdline::input(*argv);
-	}
+        if ( **argv == '-' ){
+          table_t::const_iterator p = table.find(*argv);
+          if ( p != table.end() )
+            argv += (p->second)(argv);
+          else
+            warning::cmdline::option(*argv);
+        }
+        else {
+          if ( input.empty() ){
+            input = *argv;
+            if (output.empty()) {
+              output = input;
+              string::size_type pos = output.find_last_of(separator);
+              if ( pos != string::npos )
+                output.erase(0,pos+1);
+              pos = output.find_last_of('.');
+              if ( pos != string::npos )
+                output.erase(pos);
+              output += ".s";
+            }
+          }
+          else
+            warning::cmdline::input(*argv);
+        }
       }
 
       if ( generator.empty() && !m_no_generator ){
-	if ( char* p = getenv("CXX1GENERATOR") )
-	  generator = p;
-	else
-	  error::cmdline::generator();
+        if ( char* p = getenv("CXX1GENERATOR") )
+          generator = p;
+        else
+          error::cmdline::generator();
       }
     }
     int no_generator_option(char** argv)
     {
       using namespace std;
       if ( !argv ){
-	cerr << " : not specify generator";
-	return 0;
+        cerr << " : not specify generator";
+        return 0;
       }
 
       m_no_generator = true;
@@ -75,8 +75,8 @@ namespace cxx_compiler {
     {
       using namespace std;
       if ( !argv ){
-	cerr << " : dump 3 address code and symbol table";
-	return 0;
+        cerr << " : dump 3 address code and symbol table";
+        return 0;
       }
 
       output_medium = true;
@@ -86,8 +86,8 @@ namespace cxx_compiler {
     {
       using namespace std;
       if ( !argv ){
-	cerr << " : name compiler medium variables simply when dump";
-	return 0;
+        cerr << " : name compiler medium variables simply when dump";
+        return 0;
       }
 
       simple_medium = true;
@@ -99,17 +99,17 @@ namespace cxx_compiler {
     {
       using namespace std;
       if ( !argv ){
-	cerr << " GENERATOR : specify generator";
-	return 0;
+        cerr << " GENERATOR : specify generator";
+        return 0;
       }
 
       if ( *++argv && **argv != '-' ){
-	generator = *argv;
-	return 1;
+        generator = *argv;
+        return 1;
       }
       else {
-	warning::cmdline::generator_option();
-	return 0;
+        warning::cmdline::generator_option();
+        return 0;
       }
     }
 
@@ -120,21 +120,21 @@ namespace cxx_compiler {
       string left = "(";
       using namespace std;
       if ( !argv ){
-	cerr << " ( GENERATOR-OPTION ) : pass option to generator";
-	return 0;
+        cerr << " ( GENERATOR-OPTION ) : pass option to generator";
+        return 0;
       }
 
       if ( !*++argv || *argv != left ){
-	warning::cmdline::generator_option_option(left);
-	return 0;
+        warning::cmdline::generator_option_option(left);
+        return 0;
       }
 
       int n = 1;
       string right = ")";
       for ( ; *++argv ; ++n ){
-	if ( right == *argv )
-	  return ++n;
-	generator_options.push_back(*argv);
+        if ( right == *argv )
+          return ++n;
+        generator_options.push_back(*argv);
       }
 
       warning::cmdline::generator_option_option(right);
@@ -145,17 +145,17 @@ namespace cxx_compiler {
     {
       using namespace std;
       if ( !argv ){
-	cerr << " OUTPUTFILE : specify output file";
-	return 0;
+        cerr << " OUTPUTFILE : specify output file";
+        return 0;
       }
 
       if ( *++argv && **argv != '-' ){
-	output = *argv;
-	return 1;
+        output = *argv;
+        return 1;
       }
       else {
-	warning::cmdline::o_option();
-	return 0;
+        warning::cmdline::o_option();
+        return 0;
       }
     }
     
@@ -167,8 +167,8 @@ namespace cxx_compiler {
     {
       using namespace std;
       if ( !argv ){
-	cerr << " : not apply basic block optimization";
-	return 0;
+        cerr << " : not apply basic block optimization";
+        return 0;
       }
 
       bb_optimize = false;
@@ -179,8 +179,8 @@ namespace cxx_compiler {
     {
       using namespace std;
       if ( !argv ){
-	cerr << " : not apply dag optimization";
-	return 0;
+        cerr << " : not apply dag optimization";
+        return 0;
       }
 
       dag_optimize = false;
@@ -191,8 +191,8 @@ namespace cxx_compiler {
     {
       using namespace std;
       if ( !argv ){
-	cerr << " : output optimization infomation";
-	return 0;
+        cerr << " : output optimization infomation";
+        return 0;
       }
 
       output_optinfo = true;
@@ -203,8 +203,8 @@ namespace cxx_compiler {
     {
       using namespace std;
       if ( !argv ){
-	cerr << " : set cxx_compiler_debug = 1";
-	return 0;
+        cerr << " : set cxx_compiler_debug = 1";
+        return 0;
       }
 
       cxx_compiler_debug = 1;
@@ -216,8 +216,8 @@ namespace cxx_compiler {
     {
       using namespace std;
       if ( !argv ){
-	cerr << " : no inline substitution";
-	return 0;
+        cerr << " : no inline substitution";
+        return 0;
       }
 
       no_inline_sub = true;

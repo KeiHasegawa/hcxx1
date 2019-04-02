@@ -539,19 +539,19 @@ cxx_compiler::declarations::action1(var* v, bool ini)
     if (u->m_flag & usr::DTOR) {
       assert(u->m_type->m_id == type::FUNC);
       if (lookuped) {
-	typedef const func_type FT;
-	FT* ft = static_cast<FT*>(u->m_type);
-	assert(!ft->return_type());
+        typedef const func_type FT;
+        FT* ft = static_cast<FT*>(u->m_type);
+        assert(!ft->return_type());
       }
       else {
-	assert(u->m_type->backpatch());
-	u->m_type = u->m_type->patch(0,u);
+        assert(u->m_type->backpatch());
+        u->m_type = u->m_type->patch(0,u);
       }
     }
     else {
       // Rare case. Maybe already error happened.
       if (u->m_type->backpatch())
-	u->m_type = u->m_type->patch(int_type::create(),u);
+        u->m_type = u->m_type->patch(int_type::create(),u);
     }
   }
   if (u->m_flag & usr::TYPEDEF) {
@@ -653,10 +653,10 @@ cxx_compiler::declarations::action1(var* v, bool ini)
   if (U->m_id == type::REFERENCE) {
     if (!(flag & usr::EXTERN)) {
       if (scope::current->m_id != scope::PARAM) {
-	if (!ini) {
-	  using namespace error::declarations::declarators;
-	  reference::missing_initializer(u);
-	}
+        if (!ini) {
+          using namespace error::declarations::declarators;
+          reference::missing_initializer(u);
+        }
       }
     }
   }
@@ -695,15 +695,15 @@ cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr)
       if (name == "main")
         curr->m_flag = usr::flag_t(flag | usr::C_SYMBOL);
       else if (!declarations::linkage::braces.empty()) {
-	switch (scope::current->m_id) {
-	case scope::NONE: case scope::NAMESPACE:
-	  {
-	    curr->m_flag = usr::flag_t(flag | usr::C_SYMBOL);
-	    bool brace = declarations::linkage::braces.back();
-	    if (!brace)
-	      curr->m_flag = usr::flag_t(curr->m_flag | usr::EXTERN);
-	  }
-	}
+        switch (scope::current->m_id) {
+        case scope::NONE: case scope::NAMESPACE:
+          {
+            curr->m_flag = usr::flag_t(flag | usr::C_SYMBOL);
+            bool brace = declarations::linkage::braces.back();
+            if (!brace)
+              curr->m_flag = usr::flag_t(curr->m_flag | usr::EXTERN);
+          }
+        }
       }
     }
   }

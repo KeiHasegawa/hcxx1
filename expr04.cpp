@@ -48,8 +48,8 @@ cxx_compiler::var* cxx_compiler::expressions::binary::info_t::gen()
       case '*': case '/': case '%': case '&': case '^': case '|':
       case MUL_ASSIGN_MK: case DIV_ASSIGN_MK: case MOD_ASSIGN_MK:
       case AND_ASSIGN_MK: case XOR_ASSIGN_MK: case OR_ASSIGN_MK:
-	using namespace error::expressions::binary;
-	invalid(file(), m_op, leftc->m_type, rightc->m_type);
+        using namespace error::expressions::binary;
+        invalid(file(), m_op, leftc->m_type, rightc->m_type);
       }
     }
     break;

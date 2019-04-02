@@ -45,7 +45,7 @@ void cxx_compiler::optimize::goto_to(std::vector<tac*>& vt)
     vg.erase(r);
     if (vg.empty()) {
       delete to;
-	  vt.erase(q);
+      vt.erase(q);
     }
     p = vt.erase(p);
   }

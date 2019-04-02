@@ -8,9 +8,9 @@ namespace cxx_compiler {
   {
     if (error::counter) {
       while (scope::current->m_id == scope::BLOCK ||
-	     scope::current->m_id == scope::PARAM ||
-	     scope::current->m_id == scope::TAG) {
-	scope::current = scope::current->m_parent;
+             scope::current->m_id == scope::PARAM ||
+             scope::current->m_id == scope::TAG) {
+        scope::current = scope::current->m_parent;
       }
     }
     using namespace class_or_namespace_name;
@@ -1636,17 +1636,7 @@ function_definition_begin1
       using namespace cxx_compiler::declarations::declarators;
       function::definition::begin(0,$1);
     }
-  | declarator ctor_initializer
-    {
-      using namespace cxx_compiler::declarations::declarators;
-      function::definition::begin(0,$1);
-    }
   | decl_specifier_seq declarator
-    {
-      using namespace cxx_compiler::declarations::declarators;
-      function::definition::begin($1,$2);
-    }
-  | decl_specifier_seq declarator ctor_initializer
     {
       using namespace cxx_compiler::declarations::declarators;
       function::definition::begin($1,$2);
@@ -1671,6 +1661,7 @@ function_definition
 
 function_body
   : compound_statement
+  | ctor_initializer compound_statement { $$ = $2; }
   ;
 
 function_try_block

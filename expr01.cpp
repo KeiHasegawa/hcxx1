@@ -258,7 +258,7 @@ namespace cxx_compiler {
       bool m_trial;
       int m_counter;
       convert(const vector<const type*>& param, var* func, bool trial)
-	: m_param(param), m_func(func), m_counter(-1), m_trial(trial) {}
+        : m_param(param), m_func(func), m_counter(-1), m_trial(trial) {}
       var* operator()(var*);
     };
     tac* gen_param(var*);
@@ -266,11 +266,11 @@ namespace cxx_compiler {
     bool has_vbtbl(tag* ptag)
     {
       if (!ptag->m_bases)
-	return false;
+        return false;
       vector<base*>& bases = *ptag->m_bases;
       typedef vector<base*>::const_iterator IT;
       IT p = find_if(begin(bases), end(bases),
-		     [](base* b){ return b->m_virtual; });
+                     [](base* b){ return b->m_virtual; });
       return p != end(bases);
     }
   } // end of namespace call_impl
@@ -408,21 +408,21 @@ cxx_compiler::var* cxx_compiler::call_impl::convert::operator()(var* arg)
     if (R == T) {
       var* tmp = new var(U);
       if (scope::current->m_id == scope::BLOCK) {
-	block* b = static_cast<block*>(scope::current);
-	b->m_vars.push_back(tmp);
+        block* b = static_cast<block*>(scope::current);
+        b->m_vars.push_back(tmp);
       }
       else
-	garbage.push_back(tmp);
+        garbage.push_back(tmp);
       if (arg->isconstant()) {
-	var* tmp2 = new var(R);
-	if (scope::current->m_id == scope::BLOCK) {
-	  block* b = static_cast<block*>(scope::current);
-	  b->m_vars.push_back(tmp2);
-	}
-	else
-	  garbage.push_back(tmp2);
-	code.push_back(new assign3ac(tmp2, arg));
-	arg = tmp2;
+        var* tmp2 = new var(R);
+        if (scope::current->m_id == scope::BLOCK) {
+          block* b = static_cast<block*>(scope::current);
+          b->m_vars.push_back(tmp2);
+        }
+        else
+          garbage.push_back(tmp2);
+        code.push_back(new assign3ac(tmp2, arg));
+        arg = tmp2;
       }
       code.push_back(new addr3ac(tmp, arg));
       arg = tmp;
@@ -532,16 +532,16 @@ namespace cxx_compiler { namespace declarations { namespace declarators { namesp
       scope* new_block(scope* ptr, scope* parent)
       {
         block* ret = new block;
-	{
-	  using namespace class_or_namespace_name;
-	  assert(before.back() == ret);
-	  before.pop_back();
-	}
+        {
+          using namespace class_or_namespace_name;
+          assert(before.back() == ret);
+          before.pop_back();
+        }
         ret->m_parent = parent;
         if (ptr->m_id != scope::BLOCK) {
-	  assert(ptr->m_id == scope::TAG);
-	  return ret;
-	}
+          assert(ptr->m_id == scope::TAG);
+          return ret;
+        }
         block* b = static_cast<block*>(ptr);
         const map<string, vector<usr*> >& u = b->m_usrs;
         map<string, vector<usr*> >& d = ret->m_usrs;
@@ -564,11 +564,11 @@ namespace cxx_compiler { namespace declarations { namespace declarators { namesp
       {
         symtab.clear();
         block* ret = new block;
-	{
-	  using namespace class_or_namespace_name;
-	  assert(before.back() == ret);
-	  before.pop_back();
-	}
+        {
+          using namespace class_or_namespace_name;
+          assert(before.back() == ret);
+          before.pop_back();
+        }
         ret->m_parent = scope::current;
         scope::current->m_children.push_back(ret);
         const vector<usr*>& o = param->m_order;
@@ -695,7 +695,7 @@ namespace cxx_compiler { namespace declarations { namespace declarators { namesp
       block* pb = create(fdef->m_param);
       int n = p.first;
       if (func->m_scope->m_id == scope::TAG && !(func->m_flag & usr::STATIC))
-	++n;
+        ++n;
       const vector<var*>& vars = pb->m_vars;
       assert(vars.size() == n);
       assert(pos >= n);
@@ -1099,29 +1099,29 @@ cxx_compiler::expressions::assignment::valid(const type* T, var* src, bool* disc
         }
       }
       if (Tx->m_id == type::RECORD) {
-	typedef const record_type REC;
-	REC* rx = static_cast<REC*>(Tx);
-	tag* xtag = rx->get_tag();
-	if (Ty->m_id == type::RECORD) {
-	  REC* ry = static_cast<REC*>(Ty);
-	  tag* ytag = ry->get_tag();
-	  if (ytag->m_bases) {
-	    const vector<cxx_compiler::base*>& bases = *ytag->m_bases;
-	    typedef vector<cxx_compiler::base*>::const_iterator IT;
-	    IT p = find_if(begin(bases), end(bases),
-			   [&xtag](const cxx_compiler::base* pb)
-			   { return pb->m_tag == xtag; });
-	    if (p != end(bases)) {
-	      if (include(cvr_x, cvr_y))
-		return px;
-	      else {
-		if (discard)
-		  *discard = true;
-		return 0;
-	      }
-	    }
-	  }
-	}
+        typedef const record_type REC;
+        REC* rx = static_cast<REC*>(Tx);
+        tag* xtag = rx->get_tag();
+        if (Ty->m_id == type::RECORD) {
+          REC* ry = static_cast<REC*>(Ty);
+          tag* ytag = ry->get_tag();
+          if (ytag->m_bases) {
+            const vector<cxx_compiler::base*>& bases = *ytag->m_bases;
+            typedef vector<cxx_compiler::base*>::const_iterator IT;
+            IT p = find_if(begin(bases), end(bases),
+                           [&xtag](const cxx_compiler::base* pb)
+                           { return pb->m_tag == xtag; });
+            if (p != end(bases)) {
+              if (include(cvr_x, cvr_y))
+                return px;
+              else {
+                if (discard)
+                  *discard = true;
+                return 0;
+              }
+            }
+          }
+        }
       }
     }
     if (yy->integer() && src->zero())
@@ -1147,19 +1147,19 @@ cxx_compiler::expressions::assignment::valid(const type* T, var* src, bool* disc
     if (yy->m_id == type::POINTER_MEMBER) {
       PMT* py = static_cast<PMT*>(yy);
       if (px->ctag() == py->ctag()) { 
-	const type* Tx = px->referenced_type();
-	const type* Ty = py->referenced_type();
-	int cvr_x = 0, cvr_y = 0;
-	Tx = Tx->unqualified(&cvr_x);
-	Ty = Ty->unqualified(&cvr_y);
-	if (compatible(Tx, Ty)){
-	  if (!discard || include(cvr_x, cvr_y))
-	    return px;
-	  else {
-	    *discard = true;
-	    return 0;
-	  }
-	}
+        const type* Tx = px->referenced_type();
+        const type* Ty = py->referenced_type();
+        int cvr_x = 0, cvr_y = 0;
+        Tx = Tx->unqualified(&cvr_x);
+        Ty = Ty->unqualified(&cvr_y);
+        if (compatible(Tx, Ty)){
+          if (!discard || include(cvr_x, cvr_y))
+            return px;
+          else {
+            *discard = true;
+            return 0;
+          }
+        }
       }
     }
     return 0;
@@ -1341,29 +1341,29 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::fcast::gen()
   vector<var*> arg;
   if ( m_list ) {
     transform(m_list->begin(),m_list->end(),back_inserter(arg),
-	      mem_fun(&base::gen));
+              mem_fun(&base::gen));
   }
 
   if (m_type->scalar()) {
     switch (arg.size()) {
     case 0:
       {
-	var* zero = primary::literal::integer::create(0);
-	return zero->cast(m_type);
+        var* zero = primary::literal::integer::create(0);
+        return zero->cast(m_type);
       }
     case 1:
       return arg.back()->rvalue()->cast(m_type);
     default:
       {
-	error::expressions::postfix::fcast::too_many_arg(m_file);
-	var* ret = new var(m_type);
-	if (scope::current->m_id == scope::BLOCK) {
-	  block* b = static_cast<block*>(scope::current);
-	  b->m_vars.push_back(ret);
-	}
-	else
-	  garbage.push_back(ret);
-	return ret;
+        error::expressions::postfix::fcast::too_many_arg(m_file);
+        var* ret = new var(m_type);
+        if (scope::current->m_id == scope::BLOCK) {
+          block* b = static_cast<block*>(scope::current);
+          b->m_vars.push_back(ret);
+        }
+        else
+          garbage.push_back(ret);
+        return ret;
       }
     }
   }

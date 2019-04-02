@@ -18,8 +18,8 @@ namespace cxx_compiler {
   namespace expressions {
     namespace unary {
       namespace sizeof_impl {
-	var* common(int n)
-	{
+        var* common(int n)
+        {
           using namespace primary::literal;
           switch (generator::sizeof_type) {
           case type::UINT:
@@ -47,7 +47,7 @@ namespace cxx_compiler {
               return integer::create((X)n);
             }
           }
-	}
+        }
       } // end of namespace sizoef_impl
     } // end of namespace unary
   } // end of namespace expressions

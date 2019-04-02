@@ -1180,22 +1180,22 @@ namespace cxx_compiler {
       nonstatic_member_ref(usr* u) : usr(*u) {}
       var* rvalue()
       {
-	error::not_implemented();
-	return 0;
+        error::not_implemented();
+        return 0;
       }
       var* address()
       {
-	assert(m_scope->m_id == scope::TAG);
-	tag* ptr = static_cast<tag*>(m_scope);
-	const type* T = pointer_member_type::create(ptr, m_type);
-	var* ret = new var(T);
-	if (scope::current->m_id == scope::BLOCK) {
-	  block* b = static_cast<block*>(scope::current);
-	  b->m_vars.push_back(ret);
-	}
-	else
-	  garbage.push_back(ret);
-	return ret;
+        assert(m_scope->m_id == scope::TAG);
+        tag* ptr = static_cast<tag*>(m_scope);
+        const type* T = pointer_member_type::create(ptr, m_type);
+        var* ret = new var(T);
+        if (scope::current->m_id == scope::BLOCK) {
+          block* b = static_cast<block*>(scope::current);
+          b->m_vars.push_back(ret);
+        }
+        else
+          garbage.push_back(ret);
+        return ret;
       }
     };
   } // end of namespace unqualified_id

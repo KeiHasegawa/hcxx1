@@ -677,20 +677,20 @@ namespace cxx_compiler {
   namespace error {
     namespace expressions {
       namespace postfix {
-	namespace call {
-	  void overload_candidacy(usr* c)
-	  {
-	    const file_t& file = c->m_file;
-	    string name = c->m_name;
-	    switch (lang) {
-	    case jpn:
-	    default:
-	      header(file,"error");
-	      cerr << "`" << name << "'" << '\n';
-	      break;
-	    }
-	  }
-	} // end of namespace call
+        namespace call {
+          void overload_candidacy(usr* c)
+          {
+            const file_t& file = c->m_file;
+            string name = c->m_name;
+            switch (lang) {
+            case jpn:
+            default:
+              header(file,"error");
+              cerr << "`" << name << "'" << '\n';
+              break;
+            }
+          }
+        } // end of namespace call
       } // end of namespace postfix
     } // end of namespace expressions
   } // end of namespace error
