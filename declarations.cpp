@@ -1076,7 +1076,7 @@ cxx_compiler::tac::tac(id_t id, var* xx, var* yy, var* zz) : m_id(id), x(xx), y(
   if ( fundef::current ){
     usr::flag_t flag = fundef::current->m_usr->m_flag;
     if ( (flag & usr::INLINE) && !(flag & usr::STATIC) ){
-      using namespace declarations::specifier_seq::function::Inline;
+      using namespace declarations::specifier_seq::func_spec;
       if ( x ) check(x);
       if ( y ) check(y);
       if ( z ) check(z);
@@ -1099,12 +1099,13 @@ bool cxx_compiler::declarations::internal_linkage(usr* u)
   return true;
 }
 
-void cxx_compiler::declarations::specifier_seq::function::Inline::check(var* v)
+void cxx_compiler::declarations::specifier_seq::func_spec::check(var* v)
 {
   if ( v ){
     if ( usr* u = v->usr_cast() ){
       if ( internal_linkage(u) ){
-        error::declarations::specifier_seq::function::func_spec::internal_linkage(parse::position,u);
+	using namespace error::declarations::specifier_seq::function::func_spec;
+	invalid_internal_linkage(parse::position,u);
         usr::flag_t& flag = fundef::current->m_usr->m_flag;
         flag = usr::flag_t(flag & ~usr::INLINE);
       }
