@@ -442,7 +442,8 @@ void cxx_compiler::error::declarations::declarators::vm::file_scope(const usr* u
   ++counter;
 }
 
-void cxx_compiler::error::declarations::declarators::reference::missing_initializer(const usr* u)
+void cxx_compiler::error::declarations::declarators::
+reference::missing_initializer(const usr* u)
 {
   using namespace std;
   string name = u->m_name;

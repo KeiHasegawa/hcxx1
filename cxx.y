@@ -1063,7 +1063,23 @@ access_specifier
   ;
 
 ctor_initializer
-  : ':' mem_initializer_list
+  : ':' move_to_param mem_initializer_list move_from_param
+  ;
+
+move_to_param
+  : {
+      using namespace cxx_compiler;
+      fundef * fdef = fundef::current;
+      assert(fdef);
+      scope::current = fdef->m_param;
+    }
+  ;
+
+move_from_param
+  : {
+      using namespace cxx_compiler;
+      scope::current = scope::current->m_parent;
+    }
   ;
 
 mem_initializer_list

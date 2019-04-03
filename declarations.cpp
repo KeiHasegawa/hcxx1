@@ -652,11 +652,16 @@ cxx_compiler::declarations::action1(var* v, bool ini)
   const type* U = u->m_type->unqualified();
   if (U->m_id == type::REFERENCE) {
     if (!(flag & usr::EXTERN)) {
-      if (scope::current->m_id != scope::PARAM) {
+      switch (scope::current->m_id) {
+      case scope::PARAM:
+      case scope::TAG:
+	break;
+      default:
         if (!ini) {
           using namespace error::declarations::declarators;
           reference::missing_initializer(u);
         }
+	break;
       }
     }
   }
@@ -993,7 +998,8 @@ cxx_compiler::tag* cxx_compiler::declarations::enumeration::begin(var* v)
 {
   using namespace std;
   usr* u = static_cast<usr*>(v);
-  prev = expressions::primary::literal::integer::create(0);
+  using namespace expressions::primary::literal;
+  prev = integer::create(0);
   auto_ptr<usr> sweeper(u);
   string name = u ? u->m_name : new_name(".tag");
   const file_t& file = u ? u->m_file : parse::position;
@@ -1043,7 +1049,8 @@ void cxx_compiler::declarations::enumeration::definition(var* v, expressions::ba
   u->m_flag = usr::ENUM_MEMBER;
   enum_member* member = new enum_member(*u,static_cast<usr*>(v));
   declarations::action2(member);
-  var* one = expressions::primary::literal::integer::create(1);
+  using namespace expressions::primary::literal;
+  var* one = integer::create(1);
   conversion::arithmetic::gen(&v, &one);
   v = v->add(one);
   prev = static_cast<usr*>(v);

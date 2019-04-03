@@ -248,7 +248,8 @@ cxx_compiler::declarations::declarators::array::action(const type* T,
       }
       using namespace error::declarations::declarators::vm;
       file_scope(u);
-      v = expressions::primary::literal::integer::create(1);
+      using namespace expressions::primary::literal;
+      v = integer::create(1);
     }
     dim = v->value();
     if ( dim <= 0 ){
@@ -454,7 +455,8 @@ action(statements::base* stmt)
   fundef::current = 0;
 }
 
-void cxx_compiler::declarations::declarators::function::definition::action(fundef* fdef, std::vector<tac*>& vc)
+void cxx_compiler::declarations::declarators::
+function::definition::action(fundef* fdef, std::vector<tac*>& vc)
 {
   using namespace std;
   using namespace static_inline;

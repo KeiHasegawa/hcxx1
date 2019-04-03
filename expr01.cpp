@@ -46,8 +46,9 @@ cxx_compiler::var* cxx_compiler::var::subscripting(var* y)
 cxx_compiler::var* cxx_compiler::subscript_impl::size(const type* T)
 {
   using namespace std;
+  using namespace expressions::primary::literal;
   if ( int size = T->size() )
-    return expressions::primary::literal::integer::create(size);
+    return integer::create(size);
   else
     return T->vsize();
 }
@@ -470,7 +471,8 @@ cxx_compiler::var* cxx_compiler::call_impl::ref_vftbl(usr* vf, var* vp)
       garbage.push_back(t0);
       garbage.push_back(t1);
     }
-    var* delta = expressions::primary::literal::integer::create(pt->size());
+    using namespace expressions::primary::literal;
+    var* delta = integer::create(pt->size());
     code.push_back(new add3ac(t0,vp,delta));
     code.push_back(new invraddr3ac(t1,t0));
     tmp = t1;

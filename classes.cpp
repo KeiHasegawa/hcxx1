@@ -222,29 +222,25 @@ namespace cxx_compiler {
                 error::not_implemented();
                 return;
               }
-              assert(scope::current->m_id == scope::TAG);
-              tag* ptr = static_cast<tag*>(scope::current);
+	      tag* ptr = 0;
+              if (scope::current->m_id == scope::PARAM) {
+		scope* parent = scope::current->m_parent;
+		assert(parent->m_id == scope::TAG);
+		ptr = static_cast<tag*>(parent);
+	      }
+	      else {
+		assert(scope::current->m_id == scope::TAG);
+		ptr = static_cast<tag*>(scope::current);
+	      }
               const type* T = ptr->m_types.second;
               if (!T) {
+		assert(scope::current->m_id == scope::PARAM);
                 table[fun].push_back(make_pair(v,p));
                 return;
               }
-              assert(T->m_id == type::RECORD);
-              typedef const record_type REC;
-              REC* rec = static_cast<REC*>(T);
               assert(v->usr_cast());
               usr* u = static_cast<usr*>(v);
-              string name = u->m_name;
-              pair<int, usr*> x = rec->offset(name);
-              int offset = x.first;
-              if (offset < 0) {
-                error::not_implemented();
-              }
               scope* param = fundef::current->m_param;
-              const vector<usr*>& order = param->m_order;
-              assert(!order.empty());
-              usr* This = order[0];
-              assert(This->m_name == "this");
               vector<scope*>& c = param->m_children;
               assert(!c.empty());
               scope* ps = c.back();
@@ -254,9 +250,8 @@ namespace cxx_compiler {
               scope* org = scope::current;
               scope::current = b;
               initializers::action(u, info);
+              u->initialize();
               scope::current = org;
-              // initializers::table.find(u);
-              error::not_implemented();
             }
           } // end of namespace mem_initializer
         } // end of namespace mem_initializer

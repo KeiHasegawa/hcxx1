@@ -30,7 +30,8 @@ namespace cxx_compiler { namespace expressions { namespace primary { namespace l
   usr* new_obj(string);
 } } } } } // end of namespace integer, literal, primary, expressions and cxx_compiler
 
-cxx_compiler::usr* cxx_compiler::expressions::primary::literal::integer::create(std::string name)
+cxx_compiler::usr* cxx_compiler::expressions::primary::literal::
+integer::create(std::string name)
 {
   using namespace std;
   map<string, vector<usr*> >& usrs = scope::root.m_usrs;
@@ -302,14 +303,30 @@ namespace cxx_compiler { namespace expressions { namespace primary { namespace l
   }
 } } } } } // end of namespace integer, literal, primary, expressions and cxx_compiler
 
-cxx_compiler::usr* cxx_compiler::expressions::primary::literal::integer::create(char v){ return common_wrapper(v,(const type* (*)())char_type::create); }
-cxx_compiler::usr* cxx_compiler::expressions::primary::literal::integer::create(signed char v){ return common_wrapper(v,(const type* (*)())schar_type::create); }
-cxx_compiler::usr* cxx_compiler::expressions::primary::literal::integer::create(unsigned char v){ return common_wrapper(v,(const type* (*)())uchar_type::create); }
-cxx_compiler::usr* cxx_compiler::expressions::primary::literal::integer::create(wchar_t v){ return common_wrapper(v,(const type* (*)())wchar_type::create); }
-cxx_compiler::usr* cxx_compiler::expressions::primary::literal::integer::create(short int v){ return common_wrapper(v,(const type* (*)())short_type::create); }
-cxx_compiler::usr* cxx_compiler::expressions::primary::literal::integer::create(unsigned short int v){ return common_wrapper(v,(const type* (*)())ushort_type::create); }
-cxx_compiler::usr* cxx_compiler::expressions::primary::literal::integer::create(int v){ return common_wrapper(v,(const type* (*)())int_type::create); }
-cxx_compiler::usr* cxx_compiler::expressions::primary::literal::integer::create(unsigned int v){ return common_wrapper(v,(const type* (*)())uint_type::create); }
+cxx_compiler::usr* cxx_compiler::expressions::primary::literal::
+integer::create(char v)
+{ return common_wrapper(v,(const type* (*)())char_type::create); }
+cxx_compiler::usr* cxx_compiler::expressions::primary::literal::
+integer::create(signed char v)
+{ return common_wrapper(v,(const type* (*)())schar_type::create); }
+cxx_compiler::usr* cxx_compiler::expressions::primary::literal::
+integer::create(unsigned char v)
+{ return common_wrapper(v,(const type* (*)())uchar_type::create); }
+cxx_compiler::usr* cxx_compiler::expressions::primary::literal::
+integer::create(wchar_t v)
+{ return common_wrapper(v,(const type* (*)())wchar_type::create); }
+cxx_compiler::usr* cxx_compiler::expressions::primary::literal::
+integer::create(short int v)
+{ return common_wrapper(v,(const type* (*)())short_type::create); }
+cxx_compiler::usr* cxx_compiler::expressions::primary::literal::
+integer::create(unsigned short int v)
+{ return common_wrapper(v,(const type* (*)())ushort_type::create); }
+cxx_compiler::usr* cxx_compiler::expressions::primary::literal::
+integer::create(int v)
+{ return common_wrapper(v,(const type* (*)())int_type::create); }
+cxx_compiler::usr* cxx_compiler::expressions::primary::literal::
+integer::create(unsigned int v)
+{ return common_wrapper(v,(const type* (*)())uint_type::create); }
 
 cxx_compiler::usr*
 cxx_compiler::expressions::primary::literal::integer::create(long int v)
@@ -337,7 +354,8 @@ cxx_compiler::expressions::primary::literal::integer::create(long int v)
 }
 
 cxx_compiler::usr*
-cxx_compiler::expressions::primary::literal::integer::create(unsigned long int v)
+cxx_compiler::expressions::primary::literal::
+integer::create(unsigned long int v)
 {
   using namespace std;  
   typedef unsigned long int T;
@@ -1236,6 +1254,8 @@ cxx_compiler::var* cxx_compiler::unqualified_id::from_member(usr* u)
       return u;
   }
   const type* T = tp->m_types.second;
+  if (!T)
+    return u;
   assert(T->m_id == type::RECORD);
   typedef const record_type REC;
   REC* rec = static_cast<REC*>(T);

@@ -9,8 +9,8 @@ namespace cxx_compiler {
     namespace initializers {
       using namespace std;
       struct gendata {
-        vector<tac*> m_code;
-        map<int, var*> m_value;
+	vector<tac*> m_code;
+	map<int, var*> m_value;
       };
       map<usr*, gendata> table;
       usr* argument::dst;
@@ -30,7 +30,9 @@ void cxx_compiler::declarations::initializers::action(var* v, info_t* i)
   auto_ptr<info_t> sweeper(i);
   argument::dst = u;
   usr::flag_t flag = u->m_flag;
-  with_initial* p = (flag & usr::WITH_INI) ? static_cast<with_initial*>(u) : 0;
+  with_initial* p = 0;
+  if (flag & usr::WITH_INI)
+    p = static_cast<with_initial*>(u);
   argument arg(u->m_type,p ? p->m_value : table[u].m_value,0,0,-1,-1,-1,-1);
   int n = code.size();
   i->m_clause ? clause::gencode(i->m_clause,&arg) : expr_list(i->m_exprs,&arg);
@@ -102,7 +104,7 @@ void cxx_compiler::usr::initialize()
 namespace cxx_compiler {
   namespace declarations {
     namespace initializers {
-      bool param_void(usr* u)
+      inline bool param_void(usr* u)
       {
         const type* T = u->m_type;
         assert(T->m_id == type::FUNC);
@@ -114,7 +116,7 @@ namespace cxx_compiler {
         T = param[0];
         return T->m_id == type::VOID;
       }
-      void call_default_ctor(usr* u)
+      inline void call_default_ctor(usr* u)
       {
         const type* T = u->m_type;
         T = T->unqualified();
@@ -150,6 +152,157 @@ namespace cxx_compiler {
           }
         }
       }
+      inline bool none_static_member(var* v)
+      {
+	usr* u = v->usr_cast();
+	if (!u)
+	  return false;
+	return u->m_scope->m_id == scope::TAG && (!(u->m_flag & usr::STATIC));
+      }
+      inline var* get_pointer(var* v)
+      {
+	assert(none_static_member(v));
+	assert(v->usr_cast());
+	usr* u = static_cast<usr*>(v);
+	assert(none_static_member(u));
+	assert(u->m_scope->m_id == scope::TAG);
+	tag* ptr = static_cast<tag*>(u->m_scope);
+	const type* T = ptr->m_types.second;
+	assert(T->m_id == type::RECORD);
+	typedef const record_type REC;
+	REC* rec = static_cast<REC*>(T);
+	string name = u->m_name;
+	pair<int, usr*> x = rec->offset(name);
+	int offset = x.first;
+	if (offset < 0) {
+	  error::not_implemented();
+	}
+	assert(scope::current->m_id == scope::BLOCK);
+	block* b = static_cast<block*>(scope::current);
+	scope* param = scope::current->m_parent;
+	assert(param->m_id == scope::PARAM);
+	assert(param->m_parent == ptr);
+	const vector<usr*>& order = param->m_order;
+	assert(!order.empty());
+	usr* This = order[0];
+	assert(This->m_name == "this");
+	const type* Tu = u->m_type;
+	const type* Pu = pointer_type::create(Tu);
+	var* pu = new var(Pu);
+	b->m_vars.push_back(pu);
+	code.push_back(new assign3ac(pu, This));
+	if (offset) {
+	  using namespace expressions::primary::literal;
+	  var* off = integer::create(offset);
+	  code.push_back(new add3ac(pu, pu, off));
+	}
+	return pu;
+      }
+      var* none_static_member_r(var* v)
+      {
+	assert(none_static_member(v));
+	assert(v->usr_cast());
+	usr* u = static_cast<usr*>(v);
+	var* py = get_pointer(u);
+	var* tmp = new var(u->m_type);
+	assert(scope::current->m_id == scope::BLOCK);
+	block* b = static_cast<block*>(scope::current);
+	b->m_vars.push_back(tmp);
+	code.push_back(new invraddr3ac(tmp, py));
+	return tmp;
+      }
+      void none_static_member(usr* u, var* v)
+      {
+	assert(!none_static_member(v));
+	var* px = get_pointer(u);
+	code.push_back(new invladdr3ac(px, v));
+      }
+      void not_reference(usr* u, var* v)
+      {
+	if (none_static_member(v))
+	  v = none_static_member_r(v);
+	if (none_static_member(u))
+	  none_static_member(u, v);
+	else
+	  code.push_back(new assign3ac(u,v));
+      }
+      namespace reference_impl {
+	void constant_case(usr* u, var* v)
+	{
+	  var* tmp = new var(u->m_type);
+	  if (scope::current->m_id == scope::BLOCK) {
+	    block* b = static_cast<block*>(scope::current);
+	    b->m_vars.push_back(tmp);
+	  }
+	  else
+	    garbage.push_back(tmp);
+	  code.push_back(new assign3ac(tmp, v));
+	  v = tmp;
+	  if (none_static_member(u)) {
+	    var* tmp2 = new var(u->m_type);
+	    assert(scope::current->m_id == scope::BLOCK);
+	    block* b = static_cast<block*>(scope::current);
+	    b->m_vars.push_back(tmp2);
+	    code.push_back(new addr3ac(tmp2, v));
+	    none_static_member(u, tmp2);
+	  }
+	  else
+	    code.push_back(new addr3ac(u, v));
+	}
+	void not_constant(usr* u, var* v)
+	{
+	  addrof* addr = v->addrof_cast();
+	  assert(addr);
+	  var* ref = addr->m_ref;
+	  if (int offset = addr->m_offset) {
+	    using namespace expressions::primary::literal;
+	    var* off = integer::create(offset);
+	    var* tmp = new var(u->m_type);
+	    if (scope::current->m_id == scope::BLOCK) {
+	      block* b = static_cast<block*>(scope::current);
+	      b->m_vars.push_back(tmp);
+	    }
+	    else
+	      garbage.push_back(tmp);
+	    code.push_back(new addr3ac(tmp, ref));
+	    if (none_static_member(u)) {
+	      var* tmp2 = new var(u->m_type);
+	      assert(scope::current->m_id == scope::BLOCK);
+	      block* b = static_cast<block*>(scope::current);
+	      b->m_vars.push_back(tmp2);
+	      code.push_back(new add3ac(tmp2, tmp, off));
+	      none_static_member(u, tmp2);
+	    }
+	    else
+	      code.push_back(new add3ac(u, tmp, off));
+	  }
+	  else {
+	    if (none_static_member(u)) {
+	      if (none_static_member(ref)) {
+		ref = get_pointer(ref);
+		none_static_member(u, ref);
+	      }
+	      else {
+		var* tmp2 = new var(u->m_type);
+		assert(scope::current->m_id == scope::BLOCK);
+		block* b = static_cast<block*>(scope::current);
+		b->m_vars.push_back(tmp2);
+		code.push_back(new addr3ac(tmp2, ref));
+		none_static_member(u, tmp2);
+	      }
+	    }
+	    else
+	      code.push_back(new addr3ac(u, ref));
+	  }
+	}
+      } // end of namespace reference_impl
+      inline void reference_case(usr* u, var* v)
+      {
+	if (v->isconstant())
+	  reference_impl::constant_case(u, v);
+	else
+	  reference_impl::not_constant(u, v);
+      }
     } // end of nmeaspace initializers
   } // end of nmeaspace declarations
 } // end of nmeaspace cxx_compiler
@@ -159,62 +312,40 @@ void cxx_compiler::declarations::initializers::gencode(usr* u)
   using namespace std;
   using namespace declarations::declarators::function::definition;
   using namespace static_inline;
-  map<usr*, gendata>::iterator p = table.find(u);
-  if ( p != table.end() ){
-    gendata& data = p->second;
-    vector<tac*>& c = data.m_code;
-    copy(c.begin(),c.end(),back_inserter(code));
-    map<int,var*>& value = data.m_value;
-    if (value.size() == 1 &&
-        u->m_type->scalar() == value[0]->m_type->scalar()) {
-      const type* Tx = u->m_type;
-      Tx = Tx->unqualified();
-      const type* Ty = value[0]->m_type;
-      Ty = Ty->unqualified();
-      if (Tx->m_id == type::REFERENCE && Ty->m_id != type::REFERENCE) {
-        var* v = value[0];
-        if (v->isconstant()) {
-          var* tmp = new var(u->m_type);
-          if (scope::current->m_id == scope::BLOCK) {
-            block* b = static_cast<block*>(scope::current);
-            b->m_vars.push_back(tmp);
-          }
-          else
-            garbage.push_back(tmp);
-          code.push_back(new assign3ac(tmp, v));
-          v = tmp;
-          code.push_back(new addr3ac(u, v));
-        }
-        else {
-          addrof* addr = v->addrof_cast();
-          assert(addr);
-          var* ref = addr->m_ref;
-          if (int offset = addr->m_offset) {
-            using namespace expressions::primary::literal;
-            var* off = integer::create(offset);
-            var* tmp = new var(u->m_type);
-            if (scope::current->m_id == scope::BLOCK) {
-              block* b = static_cast<block*>(scope::current);
-              b->m_vars.push_back(tmp);
-            }
-            else
-              garbage.push_back(tmp);
-            code.push_back(new addr3ac(tmp, ref));
-            code.push_back(new add3ac(u, tmp, off));
-          }
-          else
-            code.push_back(new addr3ac(u, ref));
-        }
-      }
-      else
-        code.push_back(new assign3ac(u,value[0]));
-    }
-    else
-      for_each(value.begin(),value.end(),bind1st(ptr_fun(gen_loff),u));
-    table.erase(p);
+  typedef map<usr*, gendata>::iterator IT;
+  IT p = table.find(u);
+  if (p == table.end())
+    return call_default_ctor(u);
+
+  struct sweeper {
+    IT m_it;
+    sweeper(IT it) : m_it(it) {}
+    ~sweeper(){ table.erase(m_it); }
+  } sweeper(p);
+
+  gendata& data = p->second;
+  vector<tac*>& c = data.m_code;
+  copy(c.begin(),c.end(),back_inserter(code));
+  map<int,var*>& value = data.m_value;
+  const type* Tx = u->m_type;
+  if (value.size() != 1) {
+    for_each(value.begin(),value.end(),bind1st(ptr_fun(gen_loff),u));
+    return;
   }
-  else
-    call_default_ctor(u);
+
+  var* v = value[0];
+  const type* Ty = v->m_type;
+  if (Tx->scalar() != Ty->scalar()) {
+    for_each(value.begin(),value.end(),bind1st(ptr_fun(gen_loff),u));
+    return;
+  }
+
+  Tx = Tx->unqualified();
+  Ty = Ty->unqualified();
+  if (Tx->m_id == type::REFERENCE && Ty->m_id != type::REFERENCE)
+    return reference_case(u, v);
+
+  not_reference(u, v);
 }
 
 namespace cxx_compiler {

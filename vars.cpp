@@ -112,8 +112,8 @@ cxx_compiler::var * cxx_compiler::refaddr::rvalue()
   }
   else
     garbage.push_back(ret);
-  var* off = expressions::primary::literal::integer::create(m_addrof.m_offset);
-
+  using namespace expressions::primary::literal;
+  var* off = integer::create(m_addrof.m_offset);
   var* ref = m_addrof.m_ref;
   const type* Tr = ref->m_type;
   Tr = Tr->complete_type();
@@ -124,6 +124,22 @@ cxx_compiler::var * cxx_compiler::refaddr::rvalue()
     ref = ref->rvalue();
     code.push_back(new assign3ac(ret, ref));
   }
+
+  T = T->unqualified();
+  if (T->m_id == type::REFERENCE) {
+    typedef const reference_type RT;
+    RT* rt = static_cast<RT*>(T);
+    T = rt->referenced_type();
+    var* tmp = new var(T);
+    if ( scope::current->m_id == scope::BLOCK ){
+      block* b = static_cast<block*>(scope::current);
+      b->m_vars.push_back(tmp);
+    }
+    else
+      garbage.push_back(tmp);
+    code.push_back(new invraddr3ac(tmp, ret));
+    ret = tmp;
+  } 
   return ret;
 }
 
