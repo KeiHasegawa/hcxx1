@@ -17,6 +17,10 @@ int main(int argc, char** argv)
     parse::position = file_t(cmdline::input,1);
   }
   generator::initialize();
+#ifdef __CYGWIN__
+  assert(class_or_namespace_name::before.empty());
+  class_or_namespace_name::before.push_back(&scope::root);
+#endif // __CYGWIN__
   cxx_compiler_parse();
 #ifdef _DEBUG
   parse::delete_buffer();
