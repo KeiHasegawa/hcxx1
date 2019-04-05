@@ -69,6 +69,28 @@ namespace cxx_compiler {
       }
       return true;
     }
+    inline int base_cast(const type* Tx, const type* Ty)
+    {
+      Tx = Tx->unqualified();
+      if (Tx->m_id != type::POINTER)
+	return -1;
+      typedef const pointer_type PT;
+      PT* Px = static_cast<PT*>(Tx);
+      Tx = Px->referenced_type();
+      Tx = Tx->unqualified();
+      if (Tx->m_id != type::RECORD)
+	return -1;
+      typedef const record_type REC;
+      REC* Rx = static_cast<REC*>(Tx);
+      Ty = Ty->unqualified();
+      assert(Ty->m_id == type::POINTER);
+      PT* Py = static_cast<PT*>(Ty);
+      Ty = Py->referenced_type();
+      if (Ty->m_id != type::RECORD) 
+	return -1;
+      REC* Ry = static_cast<REC*>(Ty);
+      return Ry->base_offset(Rx);
+    }
   }  // end of namespace cast_impl
 }  // end of namespace cxx_compiler
 
@@ -85,8 +107,15 @@ cxx_compiler::var* cxx_compiler::var::cast(const type* T)
     garbage.push_back(ret);
   if (!cast_impl::require(T, m_type))
     code.push_back(new assign3ac(ret,this));
-  else
+  else {
     code.push_back(new cast3ac(ret,this,T));
+    int offset = cast_impl::base_cast(T, m_type);
+    if (offset > 0) {
+      using namespace expressions::primary::literal;
+      var* off = integer::create(offset);
+      code.push_back(new add3ac(ret, ret, off));
+    }
+  }
   return ret;
 }
 

@@ -222,19 +222,19 @@ namespace cxx_compiler {
                 error::not_implemented();
                 return;
               }
-	      tag* ptr = 0;
+              tag* ptr = 0;
               if (scope::current->m_id == scope::PARAM) {
-		scope* parent = scope::current->m_parent;
-		assert(parent->m_id == scope::TAG);
-		ptr = static_cast<tag*>(parent);
-	      }
-	      else {
-		assert(scope::current->m_id == scope::TAG);
-		ptr = static_cast<tag*>(scope::current);
-	      }
+                scope* parent = scope::current->m_parent;
+                assert(parent->m_id == scope::TAG);
+                ptr = static_cast<tag*>(parent);
+              }
+              else {
+                assert(scope::current->m_id == scope::TAG);
+                ptr = static_cast<tag*>(scope::current);
+              }
               const type* T = ptr->m_types.second;
               if (!T) {
-		assert(scope::current->m_id == scope::PARAM);
+                assert(scope::current->m_id == scope::PARAM);
                 table[fun].push_back(make_pair(v,p));
                 return;
               }

@@ -17,11 +17,16 @@ int main(int argc, char** argv)
     parse::position = file_t(cmdline::input,1);
   }
   generator::initialize();
+#ifdef __CYGWIN__
+  assert(class_or_namespace_name::before.empty());
+  class_or_namespace_name::before.push_back(&scope::root);
+#endif // __CYGWIN__
   cxx_compiler_parse();
 #ifdef _DEBUG
   parse::delete_buffer();
 #endif // _DEBUG
-  declarations::declarators::function::definition::static_inline::defer::last();
+  using namespace declarations::declarators::function::definition;
+  static_inline::defer::last();
 
   if ( parse::is_last_decl ){
     if ( cmdline::output_medium ){
@@ -40,7 +45,8 @@ int main(int argc, char** argv)
 
   if (!error::counter) {
     if (generator::last) {
-      transform(funcs.begin(), funcs.end(), back_inserter(scope::root.m_children), get_pm);
+      transform(funcs.begin(), funcs.end(),
+		back_inserter(scope::root.m_children), get_pm);
       generator::last_interface_t tmp = {
         &scope::root,
         &funcs

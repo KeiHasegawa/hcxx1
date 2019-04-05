@@ -655,13 +655,13 @@ cxx_compiler::declarations::action1(var* v, bool ini)
       switch (scope::current->m_id) {
       case scope::PARAM:
       case scope::TAG:
-	break;
+        break;
       default:
         if (!ini) {
           using namespace error::declarations::declarators;
           reference::missing_initializer(u);
         }
-	break;
+        break;
       }
     }
   }
@@ -1104,8 +1104,8 @@ void cxx_compiler::declarations::specifier_seq::func_spec::check(var* v)
   if ( v ){
     if ( usr* u = v->usr_cast() ){
       if ( internal_linkage(u) ){
-	using namespace error::declarations::specifier_seq::function::func_spec;
-	invalid_internal_linkage(parse::position,u);
+        using namespace error::declarations::specifier_seq::function::func_spec;
+        invalid_internal_linkage(parse::position,u);
         usr::flag_t& flag = fundef::current->m_usr->m_flag;
         flag = usr::flag_t(flag & ~usr::INLINE);
       }

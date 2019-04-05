@@ -105,6 +105,12 @@ inline bool cmp(const scope* ptr, scope::id_t id)
   return ptr->m_id == id;
 }
 
+const string vftbl_name = ".vftbl";
+const string vfptr_name = ".vfptr";
+const string vbtbl_name = ".vbtbl";
+const string vbptr_name = ".vbptr";
+bool match_vf(pair<int, var*>, usr*);
+
 namespace error {
   enum LANG { jpn, other };
   extern LANG lang;
