@@ -1607,6 +1607,16 @@ namespace cxx_compiler {
 	}
 	vector<var*> arg;
 	call_impl::common(ft, ctor, &arg, false, tmp);
+	usr::flag_t flag = ctor->m_flag;
+        if (!error::counter && !cmdline::no_inline_sub) {
+          if (flag & usr::INLINE) {
+            using namespace declarations::declarators::function::definition;
+            using namespace static_inline;
+            skip::table_t::const_iterator p = skip::table.find(ctor);
+            if (p != skip::table.end())
+              substitute(code, code.size()-1, p->second);
+          }
+        }
       }
     };
     inline bool has_ctor(base* bp)
@@ -1728,8 +1738,11 @@ namespace cxx_compiler {
       assert(code.empty());
       if (ptr->m_bases) {
 	vector<base*>& bases = *ptr->m_bases;
+	scope* org = scope::current;
+	scope::current = b;
 	for_each(begin(bases), end(bases),
 		 call_ctor(base_offset, this_ptr, b));
+	scope::current = org;
 	if (usr* vftbl = get_vftbl(ptr)) {
 	  for_each(begin(bases), end(bases),
 		 update_vfptr(base_offset, vftbl_offset, this_ptr, b, vftbl));
@@ -1820,11 +1833,13 @@ cxx_compiler::record_type::record_type(tag* ptr)
       T = array_type::create(T, nvb);
       with_initial* vbtbl = new with_initial(vbtbl_name,T,file_t());
       vbtbl->m_flag = vtbl_flag;
+      map<string, vector<usr*> >& usrs = m_tag->m_usrs;
+      usrs[vbtbl_name].push_back(vbtbl);
       T = pointer_type::create(T);
       usr* vbptr = new usr(vbptr_name,T,usr::NONE,file_t());
+      usrs[vbptr_name].push_back(vbptr);
       m_member.push_back(vbptr);
       map<int, var*>& value = vbtbl->m_value;
-      map<base*, int>& base_offset = m_base_offset;
       for_each(begin(*bases), end(*bases), set_vbtbl(value, m_base_offset));
     }
     nbvf = accumulate(begin(*bases), end(*bases), 0, base_vf);
