@@ -386,20 +386,26 @@ cxx_compiler::declarations::declarators::function::definition::valid(const type*
   return true;
 }
 
-namespace cxx_compiler { namespace declarations { namespace declarators { namespace function { namespace Inline { namespace remember {
-  extern void action(std::vector<tac*>&);
-} } } } } } // end of namespace remember, Inline, function, declarators, declarations and cxx_compiler
-
-namespace cxx_compiler { namespace declarations { namespace declarators { namespace function { namespace definition { namespace static_inline {
-  using namespace std;
-  extern void remember(fundef*, vector<tac*>&);
-  skip::table_t skip::table;
-  namespace defer {
-    map<string, vector<ref_t> > refs;
-    map<string, set<usr*> > callers;
-    map<usr*, vector<int> > positions;
-  }
-} } } } } } // end of namespace static_inline, definition, function, declarators, declarations and cxx_compiler
+namespace cxx_compiler {
+  namespace declarations {
+    namespace declarators {
+      namespace function {
+        namespace definition {
+          namespace static_inline {
+            using namespace std;
+            extern void remember(fundef*, vector<tac*>&);
+            skip::table_t skip::table;
+            namespace defer {
+              map<string, vector<ref_t> > refs;
+              map<string, set<usr*> > callers;
+              map<usr*, vector<int> > positions;
+            }  // end of namespace defer
+          }  // end of namespace static_inline
+        }  // end of namespace definition
+      }  // end of namespace function
+    }  // end of namespace declarators
+  }  // end of namespace declarations
+}  // end of namespace cxx_compiler
 
 namespace cxx_compiler {
   std::vector<FUNCS_ELEMENT_TYPE> funcs;

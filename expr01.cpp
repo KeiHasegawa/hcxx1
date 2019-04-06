@@ -264,16 +264,6 @@ namespace cxx_compiler {
     };
     tac* gen_param(var*);
     var* ref_vftbl(usr* vf, var* vp);
-    bool has_vbtbl(tag* ptag)
-    {
-      if (!ptag->m_bases)
-        return false;
-      vector<base*>& bases = *ptag->m_bases;
-      typedef vector<base*>::const_iterator IT;
-      IT p = find_if(begin(bases), end(bases),
-                     [](base* b){ return b->m_virtual; });
-      return p != end(bases);
-    }
   } // end of namespace call_impl
  } // end of namespace cxx_compiler
 
@@ -451,7 +441,10 @@ cxx_compiler::var* cxx_compiler::call_impl::ref_vftbl(usr* vf, var* vp)
   const func_type* ft = static_cast<const func_type*>(T);
   const pointer_type* pt = pointer_type::create(ft);
   var* tmp = 0;
-  if ( !has_vbtbl(ptag) ){
+  pair<int, usr*> off = rec->offset(vfptr_name);
+  int vfptr_offset = off.first;
+  assert(vfptr_offset >= 0);
+  if (!vfptr_offset)  {
     var* t0 = new var(pt);
     if ( b )
       b->m_vars.push_back(t0);
@@ -472,8 +465,8 @@ cxx_compiler::var* cxx_compiler::call_impl::ref_vftbl(usr* vf, var* vp)
       garbage.push_back(t1);
     }
     using namespace expressions::primary::literal;
-    var* delta = integer::create(pt->size());
-    code.push_back(new add3ac(t0,vp,delta));
+    var* off = integer::create(vfptr_offset);
+    code.push_back(new add3ac(t0,vp,off));
     code.push_back(new invraddr3ac(t1,t0));
     tmp = t1;
   }
@@ -482,262 +475,283 @@ cxx_compiler::var* cxx_compiler::call_impl::ref_vftbl(usr* vf, var* vp)
     b->m_vars.push_back(res);
   else
     garbage.push_back(res);
-  usr* vftbl = rec->vftbl();
-  assert(vftbl);
-  const vector<usr*>& contents = rec->vftbl_contents();
-  vector<usr*>::const_iterator p = find(contents.begin(),contents.end(),vf);
-  assert(p != contents.end());
-  int index = distance(contents.begin(),p);
-  if ( index ){
+  const map<string, vector<usr*> >& usrs = ptag->m_usrs;
+  typedef map<string, vector<usr*> >::const_iterator IT;
+  IT p = usrs.find(vftbl_name);
+  assert(p != usrs.end());
+  const vector<usr*>& v = p->second;
+  assert(v.size() == 1);
+  usr* u = v.back();
+  assert(u->m_flag & usr::WITH_INI);
+  with_initial* vftbl = static_cast<with_initial*>(u);
+  map<int, var*>::const_iterator q =
+    find_if(begin(vftbl->m_value), end(vftbl->m_value),
+            bind2nd(ptr_fun(match_vf),vf));
+  assert(q != end(vftbl->m_value));
+  int offset = q->first;
+  if (offset){
     var* t2 = new var(pt);
     if ( b )
       b->m_vars.push_back(t2);
     else
       garbage.push_back(t2);
-    var* delta = expressions::primary::literal::integer::create(pt->size());
-    code.push_back(new add3ac(t2,tmp,delta));
+    using namespace expressions::primary::literal;
+    var* off = integer::create(offset);
+    code.push_back(new add3ac(t2,tmp,off));
     tmp = t2;
   }
   code.push_back(new invraddr3ac(res,tmp));
   return res;
 }
 
-namespace cxx_compiler { namespace declarations { namespace declarators { namespace function { namespace definition {
-  namespace static_inline {
-    using namespace std;      
-    namespace substitute_impl {
-      map<var*, var*> symtab;
-      usr* new_usr(usr* u, scope* s)
-      {
-        usr::flag_t flag = u->m_flag;
-        usr* ret = 0;
-        if (flag & usr::WITH_INI) {
-          with_initial* p = static_cast<with_initial*>(u);
-          ret = new with_initial(*p);
-        }
-        else if (flag & usr::ENUM_MEMBER) {
-          enum_member* p = static_cast<enum_member*>(u);
-          ret = new enum_member(*p);
-        }
-        else
-          ret = new usr(*u);
-        ret->m_scope = s;
-        symtab[u] = ret;
-        return ret;
-      }
-      var* new_var(var* v, scope* s)
-      {
-        var* ret = new var(*v);
-        ret->m_scope = s;
-        return symtab[v] = ret;
-      }
-      scope* new_block(scope* ptr, scope* parent)
-      {
-        block* ret = new block;
-        {
-          using namespace class_or_namespace_name;
-          assert(before.back() == ret);
-          before.pop_back();
-        }
-        ret->m_parent = parent;
-        if (ptr->m_id != scope::BLOCK) {
-          assert(ptr->m_id == scope::TAG);
-          return ret;
-        }
-        block* b = static_cast<block*>(ptr);
-        const map<string, vector<usr*> >& u = b->m_usrs;
-        map<string, vector<usr*> >& d = ret->m_usrs;
-        typedef map<string, vector<usr*> >::const_iterator IT;
-        for (auto& p : u) {
-          string name = p.first;
-          const vector<usr*>& v = p.second;
-          transform(v.begin(),v.end(),back_inserter(d[name]),
-                    bind2nd(ptr_fun(new_usr),ret));
-        }
-        const vector<var*>& v = b->m_vars;
-        transform(v.begin(),v.end(),back_inserter(ret->m_vars),
-                  bind2nd(ptr_fun(new_var),ret));
-        const vector<scope*>& c = b->m_children;
-        transform(c.begin(),c.end(),back_inserter(ret->m_children),
-                  bind2nd(ptr_fun(new_block),ret));
-        return ret;
-      }
-      block* create(const scope* param)
-      {
-        symtab.clear();
-        block* ret = new block;
-        {
-          using namespace class_or_namespace_name;
-          assert(before.back() == ret);
-          before.pop_back();
-        }
-        ret->m_parent = scope::current;
-        scope::current->m_children.push_back(ret);
-        const vector<usr*>& o = param->m_order;
-        vector<var*>& v = ret->m_vars;
-        transform(o.begin(),o.end(),back_inserter(v),
-                  bind2nd(ptr_fun(new_usr),ret));
-        const vector<scope*>& c = param->m_children;
-        transform(c.begin(),c.end(),back_inserter(ret->m_children),
-                  bind2nd(ptr_fun(new_block),ret));
-        return ret;
-      }
-      tac* param2assign(tac* param, var* x)
-      {
-        assert(param->m_id == tac::PARAM);
-        var* y = param->y;
-        delete param;
-        return new assign3ac(x, y);
-      }
-      namespace dup {
-        struct patch_t {
-          map<goto3ac*,goto3ac*> m_goto;
-          map<to3ac*,to3ac*> m_to;
-        };
-        tac* filter(tac* ptac, patch_t* patch)
-        {
-          tac* ret = ptac->new3ac();
-          if (ret->x) {
-            map<var*, var*>::const_iterator p = symtab.find(ret->x);
-            if (p != symtab.end())
-              ret->x = p->second;
-          }
-          if (ret->y) {
-            map<var*, var*>::const_iterator p = symtab.find(ret->y);
-            if (p != symtab.end())
-              ret->y = p->second;
-          }
-          if (ret->z) {
-            map<var*, var*>::const_iterator p = symtab.find(ret->z);
-            if (p != symtab.end())
-              ret->z = p->second;
-          }
+namespace cxx_compiler {
+  namespace declarations {
+    namespace declarators {
+      namespace function {
+        namespace definition {
+          namespace static_inline {
+            using namespace std;      
+            namespace substitute_impl {
+              map<var*, var*> symtab;
+              usr* new_usr(usr* u, scope* s)
+              {
+                usr::flag_t flag = u->m_flag;
+                usr* ret = 0;
+                if (flag & usr::WITH_INI) {
+                  with_initial* p = static_cast<with_initial*>(u);
+                  ret = new with_initial(*p);
+                }
+                else if (flag & usr::ENUM_MEMBER) {
+                  enum_member* p = static_cast<enum_member*>(u);
+                  ret = new enum_member(*p);
+                }
+                else
+                  ret = new usr(*u);
+                ret->m_scope = s;
+                symtab[u] = ret;
+                return ret;
+              }
+              var* new_var(var* v, scope* s)
+              {
+                var* ret = new var(*v);
+                ret->m_scope = s;
+                return symtab[v] = ret;
+              }
+              scope* new_block(scope* ptr, scope* parent)
+              {
+                block* ret = new block;
+                {
+                  using namespace class_or_namespace_name;
+                  assert(before.back() == ret);
+                  before.pop_back();
+                }
+                ret->m_parent = parent;
+                if (ptr->m_id != scope::BLOCK) {
+                  assert(ptr->m_id == scope::TAG);
+                  return ret;
+                }
+                block* b = static_cast<block*>(ptr);
+                const map<string, vector<usr*> >& u = b->m_usrs;
+                map<string, vector<usr*> >& d = ret->m_usrs;
+                typedef map<string, vector<usr*> >::const_iterator IT;
+                for (auto& p : u) {
+                  string name = p.first;
+                  const vector<usr*>& v = p.second;
+                  transform(v.begin(),v.end(),back_inserter(d[name]),
+                            bind2nd(ptr_fun(new_usr),ret));
+                }
+                const vector<var*>& v = b->m_vars;
+                transform(v.begin(),v.end(),back_inserter(ret->m_vars),
+                          bind2nd(ptr_fun(new_var),ret));
+                const vector<scope*>& c = b->m_children;
+                transform(c.begin(),c.end(),back_inserter(ret->m_children),
+                          bind2nd(ptr_fun(new_block),ret));
+                return ret;
+              }
+              block* create(const scope* param)
+              {
+                symtab.clear();
+                block* ret = new block;
+                {
+                  using namespace class_or_namespace_name;
+                  assert(before.back() == ret);
+                  before.pop_back();
+                }
+                ret->m_parent = scope::current;
+                scope::current->m_children.push_back(ret);
+                const vector<usr*>& o = param->m_order;
+                vector<var*>& v = ret->m_vars;
+                transform(o.begin(),o.end(),back_inserter(v),
+                          bind2nd(ptr_fun(new_usr),ret));
+                const vector<scope*>& c = param->m_children;
+                transform(c.begin(),c.end(),back_inserter(ret->m_children),
+                          bind2nd(ptr_fun(new_block),ret));
+                return ret;
+              }
+              tac* param2assign(tac* param, var* x)
+              {
+                assert(param->m_id == tac::PARAM);
+                var* y = param->y;
+                delete param;
+                return new assign3ac(x, y);
+              }
+              namespace dup {
+                struct patch_t {
+                  map<goto3ac*,goto3ac*> m_goto;
+                  map<to3ac*,to3ac*> m_to;
+                };
+                tac* filter(tac* ptac, patch_t* patch)
+                {
+                  tac* ret = ptac->new3ac();
+                  if (ret->x) {
+                    map<var*, var*>::const_iterator p = symtab.find(ret->x);
+                    if (p != symtab.end())
+                      ret->x = p->second;
+                  }
+                  if (ret->y) {
+                    map<var*, var*>::const_iterator p = symtab.find(ret->y);
+                    if (p != symtab.end())
+                      ret->y = p->second;
+                  }
+                  if (ret->z) {
+                    map<var*, var*>::const_iterator p = symtab.find(ret->z);
+                    if (p != symtab.end())
+                      ret->z = p->second;
+                  }
 
-          tac::id_t id = ptac->m_id;
-          switch (id) {
-          case tac::GOTO:
+                  tac::id_t id = ptac->m_id;
+                  switch (id) {
+                  case tac::GOTO:
+                    {
+                      goto3ac* go = static_cast<goto3ac*>(ptac);
+                      return patch->m_goto[go] = static_cast<goto3ac*>(ret);
+                    }
+                  case tac::TO:
+                    {
+                      to3ac* to = static_cast<to3ac*>(ptac);
+                      return patch->m_to[to] = static_cast<to3ac*>(ret);
+                    }
+                  default:
+                    return ret;
+                  }
+                }
+                void spatch(pair<goto3ac*,goto3ac*> x, map<to3ac*,to3ac*>* y)
+                {
+                  goto3ac* org = x.first;
+                  map<to3ac*,to3ac*>::const_iterator p = y->find(org->m_to);
+                  assert(p != y->end());
+                  goto3ac* _new = x.second;
+                  _new->m_to = p->second;
+                }
+                goto3ac* helper(goto3ac* x, map<goto3ac*,goto3ac*>* y)
+                {
+                  map<goto3ac*,goto3ac*>::const_iterator p = y->find(x);
+                  assert(p != y->end());
+                  return p->second;
+                }
+                void tpatch(pair<to3ac*,to3ac*> x, map<goto3ac*,goto3ac*>* y)
+                {
+                  to3ac* org = x.first;
+                  const vector<goto3ac*>& u = org->m_goto;
+                  to3ac* _new = x.second;
+                  vector<goto3ac*>& v = _new->m_goto;
+                  transform(u.begin(),u.end(),v.begin(),
+                            bind2nd(ptr_fun(helper),y));
+                }
+              } // end of namespace dup
+              struct arg_t {
+                vector<tac*>* m_result;
+                vector<goto3ac*>* m_returns;
+                var* m_ret;
+                dup::patch_t* m_patch;
+              };
+              void conv(tac* ptac, arg_t* pa)
+              {
+                if (ptac->m_id == tac::RETURN) {
+                  if (var* y = ptac->y) {
+                    map<var*,var*>::const_iterator p = symtab.find(y);
+                    if (p != symtab.end())
+                      y = p->second;
+                    pa->m_result->push_back(new assign3ac(pa->m_ret,y));
+                  }
+                  goto3ac* go = new goto3ac;
+                  pa->m_returns->push_back(go);
+                  pa->m_result->push_back(go);
+                }
+                else
+                  pa->m_result->push_back(dup::filter(ptac,pa->m_patch));
+              }
+            }  // end of namespace substitute_impl
+
+            void substitute(vector<tac*>& vt, int pos, info_t* info)
             {
-              goto3ac* go = static_cast<goto3ac*>(ptac);
-              return patch->m_goto[go] = static_cast<goto3ac*>(ret);
+              using namespace call_impl;
+              using namespace substitute_impl;
+              tac* call = vt[pos];
+              assert(call->m_id == tac::CALL);
+              fundef* fdef = info->m_fundef;
+              usr* func = fdef->m_usr;
+              var* y = call->y;
+              usr* u = y->usr_cast();
+              assert(u && u->m_name == func->m_name);
+              typedef const func_type FT;
+              const type* T = func->m_type;
+              assert(T->m_id == type::FUNC);
+              FT* ft = static_cast<FT*>(T);
+              pair<int,int> p = num_of_range(ft->param());
+              if (p.first != p.second)  // take variable number of arguments
+                return;
+              block* pb = create(fdef->m_param);
+              int n = p.first;
+              if (func->m_scope->m_id == scope::TAG &&
+                  !(func->m_flag & usr::STATIC))
+                ++n;
+              const vector<var*>& vars = pb->m_vars;
+              assert(vars.size() == n);
+              assert(pos >= n);
+              assert(pos < vt.size());
+              transform(&vt[pos-n],&vt[pos],vars.begin(),&vt[pos-n],
+                        param2assign);
+              const vector<tac*>& v = info->m_code;
+              vector<tac*> result;
+              vector<goto3ac*> returns;
+              dup::patch_t patch;
+              arg_t arg = { &result, &returns, call->x, &patch };
+              for_each(v.begin(),v.end(),bind2nd(ptr_fun(conv),&arg));
+              map<goto3ac*,goto3ac*>& s = patch.m_goto;
+              map<to3ac*,to3ac*>& t = patch.m_to;
+              for_each(s.begin(),s.end(),bind2nd(ptr_fun(dup::spatch),&t));
+              for_each(t.begin(),t.end(),bind2nd(ptr_fun(dup::tpatch),&s));
+              to3ac* to = new to3ac;
+              result.push_back(to);
+              for_each(returns.begin(),returns.end(),
+                       bind2nd(ptr_fun(misc::update),to));
+              copy(returns.begin(),returns.end(),back_inserter(to->m_goto));
+              vt.erase(vt.begin()+pos);
+              delete call;
+              for_each(result.begin(), result.end(), [&vt, &pos](tac* ptr)
+                       { vt.insert(vt.begin()+pos++, ptr); });
             }
-          case tac::TO:
-            {
-              to3ac* to = static_cast<to3ac*>(ptac);
-              return patch->m_to[to] = static_cast<to3ac*>(ret);
-            }
-          default:
-            return ret;
-          }
-        }
-        void spatch(pair<goto3ac*,goto3ac*> x, map<to3ac*,to3ac*>* y)
-        {
-          goto3ac* org = x.first;
-          map<to3ac*,to3ac*>::const_iterator p = y->find(org->m_to);
-          assert(p != y->end());
-          goto3ac* _new = x.second;
-          _new->m_to = p->second;
-        }
-        goto3ac* helper(goto3ac* x, map<goto3ac*,goto3ac*>* y)
-        {
-          map<goto3ac*,goto3ac*>::const_iterator p = y->find(x);
-          assert(p != y->end());
-          return p->second;
-        }
-        void tpatch(pair<to3ac*,to3ac*> x, map<goto3ac*,goto3ac*>* y)
-        {
-          to3ac* org = x.first;
-          const vector<goto3ac*>& u = org->m_goto;
-          to3ac* _new = x.second;
-          vector<goto3ac*>& v = _new->m_goto;
-          transform(u.begin(),u.end(),v.begin(),bind2nd(ptr_fun(helper),y));
-        }
-      } // end of namespace dup
-      struct arg_t {
-        vector<tac*>* m_result;
-        vector<goto3ac*>* m_returns;
-        var* m_ret;
-        dup::patch_t* m_patch;
-      };
-      void conv(tac* ptac, arg_t* pa)
-      {
-        if (ptac->m_id == tac::RETURN) {
-          if (var* y = ptac->y) {
-            map<var*,var*>::const_iterator p = symtab.find(y);
-            if (p != symtab.end())
-              y = p->second;
-            pa->m_result->push_back(new assign3ac(pa->m_ret,y));
-          }
-          goto3ac* go = new goto3ac;
-          pa->m_returns->push_back(go);
-          pa->m_result->push_back(go);
-        }
-        else
-          pa->m_result->push_back(dup::filter(ptac,pa->m_patch));
-      }
-    }  // end of namespace substitute_impl
 
-    void substitute(vector<tac*>& vt, int pos, info_t* info)
-    {
-      using namespace call_impl;
-      using namespace substitute_impl;
-      tac* call = vt[pos];
-      assert(call->m_id == tac::CALL);
-      fundef* fdef = info->m_fundef;
-      usr* func = fdef->m_usr;
-      var* y = call->y;
-      usr* u = y->usr_cast();
-      assert(u && u->m_name == func->m_name);
-      typedef const func_type FT;
-      const type* T = func->m_type;
-      assert(T->m_id == type::FUNC);
-      FT* ft = static_cast<FT*>(T);
-      pair<int,int> p = num_of_range(ft->param());
-      if (p.first != p.second)  // take variable number of arguments
-        return;
-      block* pb = create(fdef->m_param);
-      int n = p.first;
-      if (func->m_scope->m_id == scope::TAG && !(func->m_flag & usr::STATIC))
-        ++n;
-      const vector<var*>& vars = pb->m_vars;
-      assert(vars.size() == n);
-      assert(pos >= n);
-      assert(pos < vt.size());
-      transform(&vt[pos-n],&vt[pos],vars.begin(),&vt[pos-n],param2assign);
-      const vector<tac*>& v = info->m_code;
-      vector<tac*> result;
-      vector<goto3ac*> returns;
-      dup::patch_t patch;
-      arg_t arg = { &result, &returns, call->x, &patch };
-      for_each(v.begin(),v.end(),bind2nd(ptr_fun(conv),&arg));
-      map<goto3ac*,goto3ac*>& s = patch.m_goto;
-      map<to3ac*,to3ac*>& t = patch.m_to;
-      for_each(s.begin(),s.end(),bind2nd(ptr_fun(dup::spatch),&t));
-      for_each(t.begin(),t.end(),bind2nd(ptr_fun(dup::tpatch),&s));
-      to3ac* to = new to3ac;
-      result.push_back(to);
-      for_each(returns.begin(),returns.end(),bind2nd(ptr_fun(misc::update),to));
-      copy(returns.begin(),returns.end(),back_inserter(to->m_goto));
-      vt.erase(vt.begin()+pos);
-      delete call;
-      for_each(result.begin(), result.end(),
-               [&vt, &pos](tac* ptr){ vt.insert(vt.begin()+pos++, ptr); });
-    }
-
-    namespace defer {
-      void last()
-      {
-        using namespace std;
-        for (auto& p : refs) {
-          const vector<ref_t>& v = p.second;
-          assert(!v.empty());
-          const ref_t& r = v[0];
-          error::declarations::declarators::function::definition::
-            static_inline::nodef(r.m_def, r.m_flag, r.m_name, r.m_use);
-        }
-      }
-    } // end of namespace defer
-  }  // end of namespace static_inline
-} } } } } // end of namespace definition, function, declarators, declarations and cxx_compiler
+            namespace defer {
+              void last()
+              {
+                using namespace std;
+                for (auto& p : refs) {
+                  const vector<ref_t>& v = p.second;
+                  assert(!v.empty());
+                  const ref_t& r = v[0];
+                  error::declarations::declarators::function::definition::
+                    static_inline::nodef(r.m_def, r.m_flag, r.m_name, r.m_use);
+                }
+              }
+            } // end of namespace defer
+          }  // end of namespace static_inline
+        }  // end of namespace definition
+      }  // end of namespace function
+    }  // end of namespace declarators
+  }  // end of namespace declarations
+}  // end of namespace cxx_compiler
 
 std::stack<cxx_compiler::expressions::postfix::member::info_t*>
 cxx_compiler::expressions::postfix::member::handling;
@@ -1048,7 +1062,8 @@ namespace cxx_compiler {
 } // end of namespace cxx_compiler
 
 const cxx_compiler::type*
-cxx_compiler::expressions::assignment::valid(const type* T, var* src, bool* discard)
+cxx_compiler::expressions::
+assignment::valid(const type* T, var* src, bool* discard)
 {
   const type* xx = T;
   const type* yy = src->m_type;
@@ -1100,30 +1115,19 @@ cxx_compiler::expressions::assignment::valid(const type* T, var* src, bool* disc
           return 0;
         }
       }
-      if (Tx->m_id == type::RECORD) {
+      if (Tx->m_id == type::RECORD && Ty->m_id == type::RECORD) {
         typedef const record_type REC;
         REC* rx = static_cast<REC*>(Tx);
-        tag* xtag = rx->get_tag();
-        if (Ty->m_id == type::RECORD) {
-          REC* ry = static_cast<REC*>(Ty);
-          tag* ytag = ry->get_tag();
-          if (ytag->m_bases) {
-            const vector<cxx_compiler::base*>& bases = *ytag->m_bases;
-            typedef vector<cxx_compiler::base*>::const_iterator IT;
-            IT p = find_if(begin(bases), end(bases),
-                           [&xtag](const cxx_compiler::base* pb)
-                           { return pb->m_tag == xtag; });
-            if (p != end(bases)) {
-              if (include(cvr_x, cvr_y))
-                return px;
-              else {
-                if (discard)
-                  *discard = true;
-                return 0;
-              }
-            }
-          }
-        }
+	REC* ry = static_cast<REC*>(Ty);
+	if (ry->base_offset(rx) >= 0) {
+	  if (include(cvr_x, cvr_y))
+	    return px;
+	  else {
+	    if (discard)
+	      *discard = true;
+	    return 0;
+	  }
+	}
       }
     }
     if (yy->integer() && src->zero())

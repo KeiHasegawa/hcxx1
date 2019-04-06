@@ -69,6 +69,114 @@ namespace cxx_compiler {
       }
       return true;
     }
+    inline bool virt_base(const base* bp, tag* ptr)
+    {
+      return bp->m_virtual && bp->m_tag == ptr;
+    }
+    inline int nth_virt_base(tag* ptr, const base* bp)
+    {
+      vector<base*>& bases = *ptr->m_bases;
+      vector<base*> tmp;
+      copy_if(begin(bases), end(bases), back_inserter(tmp),
+	      [](base* bp){ return bp->m_virtual; });
+      typedef vector<base*>::iterator IT;
+      IT p = find(begin(tmp), end(tmp), bp);
+      assert(p != end(tmp));
+      return distance(begin(tmp), p);
+    }
+    inline var* ref_vbtbl(const record_type* rec, const base* bp, var* src)
+    {
+      using namespace expressions::primary::literal;
+      tag* ptr = rec->get_tag();
+      map<string, vector<usr*> >& usrs = ptr->m_usrs;
+      assert(usrs.find(vbptr_name) != usrs.end());
+      pair<int, usr*> off = rec->offset(vbptr_name);
+      int offset = off.first;
+      assert(offset >= 0);
+      usr* u = off.second;
+      const type* T = u->m_type;
+      assert(T->m_id == type::POINTER);
+      typedef const pointer_type PT;
+      PT* pt = static_cast<PT*>(T);
+      T = pt->referenced_type();
+      assert(T->m_id == type::ARRAY);
+      typedef const array_type AT;
+      AT* at = static_cast<AT*>(T);
+      const type* T2 = at->element_type();
+      T2 = T2->unqualified();
+      const type* T1 = pointer_type::create(T2);
+      const type* T0 = pointer_type::create(T1);
+      var* t0 = new var(T0);
+      if (scope::current->m_id == scope::BLOCK) {
+	block*b = static_cast<block*>(scope::current);
+	b->m_vars.push_back(t0);
+      }
+      else
+	garbage.push_back(t0);
+      code.push_back(new cast3ac(t0, src, T0));
+      if (offset) {
+	var* off = integer::create(offset);
+	code.push_back(new add3ac(t0, t0, off));
+      }
+      var* t1 = new var(T1);
+      if (scope::current->m_id == scope::BLOCK) {
+	block*b = static_cast<block*>(scope::current);
+	b->m_vars.push_back(t1);
+      }
+      else
+	garbage.push_back(t1);
+      code.push_back(new invladdr3ac(t1, t0));
+      if (int n = nth_virt_base(ptr, bp)) {
+	var* off = integer::create(n * T2->size());
+	code.push_back(new add3ac(t1, t1, off));
+      }
+      var* t2 = new var(T2);
+      if (scope::current->m_id == scope::BLOCK) {
+	block*b = static_cast<block*>(scope::current);
+	b->m_vars.push_back(t2);
+      }
+      else
+	garbage.push_back(t2);
+      code.push_back(new invladdr3ac(t2, t1));
+      return t2;
+    }
+    inline var* base_ptr_offset(const type* Tx, var* src)
+    {
+      using namespace expressions::primary::literal;
+      Tx = Tx->unqualified();
+      if (Tx->m_id != type::POINTER)
+	return 0;
+      typedef const pointer_type PT;
+      PT* Px = static_cast<PT*>(Tx);
+      Tx = Px->referenced_type();
+      Tx = Tx->unqualified();
+      if (Tx->m_id != type::RECORD)
+	return 0;
+      typedef const record_type REC;
+      REC* Rx = static_cast<REC*>(Tx);
+      const type* Ty = src->m_type;
+      Ty = Ty->unqualified();
+      assert(Ty->m_id == type::POINTER);
+      PT* Py = static_cast<PT*>(Ty);
+      Ty = Py->referenced_type();
+      if (Ty->m_id != type::RECORD) 
+	return 0;
+      REC* Ry = static_cast<REC*>(Ty);
+      tag* xtag = Rx->get_tag();
+      tag* ytag = Ry->get_tag();
+      if (ytag->m_bases) {
+	const vector<base*>& bases = *ytag->m_bases;
+	typedef vector<base*>::const_iterator IT;
+	IT p = find_if(begin(bases), end(bases),
+		       bind2nd(ptr_fun(virt_base), xtag));
+	if (p != end(bases))
+	  return ref_vbtbl(Ry, *p, src);
+      }
+      int offset = Ry->base_offset(Rx);
+      if (offset <= 0)
+	return 0;
+      return integer::create(offset);
+    }
   }  // end of namespace cast_impl
 }  // end of namespace cxx_compiler
 
@@ -85,8 +193,11 @@ cxx_compiler::var* cxx_compiler::var::cast(const type* T)
     garbage.push_back(ret);
   if (!cast_impl::require(T, m_type))
     code.push_back(new assign3ac(ret,this));
-  else
+  else {
     code.push_back(new cast3ac(ret,this,T));
+    if (var* off = cast_impl::base_ptr_offset(T, this))
+      code.push_back(new add3ac(ret, ret, off));
+  }
   return ret;
 }
 

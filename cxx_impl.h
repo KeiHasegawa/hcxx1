@@ -105,6 +105,12 @@ inline bool cmp(const scope* ptr, scope::id_t id)
   return ptr->m_id == id;
 }
 
+const string vftbl_name = ".vftbl";
+const string vfptr_name = ".vfptr";
+const string vbtbl_name = ".vbtbl";
+const string vbptr_name = ".vbptr";
+bool match_vf(pair<int, var*>, usr*);
+
 namespace error {
   enum LANG { jpn, other };
   extern LANG lang;
@@ -124,7 +130,7 @@ namespace error {
         namespace func_spec {
           extern void main(const usr*);
           extern void static_storage(const usr*);
-          extern void internal_linkage(const file_t&, const usr*);
+          extern void invalid_internal_linkage(const file_t&, const usr*);
         } // end of namespace func_spec
       } // end of namespace function
       namespace type {
@@ -460,11 +466,9 @@ namespace declarations {
       info_t(info_t*, specifier*);
       ~info_t(){ s_stack.pop(); }
     };
-    namespace function {
-      namespace Inline {
-        extern void check(var*);
-      } // end of namespace Inline
-    } // end of namespace function
+    namespace func_spec {
+      extern void check(var*);
+    } // end of namespace func_spec
   } // end of namespace specifier_seq
   namespace elaborated {
     const type* action(int, var*);
@@ -786,29 +790,29 @@ namespace expressions {
       const file_t& file() const;
       ~Operator(){ delete m_expr; }
     };
-    struct Sizeof : base {
+    struct size_of : base {
       base* m_expr;
       const type* m_type;
       const file_t m_file;
-      Sizeof(base* expr) : m_expr(expr), m_type(0) {}
-      Sizeof(const type* T) : m_expr(0), m_type(T), m_file(parse::position) {}
+      size_of(base* expr) : m_expr(expr), m_type(0) {}
+      size_of(const type* T) : m_expr(0), m_type(T), m_file(parse::position) {}
       var* gen();
       const file_t& file() const;
-      ~Sizeof(){ delete m_expr; }
+      ~size_of(){ delete m_expr; }
     };
-    struct New : base {
+    struct new_expr : base {
       const type* m_T;
       file_t m_file;
       const file_t& file() const { return m_file; }
-      New(const type* T, const file_t& file) : m_T(T), m_file(file) {}
+      new_expr(const type* T, const file_t& file) : m_T(T), m_file(file) {}
       var* gen();
     };
-    struct Delete : base {
+    struct delete_expr : base {
       base* m_expr;
       const file_t& file() const;
-      Delete(base* expr) : m_expr(expr) {}
+      delete_expr(base* expr) : m_expr(expr) {}
       var* gen();
-      ~Delete(){ delete m_expr; }
+      ~delete_expr(){ delete m_expr; }
     };
   } // end of namespace unary
   namespace cast {

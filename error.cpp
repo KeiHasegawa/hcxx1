@@ -2434,7 +2434,8 @@ void cxx_compiler::error::declarations::specifier_seq::function::func_spec::stat
   ++counter;
 }
 
-void cxx_compiler::error::declarations::specifier_seq::function::func_spec::internal_linkage(const file_t& file, const usr* u)
+void cxx_compiler::error::declarations::specifier_seq::function::
+func_spec::invalid_internal_linkage(const file_t& file, const usr* u)
 {
   using namespace std;
   string func = fundef::current->m_usr->m_name;

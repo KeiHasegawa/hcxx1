@@ -1414,14 +1414,18 @@ pseudo_destructor_name
 
 unary_expression
   : postfix_expression
-  | PLUSPLUS_MK cast_expression { $$ = new cxx_compiler::expressions::unary::ppmm(true,$2); }
-  | MINUSMINUS_MK cast_expression { $$ = new cxx_compiler::expressions::unary::ppmm(false,$2); }
-  | unary_operator cast_expression { $$ = new cxx_compiler::expressions::unary::Operator($1,$2); }
-  | SIZEOF_KW unary_expression { $$ = new cxx_compiler::expressions::unary::Sizeof($2); }
+  | PLUSPLUS_MK cast_expression
+    { $$ = new cxx_compiler::expressions::unary::ppmm(true,$2); }
+  | MINUSMINUS_MK cast_expression
+    { $$ = new cxx_compiler::expressions::unary::ppmm(false,$2); }
+  | unary_operator cast_expression
+    { $$ = new cxx_compiler::expressions::unary::Operator($1,$2); }
+  | SIZEOF_KW unary_expression
+    { $$ = new cxx_compiler::expressions::unary::size_of($2); }
   | SIZEOF_KW '(' type_id ')'
     {
       using namespace cxx_compiler;
-      $$ = new expressions::unary::Sizeof($3);
+      $$ = new expressions::unary::size_of($3);
       parse::identifier::mode = parse::identifier::look;
     }
   | new_expression
@@ -1453,7 +1457,10 @@ new_expression
   |                            NEW_KW               new_type_id new_initializer
     { cxx_compiler::error::not_implemented(); }
   |                            NEW_KW               new_type_id
-    { $$ = new cxx_compiler::expressions::unary::New($2, cxx_compiler::parse::position); }
+    {
+      using namespace cxx_compiler::expressions::unary;
+      $$ = new new_expr($2, cxx_compiler::parse::position);
+    }
   | COLONCOLON_MK move_to_root NEW_KW new_placement '(' type_id ')' new_initializer
     { cxx_compiler::error::not_implemented(); }
   | COLONCOLON_MK move_to_root NEW_KW new_placement '(' type_id ')'
@@ -1505,7 +1512,8 @@ direct_new_declarator
 delete_expression
   : COLONCOLON_MK move_to_root DELETE_KW         cast_expression
     { cxx_compiler::error::not_implemented(); }
-  |                            DELETE_KW         cast_expression { $$ = new cxx_compiler::expressions::unary::Delete($2); }
+  |                            DELETE_KW         cast_expression
+    { $$ = new cxx_compiler::expressions::unary::delete_expr($2); }
   | COLONCOLON_MK move_to_root DELETE_KW '[' ']' cast_expression
     { cxx_compiler::error::not_implemented(); }
   |                            DELETE_KW '[' ']' cast_expression

@@ -53,7 +53,7 @@ namespace cxx_compiler {
   } // end of namespace expressions
 } // end of namespace cxx_compiler
 
-cxx_compiler::var* cxx_compiler::expressions::unary::Sizeof::gen()
+cxx_compiler::var* cxx_compiler::expressions::unary::size_of::gen()
 {
   using namespace std;
   if (m_type) {
@@ -78,7 +78,8 @@ cxx_compiler::var* cxx_compiler::expressions::unary::Sizeof::gen()
   return expr->size();
 }
 
-const cxx_compiler::file_t& cxx_compiler::expressions::unary::Sizeof::file() const
+const cxx_compiler::file_t&
+cxx_compiler::expressions::unary::size_of::file() const
 {
   return m_expr ? m_expr->file() : m_file;
 }
@@ -101,7 +102,7 @@ const cxx_compiler::file_t& cxx_compiler::expressions::unary::Operator::file() c
   return m_expr->file();
 }
 
-cxx_compiler::var* cxx_compiler::expressions::unary::New::gen()
+cxx_compiler::var* cxx_compiler::expressions::unary::new_expr::gen()
 {
   using namespace std;
   int n = m_T->size();
@@ -111,19 +112,21 @@ cxx_compiler::var* cxx_compiler::expressions::unary::New::gen()
   map<string, vector<usr*> >& usrs = scope::root.m_usrs;
   map<string, vector<usr*> >::const_iterator it = usrs.find(name);
   const type* vp = pointer_type::create(void_type::create());
-  usr* New = 0;
+  usr* new_entry = 0;
   if ( it != usrs.end() ){
     const vector<usr*>& v = it->second;
-    New = v.back();
+    if (v.size() != 1)
+      error::not_implemented();
+    new_entry = v.back();
   }
   else {
     vector<const type*> param;
     param.push_back(uint_type::create());
     const func_type* ft = func_type::create(vp,param);
     usr::flag_t flag = usr::flag_t(usr::FUNCTION | usr::NEW_SCALAR);
-    New = new usr(name,ft,flag,file_t());
-    New->m_scope = &scope::root;
-    usrs[name].push_back(New);
+    new_entry = new usr(name,ft,flag,file_t());
+    new_entry->m_scope = &scope::root;
+    usrs[name].push_back(new_entry);
   }
   var* ret = new var(vp);
   if ( scope::current->m_id == scope::BLOCK ){
@@ -132,20 +135,22 @@ cxx_compiler::var* cxx_compiler::expressions::unary::New::gen()
   }
   else
     garbage.push_back(ret);
-  code.push_back(new call3ac(ret,New));
+  code.push_back(new call3ac(ret,new_entry));
   return ret;
 }
 
-cxx_compiler::var* cxx_compiler::expressions::unary::Delete::gen()
+cxx_compiler::var* cxx_compiler::expressions::unary::delete_expr::gen()
 {
   using namespace std;
   string name = "delete";
   map<string, vector<usr*> >& usrs = scope::root.m_usrs;
   map<string, vector<usr*> >::const_iterator it = usrs.find(name);
-  usr* Delete = 0;
+  usr* delete_entry = 0;
   if ( it != usrs.end() ){
     const vector<usr*>& v = it->second;
-    Delete = v.back();
+    if (v.size() != 1)
+      error::not_implemented();
+    delete_entry = v.back();
   }
   else {
     vector<const type*> param;
@@ -153,19 +158,20 @@ cxx_compiler::var* cxx_compiler::expressions::unary::Delete::gen()
     param.push_back(vp);
     const func_type* ft = func_type::create(vp,param);
     usr::flag_t flag = usr::flag_t(usr::FUNCTION | usr::DELETE_SCALAR);
-    Delete = new usr(name,ft,flag,file_t());
-    Delete->m_scope = &scope::root;
-    usrs[name].push_back(Delete);
+    delete_entry = new usr(name,ft,flag,file_t());
+    delete_entry->m_scope = &scope::root;
+    usrs[name].push_back(delete_entry);
   }
   var* v = m_expr->gen();
   code.push_back(new param3ac(v));
   var* ret = new var(void_type::create());
   garbage.push_back(ret);
-  code.push_back(new call3ac(ret,Delete));
+  code.push_back(new call3ac(ret, delete_entry));
   return ret;
 }
 
-const cxx_compiler::file_t& cxx_compiler::expressions::unary::Delete::file() const
+const cxx_compiler::file_t&
+cxx_compiler::expressions::unary::delete_expr::file() const
 {
   return m_expr->file();
 }

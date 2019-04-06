@@ -1565,10 +1565,7 @@ class record_type : public type {
   typedef std::set<const record_type*> table_t;
   static table_t tmp_tbl;
   
-  with_initial* m_vbtbl;
   std::map<base*, int> m_base_offset;
-  with_initial* m_vftbl;
-  std::vector<usr*> m_vftbl_contents;
   record_type(tag*);
 public:
   void decl(std::ostream&, std::string) const;
@@ -1579,14 +1576,13 @@ public:
   bool scalar() const { return false; }
   bool modifiable() const { return m_modifiable; }
   std::pair<int, usr*> offset(std::string) const;
+  int base_offset(const record_type*) const;
   int position(usr*) const;
   std::pair<int, const type*> current(int) const;
   const std::vector<usr*> member() const { return m_member; }
   tag* get_tag() const { return m_tag; }
   bool aggregate() const { return true; }
   bool tmp() const;
-  with_initial* vftbl() const { return m_vftbl; }
-  const std::vector<usr*>& vftbl_contents() const { return m_vftbl_contents; }
   static const record_type* create(tag*);
   static void destroy_tmp();
   static void collect_tmp(std::vector<const type*>&);

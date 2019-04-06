@@ -1273,8 +1273,8 @@ cxx_compiler::var* cxx_compiler::unqualified_id::from_member(usr* u)
   map<string, vector<usr*> >::const_iterator it = s->m_usrs.find("this");
   assert(it != s->m_usrs.end());
   const vector<usr*>& t = it->second;
-  usr* This = t.back();
-  code.push_back(new assign3ac(res,This));
+  usr* this_ptr = t.back();
+  code.push_back(new assign3ac(res,this_ptr));
   return res;
 }
 
