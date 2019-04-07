@@ -625,31 +625,53 @@ namespace cxx_compiler { namespace constant_impl {
 namespace cxx_compiler {
   var* constant<int>::eqr(constant<int>* y)
   { return constant_impl::eq(y,this); }
+  var* constant<int>::eqr(constant<__int64>* y)
+  { return constant_impl::pcmp(goto3ac::EQ,y,this); }
   var* constant<int>::eqr(constant<void*>* y)
   { return constant_impl::pcmp(goto3ac::EQ,y,this); }
 
   var* constant<unsigned int>::eqr(constant<unsigned int>* y)
   { return constant_impl::eq(y,this); }
+  var* constant<unsigned int>::eqr(constant<__int64>* y)
+  { return constant_impl::pcmp(goto3ac::EQ,y,this); }
   var* constant<unsigned int>::eqr(constant<void*>* y)
   { return constant_impl::pcmp(goto3ac::EQ,y,this); }
 
   var* constant<long int>::eqr(constant<long int>* y)
   { return constant_impl::eq(y,this); }
+  var* constant<long int>::eqr(constant<__int64>* y)
+  { return constant_impl::pcmp(goto3ac::EQ,y,this); }
   var* constant<long int>::eqr(constant<void*>* y)
   { return constant_impl::pcmp(goto3ac::EQ,y,this); }
 
   var* constant<unsigned long int>::eqr(constant<unsigned long int>* y)
   { return constant_impl::eq(y,this); }
+  var* constant<unsigned long int>::eqr(constant<__int64>* y)
+  { return constant_impl::pcmp(goto3ac::EQ,y,this); }
   var* constant<unsigned long int>::eqr(constant<void*>* y)
+  { return constant_impl::pcmp(goto3ac::EQ,y,this); }
+
+  var* constant<__int64>::eqr(constant<int>* y)
+  { return constant_impl::pcmp(goto3ac::EQ,y,this); }
+  var* constant<__int64>::eqr(constant<unsigned int>* y)
+  { return constant_impl::pcmp(goto3ac::EQ,y,this); }
+  var* constant<__int64>::eqr(constant<long int>* y)
+  { return constant_impl::pcmp(goto3ac::EQ,y,this); }
+  var* constant<__int64>::eqr(constant<unsigned long int>* y)
   { return constant_impl::pcmp(goto3ac::EQ,y,this); }
 
   var* constant<__int64>::eqr(constant<__int64>* y)
   { return constant_impl::eq(y,this); }
+
+  var* constant<__int64>::eqr(constant<unsigned __int64>* y)
+  { return constant_impl::pcmp(goto3ac::EQ,y,this); }
   var* constant<__int64>::eqr(constant<void*>* y)
   { return constant_impl::pcmp(goto3ac::EQ,y,this); }
 
   var* constant<unsigned __int64>::eqr(constant<unsigned __int64>* y)
   { return constant_impl::eq(y,this); }
+  var* constant<unsigned __int64>::eqr(constant<__int64>* y)
+  { return constant_impl::pcmp(goto3ac::EQ,y,this); }
   var* constant<unsigned __int64>::eqr(constant<void*>* y)
   { return constant_impl::pcmp(goto3ac::EQ,y,this); }
 
@@ -699,29 +721,53 @@ namespace cxx_compiler { namespace constant_impl {
 namespace cxx_compiler {
   var* constant<int>::ner(constant<int>* y)
   { return constant_impl::ne(y,this); }
+  var* constant<int>::ner(constant<__int64>* y)
+  { return constant_impl::pcmp(goto3ac::NE,y,this); }
   var* constant<int>::ner(constant<void*>* y)
   { return constant_impl::pcmp(goto3ac::NE,y,this); }
 
   var* constant<unsigned int>::ner(constant<unsigned int>* y)
   { return constant_impl::ne(y,this); }
+  var* constant<unsigned int>::ner(constant<__int64>* y)
+  { return constant_impl::pcmp(goto3ac::NE,y,this); }
   var* constant<unsigned int>::ner(constant<void*>* y)
   { return constant_impl::pcmp(goto3ac::NE,y,this); }
 
   var* constant<long int >::ner(constant<long int>* y)
   { return constant_impl::ne(y,this); }
+  var* constant<long int>::ner(constant<__int64>* y)
+  { return constant_impl::pcmp(goto3ac::NE,y,this); }
   var* constant<long int>::ner(constant<void*>* y)
   { return constant_impl::pcmp(goto3ac::NE,y,this); }
 
   var* constant<unsigned long int>::ner(constant<unsigned long int>* y)
   { return constant_impl::ne(y,this); }
+  var* constant<unsigned long int>::ner(constant<__int64>* y)
+  { return constant_impl::pcmp(goto3ac::NE,y,this); }
   var* constant<unsigned long int>::ner(constant<void*>* y)
+  { return constant_impl::pcmp(goto3ac::NE,y,this); }
+
+
+  var* constant<__int64>::ner(constant<int>* y)
+  { return constant_impl::pcmp(goto3ac::NE,y,this); }
+  var* constant<__int64>::ner(constant<unsigned int>* y)
+  { return constant_impl::pcmp(goto3ac::NE,y,this); }
+  var* constant<__int64>::ner(constant<long int>* y)
+  { return constant_impl::pcmp(goto3ac::NE,y,this); }
+  var* constant<__int64>::ner(constant<unsigned long int>* y)
   { return constant_impl::pcmp(goto3ac::NE,y,this); }
 
   var* constant<__int64>::ner(constant<__int64>* y)
   { return constant_impl::ne(y,this); }
+
+  var* constant<__int64>::ner(constant<unsigned __int64>* y)
+  { return constant_impl::pcmp(goto3ac::NE,y,this); }
   var* constant<__int64>::ner(constant<void*>* y)
   { return constant_impl::pcmp(goto3ac::NE,y,this); }
 
+
+  var* constant<unsigned __int64>::ner(constant<__int64>* y)
+  { return constant_impl::pcmp(goto3ac::NE,y,this); }
   var* constant<unsigned __int64>::ner(constant<unsigned __int64>* y)
   { return constant_impl::ne(y,this); }
   var* constant<unsigned __int64>::ner(constant<void*>* y)
