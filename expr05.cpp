@@ -594,31 +594,53 @@ namespace cxx_compiler { namespace constant_impl {
 namespace cxx_compiler {
   var* constant<int>::addr(constant<int>* y)
   { return constant_impl::add(y,this); }
+  var* constant<int>::addr(constant<__int64>* y)
+  { return constant_impl::padd(y,this); }
   var* constant<int>::addr(constant<void*>* y)
   { return constant_impl::padd(y,this); }
 
   var* constant<unsigned int>::addr(constant<unsigned int>* y)
   { return constant_impl::add(y,this); }
+  var* constant<unsigned int>::addr(constant<__int64>* y)
+  { return constant_impl::padd(y,this); }
   var* constant<unsigned int>::addr(constant<void*>* y)
   { return constant_impl::padd(y,this); }
 
   var* constant<long int>::addr(constant<long int>* y)
   { return constant_impl::add(y,this); }
+  var* constant<long int>::addr(constant<__int64>* y)
+  { return constant_impl::padd(y,this); }
   var* constant<long int>::addr(constant<void*>* y)
   { return constant_impl::padd(y,this); }
 
   var* constant<unsigned long int>::addr(constant<unsigned long int>* y)
   { return constant_impl::add(y,this); }
+  var* constant<unsigned long int>::addr(constant<__int64>* y)
+  { return constant_impl::padd(y,this); }
   var* constant<unsigned long int>::addr(constant<void*>* y)
   { return constant_impl::padd(y,this); }
 
+  var* constant<__int64>::addr(constant<int>* y)
+  { return constant_impl::add(y,this); }
+  var* constant<__int64>::addr(constant<unsigned int>* y)
+  { return constant_impl::add(y,this); }
+  var* constant<__int64>::addr(constant<long int>* y)
+  { return constant_impl::add(y,this); }
+  var* constant<__int64>::addr(constant<unsigned long int>* y)
+  { return constant_impl::add(y,this); }
+
   var* constant<__int64>::addr(constant<__int64>* y)
+  { return constant_impl::add(y,this); }
+
+  var* constant<__int64>::addr(constant<unsigned __int64>* y)
   { return constant_impl::add(y,this); }
   var* constant<__int64>::addr(constant<void*>* y)
   { return constant_impl::padd(y,this); }
 
   var* constant<unsigned __int64>::addr(constant<unsigned __int64>* y)
   { return constant_impl::add(y,this); }
+  var* constant<unsigned __int64>::addr(constant<__int64>* y)
+  { return constant_impl::padd(y,this); }
   var* constant<unsigned __int64>::addr(constant<void*>* y)
   { return constant_impl::padd(y,this); }
 
@@ -945,21 +967,29 @@ namespace cxx_compiler { namespace constant_impl {
 namespace cxx_compiler {
   var* constant<int>::subr(constant<int>* y)
   { return constant_impl::sub(y,this); }
+  var* constant<int>::subr(constant<__int64>* y)
+  { return constant_impl::psub(y,this); }
   var* constant<int>::subr(constant<void*>* y)
   { return constant_impl::psub(y,this); }
 
   var* constant<unsigned int>::subr(constant<unsigned int>* y)
   { return constant_impl::sub(y,this); }
+  var* constant<unsigned int>::subr(constant<__int64>* y)
+  { return constant_impl::psub(y,this); }
   var* constant<unsigned int>::subr(constant<void*>* y)
   { return constant_impl::psub(y,this); }
 
   var* constant<long int>::subr(constant<long int>* y)
   { return constant_impl::sub(y,this); }
+  var* constant<long int>::subr(constant<__int64>* y)
+  { return constant_impl::psub(y,this); }
   var* constant<long int>::subr(constant<void*>* y)
   { return constant_impl::psub(y,this); }
 
   var* constant<unsigned long int>::subr(constant<unsigned long int>* y)
   { return constant_impl::sub(y,this); }
+  var* constant<unsigned long int>::subr(constant<__int64>* y)
+  { return constant_impl::psub(y,this); }
   var* constant<unsigned long int>::subr(constant<void*>* y)
   { return constant_impl::psub(y,this); }
 
@@ -970,6 +1000,8 @@ namespace cxx_compiler {
 
   var* constant<unsigned __int64>::subr(constant<unsigned __int64>* y)
   { return constant_impl::sub(y,this); }
+  var* constant<unsigned __int64>::subr(constant<__int64>* y)
+  { return constant_impl::psub(y,this); }
   var* constant<unsigned __int64>::subr(constant<void*>* y)
   { return constant_impl::psub(y,this); }
 
