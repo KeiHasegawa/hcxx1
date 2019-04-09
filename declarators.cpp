@@ -668,15 +668,20 @@ namespace cxx_compiler { namespace declarations { namespace declarators { namesp
         callers.erase(q);
       }
     } // end of namespace skip
+    void remember(fundef* fdef, std::vector<tac*>& vc)
+    {
+      funcs.push_back(make_pair(fdef, vc));
+      scope* param = fdef->m_param;
+      vector<scope*>& children = param->m_parent->m_children;
+      typedef vector<scope*>::reverse_iterator IT;
+      IT p = find(rbegin(children), rend(children), param);
+      assert(p != rend(children));
+      vector<scope*>::iterator q = p.base() - 1;
+      children.erase(q);
+      vc.clear();
+    }
   } // end of namespace static_inline
 } } } } } // end of namespace definition, function, declarators, declarations and cxx_compiler
-
-void cxx_compiler::declarations::declarators::function::definition::static_inline::remember(fundef* fdef, std::vector<tac*>& vc)
-{
-  funcs.push_back(make_pair(fdef, vc));
-  scope::root.m_children.clear();
-  vc.clear();
-}
 
 cxx_compiler::declarations::declarators::function::definition::table_t
 cxx_compiler::declarations::declarators::function::definition::table;
