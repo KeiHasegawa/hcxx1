@@ -964,7 +964,8 @@ namespace cxx_compiler { namespace optimize { namespace symtab {
   extern bool not_referenced(var*, std::vector<tac*>*);
 } } } // end of namespace symtab, optimize and cxx_compiler
 
-int cxx_compiler::optimize::symtab::simplify(scope* ptr, std::vector<tac*>* res)
+int
+cxx_compiler::optimize::symtab::simplify(scope* ptr, std::vector<tac*>* res)
 {
   using namespace std;
   map<string, vector<usr*> >& usrs = ptr->m_usrs;
