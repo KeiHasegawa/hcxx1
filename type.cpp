@@ -1432,20 +1432,28 @@ namespace cxx_compiler {
         return n + m;
       }
     };
-    inline int base_vf(int n, base* b)
+    inline int base_vcommon(int n, base* b, string vtbl_name)
     {
       tag* ptr = b->m_tag;
       const map<string, vector<usr*> >& usrs = ptr->m_usrs;
       typedef map<string, vector<usr*> >::const_iterator IT;
-      IT p = usrs.find(vftbl_name);
+      IT p = usrs.find(vtbl_name);
       if (p == usrs.end())
         return n;
       const vector<usr*>& v = p->second;
       assert(v.size() == 1);
       usr* u = v.back();
       assert(u->m_flag & usr::WITH_INI);
-      with_initial* vftbl = static_cast<with_initial*>(u);
-      return n + vftbl->m_value.size();;
+      with_initial* vtbl = static_cast<with_initial*>(u);
+      return n + vtbl->m_value.size();;
+    }
+    inline int base_vf(int n, base* b)
+    {
+      return base_vcommon(n, b, vftbl_name);
+    }
+    inline int base_vb(int n, base* b)
+    {
+      return base_vcommon(n, b, vbtbl_name);
     }
     struct copy_base_vf {
       map<int, var*>& m_value;
@@ -1813,6 +1821,7 @@ cxx_compiler::record_type::record_type(tag* ptr)
   const vector<base*>* bases = m_tag->m_bases;
   int nbvf = 0;
   if (bases) {
+    int nbvb = accumulate(begin(*bases), end(*bases), 0, base_vb);
     int nvb = count_if(begin(*bases), end(*bases),
                        [](base* b){ return b->m_virtual; });
     if (m_tag->m_kind != tag::UNION) {
@@ -1827,18 +1836,20 @@ cxx_compiler::record_type::record_type(tag* ptr)
       */
       error::not_implemented();
     }
-    if (nvb) {
+    if (nbvb + nvb) {
       const type* T = int_type::create();
       T = const_type::create(T);
-      T = array_type::create(T, nvb);
+      T = array_type::create(T, nbvb + nvb);
       with_initial* vbtbl = new with_initial(vbtbl_name,T,file_t());
       vbtbl->m_flag = vtbl_flag;
       map<string, vector<usr*> >& usrs = m_tag->m_usrs;
       usrs[vbtbl_name].push_back(vbtbl);
-      T = pointer_type::create(T);
-      usr* vbptr = new usr(vbptr_name,T,usr::NONE,file_t());
-      usrs[vbptr_name].push_back(vbptr);
-      m_member.push_back(vbptr);
+      if (nvb) {
+	T = pointer_type::create(T);
+	usr* vbptr = new usr(vbptr_name,T,usr::NONE,file_t());
+	usrs[vbptr_name].push_back(vbptr);
+	m_member.push_back(vbptr);
+      }
       map<int, var*>& value = vbtbl->m_value;
       for_each(begin(*bases), end(*bases), set_vbtbl(value, m_base_offset));
     }

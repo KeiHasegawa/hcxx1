@@ -937,22 +937,54 @@ cxx_compiler::tag* cxx_compiler::declarations::elaborated::lookup(std::string na
 void cxx_compiler::declarations::linkage::action(var* v, bool brace)
 {
   using namespace std;
-  // check if `v' is "C"
+  // check if `v' is "C" or "C++"
   genaddr* p = v->genaddr_cast();
+  assert(p);
   with_initial* q = static_cast<with_initial*>(p->m_ref);
   const map<int,var*>& value = q->m_value;
-  assert(value.size() == 2);
-  map<int,var*>::const_iterator a = value.find(0);
-  assert(a != value.end());
-  usr* b = static_cast<usr*>(a->second);
-  constant<char>* c = static_cast<constant<char>*>(b);
-  assert(c->m_value == 'C');
-  map<int,var*>::const_iterator d = value.find(1);
-  assert(d != value.end());
-  usr* e = static_cast<usr*>(d->second);
-  constant<char>* f = static_cast<constant<char>*>(e);
-  assert(f->m_value == '\0');
-  braces.push_back(brace);
+  if (value.size() == 2) {
+    // check `v' is "C"
+    map<int,var*>::const_iterator a = value.find(0);
+    assert(a != value.end());
+    usr* b = static_cast<usr*>(a->second);
+    constant<char>* c = static_cast<constant<char>*>(b);
+    if (c->m_value != 'C')
+      error::not_implemented();
+    map<int,var*>::const_iterator d = value.find(1);
+    assert(d != value.end());
+    usr* e = static_cast<usr*>(d->second);
+    constant<char>* f = static_cast<constant<char>*>(e);
+    assert(f->m_value == '\0');
+    braces.push_back(brace);
+  }
+  else if (value.size() == 4) {
+    // check `v' is "C++"
+    map<int,var*>::const_iterator a = value.find(0);
+    assert(a != value.end());
+    usr* b = static_cast<usr*>(a->second);
+    constant<char>* c = static_cast<constant<char>*>(b);
+    if (c->m_value != 'C')
+      error::not_implemented();
+    map<int,var*>::const_iterator d = value.find(1);
+    assert(d != value.end());
+    usr* e = static_cast<usr*>(d->second);
+    constant<char>* f = static_cast<constant<char>*>(e);
+    if (f->m_value != '+')
+      error::not_implemented();
+    map<int,var*>::const_iterator g = value.find(2);
+    assert(g != value.end());
+    usr* h = static_cast<usr*>(g->second);
+    constant<char>* i = static_cast<constant<char>*>(h);
+    if (i->m_value != '+')
+      error::not_implemented();
+    map<int,var*>::const_iterator j = value.find(3);
+    assert(j != value.end());
+    usr* k = static_cast<usr*>(j->second);
+    constant<char>* l = static_cast<constant<char>*>(k);
+    assert(l->m_value == '\0');
+  }
+  else
+    error::not_implemented();
 }
 
 std::vector<bool> cxx_compiler::declarations::linkage::braces;
