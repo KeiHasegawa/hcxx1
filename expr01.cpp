@@ -812,6 +812,33 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::member::info_t::gen()
   return m_expr->member(m_member,m_dot);
 }
 
+namespace cxx_compiler {
+  namespace member_impl {
+    using namespace std;
+    inline int offset(const record_type* rec, usr* member)
+    {
+      tag* ptr = rec->get_tag();
+      scope* ms = member->m_scope;
+      if (ptr == ms) {
+	pair<int, usr*> off = rec->offset(member->m_name);
+	return off.first;
+      }
+      assert(ms->m_id == scope::TAG);
+      tag* p = static_cast<tag*>(ms);
+      const type* T = p->m_types.second;
+      assert(T);
+      assert(T->m_id == type::RECORD);
+      typedef const record_type REC;
+      REC* q = static_cast<REC*>(T);
+      int base_offset = rec->base_offset(q);
+      assert(offset >= 0);
+      pair<int, usr*> off = q->offset(member->m_name);
+      assert(off.first >= 0);
+      return base_offset + off.first;
+    }
+  }  // end of namespace member_impl
+}  // end of namespace cxx_compiler
+
 cxx_compiler::var* cxx_compiler::var::member(var* expr, bool dot)
 {
   using namespace std;
@@ -842,8 +869,7 @@ cxx_compiler::var* cxx_compiler::var::member(var* expr, bool dot)
   T = member->m_type;
   if ( T->m_id == type::FUNC )
     return new member_function(this,member);
-  pair<int, usr*> off = rec->offset(member->m_name);
-  int offset = off.first;
+  int offset = member_impl::offset(rec, member);
   if ( offset < 0 )
     return this;
   if ( member->m_flag & usr::BIT_FIELD ){

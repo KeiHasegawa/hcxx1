@@ -1265,8 +1265,16 @@ string_literal
   ;
 
 boolean_literal
-  : FALSE_KW { $$ = cxx_compiler::expressions::primary::literal::boolean::create(false); }
-  | TRUE_KW  { $$ = cxx_compiler::expressions::primary::literal::boolean::create(true); }
+  : FALSE_KW
+    {
+      using namespace cxx_compiler::expressions::primary::literal;
+      $$ = boolean::create(false);
+    }
+  | TRUE_KW 
+    {
+      using namespace cxx_compiler::expressions::primary::literal;
+      $$ = boolean::create(true);
+    }
   ;
 
 id_expression
