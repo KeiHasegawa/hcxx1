@@ -11,7 +11,6 @@ namespace cxx_compiler {
     namespace identifier {
       mode_t mode;
       int create(std::string, const type* = backpatch_type::create());
-      int lookup(std::string, scope*);
     } // end of namespace identifier
   } // end of namespace parse and
 } // end of namespace cxx_compiler

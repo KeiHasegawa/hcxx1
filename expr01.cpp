@@ -2,6 +2,7 @@
 #include "stdafx.h"
 #include "cxx_core.h"
 #include "cxx_impl.h"
+#include "cxx_y.h"
 #include "patch.03.q"
 
 namespace cxx_compiler { namespace subscript_impl {
@@ -153,12 +154,25 @@ cxx_compiler::genaddr::call(std::vector<var*>* arg)
   }
   typedef const func_type FUNC;
   FUNC* ft = static_cast<FUNC*>(T);
-  var* ret = call_impl::common(ft,m_ref,arg);
+  assert(m_ref->usr_cast());
   usr* u = static_cast<usr*>(m_ref);
   usr::flag_t flag = u->m_flag;
+  scope* ptr = u->m_scope;
+  var* this_ptr = 0;
+  if (ptr->m_id == scope::TAG) {
+    if (!(flag & usr::STATIC)) {
+      int r = parse::identifier::lookup("this", scope::current);
+      if (!r)
+	error::not_implemented();
+      assert(r == IDENTIFIER_LEX);
+      this_ptr = cxx_compiler_lval.m_var;
+    }
+  }
+  var* ret = call_impl::common(ft, u, arg, false, this_ptr);
   if (!error::counter) {
     if (flag & usr::INLINE) {
-      using namespace declarations::declarators::function::definition::static_inline::skip;
+      using namespace declarations::declarators::function;
+      using namespace definition::static_inline::skip;
       table_t::const_iterator p = table.find(u);
       if (p != table.end())
         substitute(code, code.size()-1, p->second);

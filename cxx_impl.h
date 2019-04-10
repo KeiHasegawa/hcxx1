@@ -68,6 +68,7 @@ namespace parse {
   extern int peek();
   extern int lex_and_save();
   namespace identifier {
+    extern int lookup(std::string, scope*);
     extern int judge(string);
     enum mode_t { look, new_obj, member, peeking };
     extern mode_t mode;
