@@ -157,15 +157,25 @@ cxx_compiler::genaddr::call(std::vector<var*>* arg)
   assert(m_ref->usr_cast());
   usr* u = static_cast<usr*>(m_ref);
   usr::flag_t flag = u->m_flag;
-  scope* ptr = u->m_scope;
+  scope* fun_scope = u->m_scope;
   var* this_ptr = 0;
-  if (ptr->m_id == scope::TAG) {
+  if (fun_scope->m_id == scope::TAG) {
     if (!(flag & usr::STATIC)) {
       int r = parse::identifier::lookup("this", scope::current);
       if (!r)
 	error::not_implemented();
       assert(r == IDENTIFIER_LEX);
       this_ptr = cxx_compiler_lval.m_var;
+    }
+    if (this_ptr) {
+      scope* this_parent = this_ptr->m_scope->m_parent;
+      if (fun_scope != this_parent) {
+	tag* b = static_cast<tag*>(fun_scope);
+	const type* Tb = b->m_types.second;
+	assert(Tb);
+	const type* pTb = pointer_type::create(Tb);
+	this_ptr = this_ptr->cast(pTb);
+      }
     }
   }
   var* ret = call_impl::common(ft, u, arg, false, this_ptr);
@@ -1148,7 +1158,7 @@ assignment::valid(const type* T, var* src, bool* discard)
       }
       if (compatible(Ty, v)) {
         if (include(cvr_x, cvr_y))
-          return py;
+          return px;
         else {
           if (discard)
             *discard = true;

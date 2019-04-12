@@ -416,6 +416,9 @@ int cxx_compiler::parse::identifier::bases_lookup(std::string name, tag* ptr)
     const vector<usr*>& v = usrs.back();
     usr* u = v.back();
     cxx_compiler_lval.m_usr = u;
+    const type* T = u->m_type;
+    if (const pointer_type* G = T->ptr_gen())
+      garbage.push_back(cxx_compiler_lval.m_var = new genaddr(G,T,u,0));
     return IDENTIFIER_LEX;
   }
 
