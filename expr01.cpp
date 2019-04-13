@@ -2,6 +2,7 @@
 #include "stdafx.h"
 #include "cxx_core.h"
 #include "cxx_impl.h"
+#include "cxx_y.h"
 #include "patch.03.q"
 
 namespace cxx_compiler { namespace subscript_impl {
@@ -153,12 +154,35 @@ cxx_compiler::genaddr::call(std::vector<var*>* arg)
   }
   typedef const func_type FUNC;
   FUNC* ft = static_cast<FUNC*>(T);
-  var* ret = call_impl::common(ft,m_ref,arg);
+  assert(m_ref->usr_cast());
   usr* u = static_cast<usr*>(m_ref);
   usr::flag_t flag = u->m_flag;
+  scope* fun_scope = u->m_scope;
+  var* this_ptr = 0;
+  if (fun_scope->m_id == scope::TAG) {
+    if (!(flag & usr::STATIC)) {
+      int r = parse::identifier::lookup("this", scope::current);
+      if (!r)
+	error::not_implemented();
+      assert(r == IDENTIFIER_LEX);
+      this_ptr = cxx_compiler_lval.m_var;
+    }
+    if (this_ptr) {
+      scope* this_parent = this_ptr->m_scope->m_parent;
+      if (fun_scope != this_parent) {
+	tag* b = static_cast<tag*>(fun_scope);
+	const type* Tb = b->m_types.second;
+	assert(Tb);
+	const type* pTb = pointer_type::create(Tb);
+	this_ptr = this_ptr->cast(pTb);
+      }
+    }
+  }
+  var* ret = call_impl::common(ft, u, arg, false, this_ptr);
   if (!error::counter) {
     if (flag & usr::INLINE) {
-      using namespace declarations::declarators::function::definition::static_inline::skip;
+      using namespace declarations::declarators::function;
+      using namespace definition::static_inline::skip;
       table_t::const_iterator p = table.find(u);
       if (p != table.end())
         substitute(code, code.size()-1, p->second);
@@ -812,6 +836,33 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::member::info_t::gen()
   return m_expr->member(m_member,m_dot);
 }
 
+namespace cxx_compiler {
+  namespace member_impl {
+    using namespace std;
+    inline int offset(const record_type* rec, usr* member)
+    {
+      tag* ptr = rec->get_tag();
+      scope* ms = member->m_scope;
+      if (ptr == ms) {
+	pair<int, usr*> off = rec->offset(member->m_name);
+	return off.first;
+      }
+      assert(ms->m_id == scope::TAG);
+      tag* p = static_cast<tag*>(ms);
+      const type* T = p->m_types.second;
+      assert(T);
+      assert(T->m_id == type::RECORD);
+      typedef const record_type REC;
+      REC* q = static_cast<REC*>(T);
+      int base_offset = rec->base_offset(q);
+      assert(offset >= 0);
+      pair<int, usr*> off = q->offset(member->m_name);
+      assert(off.first >= 0);
+      return base_offset + off.first;
+    }
+  }  // end of namespace member_impl
+}  // end of namespace cxx_compiler
+
 cxx_compiler::var* cxx_compiler::var::member(var* expr, bool dot)
 {
   using namespace std;
@@ -842,8 +893,7 @@ cxx_compiler::var* cxx_compiler::var::member(var* expr, bool dot)
   T = member->m_type;
   if ( T->m_id == type::FUNC )
     return new member_function(this,member);
-  pair<int, usr*> off = rec->offset(member->m_name);
-  int offset = off.first;
+  int offset = member_impl::offset(rec, member);
   if ( offset < 0 )
     return this;
   if ( member->m_flag & usr::BIT_FIELD ){
@@ -1108,7 +1158,7 @@ assignment::valid(const type* T, var* src, bool* discard)
       }
       if (compatible(Ty, v)) {
         if (include(cvr_x, cvr_y))
-          return py;
+          return px;
         else {
           if (discard)
             *discard = true;

@@ -1240,8 +1240,9 @@ cxx_compiler::var* cxx_compiler::unqualified_id::from_member(usr* u)
   scope* p = func->m_scope;
   assert(p->m_id == scope::TAG);
   tag* tp = static_cast<tag*>(p);
+  usr::flag_t flag = u->m_flag;
   scope* q = u->m_scope;
-  if ( q->m_id != scope::TAG )
+  if (q->m_id != scope::TAG)
     return u;
   tag* tq = static_cast<tag*>(q);
   if ( tp != tq ){
@@ -1249,7 +1250,7 @@ cxx_compiler::var* cxx_compiler::unqualified_id::from_member(usr* u)
     if ( !bases )
       return u;
     search_info_t info(tq);
-    for_each(bases->begin(),bases->end(),bind2nd(ptr_fun(base_search),&info));
+    for_each(begin(*bases), end(*bases), bind2nd(ptr_fun(base_search),&info));
     if ( info.m_route.empty() )
       return u;
   }

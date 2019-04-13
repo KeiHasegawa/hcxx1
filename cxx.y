@@ -1017,42 +1017,44 @@ base_specifier_list
 
 base_specifier
   : COLONCOLON_MK move_to_root nested_name_specifier class_name
-    { cxx_compiler::error::not_implemented(); }
-  | COLONCOLON_MK move_to_root                       class_name
-    { cxx_compiler::error::not_implemented(); }
-  |               nested_name_specifier class_name
-    { cxx_compiler::error::not_implemented(); }
-  |                                     class_name { $$ = new cxx_compiler::base(0,false,$1); }
+    { $$ = new cxx_compiler::base(0,false,$4); }
+  | COLONCOLON_MK move_to_root class_name
+    { $$ = new cxx_compiler::base(0,false,$3); }
+  | nested_name_specifier class_name
+    { $$ = new cxx_compiler::base(0,false,$2); }
+  | class_name
+    { $$ = new cxx_compiler::base(0,false,$1); }
   | VIRTUAL_KW access_specifier COLONCOLON_MK move_to_root nested_name_specifier class_name
-    { cxx_compiler::error::not_implemented(); }
-  | VIRTUAL_KW access_specifier COLONCOLON_MK move_to_root                       class_name
-    { cxx_compiler::error::not_implemented(); }
-  | VIRTUAL_KW access_specifier               nested_name_specifier class_name
-    { cxx_compiler::error::not_implemented(); }
-  | VIRTUAL_KW access_specifier                                     class_name
-    { cxx_compiler::error::not_implemented(); }
-  | VIRTUAL_KW                  COLONCOLON_MK move_to_root nested_name_specifier class_name
-    { cxx_compiler::error::not_implemented(); }
-  | VIRTUAL_KW                  COLONCOLON_MK move_to_root                       class_name
-    { cxx_compiler::error::not_implemented(); }
-  | VIRTUAL_KW                                nested_name_specifier class_name
-    { cxx_compiler::error::not_implemented(); }
-  | VIRTUAL_KW                                                      class_name { $$ = new cxx_compiler::base(0,true,$2); }
+    { $$ = new cxx_compiler::base($2,true,$6); }
+  | VIRTUAL_KW access_specifier COLONCOLON_MK move_to_root class_name
+    { $$ = new cxx_compiler::base($2,true,$5); }
+  | VIRTUAL_KW access_specifier nested_name_specifier class_name
+    { $$ = new cxx_compiler::base($2,true,$4); }
+  | VIRTUAL_KW access_specifier class_name
+    { $$ = new cxx_compiler::base(0,true,$3); }
+  | VIRTUAL_KW COLONCOLON_MK move_to_root nested_name_specifier class_name
+    { $$ = new cxx_compiler::base(0,true,$5); }
+  | VIRTUAL_KW COLONCOLON_MK move_to_root class_name
+    { $$ = new cxx_compiler::base(0,true,$4); }
+  | VIRTUAL_KW nested_name_specifier class_name
+    { $$ = new cxx_compiler::base(0,true,$3); }
+  | VIRTUAL_KW class_name
+    { $$ = new cxx_compiler::base(0,true,$2); }
   | access_specifier VIRTUAL_KW COLONCOLON_MK move_to_root nested_name_specifier class_name
-    { cxx_compiler::error::not_implemented(); }
-  | access_specifier VIRTUAL_KW COLONCOLON_MK move_to_root                       class_name
-    { cxx_compiler::error::not_implemented(); }
-  | access_specifier VIRTUAL_KW               nested_name_specifier class_name
-    { cxx_compiler::error::not_implemented(); }
-  | access_specifier VIRTUAL_KW                                     class_name
-    { cxx_compiler::error::not_implemented(); }
-  | access_specifier            COLONCOLON_MK move_to_root nested_name_specifier class_name
-    { cxx_compiler::error::not_implemented(); }
-  | access_specifier            COLONCOLON_MK move_to_root                       class_name
-    { cxx_compiler::error::not_implemented(); }
-  | access_specifier                          nested_name_specifier class_name
-    { cxx_compiler::error::not_implemented(); }
-  | access_specifier                                                class_name
+    { $$ = new cxx_compiler::base($1,true,$6); }
+  | access_specifier VIRTUAL_KW COLONCOLON_MK move_to_root class_name
+    { $$ = new cxx_compiler::base($1,true,$5); }
+  | access_specifier VIRTUAL_KW nested_name_specifier class_name
+    { $$ = new cxx_compiler::base($1,true,$4); }
+  | access_specifier VIRTUAL_KW class_name
+    { $$ = new cxx_compiler::base($1,true,$3); }
+  | access_specifier COLONCOLON_MK move_to_root nested_name_specifier class_name
+    { $$ = new cxx_compiler::base($1,false,$5); }
+  | access_specifier COLONCOLON_MK move_to_root class_name
+    { $$ = new cxx_compiler::base($1,false,$4); }
+  | access_specifier nested_name_specifier class_name
+    { $$ = new cxx_compiler::base($1,false,$3); }
+  | access_specifier class_name
     { $$ = new cxx_compiler::base($1,false,$2); }
   ;
 
@@ -1263,8 +1265,16 @@ string_literal
   ;
 
 boolean_literal
-  : FALSE_KW { $$ = cxx_compiler::expressions::primary::literal::boolean::create(false); }
-  | TRUE_KW  { $$ = cxx_compiler::expressions::primary::literal::boolean::create(true); }
+  : FALSE_KW
+    {
+      using namespace cxx_compiler::expressions::primary::literal;
+      $$ = boolean::create(false);
+    }
+  | TRUE_KW 
+    {
+      using namespace cxx_compiler::expressions::primary::literal;
+      $$ = boolean::create(true);
+    }
   ;
 
 id_expression

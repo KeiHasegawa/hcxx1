@@ -1601,6 +1601,7 @@ class record_type : public type {
   static table_t tmp_tbl;
   
   std::map<base*, int> m_base_offset;
+  std::vector<const record_type*> m_virt_ancestor;
   record_type(tag*);
 public:
   void decl(std::ostream&, std::string) const;
@@ -1618,6 +1619,8 @@ public:
   tag* get_tag() const { return m_tag; }
   bool aggregate() const { return true; }
   bool tmp() const;
+  const std::vector<const record_type*>& virt_ancestor() const
+  { return m_virt_ancestor; }
   static const record_type* create(tag*);
   static void destroy_tmp();
   static void collect_tmp(std::vector<const type*>&);

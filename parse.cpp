@@ -11,7 +11,6 @@ namespace cxx_compiler {
     namespace identifier {
       mode_t mode;
       int create(std::string, const type* = backpatch_type::create());
-      int lookup(std::string, scope*);
     } // end of namespace identifier
   } // end of namespace parse and
 } // end of namespace cxx_compiler
@@ -96,19 +95,41 @@ int cxx_compiler::parse::identifier::create(std::string name, const type* T)
   return IDENTIFIER_LEX;
 }
 
-namespace cxx_compiler { namespace parse { namespace identifier {
-  namespace underscore_func {
-    int action();
-  } // end of namespace underscore_func
-  struct base_arg {
-    std::string m_name;
-    std::vector<std::vector<usr*> >* m_res;
-    base_arg(std::string name, std::vector<std::vector<usr*> >* res)
-      : m_name(name), m_res(res) {}
-  };
-  int bases_lookup(std::string, tag*);
-  int base_lookup(base*, base_arg*);
-} } } // end of namespace identifier, parse and cxx_compiler
+namespace cxx_compiler {
+  namespace parse {
+    namespace identifier {
+      namespace underscore_func {
+	int action();
+      } // end of namespace underscore_func
+      using namespace std;
+      struct base_arg {
+	string m_name;
+	vector<vector<usr*> >* m_usrs;
+	base_arg(string name, vector<vector<usr*> >* usrs)
+	  : m_name(name), m_usrs(usrs) {}
+      };
+      int bases_lookup(string, tag*);
+      void base_lookup(base*, base_arg*);
+      struct cmp_base_name {
+	string m_name;
+	vector<tag*>& m_tags;
+	cmp_base_name(string name, vector<tag*>& tags)
+	  : m_name(name), m_tags(tags) {}
+	void operator()(base* bp)
+	{
+	  tag* ptr = bp->m_tag;
+	  string name = ptr->m_name;
+	  if (name == m_name)
+	    m_tags.push_back(ptr);
+	  if (ptr->m_bases) {
+	    vector<base*>& b = *ptr->m_bases;
+	    for_each(begin(b), end(b), cmp_base_name(m_name, m_tags));
+	  }
+	}
+      };
+    }  // end of namespace identifier
+  }  // end of namespace parse
+}  // end of namespace cxx_compiler
 
 int cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
 {
@@ -386,29 +407,44 @@ int cxx_compiler::parse::identifier::bases_lookup(std::string name, tag* ptr)
   const vector<base*>* bases = ptr->m_bases;
   if ( !bases )
     return 0;
-  vector<vector<usr*> > res;
-  base_arg arg(name,&res);
-  for_each(bases->begin(),bases->end(),bind2nd(ptr_fun(base_lookup),&arg));
-  if ( res.empty() )
-    return 0;
-  const vector<usr*>& v = res.back();
-  usr* u = v.back();
-  cxx_compiler_lval.m_usr = u;
-  return IDENTIFIER_LEX;
+  vector<vector<usr*> > usrs;
+  base_arg arg(name,&usrs);
+  for_each(begin(*bases), end(*bases), bind2nd(ptr_fun(base_lookup),&arg));
+  if (!usrs.empty()) {
+    if (usrs.size() != 1)
+      error::not_implemented();
+    const vector<usr*>& v = usrs.back();
+    usr* u = v.back();
+    cxx_compiler_lval.m_usr = u;
+    const type* T = u->m_type;
+    if (const pointer_type* G = T->ptr_gen())
+      garbage.push_back(cxx_compiler_lval.m_var = new genaddr(G,T,u,0));
+    return IDENTIFIER_LEX;
+  }
+
+  vector<tag*> tags;
+  for_each(begin(*bases), end(*bases),cmp_base_name(name, tags));
+  if (!tags.empty()) {
+    if (tags.size() != 1)
+      error::not_implemented();
+    cxx_compiler_lval.m_tag = tags.back();
+    return CLASS_NAME_LEX;
+  }
+
+  return 0;
 }
 
-int cxx_compiler::parse::identifier::base_lookup(base* bp, base_arg* arg)
+void cxx_compiler::parse::identifier::base_lookup(base* bp, base_arg* arg)
 {
   using namespace std;
   tag* ptr = bp->m_tag;
   const map<string, vector<usr*> >& usrs = ptr->m_usrs;
   string name = arg->m_name;
   map<string, vector<usr*> >::const_iterator p = usrs.find(name);
-  if ( p == usrs.end() )
-    return 0;
-  const vector<usr*>& v = p->second;
-  arg->m_res->push_back(v);
-  return 0;
+  if (p != usrs.end()) {
+    const vector<usr*>& v = p->second;
+    arg->m_usrs->push_back(v);
+  }
 }
 
 bool cxx_compiler::parse::is_last_decl = true;
