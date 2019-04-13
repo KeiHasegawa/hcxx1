@@ -172,7 +172,8 @@ namespace cxx_compiler {
 	if (p != end(bases))
 	  return ref_vbtbl(Ry, *p, src);
       }
-      int offset = Ry->base_offset(Rx);
+      vector<tag*> dummy;
+      int offset = Ry->base_offset(Rx, dummy);
       if (offset <= 0)
 	return 0;
       return integer::create(offset);

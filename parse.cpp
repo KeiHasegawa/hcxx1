@@ -102,31 +102,74 @@ namespace cxx_compiler {
 	int action();
       } // end of namespace underscore_func
       using namespace std;
-      struct base_arg {
-	string m_name;
-	vector<vector<usr*> >* m_usrs;
-	base_arg(string name, vector<vector<usr*> >* usrs)
-	  : m_name(name), m_usrs(usrs) {}
-      };
-      int bases_lookup(string, tag*);
-      void base_lookup(base*, base_arg*);
-      struct cmp_base_name {
-	string m_name;
-	vector<tag*>& m_tags;
-	cmp_base_name(string name, vector<tag*>& tags)
-	  : m_name(name), m_tags(tags) {}
-	void operator()(base* bp)
-	{
-	  tag* ptr = bp->m_tag;
-	  string name = ptr->m_name;
-	  if (name == m_name)
-	    m_tags.push_back(ptr);
-	  if (ptr->m_bases) {
-	    vector<base*>& b = *ptr->m_bases;
-	    for_each(begin(b), end(b), cmp_base_name(m_name, m_tags));
+      namespace base_lookup {
+	struct helper {
+	  string m_name;
+	  vector<vector<usr*> >& m_usrs;
+	  helper(string name, vector<vector<usr*> >& usrs)
+	    : m_name(name), m_usrs(usrs) {}
+	  void operator()(base* bp)
+	  {
+	    tag* ptr = bp->m_tag;
+	    const map<string, vector<usr*> >& usrs = ptr->m_usrs;
+	    map<string, vector<usr*> >::const_iterator p = usrs.find(m_name);
+	    if (p != usrs.end()) {
+	      const vector<usr*>& v = p->second;
+	      m_usrs.push_back(v);
+	    }
 	  }
+	};
+	struct cmp_base_name {
+	  string m_name;
+	  vector<tag*>& m_tags;
+	  cmp_base_name(string name, vector<tag*>& tags)
+	    : m_name(name), m_tags(tags) {}
+	  void operator()(base* bp)
+	  {
+	    tag* ptr = bp->m_tag;
+	    string name = ptr->m_name;
+	    if (name == m_name)
+	      m_tags.push_back(ptr);
+	    if (ptr->m_bases) {
+	      vector<base*>& b = *ptr->m_bases;
+	      for_each(begin(b), end(b), cmp_base_name(m_name, m_tags));
+	    }
+	  }
+	};
+	int action(string name, tag* ptr)
+	{
+	  const vector<base*>* bases = ptr->m_bases;
+	  if ( !bases )
+	    return 0;
+	  vector<vector<usr*> > usrs;
+	  for_each(begin(*bases), end(*bases), helper(name, usrs));
+	  if (!usrs.empty()) {
+	    if (usrs.size() != 1)
+	      error::not_implemented();
+	    const vector<usr*>& v = usrs.back();
+	    usr* u = v.back();
+	    cxx_compiler_lval.m_usr = u;
+	    const type* T = u->m_type;
+	    if (const pointer_type* G = T->ptr_gen()) {
+	      garbage.push_back(cxx_compiler_lval.m_var =
+				new genaddr(G,T,u,0));
+	    }
+	    return IDENTIFIER_LEX;
+	  }
+
+	  vector<tag*> res;
+	  for_each(begin(*bases), end(*bases),cmp_base_name(name, res));
+	  if (!res.empty()) {
+	    if (res.size() != 1)
+	      error::not_implemented();
+	    cxx_compiler_lval.m_tag = res.back();
+	    return CLASS_NAME_LEX;
+	  }
+
+	  return 0;
 	}
-      };
+	vector<tag*> route;
+      }  // end of namespace base_lookup
     }  // end of namespace identifier
   }  // end of namespace parse
 }  // end of namespace cxx_compiler
@@ -172,8 +215,10 @@ int cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
   if (mode == member) {
     assert(scope::current->m_id == scope::TAG);
     tag* ptag = static_cast<tag*>(scope::current);
-    if (int r = bases_lookup(name, ptag))
+    if (int r = base_lookup::action(name, ptag)) {
+      base_lookup::route.push_back(ptag);
       return r;
+    }
     error::undeclared(parse::position,name);
     int r = create(name,int_type::create());
     usr* u = cxx_compiler_lval.m_usr;
@@ -183,8 +228,10 @@ int cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
   else {
     if (ptr->m_id == scope::TAG) {
       tag* ptag = static_cast<tag*>(ptr);
-      if ( int n = bases_lookup(name,ptag) )
+      if (int n = base_lookup::action(name,ptag)) {
+	base_lookup::route.push_back(ptag);
         return n;
+      }
     }
     if ( ptr->m_parent )
       return lookup(name,ptr->m_parent);
@@ -399,52 +446,6 @@ int cxx_compiler::parse::identifier::underscore_func::func::operator()(int n, ch
 {
   m_value[n] = expressions::primary::literal::integer::create(c);
   return n + 1;
-}
-
-int cxx_compiler::parse::identifier::bases_lookup(std::string name, tag* ptr)
-{
-  using namespace std;
-  const vector<base*>* bases = ptr->m_bases;
-  if ( !bases )
-    return 0;
-  vector<vector<usr*> > usrs;
-  base_arg arg(name,&usrs);
-  for_each(begin(*bases), end(*bases), bind2nd(ptr_fun(base_lookup),&arg));
-  if (!usrs.empty()) {
-    if (usrs.size() != 1)
-      error::not_implemented();
-    const vector<usr*>& v = usrs.back();
-    usr* u = v.back();
-    cxx_compiler_lval.m_usr = u;
-    const type* T = u->m_type;
-    if (const pointer_type* G = T->ptr_gen())
-      garbage.push_back(cxx_compiler_lval.m_var = new genaddr(G,T,u,0));
-    return IDENTIFIER_LEX;
-  }
-
-  vector<tag*> tags;
-  for_each(begin(*bases), end(*bases),cmp_base_name(name, tags));
-  if (!tags.empty()) {
-    if (tags.size() != 1)
-      error::not_implemented();
-    cxx_compiler_lval.m_tag = tags.back();
-    return CLASS_NAME_LEX;
-  }
-
-  return 0;
-}
-
-void cxx_compiler::parse::identifier::base_lookup(base* bp, base_arg* arg)
-{
-  using namespace std;
-  tag* ptr = bp->m_tag;
-  const map<string, vector<usr*> >& usrs = ptr->m_usrs;
-  string name = arg->m_name;
-  map<string, vector<usr*> >::const_iterator p = usrs.find(name);
-  if (p != usrs.end()) {
-    const vector<usr*>& v = p->second;
-    arg->m_usrs->push_back(v);
-  }
 }
 
 bool cxx_compiler::parse::is_last_decl = true;

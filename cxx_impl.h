@@ -72,6 +72,9 @@ namespace parse {
     extern int judge(string);
     enum mode_t { look, new_obj, member, peeking };
     extern mode_t mode;
+    namespace base_lookup {
+      extern vector<tag*> route;
+    } // end of namespace base_lookup
   } // end of namespace identifier
   extern bool is_last_decl;
   namespace parameter {
@@ -748,6 +751,7 @@ namespace expressions {
         scope* m_scope;
         file_t m_file;
         var* m_member;
+	vector<tag*> m_route;
         var* gen();
         const file_t& file() const { return m_file; }
         info_t(const vector<tac*>& c, var* expr, bool dot, scope* s, const file_t& file)

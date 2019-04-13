@@ -784,6 +784,7 @@ cxx_compiler::expressions::postfix::member::info_t*
 cxx_compiler::expressions::postfix::member::begin(base* expr, bool dot)
 {
   using namespace std;
+  parse::identifier::base_lookup::route.clear();
   auto_ptr<base> sweeper(expr);
   int n = code.size();
   var* v = expr->gen();
@@ -821,6 +822,8 @@ cxx_compiler::expressions::base*
 cxx_compiler::expressions::postfix::member::end(info_t* info, var* member)
 {
   info->m_member = member;
+  info->m_route = parse::identifier::base_lookup::route;
+  parse::identifier::base_lookup::route.clear();
   scope::current = info->m_scope;
   parse::identifier::mode = parse::identifier::look;
   if ( !handling.empty() )
@@ -833,13 +836,14 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::member::info_t::gen()
   using namespace std;
   using namespace declarations::declarators::function::definition::static_inline;
   copy(m_code.begin(),m_code.end(),back_inserter(code));
-  return m_expr->member(m_member,m_dot);
+  return m_expr->member(m_member,m_dot,m_route);
 }
 
 namespace cxx_compiler {
   namespace member_impl {
     using namespace std;
-    inline int offset(const record_type* rec, usr* member)
+    inline int offset(const record_type* rec, usr* member,
+		      const vector<tag*>& route)
     {
       tag* ptr = rec->get_tag();
       scope* ms = member->m_scope;
@@ -854,7 +858,7 @@ namespace cxx_compiler {
       assert(T->m_id == type::RECORD);
       typedef const record_type REC;
       REC* q = static_cast<REC*>(T);
-      int base_offset = rec->base_offset(q);
+      int base_offset = rec->base_offset(q, route);
       assert(offset >= 0);
       pair<int, usr*> off = q->offset(member->m_name);
       assert(off.first >= 0);
@@ -863,7 +867,8 @@ namespace cxx_compiler {
   }  // end of namespace member_impl
 }  // end of namespace cxx_compiler
 
-cxx_compiler::var* cxx_compiler::var::member(var* expr, bool dot)
+cxx_compiler::var*
+cxx_compiler::var::member(var* expr, bool dot, const std::vector<tag*>& route)
 {
   using namespace std;
   using namespace expressions::primary::literal;
@@ -885,7 +890,7 @@ cxx_compiler::var* cxx_compiler::var::member(var* expr, bool dot)
     return this;
   typedef const record_type REC;
   REC* rec = static_cast<REC*>(T);
-  if ( genaddr* addr = expr->genaddr_cast() )
+  if (genaddr* addr = expr->genaddr_cast())
     expr = addr->m_ref;
   usr* member = expr->usr_cast();
   if ( !member )
@@ -893,10 +898,10 @@ cxx_compiler::var* cxx_compiler::var::member(var* expr, bool dot)
   T = member->m_type;
   if ( T->m_id == type::FUNC )
     return new member_function(this,member);
-  int offset = member_impl::offset(rec, member);
-  if ( offset < 0 )
+  int offset = member_impl::offset(rec, member, route);
+  if (offset < 0)
     return this;
-  if ( member->m_flag & usr::BIT_FIELD ){
+  if (member->m_flag & usr::BIT_FIELD) {
     int pos = rec->position(member);
     typedef const bit_field_type BF;
     BF* bf = static_cast<BF*>(T);
@@ -1169,7 +1174,8 @@ assignment::valid(const type* T, var* src, bool* discard)
         typedef const record_type REC;
         REC* rx = static_cast<REC*>(Tx);
 	REC* ry = static_cast<REC*>(Ty);
-	if (ry->base_offset(rx) >= 0) {
+	vector<tag*> dummy;
+	if (ry->base_offset(rx, dummy) >= 0) {
 	  if (include(cvr_x, cvr_y))
 	    return px;
 	  else {

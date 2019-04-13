@@ -2370,26 +2370,42 @@ cxx_compiler::record_type::offset(std::string name) const
 
 namespace cxx_compiler {
   namespace record_impl {
-    bool base(const base* pb, tag* ytag)
-    {
-      tag* xtag = pb->m_tag;
-      if (xtag == ytag)
-	return true;
-      const type* Tx = xtag->m_types.second;
-      assert(Tx->m_id == type::RECORD);
-      typedef const record_type REC;
-      REC* Rx = static_cast<REC*>(Tx);
-      const type* Ty = ytag->m_types.second;
-      assert(Ty->m_id == type::RECORD);
-      REC* Ry = static_cast<REC*>(Ty);
-      int offset = Rx->base_offset(Ry);
-      return offset >= 0;
-    }
+    using namespace std;
+    struct cmp_base {
+      tag* m_tag;
+      const vector<tag*>& m_route;
+      cmp_base(tag* ptr, const vector<tag*>& route)
+	: m_tag(ptr), m_route(route) {}
+      bool operator()(base* pb)
+      {
+	tag* xtag = pb->m_tag;
+	if (m_route.size() >= 2)
+	  return xtag == m_route[1];
+	if (xtag == m_tag)
+	  return true;
+	const type* Tx = xtag->m_types.second;
+	assert(Tx->m_id == type::RECORD);
+	typedef const record_type REC;
+	REC* Rx = static_cast<REC*>(Tx);
+	const type* Ty = m_tag->m_types.second;
+	assert(Ty->m_id == type::RECORD);
+	REC* Ry = static_cast<REC*>(Ty);
+	vector<tag*> dummy;
+	int offset = Rx->base_offset(Ry, dummy);
+	return offset >= 0;
+      }
+    };
   }  // end of namespace record_impl
 }  // end of namespace cxx_compiler
 
-int cxx_compiler::record_type::base_offset(const record_type* that) const
+int
+cxx_compiler::record_type::base_offset(const record_type* that,
+				       const std::vector<tag*>& route) const
 {
+  if (!route.empty()) {
+    tag* ptr = route[0];
+    assert(ptr == m_tag);
+  }
   if (this == that)
     return 0;
   tag* xtag = this->m_tag;
@@ -2398,8 +2414,7 @@ int cxx_compiler::record_type::base_offset(const record_type* that) const
     return -1;
   const vector<base*>& bases = *xtag->m_bases;
   typedef vector<base*>::const_iterator IT;
-  IT p = find_if(begin(bases), end(bases),
-		 bind2nd(ptr_fun(record_impl::base), ytag));
+  IT p = find_if(begin(bases), end(bases), record_impl::cmp_base(ytag, route));
   if (p == end(bases))
     return -1;
   base* b = *p;
@@ -2410,7 +2425,8 @@ int cxx_compiler::record_type::base_offset(const record_type* that) const
   assert(Tb->m_id == type::RECORD);
   typedef const record_type REC;
   REC* Rb = static_cast<REC*>(Tb);
-  return Rb->base_offset(that) + q->second;
+  vector<tag*> dummy;
+  return Rb->base_offset(that, dummy) + q->second;
 }
 
 int cxx_compiler::record_type::position(usr* member) const
