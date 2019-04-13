@@ -93,7 +93,7 @@ struct var {
 
   virtual var* subscripting(var*);
   virtual var* call(std::vector<var*>*);
-  var* member(var*, bool);
+  var* member(var*, bool, const std::vector<tag*>&);
   virtual var* ppmm(bool, bool);
   virtual var* address();
   virtual var* indirection();
@@ -1612,7 +1612,7 @@ public:
   bool scalar() const { return false; }
   bool modifiable() const { return m_modifiable; }
   std::pair<int, usr*> offset(std::string) const;
-  int base_offset(const record_type*) const;
+  int base_offset(const record_type*, const std::vector<tag*>&) const;
   int position(usr*) const;
   std::pair<int, const type*> current(int) const;
   const std::vector<usr*> member() const { return m_member; }
