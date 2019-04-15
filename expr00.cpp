@@ -1187,12 +1187,6 @@ namespace cxx_compiler {
   namespace unqualified_id {
     var* from_member(usr* u);
     var* from_nonmember(usr* u);
-    struct search_info_t {
-      tag* m_tag;
-      std::vector<base*> m_route;
-      search_info_t(tag* ptr) : m_tag(ptr) {}
-    };
-    int base_search(base*, search_info_t*);
     block* get_block();
     struct nonstatic_member_ref : usr {
       nonstatic_member_ref(usr* u) : usr(*u) {}
@@ -1223,9 +1217,9 @@ cxx_compiler::var* cxx_compiler::unqualified_id::action(var* v)
 {
   using namespace std;
   usr* u = v->usr_cast();
-  if ( !u )
+  if (!u)
     return v;
-  if ( !fundef::current )
+  if (!fundef::current)
     return u;
   usr* func = fundef::current->m_usr;
   scope* p = func->m_scope;
@@ -1235,72 +1229,55 @@ cxx_compiler::var* cxx_compiler::unqualified_id::action(var* v)
 
 cxx_compiler::var* cxx_compiler::unqualified_id::from_member(usr* u)
 {
+  using namespace expressions::primary::literal;
   usr* func = fundef::current->m_usr;
   assert(func);
   scope* p = func->m_scope;
   assert(p->m_id == scope::TAG);
   tag* tp = static_cast<tag*>(p);
-  usr::flag_t flag = u->m_flag;
   scope* q = u->m_scope;
   if (q->m_id != scope::TAG)
     return u;
-  tag* tq = static_cast<tag*>(q);
-  if ( tp != tq ){
-    vector<base*>* bases = tp->m_bases;
-    if ( !bases )
-      return u;
-    search_info_t info(tq);
-    for_each(begin(*bases), end(*bases), bind2nd(ptr_fun(base_search),&info));
-    if ( info.m_route.empty() )
-      return u;
-  }
   const type* T = tp->m_types.second;
   if (!T)
     return u;
   assert(T->m_id == type::RECORD);
   typedef const record_type REC;
   REC* rec = static_cast<REC*>(T);
-  pair<int,usr*> ret = rec->offset(u->m_name);
+  vector<tag*> route = parse::identifier::base_lookup::route;
+  parse::identifier::base_lookup::route.clear();
+  pair<int,usr*> ret = rec->offset(u->m_name, route);
   int offset = ret.first;
-  assert(offset >= 0);
+  if (offset < 0)
+    return u;
   T = u->m_type;
-  var* res = new ref(pointer_type::create(T));
+  const pointer_type* pt = pointer_type::create(T);
+  var* tmp = new var(pt);
+  var* res = new ref(pt);
   block* b = get_block();
-  if ( b )
+  if ( b ) {
     b->m_vars.push_back(res);
-  else
+    b->m_vars.push_back(tmp);
+  }
+  else {
+    garbage.push_back(tmp);
     garbage.push_back(res);
+  }
   scope* s = fundef::current->m_param;
   map<string, vector<usr*> >::const_iterator it = s->m_usrs.find("this");
   assert(it != s->m_usrs.end());
   const vector<usr*>& t = it->second;
   usr* this_ptr = t.back();
-  code.push_back(new assign3ac(res,this_ptr));
+  code.push_back(new cast3ac(tmp, this_ptr, pt));
+  var* off = integer::create(offset);
+  code.push_back(new add3ac(res, tmp, off));
   return res;
-}
-
-int cxx_compiler::unqualified_id::base_search(base* bp, search_info_t* info)
-{
-  using namespace std;
-  if ( bp->m_tag == info->m_tag ){
-    info->m_route.push_back(bp);
-    return 0;
-  }
-  vector<base*>* bases = bp->m_tag->m_bases;
-  if ( !bases )
-    return 0;
-  search_info_t tmp(info->m_tag);
-  for_each(bases->begin(),bases->end(),bind2nd(ptr_fun(base_search),&tmp));
-  const vector<base*>& u = tmp.m_route;
-  vector<base*>& v = info->m_route;
-  copy(u.begin(),u.end(),back_inserter(v));
-  return 0;
 }
 
 cxx_compiler::block* cxx_compiler::unqualified_id::get_block()
 {
   using namespace std;
-  if ( parse::identifier::mode == parse::identifier::member ){
+  if (parse::identifier::mode == parse::identifier::member) {
     const stack<expressions::postfix::member::info_t*>& s =
       expressions::postfix::member::handling;
     assert(!s.empty());
@@ -1310,6 +1287,11 @@ cxx_compiler::block* cxx_compiler::unqualified_id::get_block()
       return static_cast<block*>(q);
     else
       return 0;
+  }
+  if (!class_or_namespace_name::before.empty()) {
+    scope* ptr = class_or_namespace_name::before.back();
+    if (ptr->m_id == scope::BLOCK)
+      return static_cast<block*>(ptr);
   }
   if ( scope::current->m_id == scope::BLOCK )
     return static_cast<block*>(scope::current);

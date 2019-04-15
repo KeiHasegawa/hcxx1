@@ -1611,7 +1611,7 @@ public:
   int size() const { return m_size; }
   bool scalar() const { return false; }
   bool modifiable() const { return m_modifiable; }
-  std::pair<int, usr*> offset(std::string) const;
+  std::pair<int, usr*> offset(std::string, const std::vector<tag*>&) const;
   int base_offset(const record_type*, const std::vector<tag*>&) const;
   int position(usr*) const;
   std::pair<int, const type*> current(int) const;

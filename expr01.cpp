@@ -465,7 +465,8 @@ cxx_compiler::var* cxx_compiler::call_impl::ref_vftbl(usr* vf, var* vp)
   const func_type* ft = static_cast<const func_type*>(T);
   const pointer_type* pt = pointer_type::create(ft);
   var* tmp = 0;
-  pair<int, usr*> off = rec->offset(vfptr_name);
+  vector<tag*> dummy;
+  pair<int, usr*> off = rec->offset(vfptr_name, dummy);
   int vfptr_offset = off.first;
   assert(vfptr_offset >= 0);
   if (!vfptr_offset)  {
@@ -848,7 +849,8 @@ namespace cxx_compiler {
       tag* ptr = rec->get_tag();
       scope* ms = member->m_scope;
       if (ptr == ms) {
-	pair<int, usr*> off = rec->offset(member->m_name);
+	vector<tag*> dummy;
+	pair<int, usr*> off = rec->offset(member->m_name, dummy);
 	return off.first;
       }
       assert(ms->m_id == scope::TAG);
@@ -860,7 +862,8 @@ namespace cxx_compiler {
       REC* q = static_cast<REC*>(T);
       int base_offset = rec->base_offset(q, route);
       assert(offset >= 0);
-      pair<int, usr*> off = q->offset(member->m_name);
+      vector<tag*> dummy;
+      pair<int, usr*> off = q->offset(member->m_name, dummy);
       assert(off.first >= 0);
       return base_offset + off.first;
     }
