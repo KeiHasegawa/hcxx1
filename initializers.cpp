@@ -172,7 +172,8 @@ namespace cxx_compiler {
         typedef const record_type REC;
         REC* rec = static_cast<REC*>(T);
         string name = u->m_name;
-        pair<int, usr*> x = rec->offset(name);
+	vector<tag*> dummy;
+        pair<int, usr*> x = rec->offset(name, dummy);
         int offset = x.first;
         if (offset < 0) {
           error::not_implemented();
@@ -1071,7 +1072,8 @@ dot(usr* member, argument* arg)
   typedef const record_type REC;
   REC* rec = static_cast<REC*>(arg->T);
   string name = member->m_name;
-  pair<int, usr*> ret = rec->offset(name);
+  vector<tag*> dummy;
+  pair<int, usr*> ret = rec->offset(name, dummy);
   int offset = ret.first;
   if ( !ret.second ){
     using namespace error::declarations::initializers::designator;

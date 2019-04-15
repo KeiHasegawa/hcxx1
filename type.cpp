@@ -1815,7 +1815,8 @@ namespace cxx_compiler {
 	assert(T->m_id == type::RECORD);
 	typedef const record_type REC;
 	REC* rec = static_cast<REC*>(T);
-	pair<int, usr*> off = rec->offset(m_vptr_name);
+	vector<tag*> dummy;
+	pair<int, usr*> off = rec->offset(m_vptr_name, dummy);
 	int vptr_off = off.first;
 	assert(vptr_off >= 0);
 	map<base*, int>::const_iterator p = m_base_offset.find(bp);
@@ -1960,13 +1961,19 @@ namespace cxx_compiler {
     }
     const usr::flag_t vtbl_flag
     = usr::flag_t(usr::WITH_INI| usr::STATIC | usr::STATIC_DEF);
-    bool has(base* b, string name)
-    {
-      tag* ptr = b->m_tag;
-      typedef map<string, vector<usr*> >::const_iterator IT;
-      IT p = ptr->m_usrs.find(name);
-      return p != ptr->m_usrs.end();
-    }
+    struct has {
+      string m_name;
+      const vector<tag*>& m_route;
+      has(string name, const vector<tag*>& route)
+	: m_name(name), m_route(route) {}
+      bool operator()(base* bp)
+      {
+	tag* ptr = bp->m_tag;
+	if (m_route.size() >= 2)
+	  return ptr == m_route[1];
+	return ptr->m_usrs.find(m_name) != ptr->m_usrs.end();
+      }
+    };
   } // end of namespace record_imp
 } // end of namespace cxx_compiler
 
@@ -2336,36 +2343,44 @@ const cxx_compiler::type* cxx_compiler::record_type::composite(const type* T) co
   return m_tag == that->get_tag() ? this : 0;
 }
 
-std::pair<int, cxx_compiler::usr*>
-cxx_compiler::record_type::offset(std::string name) const
+std::pair<int, cxx_compiler::usr*> cxx_compiler::
+record_type::offset(std::string name, const std::vector<tag*>& route) const
 {
   using namespace std;
   using namespace record_impl;
+  if (!route.empty()) {
+    tag* ptr = route[0];
+    assert(ptr == m_tag);
+  }
   map<string, pair<int, usr*> >::const_iterator p = m_layout.find(name);
-  if ( p != m_layout.end() )
+  if (p != m_layout.end())
     return p->second;
   vector<base*>* bases = m_tag->m_bases;
-  if (bases) {
-    typedef vector<base*>::const_iterator IT;
-    IT p = find_if(begin(*bases), end(*bases), bind2nd(ptr_fun(has), name));
-    if (p != end(*bases)) {
-      base* b = *p;
-      typedef map<base*, int>::const_iterator IT;
-      IT it = m_base_offset.find(b);
-      assert(it != m_base_offset.end());
-      int bo = it->second;
-      tag* ptr = b->m_tag;
-      const type* T = ptr->m_types.second;
-      assert(T->m_id == type::RECORD);
-      typedef const record_type REC;
-      REC* rec = static_cast<REC*>(T);
-      pair<int, usr*> ret = rec->offset(name);
-      ret.first += bo;
-      return ret;
-    }
-  }
+  if (!bases)
+    return make_pair(-1,static_cast<usr*>(0));    
 
-  return make_pair(-1,static_cast<usr*>(0));
+  typedef vector<base*>::const_iterator ITx;
+  ITx q = find_if(begin(*bases), end(*bases), has(name, route));
+  if (q == end(*bases))
+    return make_pair(-1,static_cast<usr*>(0));    
+
+  base* b = *q;
+  typedef map<base*, int>::const_iterator ITy;
+  ITy it = m_base_offset.find(b);
+  assert(it != m_base_offset.end());
+  int bo = it->second;
+  tag* ptr = b->m_tag;
+  const type* T = ptr->m_types.second;
+  assert(T->m_id == type::RECORD);
+  typedef const record_type REC;
+  REC* rec = static_cast<REC*>(T);
+  vector<tag*> route2;
+  if (!route.empty())
+    copy(begin(route)+1, end(route), back_inserter(route2));
+  pair<int, usr*> ret = rec->offset(name, route2);
+  assert(ret.first >= 0);
+  ret.first += bo;
+  return ret;
 }
 
 namespace cxx_compiler {
@@ -2402,10 +2417,7 @@ int
 cxx_compiler::record_type::base_offset(const record_type* that,
 				       const std::vector<tag*>& route) const
 {
-  if (!route.empty()) {
-    tag* ptr = route[0];
-    assert(ptr == m_tag);
-  }
+  using namespace record_impl;
   if (this == that)
     return 0;
   tag* xtag = this->m_tag;
@@ -2414,7 +2426,7 @@ cxx_compiler::record_type::base_offset(const record_type* that,
     return -1;
   const vector<base*>& bases = *xtag->m_bases;
   typedef vector<base*>::const_iterator IT;
-  IT p = find_if(begin(bases), end(bases), record_impl::cmp_base(ytag, route));
+  IT p = find_if(begin(bases), end(bases), cmp_base(ytag, route));
   if (p == end(bases))
     return -1;
   base* b = *p;
@@ -2425,8 +2437,10 @@ cxx_compiler::record_type::base_offset(const record_type* that,
   assert(Tb->m_id == type::RECORD);
   typedef const record_type REC;
   REC* Rb = static_cast<REC*>(Tb);
-  vector<tag*> dummy;
-  return Rb->base_offset(that, dummy) + q->second;
+  vector<tag*> route2;
+  if (!route.empty())
+    copy(begin(route)+1, end(route), back_inserter(route2));
+  return Rb->base_offset(that, route2) + q->second;
 }
 
 int cxx_compiler::record_type::position(usr* member) const

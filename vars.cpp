@@ -159,7 +159,9 @@ cxx_compiler::usr* cxx_compiler::refbit::mask(int n, int pos)
 
 cxx_compiler::var* cxx_compiler::refsomewhere::rvalue()
 {
-  block* b = ( scope::current->m_id == scope::BLOCK ) ? static_cast<block*>(scope::current) : 0;
+  block* b = 0;
+  if (scope::current->m_id == scope::BLOCK)
+    b = static_cast<block*>(scope::current);
   const type* T = m_result;
   if ( const pointer_type* G = T->ptr_gen() ){
     var* tmp = new var(G);

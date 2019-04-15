@@ -84,6 +84,7 @@ cxx_compiler::declarations::type_specifier::type_specifier(usr* u)
 cxx_compiler::declarations::type_specifier::type_specifier(tag* ptr)
  : m_keyword(0), m_type(0), m_usr(0)
 {
+  parse::identifier::base_lookup::route.clear();
   m_type = ptr->m_types.second ? ptr->m_types.second : ptr->m_types.first;
   parse::identifier::mode = parse::identifier::new_obj;
 }
@@ -895,7 +896,8 @@ namespace cxx_compiler { namespace declarations { namespace elaborated {
   tag* lookup(std::string, scope*);
 } } } // end of namespace elaborated, declarations and cxx_compiler
 
-const cxx_compiler::type* cxx_compiler::declarations::elaborated::action(int keyword, var* v)
+const cxx_compiler::type*
+cxx_compiler::declarations::elaborated::action(int keyword, var* v)
 {
   using namespace std;
   assert(v->usr_cast());
@@ -921,7 +923,8 @@ const cxx_compiler::type* cxx_compiler::declarations::elaborated::action(int key
   }
 }
 
-cxx_compiler::tag* cxx_compiler::declarations::elaborated::lookup(std::string name, scope* ptr)
+cxx_compiler::tag*
+cxx_compiler::declarations::elaborated::lookup(std::string name, scope* ptr)
 {
   using namespace std;
   map<string, tag*>& tags = ptr->m_tags;

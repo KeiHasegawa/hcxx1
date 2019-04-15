@@ -90,7 +90,8 @@ namespace cxx_compiler {
       tag* ptr = rec->get_tag();
       map<string, vector<usr*> >& usrs = ptr->m_usrs;
       assert(usrs.find(vbptr_name) != usrs.end());
-      pair<int, usr*> off = rec->offset(vbptr_name);
+      vector<tag*> dummy;
+      pair<int, usr*> off = rec->offset(vbptr_name, dummy);
       int offset = off.first;
       assert(offset >= 0);
       usr* u = off.second;

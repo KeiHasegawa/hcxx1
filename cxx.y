@@ -290,9 +290,12 @@ simple_type_specifier
   ;
 
 type_name
-  : class_name       { $$ = new cxx_compiler::declarations::type_specifier($1); }
-  | ENUM_NAME_LEX    { $$ = new cxx_compiler::declarations::type_specifier($1); }
-  | TYPEDEF_NAME_LEX { $$ = new cxx_compiler::declarations::type_specifier($1); }
+  : class_name
+    { $$ = new cxx_compiler::declarations::type_specifier($1); }
+  | ENUM_NAME_LEX
+    { $$ = new cxx_compiler::declarations::type_specifier($1); }
+  | TYPEDEF_NAME_LEX
+    { $$ = new cxx_compiler::declarations::type_specifier($1); }
   ;
 
 elaborated_type_specifier
