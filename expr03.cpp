@@ -157,7 +157,8 @@ namespace cxx_compiler {
       REC* Rx = static_cast<REC*>(Tx);
       const type* Ty = src->m_type;
       Ty = Ty->unqualified();
-      assert(Ty->m_id == type::POINTER);
+      if (Ty->m_id != type::POINTER)
+	return 0;
       PT* Py = static_cast<PT*>(Ty);
       Ty = Py->referenced_type();
       if (Ty->m_id != type::RECORD) 
@@ -199,6 +200,8 @@ cxx_compiler::var* cxx_compiler::var::cast(const type* T)
     code.push_back(new cast3ac(ret,this,T));
     if (var* off = cast_impl::base_ptr_offset(T, this))
       code.push_back(new add3ac(ret, ret, off));
+    else if (var* off = cast_impl::base_ptr_offset(m_type, ret))
+      code.push_back(new sub3ac(ret, ret, off));
   }
   return ret;
 }
