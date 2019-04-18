@@ -105,9 +105,9 @@ namespace cxx_compiler {
       namespace base_lookup {
 	struct cmp_usr {
 	  string m_name;
-	  vector<vector<usr*> >& m_res;
+	  vector<usr*>& m_res;
 	  bool& m_virt;
-	  cmp_usr(string name, vector<vector<usr*> >& res, bool& virt)
+	  cmp_usr(string name, vector<usr*>& res, bool& virt)
 	    : m_name(name), m_res(res), m_virt(virt) {}
 	  void operator()(base* bp)
 	  {
@@ -116,8 +116,12 @@ namespace cxx_compiler {
 	    map<string, vector<usr*> >::const_iterator p = usrs.find(m_name);
 	    if (p != usrs.end()) {
 	      const vector<usr*>& v = p->second;
-	      m_res.push_back(v);
-	      m_virt = bp->m_virtual;
+	      usr* u = v.back();
+	      usr::flag_t flag = u->m_flag;
+	      if (!(flag & usr::CTOR)) {
+		m_res.push_back(u);
+		m_virt = bp->m_virtual;
+	      }
 	    }
 	  }
 	};
@@ -165,13 +169,12 @@ namespace cxx_compiler {
 	  const vector<base*>* bases = ptr->m_bases;
 	  if ( !bases )
 	    return 0;
-	  vector<vector<usr*> > res1;
+	  vector<usr*> res1;
 	  for_each(begin(*bases), end(*bases), cmp_usr(name, res1, virt));
 	  if (!res1.empty()) {
 	    if (res1.size() != 1)
 	      error::not_implemented();
-	    const vector<usr*>& v = res1.back();
-	    usr* u = v.back();
+	    usr* u = res1.back();
 	    cxx_compiler_lval.m_usr = u;
 	    const type* T = u->m_type;
 	    if (const pointer_type* G = T->ptr_gen()) {
@@ -808,13 +811,6 @@ std::string cxx_compiler::ucn::conv(std::string name)
     }
   }
   return name;
-}
-
-cxx_compiler::expressions::primary::info_t::info_t()
- : m_var(0), m_expr(0), m_file(parse::position)
-{
-  parse::identifier::lookup("this",scope::current);
-  m_var = cxx_compiler_lval.m_usr;
 }
 
 namespace cxx_compiler {

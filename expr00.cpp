@@ -4,15 +4,77 @@
 #include "cxx_impl.h"
 #include "cxx_y.h"
 
+namespace cxx_compiler {
+  namespace expressions {
+    namespace primary {
+      using namespace std;
+      var* from_member(usr* u, const vector<tag*>&);
+      var* from_nonmember(usr* u);
+      block* get_block();
+      struct nonstatic_member_ref : usr {
+	nonstatic_member_ref(usr* u) : usr(*u) {}
+	var* rvalue()
+	{
+	  error::not_implemented();
+	  return 0;
+	}
+	var* address()
+	{
+	  assert(m_scope->m_id == scope::TAG);
+	  tag* ptr = static_cast<tag*>(m_scope);
+	  const type* T = pointer_member_type::create(ptr, m_type);
+	  var* ret = new var(T);
+	  if (scope::current->m_id == scope::BLOCK) {
+	    block* b = static_cast<block*>(scope::current);
+	    b->m_vars.push_back(ret);
+	  }
+	  else
+	    garbage.push_back(ret);
+	  return ret;
+	}
+      };
+      var* action(var* v, const vector<tag*>& route)
+      {
+	using namespace std;
+	usr* u = v->usr_cast();
+	if (!u)
+	  return v;
+	if (!fundef::current)
+	  return u;
+	usr* func = fundef::current->m_usr;
+	scope* p = func->m_scope;
+	scope::id_t id = p->m_id;
+	return (id == scope::TAG) ? from_member(u, route) : from_nonmember(u);
+      }
+    } // end of namespace primary
+  } // end of namespace expressions
+} // end of namespace cxx_compiler
+
+
+cxx_compiler::expressions::primary::info_t::info_t()
+ : m_var(0), m_expr(0), m_file(parse::position)
+{
+  parse::identifier::lookup("this",scope::current);
+  m_var = cxx_compiler_lval.m_usr;
+}
+
+cxx_compiler::expressions::primary::info_t::info_t(var* v)
+ : m_var(v), m_expr(0), m_file(parse::position)
+{
+  m_route = parse::identifier::base_lookup::route;
+  parse::identifier::base_lookup::route.clear();
+}
+
 cxx_compiler::var* cxx_compiler::expressions::primary::info_t::gen()
 {
   if ( m_var )
-    return m_var;
+    return action(m_var, m_route);
   else
     return m_expr->gen();
 }
 
-const cxx_compiler::file_t& cxx_compiler::expressions::primary::info_t::file() const
+const cxx_compiler::file_t&
+cxx_compiler::expressions::primary::info_t::file() const
 {
   if ( m_var )
     return m_file;
@@ -26,9 +88,17 @@ cxx_compiler::expressions::primary::info_t::~info_t()
     delete m_expr;
 }
 
-namespace cxx_compiler { namespace expressions { namespace primary { namespace literal { namespace integer {
-  usr* new_obj(string);
-} } } } } // end of namespace integer, literal, primary, expressions and cxx_compiler
+namespace cxx_compiler {
+  namespace expressions {
+    namespace primary {
+      namespace literal {
+	namespace integer {
+	  usr* new_obj(string);
+	} // end of namespace integer
+      } // end of namespace literal
+    } // end of namespace primary
+  } // end of namespace expressions
+} // end of namespace cxx_compiler
 
 cxx_compiler::usr* cxx_compiler::expressions::primary::literal::
 integer::create(std::string name)
@@ -1149,7 +1219,8 @@ cxx_compiler::usr* cxx_compiler::expressions::primary::literal::floating::create
   return c;
 }
 
-cxx_compiler::usr* cxx_compiler::expressions::primary::literal::floating::create(unsigned char* b)
+cxx_compiler::usr*
+cxx_compiler::expressions::primary::literal::floating::create(unsigned char* b)
 {
   using namespace std;
   int sz = long_double_type::create()->size();
@@ -1164,7 +1235,8 @@ cxx_compiler::usr* cxx_compiler::expressions::primary::literal::floating::create
   return c;
 }
 
-cxx_compiler::usr* cxx_compiler::expressions::primary::literal::boolean::create(bool x)
+cxx_compiler::usr*
+cxx_compiler::expressions::primary::literal::boolean::create(bool x)
 {
   using namespace std;
   typedef bool X;
@@ -1183,51 +1255,9 @@ cxx_compiler::usr* cxx_compiler::expressions::primary::literal::boolean::create(
   return c;
 }
 
-namespace cxx_compiler {
-  namespace unqualified_id {
-    var* from_member(usr* u);
-    var* from_nonmember(usr* u);
-    block* get_block();
-    struct nonstatic_member_ref : usr {
-      nonstatic_member_ref(usr* u) : usr(*u) {}
-      var* rvalue()
-      {
-        error::not_implemented();
-        return 0;
-      }
-      var* address()
-      {
-        assert(m_scope->m_id == scope::TAG);
-        tag* ptr = static_cast<tag*>(m_scope);
-        const type* T = pointer_member_type::create(ptr, m_type);
-        var* ret = new var(T);
-        if (scope::current->m_id == scope::BLOCK) {
-          block* b = static_cast<block*>(scope::current);
-          b->m_vars.push_back(ret);
-        }
-        else
-          garbage.push_back(ret);
-        return ret;
-      }
-    };
-  } // end of namespace unqualified_id
-} // end of namespace cxx_compiler
-
-cxx_compiler::var* cxx_compiler::unqualified_id::action(var* v)
-{
-  using namespace std;
-  usr* u = v->usr_cast();
-  if (!u)
-    return v;
-  if (!fundef::current)
-    return u;
-  usr* func = fundef::current->m_usr;
-  scope* p = func->m_scope;
-  scope::id_t id = p->m_id;
-  return (id == scope::TAG) ? from_member(u) : from_nonmember(u);
-}
-
-cxx_compiler::var* cxx_compiler::unqualified_id::from_member(usr* u)
+cxx_compiler::var*
+cxx_compiler::expressions::primary::from_member(usr* u,
+						const std::vector<tag*>& route)
 {
   using namespace expressions::primary::literal;
   usr* func = fundef::current->m_usr;
@@ -1244,8 +1274,6 @@ cxx_compiler::var* cxx_compiler::unqualified_id::from_member(usr* u)
   assert(T->m_id == type::RECORD);
   typedef const record_type REC;
   REC* rec = static_cast<REC*>(T);
-  vector<tag*> route = parse::identifier::base_lookup::route;
-  parse::identifier::base_lookup::route.clear();
   pair<int,usr*> ret = rec->offset(u->m_name, route);
   int offset = ret.first;
   if (offset < 0)
@@ -1274,7 +1302,7 @@ cxx_compiler::var* cxx_compiler::unqualified_id::from_member(usr* u)
   return res;
 }
 
-cxx_compiler::block* cxx_compiler::unqualified_id::get_block()
+cxx_compiler::block* cxx_compiler::expressions::primary::get_block()
 {
   using namespace std;
   if (parse::identifier::mode == parse::identifier::member) {
@@ -1306,7 +1334,7 @@ cxx_compiler::var* cxx_compiler::unqualified_id::dtor(tag* ptr)
   return new usr(name, T, usr::DTOR, parse::position);
 }
 
-cxx_compiler::var* cxx_compiler::unqualified_id::from_nonmember(usr* u)
+cxx_compiler::var* cxx_compiler::expressions::primary::from_nonmember(usr* u)
 {
   using namespace parse;
   if (identifier::mode == identifier::member)

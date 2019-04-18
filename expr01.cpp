@@ -843,29 +843,44 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::member::info_t::gen()
 namespace cxx_compiler {
   namespace member_impl {
     using namespace std;
+    struct virt_common {
+      const record_type* m_rec;
+      virt_common(const record_type* rec) : m_rec(rec) {}
+      int operator()(int n, const record_type* rec)
+      {
+	vector<tag*> dummy;
+	int offset = m_rec->base_offset(rec, dummy);
+	if (offset < 0)
+	  return n;
+	return n + rec->size();
+      }
+    };
     inline int offset(const record_type* rec, usr* member,
 		      const vector<tag*>& route)
     {
-      tag* ptr = rec->get_tag();
-      scope* ms = member->m_scope;
-      if (ptr == ms) {
+      tag* rtag = rec->get_tag();
+      scope* msp = member->m_scope;
+      if (rtag == msp) {
 	vector<tag*> dummy;
 	pair<int, usr*> off = rec->offset(member->m_name, dummy);
 	return off.first;
       }
-      assert(ms->m_id == scope::TAG);
-      tag* p = static_cast<tag*>(ms);
-      const type* T = p->m_types.second;
+      assert(msp->m_id == scope::TAG);
+      tag* mtag = static_cast<tag*>(msp);
+      const type* T = mtag->m_types.second;
       assert(T);
       assert(T->m_id == type::RECORD);
       typedef const record_type REC;
-      REC* q = static_cast<REC*>(T);
-      int base_offset = rec->base_offset(q, route);
+      REC* mrec = static_cast<REC*>(T);
+      int base_offset = rec->base_offset(mrec, route);
       assert(offset >= 0);
       vector<tag*> dummy;
-      pair<int, usr*> off = q->offset(member->m_name, dummy);
-      assert(off.first >= 0);
-      return base_offset + off.first;
+      pair<int, usr*> off = mrec->offset(member->m_name, dummy);
+      int offset = off.first;
+      assert(offset >= 0);
+      const vector<REC*>& va = mrec->virt_ancestor();
+      int n = accumulate(begin(va), end(va), 0, virt_common(rec));
+      return base_offset + offset - n;
     }
   }  // end of namespace member_impl
 }  // end of namespace cxx_compiler

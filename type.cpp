@@ -1440,7 +1440,8 @@ namespace cxx_compiler {
 	const vector<REC*>& x =   rec->virt_ancestor();
 	const vector<REC*>& y = m_rec->virt_ancestor();
 	vector<REC*> t;
-	set_union(begin(x), end(x), begin(y), end(y), back_inserter(t));
+	set_intersection(begin(x), end(x), begin(y), end(y),
+			 back_inserter(t));
 	vector<REC*> t2;
 	set_union(begin(m_common), end(m_common),
 		  begin(t), end(t), back_inserter(t2));
@@ -2041,13 +2042,12 @@ cxx_compiler::record_type::record_type(tag* ptr)
   }
   map<base*, int> vbtbl_offset;
   if (bases) {
-    map<const record_type*, int> common_offset;
     if (m_tag->m_kind != tag::UNION) {
       vector<const record_type*> common;
       m_size = accumulate(begin(*bases), end(*bases), m_size,
                           base_layouter(m_base_offset, *bases, common));
       m_size = accumulate(begin(common), end(common), m_size,
-			  add_common(common_offset));
+			  add_common(m_virt_common_offset));
     }
     else
       error::not_implemented();
@@ -2055,7 +2055,8 @@ cxx_compiler::record_type::record_type(tag* ptr)
       map<int, var*>& value = vbtbl->m_value;
       int offset = accumulate(begin(*bases), end(*bases), 0,
 			      set_org_vbtbl(value, m_base_offset,
-					    common_offset, vbtbl_offset));
+					    m_virt_common_offset,
+					    vbtbl_offset));
       for_each(begin(*bases), end(*bases),
 	       set_own_vbtbl(offset, value, m_base_offset));
     }
@@ -2420,16 +2421,22 @@ cxx_compiler::record_type::base_offset(const record_type* that,
   using namespace record_impl;
   if (this == that)
     return 0;
+  typedef map<const record_type*, int>::const_iterator ITx;
+  ITx px = m_virt_common_offset.find(that);
+  if (px != m_virt_common_offset.end())
+    return px->second;
+
   tag* xtag = this->m_tag;
   tag* ytag = that->m_tag;
   if (!xtag->m_bases)
     return -1;
   const vector<base*>& bases = *xtag->m_bases;
-  typedef vector<base*>::const_iterator IT;
-  IT p = find_if(begin(bases), end(bases), cmp_base(ytag, route));
-  if (p == end(bases))
+  typedef vector<base*>::const_iterator ITy;
+  ITy py = find_if(begin(bases), end(bases), cmp_base(ytag, route));
+  if (py == end(bases)) {
     return -1;
-  base* b = *p;
+  }
+  base* b = *py;
   map<base*, int>::const_iterator q = m_base_offset.find(b);
   assert(q != m_base_offset.end());
   tag* btag = b->m_tag;

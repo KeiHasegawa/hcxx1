@@ -1602,6 +1602,7 @@ class record_type : public type {
   
   std::map<base*, int> m_base_offset;
   std::vector<const record_type*> m_virt_ancestor;
+  std::map<const record_type*, int> m_virt_common_offset;
   record_type(tag*);
 public:
   void decl(std::ostream&, std::string) const;

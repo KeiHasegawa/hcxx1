@@ -679,8 +679,9 @@ namespace expressions {
       var* m_var;
       base* m_expr;
       file_t m_file;
+      vector<tag*> m_route;
       info_t();
-      info_t(var* v) : m_var(v), m_expr(0), m_file(parse::position) {}
+      info_t(var* v);
       info_t(base* b) : m_var(0), m_expr(b) {}
       var* gen();
       const file_t& file() const;
@@ -1278,7 +1279,6 @@ namespace class_or_namespace_name {
 } // end of namespace class_or_namespace_name
 
 namespace unqualified_id {
-  extern var* action(var*);
   extern var* dtor(tag*);
 } // end of unqualifed_id
 
