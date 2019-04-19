@@ -733,6 +733,7 @@ namespace expressions {
         usr* create(bool);
       } // end of namespace boolean
     } // end of namespace literal
+    extern var* from_member(usr* u, const vector<tag*>&);
   } // end of namespace primary
   namespace postfix {
     struct call : base {
@@ -1279,6 +1280,7 @@ namespace class_or_namespace_name {
 } // end of namespace class_or_namespace_name
 
 namespace unqualified_id {
+  extern var* from_nonmember(var*);
   extern var* dtor(tag*);
 } // end of unqualifed_id
 

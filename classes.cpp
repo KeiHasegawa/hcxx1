@@ -212,9 +212,49 @@ namespace cxx_compiler {
         namespace definition {
           namespace mem_initializer {
             using namespace std;
-            map<usr*, VALUE> table;
+	    void for_scalar(var* x, vector<expressions::base*>* p)
+	    {
+	      using namespace expressions;
+	      if (p->size() != 1)
+		error::not_implemented();
+	      const type* Tx = x->result_type();
+	      const type* Ux = Tx->unqualified();
+	      expressions::base* expr = (*p)[0];
+	      var* y = expr->gen();
+	      if (Ux->m_id != type::REFERENCE)
+		y = y->rvalue();
+	      const type* Ty = y->result_type();
+	      var tmp(Ty);
+	      bool discard = false;
+	      const type* T = assignment::valid(Tx, &tmp, &discard);
+	      if (!T)
+		error::not_implemented();
+	      code.push_back(new invladdr3ac(x,y));
+	    }
+	    void for_aggregate(var* dst, vector<expressions::base*>* p)
+	    {
+	      error::not_implemented();
+	    }
+	    struct sweeper {
+	      vector<expressions::base*>* m_expr;
+	      sweeper(vector<expressions::base*>* p) : m_expr(p) {}
+	      ~sweeper()
+	      {
+		for (auto p : *m_expr)
+		  delete p;
+		delete m_expr;
+	      }
+	    };
+	    void gen(var* dst, vector<expressions::base*>* p)
+	    {
+	      sweeper sweeper(p);
+	      const type* T = dst->result_type();
+	      T->scalar() ? for_scalar(dst, p) : for_aggregate(dst, p);
+	    }
+	    map<usr*, VALUE> table;
             void action(var* v, vector<expressions::base*>* p)
             {
+	      using namespace expressions::primary;
               assert(fundef::current);
               usr* fun = fundef::current->m_usr;
               usr::flag_t flag = fun->m_flag;
@@ -246,15 +286,15 @@ namespace cxx_compiler {
               scope* ps = c.back();
               assert(ps->m_id == scope::BLOCK);
               block* b = static_cast<block*>(ps);
-              initializers::info_t* info = new initializers::info_t(p);
               scope* org = scope::current;
               scope::current = b;
-              initializers::action(u, info);
-              u->initialize();
+	      vector<tag*> dummy;
+	      var* dst = from_member(u, dummy);
+              gen(dst, p);
               scope::current = org;
             }
           } // end of namespace mem_initializer
-        } // end of namespace mem_initializer
+        } // end of namespace definition
       } // end of namespace function
     } // end of namespace declarators
   } // end of namespace declarations

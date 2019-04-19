@@ -8,31 +8,7 @@ namespace cxx_compiler {
   namespace expressions {
     namespace primary {
       using namespace std;
-      var* from_member(usr* u, const vector<tag*>&);
-      var* from_nonmember(usr* u);
       block* get_block();
-      struct nonstatic_member_ref : usr {
-	nonstatic_member_ref(usr* u) : usr(*u) {}
-	var* rvalue()
-	{
-	  error::not_implemented();
-	  return 0;
-	}
-	var* address()
-	{
-	  assert(m_scope->m_id == scope::TAG);
-	  tag* ptr = static_cast<tag*>(m_scope);
-	  const type* T = pointer_member_type::create(ptr, m_type);
-	  var* ret = new var(T);
-	  if (scope::current->m_id == scope::BLOCK) {
-	    block* b = static_cast<block*>(scope::current);
-	    b->m_vars.push_back(ret);
-	  }
-	  else
-	    garbage.push_back(ret);
-	  return ret;
-	}
-      };
       var* action(var* v, const vector<tag*>& route)
       {
 	using namespace std;
@@ -44,7 +20,9 @@ namespace cxx_compiler {
 	usr* func = fundef::current->m_usr;
 	scope* p = func->m_scope;
 	scope::id_t id = p->m_id;
-	return (id == scope::TAG) ? from_member(u, route) : from_nonmember(u);
+	if (id != scope::TAG)
+	  return u;
+	return  from_member(u, route);
       }
     } // end of namespace primary
   } // end of namespace expressions
@@ -1334,19 +1312,50 @@ cxx_compiler::var* cxx_compiler::unqualified_id::dtor(tag* ptr)
   return new usr(name, T, usr::DTOR, parse::position);
 }
 
-cxx_compiler::var* cxx_compiler::expressions::primary::from_nonmember(usr* u)
+namespace cxx_compiler {
+  namespace unqualified_id {
+    struct nonstatic_member_ref : usr {
+      nonstatic_member_ref(usr* u) : usr(*u) {}
+      var* rvalue()
+      {
+	error::not_implemented();
+	return 0;
+      }
+      var* address()
+      {
+	assert(m_scope->m_id == scope::TAG);
+	tag* ptr = static_cast<tag*>(m_scope);
+	const type* T = pointer_member_type::create(ptr, m_type);
+	var* ret = new var(T);
+	if (scope::current->m_id == scope::BLOCK) {
+	  block* b = static_cast<block*>(scope::current);
+	  b->m_vars.push_back(ret);
+	}
+	else
+	  garbage.push_back(ret);
+	return ret;
+      }
+    };
+  } // end of namespace unqualified_id
+} // end of namespace cxx_compiler
+
+cxx_compiler::var*
+cxx_compiler::unqualified_id::from_nonmember(var* v)
 {
   using namespace parse;
   if (identifier::mode == identifier::member)
-    return u;
+    return v;
   using namespace class_or_namespace_name;
   assert(!before.empty());
   scope* ptr = before.back();
   if (ptr == scope::current)
-    return u;
-  scope* q = u->m_scope;
+    return v;
+  scope* q = v->m_scope;
   if (q->m_id != scope::TAG)
-    return u;
+    return v;
+  usr* u = v->usr_cast();
+  if (!u)
+    return v;
   usr::flag_t flag = u->m_flag;
   if (flag & usr::STATIC)
     return u;

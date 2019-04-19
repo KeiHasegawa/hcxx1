@@ -1301,11 +1301,13 @@ id_expression
 
 unqualified_id
   : IDENTIFIER_LEX
+    { $$ = cxx_compiler::unqualified_id::from_nonmember($1); }
   | operator_function_id
     { cxx_compiler::error::not_implemented(); }
   | conversion_function_id
     { cxx_compiler::error::not_implemented(); }
-  | '~' class_name { $$ = cxx_compiler::unqualified_id::dtor($2); }
+  | '~' class_name
+    { $$ = cxx_compiler::unqualified_id::dtor($2); }
   | template_id
     { cxx_compiler::error::not_implemented(); }
   ;

@@ -152,81 +152,6 @@ namespace cxx_compiler {
           }
         }
       }
-      inline bool none_static_member(var* v)
-      {
-        usr* u = v->usr_cast();
-        if (!u)
-          return false;
-        return u->m_scope->m_id == scope::TAG && (!(u->m_flag & usr::STATIC));
-      }
-      inline var* get_pointer(var* v)
-      {
-        assert(none_static_member(v));
-        assert(v->usr_cast());
-        usr* u = static_cast<usr*>(v);
-        assert(none_static_member(u));
-        assert(u->m_scope->m_id == scope::TAG);
-        tag* ptr = static_cast<tag*>(u->m_scope);
-        const type* T = ptr->m_types.second;
-        assert(T->m_id == type::RECORD);
-        typedef const record_type REC;
-        REC* rec = static_cast<REC*>(T);
-        string name = u->m_name;
-	vector<tag*> dummy;
-        pair<int, usr*> x = rec->offset(name, dummy);
-        int offset = x.first;
-        if (offset < 0) {
-          error::not_implemented();
-        }
-        assert(scope::current->m_id == scope::BLOCK);
-        block* b = static_cast<block*>(scope::current);
-        scope* param = scope::current->m_parent;
-        assert(param->m_id == scope::PARAM);
-        assert(param->m_parent == ptr);
-        const vector<usr*>& order = param->m_order;
-        assert(!order.empty());
-        usr* this_ptr = order[0];
-        assert(this_ptr->m_name == "this");
-        const type* Tu = u->m_type;
-        const type* Pu = pointer_type::create(Tu);
-        var* pu = new var(Pu);
-        b->m_vars.push_back(pu);
-        code.push_back(new assign3ac(pu, this_ptr));
-        if (offset) {
-          using namespace expressions::primary::literal;
-          var* off = integer::create(offset);
-          code.push_back(new add3ac(pu, pu, off));
-        }
-        return pu;
-      }
-      var* none_static_member_r(var* v)
-      {
-        assert(none_static_member(v));
-        assert(v->usr_cast());
-        usr* u = static_cast<usr*>(v);
-        var* py = get_pointer(u);
-        var* tmp = new var(u->m_type);
-        assert(scope::current->m_id == scope::BLOCK);
-        block* b = static_cast<block*>(scope::current);
-        b->m_vars.push_back(tmp);
-        code.push_back(new invraddr3ac(tmp, py));
-        return tmp;
-      }
-      void none_static_member(usr* u, var* v)
-      {
-        assert(!none_static_member(v));
-        var* px = get_pointer(u);
-        code.push_back(new invladdr3ac(px, v));
-      }
-      void not_reference(usr* u, var* v)
-      {
-        if (none_static_member(v))
-          v = none_static_member_r(v);
-        if (none_static_member(u))
-          none_static_member(u, v);
-        else
-          code.push_back(new assign3ac(u,v));
-      }
       namespace reference_impl {
         void constant_case(usr* u, var* v)
         {
@@ -239,16 +164,7 @@ namespace cxx_compiler {
             garbage.push_back(tmp);
           code.push_back(new assign3ac(tmp, v));
           v = tmp;
-          if (none_static_member(u)) {
-            var* tmp2 = new var(u->m_type);
-            assert(scope::current->m_id == scope::BLOCK);
-            block* b = static_cast<block*>(scope::current);
-            b->m_vars.push_back(tmp2);
-            code.push_back(new addr3ac(tmp2, v));
-            none_static_member(u, tmp2);
-          }
-          else
-            code.push_back(new addr3ac(u, v));
+	  code.push_back(new addr3ac(u, v));
         }
         void not_constant(usr* u, var* v)
         {
@@ -266,35 +182,10 @@ namespace cxx_compiler {
             else
               garbage.push_back(tmp);
             code.push_back(new addr3ac(tmp, ref));
-            if (none_static_member(u)) {
-              var* tmp2 = new var(u->m_type);
-              assert(scope::current->m_id == scope::BLOCK);
-              block* b = static_cast<block*>(scope::current);
-              b->m_vars.push_back(tmp2);
-              code.push_back(new add3ac(tmp2, tmp, off));
-              none_static_member(u, tmp2);
-            }
-            else
-              code.push_back(new add3ac(u, tmp, off));
+	    code.push_back(new add3ac(u, tmp, off));
           }
-          else {
-            if (none_static_member(u)) {
-              if (none_static_member(ref)) {
-                ref = get_pointer(ref);
-                none_static_member(u, ref);
-              }
-              else {
-                var* tmp2 = new var(u->m_type);
-                assert(scope::current->m_id == scope::BLOCK);
-                block* b = static_cast<block*>(scope::current);
-                b->m_vars.push_back(tmp2);
-                code.push_back(new addr3ac(tmp2, ref));
-                none_static_member(u, tmp2);
-              }
-            }
-            else
-              code.push_back(new addr3ac(u, ref));
-          }
+          else
+	    code.push_back(new addr3ac(u, ref));
         }
       } // end of namespace reference_impl
       inline void reference_case(usr* u, var* v)
@@ -346,7 +237,7 @@ void cxx_compiler::declarations::initializers::gencode(usr* u)
   if (Tx->m_id == type::REFERENCE && Ty->m_id != type::REFERENCE)
     return reference_case(u, v);
 
-  not_reference(u, v);
+  code.push_back(new assign3ac(u,v));
 }
 
 namespace cxx_compiler {
