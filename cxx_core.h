@@ -1613,7 +1613,7 @@ public:
   bool scalar() const { return false; }
   bool modifiable() const { return m_modifiable; }
   std::pair<int, usr*> offset(std::string, const std::vector<tag*>&) const;
-  int base_offset(const record_type*, const std::vector<tag*>&) const;
+  int base_offset(const record_type*, const std::vector<tag*>&, bool*) const;
   int position(usr*) const;
   std::pair<int, const type*> current(int) const;
   const std::vector<usr*> member() const { return m_member; }

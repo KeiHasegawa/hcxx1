@@ -2407,7 +2407,8 @@ namespace cxx_compiler {
 	assert(Ty->m_id == type::RECORD);
 	REC* Ry = static_cast<REC*>(Ty);
 	vector<tag*> dummy;
-	int offset = Rx->base_offset(Ry, dummy);
+	bool was_virt_common = false;
+	int offset = Rx->base_offset(Ry, dummy, &was_virt_common);
 	return offset >= 0;
       }
     };
@@ -2416,16 +2417,12 @@ namespace cxx_compiler {
 
 int
 cxx_compiler::record_type::base_offset(const record_type* that,
-				       const std::vector<tag*>& route) const
+				       const std::vector<tag*>& route,
+				       bool* was_virt_common) const
 {
   using namespace record_impl;
   if (this == that)
     return 0;
-  typedef map<const record_type*, int>::const_iterator ITx;
-  ITx px = m_virt_common_offset.find(that);
-  if (px != m_virt_common_offset.end())
-    return px->second;
-
   tag* xtag = this->m_tag;
   tag* ytag = that->m_tag;
   if (!xtag->m_bases)
@@ -2434,11 +2431,21 @@ cxx_compiler::record_type::base_offset(const record_type* that,
   typedef vector<base*>::const_iterator ITy;
   ITy py = find_if(begin(bases), end(bases), cmp_base(ytag, route));
   if (py == end(bases)) {
+    typedef map<const record_type*, int>::const_iterator ITx;
+    ITx px = m_virt_common_offset.find(that);
+    if (px != m_virt_common_offset.end())
+      return px->second;
     return -1;
   }
   base* b = *py;
+  if (b->m_virtual) {
+    *was_virt_common = true;
+    return -1;
+  }
   map<base*, int>::const_iterator q = m_base_offset.find(b);
   assert(q != m_base_offset.end());
+  int n = q->second;
+  assert(n >= 0);
   tag* btag = b->m_tag;
   const type* Tb = btag->m_types.second;
   assert(Tb->m_id == type::RECORD);
@@ -2447,7 +2454,16 @@ cxx_compiler::record_type::base_offset(const record_type* that,
   vector<tag*> route2;
   if (!route.empty())
     copy(begin(route)+1, end(route), back_inserter(route2));
-  return Rb->base_offset(that, route2) + q->second;
+  int m = Rb->base_offset(that, route2, was_virt_common);
+  if (*was_virt_common) {
+    typedef map<const record_type*, int>::const_iterator ITx;
+    ITx px = m_virt_common_offset.find(that);
+    if (px != m_virt_common_offset.end())
+      return px->second;
+    return -1;
+  }
+  assert(m >= 0);
+  return n + m;
 }
 
 int cxx_compiler::record_type::position(usr* member) const
@@ -2458,7 +2474,8 @@ int cxx_compiler::record_type::position(usr* member) const
   return p->second;
 }
 
-std::pair<int, const cxx_compiler::type*> cxx_compiler::record_type::current(int nth) const
+std::pair<int, const cxx_compiler::type*>
+cxx_compiler::record_type::current(int nth) const
 {
   using namespace std;
   tag* ptr = get_tag();

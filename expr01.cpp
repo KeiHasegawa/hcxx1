@@ -849,7 +849,8 @@ namespace cxx_compiler {
       int operator()(int n, const record_type* rec)
       {
 	vector<tag*> dummy;
-	int offset = m_rec->base_offset(rec, dummy);
+	bool was_virt_common = false;
+	int offset = m_rec->base_offset(rec, dummy, &was_virt_common);
 	if (offset < 0)
 	  return n;
 	return n + rec->size();
@@ -872,8 +873,9 @@ namespace cxx_compiler {
       assert(T->m_id == type::RECORD);
       typedef const record_type REC;
       REC* mrec = static_cast<REC*>(T);
-      int base_offset = rec->base_offset(mrec, route);
-      assert(offset >= 0);
+      bool was_virt_common = false;
+      int base_offset = rec->base_offset(mrec, route, &was_virt_common);
+      assert(base_offset >= 0);
       vector<tag*> dummy;
       pair<int, usr*> off = mrec->offset(member->m_name, dummy);
       int offset = off.first;
@@ -1193,7 +1195,8 @@ assignment::valid(const type* T, var* src, bool* discard)
         REC* rx = static_cast<REC*>(Tx);
 	REC* ry = static_cast<REC*>(Ty);
 	vector<tag*> dummy;
-	if (ry->base_offset(rx, dummy) >= 0) {
+	bool was_virt_common = false;
+	if (ry->base_offset(rx, dummy, &was_virt_common) >= 0) {
 	  if (include(cvr_x, cvr_y))
 	    return px;
 	  else {

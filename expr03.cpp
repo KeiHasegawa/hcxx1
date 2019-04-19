@@ -175,7 +175,8 @@ namespace cxx_compiler {
 	  return ref_vbtbl(Ry, *p, src);
       }
       vector<tag*> dummy;
-      int offset = Ry->base_offset(Rx, dummy);
+      bool was_virt_common = false;
+      int offset = Ry->base_offset(Rx, dummy, &was_virt_common);
       if (offset <= 0)
 	return 0;
       return integer::create(offset);
