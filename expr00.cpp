@@ -11,18 +11,18 @@ namespace cxx_compiler {
       block* get_block();
       var* action(var* v, const vector<tag*>& route)
       {
-	using namespace std;
-	usr* u = v->usr_cast();
-	if (!u)
-	  return v;
-	if (!fundef::current)
-	  return u;
-	usr* func = fundef::current->m_usr;
-	scope* p = func->m_scope;
-	scope::id_t id = p->m_id;
-	if (id != scope::TAG)
-	  return u;
-	return  from_member(u, route);
+        using namespace std;
+        usr* u = v->usr_cast();
+        if (!u)
+          return v;
+        if (!fundef::current)
+          return u;
+        usr* func = fundef::current->m_usr;
+        scope* p = func->m_scope;
+        scope::id_t id = p->m_id;
+        if (id != scope::TAG)
+          return u;
+        return  from_member(u, route);
       }
     } // end of namespace primary
   } // end of namespace expressions
@@ -70,9 +70,9 @@ namespace cxx_compiler {
   namespace expressions {
     namespace primary {
       namespace literal {
-	namespace integer {
-	  usr* new_obj(string);
-	} // end of namespace integer
+        namespace integer {
+          usr* new_obj(string);
+        } // end of namespace integer
       } // end of namespace literal
     } // end of namespace primary
   } // end of namespace expressions
@@ -1235,7 +1235,7 @@ cxx_compiler::expressions::primary::literal::boolean::create(bool x)
 
 cxx_compiler::var*
 cxx_compiler::expressions::primary::from_member(usr* u,
-						const std::vector<tag*>& route)
+                                                const std::vector<tag*>& route)
 {
   using namespace expressions::primary::literal;
   usr* func = fundef::current->m_usr;
@@ -1318,22 +1318,22 @@ namespace cxx_compiler {
       nonstatic_member_ref(usr* u) : usr(*u) {}
       var* rvalue()
       {
-	error::not_implemented();
-	return 0;
+        error::not_implemented();
+        return 0;
       }
       var* address()
       {
-	assert(m_scope->m_id == scope::TAG);
-	tag* ptr = static_cast<tag*>(m_scope);
-	const type* T = pointer_member_type::create(ptr, m_type);
-	var* ret = new var(T);
-	if (scope::current->m_id == scope::BLOCK) {
-	  block* b = static_cast<block*>(scope::current);
-	  b->m_vars.push_back(ret);
-	}
-	else
-	  garbage.push_back(ret);
-	return ret;
+        assert(m_scope->m_id == scope::TAG);
+        tag* ptr = static_cast<tag*>(m_scope);
+        const type* T = pointer_member_type::create(ptr, m_type);
+        var* ret = new var(T);
+        if (scope::current->m_id == scope::BLOCK) {
+          block* b = static_cast<block*>(scope::current);
+          b->m_vars.push_back(ret);
+        }
+        else
+          garbage.push_back(ret);
+        return ret;
       }
     };
   } // end of namespace unqualified_id

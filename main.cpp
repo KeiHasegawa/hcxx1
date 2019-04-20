@@ -46,7 +46,7 @@ int main(int argc, char** argv)
   if (!error::counter) {
     if (generator::last) {
       transform(funcs.begin(), funcs.end(),
-		back_inserter(scope::root.m_children), get_pm);
+                back_inserter(scope::root.m_children), get_pm);
       generator::last_interface_t tmp = {
         &scope::root,
         &funcs

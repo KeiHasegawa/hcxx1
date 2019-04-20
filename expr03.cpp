@@ -78,7 +78,7 @@ namespace cxx_compiler {
       vector<base*>& bases = *ptr->m_bases;
       vector<base*> tmp;
       copy_if(begin(bases), end(bases), back_inserter(tmp),
-	      [](base* bp){ return bp->m_virtual; });
+              [](base* bp){ return bp->m_virtual; });
       typedef vector<base*>::iterator IT;
       IT p = find(begin(tmp), end(tmp), bp);
       assert(p != end(tmp));
@@ -109,35 +109,35 @@ namespace cxx_compiler {
       const type* T0 = pointer_type::create(T1);
       var* t0 = new var(T0);
       if (scope::current->m_id == scope::BLOCK) {
-	block*b = static_cast<block*>(scope::current);
-	b->m_vars.push_back(t0);
+        block*b = static_cast<block*>(scope::current);
+        b->m_vars.push_back(t0);
       }
       else
-	garbage.push_back(t0);
+        garbage.push_back(t0);
       code.push_back(new cast3ac(t0, src, T0));
       if (offset) {
-	var* off = integer::create(offset);
-	code.push_back(new add3ac(t0, t0, off));
+        var* off = integer::create(offset);
+        code.push_back(new add3ac(t0, t0, off));
       }
       var* t1 = new var(T1);
       if (scope::current->m_id == scope::BLOCK) {
-	block*b = static_cast<block*>(scope::current);
-	b->m_vars.push_back(t1);
+        block*b = static_cast<block*>(scope::current);
+        b->m_vars.push_back(t1);
       }
       else
-	garbage.push_back(t1);
+        garbage.push_back(t1);
       code.push_back(new invladdr3ac(t1, t0));
       if (int n = nth_virt_base(ptr, bp)) {
-	var* off = integer::create(n * T2->size());
-	code.push_back(new add3ac(t1, t1, off));
+        var* off = integer::create(n * T2->size());
+        code.push_back(new add3ac(t1, t1, off));
       }
       var* t2 = new var(T2);
       if (scope::current->m_id == scope::BLOCK) {
-	block*b = static_cast<block*>(scope::current);
-	b->m_vars.push_back(t2);
+        block*b = static_cast<block*>(scope::current);
+        b->m_vars.push_back(t2);
       }
       else
-	garbage.push_back(t2);
+        garbage.push_back(t2);
       code.push_back(new invladdr3ac(t2, t1));
       return t2;
     }
@@ -146,39 +146,39 @@ namespace cxx_compiler {
       using namespace expressions::primary::literal;
       Tx = Tx->unqualified();
       if (Tx->m_id != type::POINTER)
-	return 0;
+        return 0;
       typedef const pointer_type PT;
       PT* Px = static_cast<PT*>(Tx);
       Tx = Px->referenced_type();
       Tx = Tx->unqualified();
       if (Tx->m_id != type::RECORD)
-	return 0;
+        return 0;
       typedef const record_type REC;
       REC* Rx = static_cast<REC*>(Tx);
       const type* Ty = src->m_type;
       Ty = Ty->unqualified();
       if (Ty->m_id != type::POINTER)
-	return 0;
+        return 0;
       PT* Py = static_cast<PT*>(Ty);
       Ty = Py->referenced_type();
       if (Ty->m_id != type::RECORD) 
-	return 0;
+        return 0;
       REC* Ry = static_cast<REC*>(Ty);
       tag* xtag = Rx->get_tag();
       tag* ytag = Ry->get_tag();
       if (ytag->m_bases) {
-	const vector<base*>& bases = *ytag->m_bases;
-	typedef vector<base*>::const_iterator IT;
-	IT p = find_if(begin(bases), end(bases),
-		       bind2nd(ptr_fun(virt_base), xtag));
-	if (p != end(bases))
-	  return ref_vbtbl(Ry, *p, src);
+        const vector<base*>& bases = *ytag->m_bases;
+        typedef vector<base*>::const_iterator IT;
+        IT p = find_if(begin(bases), end(bases),
+                       bind2nd(ptr_fun(virt_base), xtag));
+        if (p != end(bases))
+          return ref_vbtbl(Ry, *p, src);
       }
       vector<tag*> dummy;
       bool was_virt_common = false;
       int offset = Ry->base_offset(Rx, dummy, &was_virt_common);
       if (offset <= 0)
-	return 0;
+        return 0;
       return integer::create(offset);
     }
   }  // end of namespace cast_impl

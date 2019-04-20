@@ -163,18 +163,18 @@ cxx_compiler::genaddr::call(std::vector<var*>* arg)
     if (!(flag & usr::STATIC)) {
       int r = parse::identifier::lookup("this", scope::current);
       if (!r)
-	error::not_implemented();
+        error::not_implemented();
       assert(r == IDENTIFIER_LEX);
       this_ptr = cxx_compiler_lval.m_var;
     }
     if (this_ptr) {
       scope* this_parent = this_ptr->m_scope->m_parent;
       if (fun_scope != this_parent) {
-	tag* b = static_cast<tag*>(fun_scope);
-	const type* Tb = b->m_types.second;
-	assert(Tb);
-	const type* pTb = pointer_type::create(Tb);
-	this_ptr = this_ptr->cast(pTb);
+        tag* b = static_cast<tag*>(fun_scope);
+        const type* Tb = b->m_types.second;
+        assert(Tb);
+        const type* pTb = pointer_type::create(Tb);
+        this_ptr = this_ptr->cast(pTb);
       }
     }
   }
@@ -848,23 +848,23 @@ namespace cxx_compiler {
       virt_common(const record_type* rec) : m_rec(rec) {}
       int operator()(int n, const record_type* rec)
       {
-	vector<tag*> dummy;
-	bool was_virt_common = false;
-	int offset = m_rec->base_offset(rec, dummy, &was_virt_common);
-	if (offset < 0)
-	  return n;
-	return n + rec->size();
+        vector<tag*> dummy;
+        bool was_virt_common = false;
+        int offset = m_rec->base_offset(rec, dummy, &was_virt_common);
+        if (offset < 0)
+          return n;
+        return n + rec->size();
       }
     };
     inline int offset(const record_type* rec, usr* member,
-		      const vector<tag*>& route)
+                      const vector<tag*>& route)
     {
       tag* rtag = rec->get_tag();
       scope* msp = member->m_scope;
       if (rtag == msp) {
-	vector<tag*> dummy;
-	pair<int, usr*> off = rec->offset(member->m_name, dummy);
-	return off.first;
+        vector<tag*> dummy;
+        pair<int, usr*> off = rec->offset(member->m_name, dummy);
+        return off.first;
       }
       assert(msp->m_id == scope::TAG);
       tag* mtag = static_cast<tag*>(msp);
@@ -1193,18 +1193,18 @@ assignment::valid(const type* T, var* src, bool* discard)
       if (Tx->m_id == type::RECORD && Ty->m_id == type::RECORD) {
         typedef const record_type REC;
         REC* rx = static_cast<REC*>(Tx);
-	REC* ry = static_cast<REC*>(Ty);
-	vector<tag*> dummy;
-	bool was_virt_common = false;
-	if (ry->base_offset(rx, dummy, &was_virt_common) >= 0) {
-	  if (include(cvr_x, cvr_y))
-	    return px;
-	  else {
-	    if (discard)
-	      *discard = true;
-	    return 0;
-	  }
-	}
+        REC* ry = static_cast<REC*>(Ty);
+        vector<tag*> dummy;
+        bool was_virt_common = false;
+        if (ry->base_offset(rx, dummy, &was_virt_common) >= 0) {
+          if (include(cvr_x, cvr_y))
+            return px;
+          else {
+            if (discard)
+              *discard = true;
+            return 0;
+          }
+        }
       }
     }
     if (yy->integer() && src->zero())

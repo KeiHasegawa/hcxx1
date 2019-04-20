@@ -164,7 +164,7 @@ namespace cxx_compiler {
             garbage.push_back(tmp);
           code.push_back(new assign3ac(tmp, v));
           v = tmp;
-	  code.push_back(new addr3ac(u, v));
+          code.push_back(new addr3ac(u, v));
         }
         void not_constant(usr* u, var* v)
         {
@@ -182,10 +182,10 @@ namespace cxx_compiler {
             else
               garbage.push_back(tmp);
             code.push_back(new addr3ac(tmp, ref));
-	    code.push_back(new add3ac(u, tmp, off));
+            code.push_back(new add3ac(u, tmp, off));
           }
           else
-	    code.push_back(new addr3ac(u, ref));
+            code.push_back(new addr3ac(u, ref));
         }
       } // end of namespace reference_impl
       inline void reference_case(usr* u, var* v)

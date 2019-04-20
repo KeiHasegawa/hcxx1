@@ -1426,26 +1426,26 @@ namespace cxx_compiler {
       vector<const record_type*>& m_common;
       const record_type* m_rec;
       gather(vector<const record_type*>& common, const record_type* rec)
-	: m_common(common), m_rec(rec) {}
+        : m_common(common), m_rec(rec) {}
       void operator()(base* bp)
       {
-	tag* ptr = bp->m_tag;
-	const type* T = ptr->m_types.second;
-	assert(T);
-	assert(T->m_id == type::RECORD);
-	typedef const record_type REC;
-	REC* rec = static_cast<REC*>(T);
-	if (rec == m_rec)
-	  return;
-	const vector<REC*>& x =   rec->virt_ancestor();
-	const vector<REC*>& y = m_rec->virt_ancestor();
-	vector<REC*> t;
-	set_intersection(begin(x), end(x), begin(y), end(y),
-			 back_inserter(t));
-	vector<REC*> t2;
-	set_union(begin(m_common), end(m_common),
-		  begin(t), end(t), back_inserter(t2));
-	m_common = t2;
+        tag* ptr = bp->m_tag;
+        const type* T = ptr->m_types.second;
+        assert(T);
+        assert(T->m_id == type::RECORD);
+        typedef const record_type REC;
+        REC* rec = static_cast<REC*>(T);
+        if (rec == m_rec)
+          return;
+        const vector<REC*>& x =   rec->virt_ancestor();
+        const vector<REC*>& y = m_rec->virt_ancestor();
+        vector<REC*> t;
+        set_intersection(begin(x), end(x), begin(y), end(y),
+                         back_inserter(t));
+        vector<REC*> t2;
+        set_union(begin(m_common), end(m_common),
+                  begin(t), end(t), back_inserter(t2));
+        m_common = t2;
       }
     };
     struct base_layouter {
@@ -1453,8 +1453,8 @@ namespace cxx_compiler {
       const vector<base*>& m_bases;
       vector<const record_type*>& m_common;
       base_layouter(map<base*, int>& bo, const vector<base*>& bases,
-		    vector<const record_type*>& common)
-	: m_base_offset(bo), m_bases(bases), m_common(common) {}
+                    vector<const record_type*>& common)
+        : m_base_offset(bo), m_bases(bases), m_common(common) {}
       int operator()(int n, base* b)
       {
         tag* ptr = b->m_tag;
@@ -1462,31 +1462,31 @@ namespace cxx_compiler {
         const type* T = x.second;
         if (!T)
           error::not_implemented();
-	assert(T->m_id == type::RECORD);
-	typedef const record_type REC;
-	REC* rec = static_cast<REC*>(T);
-	vector<const record_type*> tmp;
-	for_each(begin(m_bases), end(m_bases), gather(tmp, rec));
+        assert(T->m_id == type::RECORD);
+        typedef const record_type REC;
+        REC* rec = static_cast<REC*>(T);
+        vector<const record_type*> tmp;
+        for_each(begin(m_bases), end(m_bases), gather(tmp, rec));
         int m = T->size();
         assert(m);
-	m -= accumulate(begin(tmp), end(tmp), 0, add_size);
+        m -= accumulate(begin(tmp), end(tmp), 0, add_size);
         assert(m > 0);
-	m_base_offset[b] = n;
-	vector<const record_type*> tmp2;
-	set_union(begin(m_common), end(m_common),
-		  begin(tmp), end(tmp), back_inserter(tmp2));
-	m_common = tmp2;
+        m_base_offset[b] = n;
+        vector<const record_type*> tmp2;
+        set_union(begin(m_common), end(m_common),
+                  begin(tmp), end(tmp), back_inserter(tmp2));
+        m_common = tmp2;
         return n + m;
       }
     };
     struct add_common {
       map<const record_type*, int>& m_common_offset;
       add_common(map<const record_type*, int>& common_offset)
-	: m_common_offset(common_offset) {}
+        : m_common_offset(common_offset) {}
       int operator()(int n, const record_type* rec)
       {
-	m_common_offset[rec] = n;
-	return add_size(n, rec);
+        m_common_offset[rec] = n;
+        return add_size(n, rec);
       }
     };
     inline int base_vcommon(int n, const base* b, string vtbl_name)
@@ -1513,18 +1513,18 @@ namespace cxx_compiler {
       base_vb(vector<const record_type*>& v) : m_virt_ancestor(v) {}
       int operator()(int n, const base* bp)
       {
-	tag* ptr = bp->m_tag;
-	const type* T = ptr->m_types.second;
-	assert(T);
-	assert(T->m_id == type::RECORD);
-	typedef const record_type REC;
-	REC* rec = static_cast<REC*>(T);
-	const vector<const record_type*>& va = rec->virt_ancestor();
-	vector<const record_type*> tmp;
-	set_union(begin(m_virt_ancestor), end(m_virt_ancestor), 
-		  begin(va), end(va), back_inserter(tmp));
-	m_virt_ancestor = tmp;
-	return base_vcommon(n, bp, vbtbl_name);
+        tag* ptr = bp->m_tag;
+        const type* T = ptr->m_types.second;
+        assert(T);
+        assert(T->m_id == type::RECORD);
+        typedef const record_type REC;
+        REC* rec = static_cast<REC*>(T);
+        const vector<const record_type*>& va = rec->virt_ancestor();
+        vector<const record_type*> tmp;
+        set_union(begin(m_virt_ancestor), end(m_virt_ancestor), 
+                  begin(va), end(va), back_inserter(tmp));
+        m_virt_ancestor = tmp;
+        return base_vcommon(n, bp, vbtbl_name);
       }
     };
     struct direct_virt {
@@ -1532,16 +1532,16 @@ namespace cxx_compiler {
       direct_virt(vector<const record_type*>& v) : m_virt_ancestor(v) {}
       bool operator()(const base* bp)
       {
-	if (!bp->m_virtual)
-	  return false;
-	tag* ptr = bp->m_tag;
-	const type* T = ptr->m_types.second;
-	assert(T);
-	assert(T->m_id == type::RECORD);
-	typedef const record_type REC;
-	REC* rec = static_cast<REC*>(T);
-	m_virt_ancestor.push_back(rec);
-	return true;
+        if (!bp->m_virtual)
+          return false;
+        tag* ptr = bp->m_tag;
+        const type* T = ptr->m_types.second;
+        assert(T);
+        assert(T->m_id == type::RECORD);
+        typedef const record_type REC;
+        REC* rec = static_cast<REC*>(T);
+        m_virt_ancestor.push_back(rec);
+        return true;
       }
     };
     struct copy_base_vf {
@@ -1568,10 +1568,10 @@ namespace cxx_compiler {
         offset = accumulate(begin(value), end(value), offset,
                             [&result](int off, pair<int, var*> p)
                             {
-			      var* v = p.second;
+                              var* v = p.second;
                               result[off] = v;
-			      const type* T = void_type::create();
-			      T = pointer_type::create(T);
+                              const type* T = void_type::create();
+                              T = pointer_type::create(T);
                               return off + T->size();
                             });
         return offset;
@@ -1589,10 +1589,10 @@ namespace cxx_compiler {
         IT p = find_if(begin(m_value), end(m_value),
                        bind2nd(ptr_fun(match_vf), u));
         if (p != end(m_value)) {
-	  const type* T = u->m_type;
-	  T = pointer_type::create(T);
+          const type* T = u->m_type;
+          T = pointer_type::create(T);
           p->second = new addrof(T, u, 0);
-	}
+        }
       }
     };
     struct own_vf {
@@ -1603,7 +1603,7 @@ namespace cxx_compiler {
         if (!(u->m_flag & usr::VIRTUAL))
           return offset;
         assert(u->m_flag & usr::FUNCTION);
-        const type* T = pointer_type::create(u->m_type);	
+        const type* T = pointer_type::create(u->m_type);
         m_value[offset] = new addrof(T, u, 0);
         return offset + T->size();
       }
@@ -1617,24 +1617,24 @@ namespace cxx_compiler {
       int m_base_offset;
       map<const record_type*, int>& m_common_offset;
       set_org_vbtbl_subr(map<int, var*>& value,
-			 int base_offset,
-			 map<const record_type*, int>& common_offset)
-	: m_value(value), m_base_offset(base_offset),
-	  m_common_offset(common_offset) {}
+                         int base_offset,
+                         map<const record_type*, int>& common_offset)
+        : m_value(value), m_base_offset(base_offset),
+          m_common_offset(common_offset) {}
       int operator()(int offset, const record_type* rec)
       {
         using namespace expressions::primary::literal;
-	typedef map<const record_type*, int>::const_iterator IT;
-	IT p = m_common_offset.find(rec);
-	if (p == m_common_offset.end())
-	  return offset;
-	int common_offset = p->second;
-	int n = common_offset - m_base_offset;
-	assert(n > 0);
+        typedef map<const record_type*, int>::const_iterator IT;
+        IT p = m_common_offset.find(rec);
+        if (p == m_common_offset.end())
+          return offset;
+        int common_offset = p->second;
+        int n = common_offset - m_base_offset;
+        assert(n > 0);
         var* v = integer::create(n);
-	assert(m_value.find(offset) == m_value.end());
+        assert(m_value.find(offset) == m_value.end());
         m_value[offset] = v;
-	return offset + v->m_type->size();
+        return offset + v->m_type->size();
       }
     };
     struct set_org_vbtbl {
@@ -1643,30 +1643,30 @@ namespace cxx_compiler {
       map<const record_type*, int>& m_common_offset;
       map<base*, int>& m_vbtbl_offset;
       set_org_vbtbl(map<int, var*>& value,
-		    const map<base*, int>& base_offset,
-		    map<const record_type*, int>& common_offset,
-		    map<base*, int>& vbtbl_offset)
-	: m_value(value), m_base_offset(base_offset),
-	  m_common_offset(common_offset), m_vbtbl_offset(vbtbl_offset) {}
+                    const map<base*, int>& base_offset,
+                    map<const record_type*, int>& common_offset,
+                    map<base*, int>& vbtbl_offset)
+        : m_value(value), m_base_offset(base_offset),
+          m_common_offset(common_offset), m_vbtbl_offset(vbtbl_offset) {}
       int operator()(int offset, base* bp)
       {
-	typedef map<base*, int>::const_iterator IT;
-	IT p = m_base_offset.find(bp);
-	assert(p != m_base_offset.end());
-	int base_offset = p->second;
-	tag* ptr = bp->m_tag;
-	const type* T = ptr->m_types.second;
-	assert(T);
-	assert(T->m_id == type::RECORD);
-	typedef const record_type REC;
-	REC* rec = static_cast<REC*>(T);
-	const vector<REC*>& va = rec->virt_ancestor();
-	if (va.empty())
-	  return offset;
-	m_vbtbl_offset[bp] = offset;
-	return accumulate(begin(va), end(va), offset,
-			  set_org_vbtbl_subr(m_value, base_offset,
-					     m_common_offset));
+        typedef map<base*, int>::const_iterator IT;
+        IT p = m_base_offset.find(bp);
+        assert(p != m_base_offset.end());
+        int base_offset = p->second;
+        tag* ptr = bp->m_tag;
+        const type* T = ptr->m_types.second;
+        assert(T);
+        assert(T->m_id == type::RECORD);
+        typedef const record_type REC;
+        REC* rec = static_cast<REC*>(T);
+        const vector<REC*>& va = rec->virt_ancestor();
+        if (va.empty())
+          return offset;
+        m_vbtbl_offset[bp] = offset;
+        return accumulate(begin(va), end(va), offset,
+                          set_org_vbtbl_subr(m_value, base_offset,
+                                             m_common_offset));
       }
     };
     struct set_own_vbtbl {
@@ -1674,8 +1674,8 @@ namespace cxx_compiler {
       map<int, var*>& m_value;
       const map<base*, int>& m_base_offset;
       set_own_vbtbl(int offset,
-		    map<int, var*>& value,
-		    const map<base*, int>& base_offset)
+                    map<int, var*>& value,
+                    const map<base*, int>& base_offset)
         : m_offset(offset), m_value(value), m_base_offset(base_offset) {}
       void operator()(base* b)
       {
@@ -1687,7 +1687,7 @@ namespace cxx_compiler {
         assert(p != m_base_offset.end());
         int base_offset = p->second;
         var* v = integer::create(base_offset);
-	assert(m_value.find(m_offset) == m_value.end());
+        assert(m_value.find(m_offset) == m_value.end());
         m_value[m_offset] = v;
         m_offset += v->m_type->size();
       }
@@ -1698,7 +1698,7 @@ namespace cxx_compiler {
       typedef map<string, vector<usr*> >::const_iterator IT;
       IT p = usrs.find(virt_name);
       if (p == usrs.end())
-	return 0;
+        return 0;
       const vector<usr*>& v = p->second;
       assert(v.size() == 1);
       usr* u = v.back();
@@ -1725,46 +1725,46 @@ namespace cxx_compiler {
       usr* m_this;
       block* m_block;
       call_ctor(const map<base*, int>& base_offset, usr* this_ptr, block* b)
-	: m_base_offset(base_offset), m_this(this_ptr), m_block(b) {}
+        : m_base_offset(base_offset), m_this(this_ptr), m_block(b) {}
       void operator()(base* pb)
       {
-	tag* ptr = pb->m_tag;
-	string tgn = ptr->m_name;
-	map<string, vector<usr*> >& usrs = ptr->m_usrs;
-	map<string, vector<usr*> >::const_iterator p = usrs.find(tgn);
-	if (p == usrs.end())
-	  return;
-	const vector<usr*>& v = p->second;
-	if (v.size() != 1)
-	  error::not_implemented();
-	usr* ctor = v.back();
-	const type* T = ctor->m_type;
-	assert(T->m_id == type::FUNC);
-	typedef const func_type FT;
-	FT* ft = static_cast<FT*>(T);
-	const vector<const type*>& param = ft->param();
-	if (param.size() != 1)
-	  error::not_implemented();
-	T = param.back();
-	if (T->m_id != type::VOID)
-	  error::not_implemented();
-	T = ptr->m_types.second;
-	assert(T->m_id == type::RECORD);
-	T = pointer_type::create(T);
-	var* tmp = new var(T);
-	m_block->m_vars.push_back(tmp);
-	code.push_back(new cast3ac(tmp, m_this, T));
-	typedef map<base*, int>::const_iterator IT;
-	IT q = m_base_offset.find(pb);
-	assert(q != m_base_offset.end());
-	if (int offset = q->second) {
-	  using namespace expressions::primary::literal;
-	  var* off = integer::create(offset);
-	  code.push_back(new add3ac(tmp, tmp, off));
-	}
-	vector<var*> arg;
-	call_impl::common(ft, ctor, &arg, false, tmp);
-	usr::flag_t flag = ctor->m_flag;
+        tag* ptr = pb->m_tag;
+        string tgn = ptr->m_name;
+        map<string, vector<usr*> >& usrs = ptr->m_usrs;
+        map<string, vector<usr*> >::const_iterator p = usrs.find(tgn);
+        if (p == usrs.end())
+          return;
+        const vector<usr*>& v = p->second;
+        if (v.size() != 1)
+          error::not_implemented();
+        usr* ctor = v.back();
+        const type* T = ctor->m_type;
+        assert(T->m_id == type::FUNC);
+        typedef const func_type FT;
+        FT* ft = static_cast<FT*>(T);
+        const vector<const type*>& param = ft->param();
+        if (param.size() != 1)
+          error::not_implemented();
+        T = param.back();
+        if (T->m_id != type::VOID)
+          error::not_implemented();
+        T = ptr->m_types.second;
+        assert(T->m_id == type::RECORD);
+        T = pointer_type::create(T);
+        var* tmp = new var(T);
+        m_block->m_vars.push_back(tmp);
+        code.push_back(new cast3ac(tmp, m_this, T));
+        typedef map<base*, int>::const_iterator IT;
+        IT q = m_base_offset.find(pb);
+        assert(q != m_base_offset.end());
+        if (int offset = q->second) {
+          using namespace expressions::primary::literal;
+          var* off = integer::create(offset);
+          code.push_back(new add3ac(tmp, tmp, off));
+        }
+        vector<var*> arg;
+        call_impl::common(ft, ctor, &arg, false, tmp);
+        usr::flag_t flag = ctor->m_flag;
         if (!error::counter && !cmdline::no_inline_sub) {
           if (flag & usr::INLINE) {
             using namespace declarations::declarators::function::definition;
@@ -1786,7 +1786,7 @@ namespace cxx_compiler {
     inline bool bases_have_ctor(tag* ptr)
     {
       if (!ptr->m_bases)
-	return false;
+        return false;
       vector<base*>& bases = *ptr->m_bases;
       typedef vector<base*>::const_iterator IT;
       IT p = find_if(begin(bases), end(bases), has_ctor);
@@ -1800,78 +1800,78 @@ namespace cxx_compiler {
       usr* m_vtbl;
       string m_vptr_name;
       update_vptr(const map<base*, int>& base_offset,
-		  const map<base*, int>& vtbl_offset,
-		  usr* this_ptr, block* b, usr* vtbl,
-		  string vptr_name)
-	: m_base_offset(base_offset), m_vtbl_offset(vtbl_offset),
-	  m_this(this_ptr), m_block(b), m_vtbl(vtbl), m_vptr_name(vptr_name) {}
+                  const map<base*, int>& vtbl_offset,
+                  usr* this_ptr, block* b, usr* vtbl,
+                  string vptr_name)
+        : m_base_offset(base_offset), m_vtbl_offset(vtbl_offset),
+          m_this(this_ptr), m_block(b), m_vtbl(vtbl), m_vptr_name(vptr_name) {}
       void operator()(base* bp)
       {
-	using namespace expressions::primary::literal;
-	tag* ptr = bp->m_tag;
-	usr* vptr = get_virt(ptr, m_vptr_name);
-	if (!vptr)
-	  return;
-	const type* T = ptr->m_types.second;
-	assert(T->m_id == type::RECORD);
-	typedef const record_type REC;
-	REC* rec = static_cast<REC*>(T);
-	vector<tag*> dummy;
-	pair<int, usr*> off = rec->offset(m_vptr_name, dummy);
-	int vptr_off = off.first;
-	assert(vptr_off >= 0);
-	map<base*, int>::const_iterator p = m_base_offset.find(bp);
-	assert(p != m_base_offset.end());
-	vptr_off += p->second;
-	T = vptr->m_type;
-	var* t0 = new var(T);
-	m_block->m_vars.push_back(t0);
-	code.push_back(new addr3ac(t0, m_vtbl));
-	map<base*, int>::const_iterator q = m_vtbl_offset.find(bp);
-	assert(q != m_vtbl_offset.end());
-	int vtbl_off = q->second;
-	if (vtbl_off) {
-	  var* vo = integer::create(vtbl_off);
-	  code.push_back(new add3ac(t0, t0, vo));
-	}
-	T = pointer_type::create(T);
-	var* t1 = new var(T);
-	m_block->m_vars.push_back(t1);
-	code.push_back(new cast3ac(t1, m_this, T));
-	if (vptr_off) {
-	  var* vo = integer::create(vptr_off);
-	  code.push_back(new add3ac(t1, t1, vo));
-	}
-	code.push_back(new invladdr3ac(t1, t0));
+        using namespace expressions::primary::literal;
+        tag* ptr = bp->m_tag;
+        usr* vptr = get_virt(ptr, m_vptr_name);
+        if (!vptr)
+          return;
+        const type* T = ptr->m_types.second;
+        assert(T->m_id == type::RECORD);
+        typedef const record_type REC;
+        REC* rec = static_cast<REC*>(T);
+        vector<tag*> dummy;
+        pair<int, usr*> off = rec->offset(m_vptr_name, dummy);
+        int vptr_off = off.first;
+        assert(vptr_off >= 0);
+        map<base*, int>::const_iterator p = m_base_offset.find(bp);
+        assert(p != m_base_offset.end());
+        vptr_off += p->second;
+        T = vptr->m_type;
+        var* t0 = new var(T);
+        m_block->m_vars.push_back(t0);
+        code.push_back(new addr3ac(t0, m_vtbl));
+        map<base*, int>::const_iterator q = m_vtbl_offset.find(bp);
+        assert(q != m_vtbl_offset.end());
+        int vtbl_off = q->second;
+        if (vtbl_off) {
+          var* vo = integer::create(vtbl_off);
+          code.push_back(new add3ac(t0, t0, vo));
+        }
+        T = pointer_type::create(T);
+        var* t1 = new var(T);
+        m_block->m_vars.push_back(t1);
+        code.push_back(new cast3ac(t1, m_this, T));
+        if (vptr_off) {
+          var* vo = integer::create(vptr_off);
+          code.push_back(new add3ac(t1, t1, vo));
+        }
+        code.push_back(new invladdr3ac(t1, t0));
       }
     };
     void add_ctor(tag* ptr,
-		  const map<string, pair<int, usr*> >& layout,
-		  const map<base*, int>& base_offset,
-		  const map<base*, int>& vbtbl_offset,
+                  const map<string, pair<int, usr*> >& layout,
+                  const map<base*, int>& base_offset,
+                  const map<base*, int>& vbtbl_offset,
                   const map<base*, int>& vftbl_offset)
     {
       if (!bases_have_ctor(ptr) && !get_vbptr(ptr) && !get_vfptr(ptr))
-	return;
+        return;
 
       usr* ctor = 0;
       string tgn = ptr->m_name;
       map<string, vector<usr*> >& usrs = ptr->m_usrs;
       map<string, vector<usr*> >::const_iterator p = usrs.find(tgn);
       if (p == usrs.end()) {
-	vector<const type*> param;
-	param.push_back(void_type::create());
-	const type* T = func_type::create(0,param);
-	usr::flag_t flag =
-	  usr::flag_t(usr::CTOR | usr::FUNCTION | usr::INLINE);
-	ctor = new usr(tgn,T,flag,file_t());
-	ptr->m_usrs[tgn].push_back(ctor);
+        vector<const type*> param;
+        param.push_back(void_type::create());
+        const type* T = func_type::create(0,param);
+        usr::flag_t flag =
+          usr::flag_t(usr::CTOR | usr::FUNCTION | usr::INLINE);
+        ctor = new usr(tgn,T,flag,file_t());
+        ptr->m_usrs[tgn].push_back(ctor);
       }
       else {
-	const vector<usr*>& v = p->second;
-	if (v.size() != 1)
-	  error::not_implemented();
-	ctor = v.back();
+        const vector<usr*>& v = p->second;
+        if (v.size() != 1)
+          error::not_implemented();
+        ctor = v.back();
       }
 
       scope* param = new scope(scope::PARAM);
@@ -1898,64 +1898,64 @@ namespace cxx_compiler {
 
       assert(code.empty());
       if (ptr->m_bases) {
-	vector<base*>& bases = *ptr->m_bases;
-	scope* org = scope::current;
-	scope::current = b;
-	for_each(begin(bases), end(bases),
-		 call_ctor(base_offset, this_ptr, b));
-	scope::current = org;
-	if (usr* vbtbl = get_vbtbl(ptr)) {
-	  for_each(begin(bases), end(bases),
-		   update_vptr(base_offset, vbtbl_offset, this_ptr, b, vbtbl,
-			       vbptr_name));
-	}
-	if (usr* vftbl = get_vftbl(ptr)) {
-	  for_each(begin(bases), end(bases),
-		   update_vptr(base_offset, vftbl_offset, this_ptr, b, vftbl,
-			       vfptr_name));
-	}
+        vector<base*>& bases = *ptr->m_bases;
+        scope* org = scope::current;
+        scope::current = b;
+        for_each(begin(bases), end(bases),
+                 call_ctor(base_offset, this_ptr, b));
+        scope::current = org;
+        if (usr* vbtbl = get_vbtbl(ptr)) {
+          for_each(begin(bases), end(bases),
+                   update_vptr(base_offset, vbtbl_offset, this_ptr, b, vbtbl,
+                               vbptr_name));
+        }
+        if (usr* vftbl = get_vftbl(ptr)) {
+          for_each(begin(bases), end(bases),
+                   update_vptr(base_offset, vftbl_offset, this_ptr, b, vftbl,
+                               vfptr_name));
+        }
       }
       if (usr* vbptr = get_vbptr(ptr)) {
-	const type* T = vbptr->m_type;
-	var* t0 = new var(T);
-	b->m_vars.push_back(t0);
-	T = pointer_type::create(T);
-	var* t1 = new var(T);
-	b->m_vars.push_back(t1);
-	usr* vbtbl = get_vbtbl(ptr);
-	code.push_back(new addr3ac(t0, vbtbl));
-	code.push_back(new cast3ac(t1, this_ptr, T));
-	typedef map<string, pair<int, usr*> >::const_iterator IT;
-	IT p = layout.find(vbptr_name);
-	assert(p != layout.end());
-	pair<int, usr*> off = p->second;
-	if (int offset = off.first) {
-	  using namespace expressions::primary::literal;
-	  var* off = integer::create(offset);
-	  code.push_back(new add3ac(t1,t1,off));
-	}
-	code.push_back(new invladdr3ac(t1, t0));
+        const type* T = vbptr->m_type;
+        var* t0 = new var(T);
+        b->m_vars.push_back(t0);
+        T = pointer_type::create(T);
+        var* t1 = new var(T);
+        b->m_vars.push_back(t1);
+        usr* vbtbl = get_vbtbl(ptr);
+        code.push_back(new addr3ac(t0, vbtbl));
+        code.push_back(new cast3ac(t1, this_ptr, T));
+        typedef map<string, pair<int, usr*> >::const_iterator IT;
+        IT p = layout.find(vbptr_name);
+        assert(p != layout.end());
+        pair<int, usr*> off = p->second;
+        if (int offset = off.first) {
+          using namespace expressions::primary::literal;
+          var* off = integer::create(offset);
+          code.push_back(new add3ac(t1,t1,off));
+        }
+        code.push_back(new invladdr3ac(t1, t0));
       }
       if (usr* vfptr = get_vfptr(ptr)) {
-	const type* T = vfptr->m_type;
-	var* t0 = new var(T);
-	b->m_vars.push_back(t0);
-	T = pointer_type::create(T);
-	var* t1 = new var(T);
-	b->m_vars.push_back(t1);
-	usr* vftbl = get_vftbl(ptr);
-	code.push_back(new addr3ac(t0, vftbl));
-	code.push_back(new cast3ac(t1, this_ptr, T));
-	typedef map<string, pair<int, usr*> >::const_iterator IT;
-	IT p = layout.find(vfptr_name);
-	assert(p != layout.end());
-	pair<int, usr*> off = p->second;
-	if (int offset = off.first) {
-	  using namespace expressions::primary::literal;
-	  var* off = integer::create(offset);
-	  code.push_back(new add3ac(t1,t1,off));
-	}
-	code.push_back(new invladdr3ac(t1, t0));
+        const type* T = vfptr->m_type;
+        var* t0 = new var(T);
+        b->m_vars.push_back(t0);
+        T = pointer_type::create(T);
+        var* t1 = new var(T);
+        b->m_vars.push_back(t1);
+        usr* vftbl = get_vftbl(ptr);
+        code.push_back(new addr3ac(t0, vftbl));
+        code.push_back(new cast3ac(t1, this_ptr, T));
+        typedef map<string, pair<int, usr*> >::const_iterator IT;
+        IT p = layout.find(vfptr_name);
+        assert(p != layout.end());
+        pair<int, usr*> off = p->second;
+        if (int offset = off.first) {
+          using namespace expressions::primary::literal;
+          var* off = integer::create(offset);
+          code.push_back(new add3ac(t1,t1,off));
+        }
+        code.push_back(new invladdr3ac(t1, t0));
       }
       fundef* fdef = new fundef(ctor,param);
       declarations::declarators::function::definition::action(fdef, code);
@@ -1966,13 +1966,13 @@ namespace cxx_compiler {
       string m_name;
       const vector<tag*>& m_route;
       has(string name, const vector<tag*>& route)
-	: m_name(name), m_route(route) {}
+        : m_name(name), m_route(route) {}
       bool operator()(base* bp)
       {
-	tag* ptr = bp->m_tag;
-	if (m_route.size() >= 2)
-	  return ptr == m_route[1];
-	return ptr->m_usrs.find(m_name) != ptr->m_usrs.end();
+        tag* ptr = bp->m_tag;
+        if (m_route.size() >= 2)
+          return ptr == m_route[1];
+        return ptr->m_usrs.find(m_name) != ptr->m_usrs.end();
       }
     };
   } // end of namespace record_imp
@@ -1988,9 +1988,9 @@ cxx_compiler::record_type::record_type(tag* ptr)
   with_initial* vbtbl = 0;
   if (bases) {
     int nbvb = accumulate(begin(*bases), end(*bases), 0,
-			  base_vb(m_virt_ancestor));
+                          base_vb(m_virt_ancestor));
     int nvb = count_if(begin(*bases), end(*bases),
-		       direct_virt(m_virt_ancestor));
+                       direct_virt(m_virt_ancestor));
     if (nbvb + nvb) {
       const type* T = int_type::create();
       T = const_type::create(T);
@@ -2000,13 +2000,13 @@ cxx_compiler::record_type::record_type(tag* ptr)
       map<string, vector<usr*> >& usrs = m_tag->m_usrs;
       usrs[vbtbl_name].push_back(vbtbl);
       if (nvb) {
-	T = pointer_type::create(T);
-	usr* vbptr = new usr(vbptr_name,T,usr::NONE,file_t());
-	usrs[vbptr_name].push_back(vbptr);
-	m_member.push_back(vbptr);
-	m_layout[vbptr_name] = make_pair(m_size, vbptr);
-	m_position[vbptr] = 0;
-	m_size += T->size();
+        T = pointer_type::create(T);
+        usr* vbptr = new usr(vbptr_name,T,usr::NONE,file_t());
+        usrs[vbptr_name].push_back(vbptr);
+        m_member.push_back(vbptr);
+        m_layout[vbptr_name] = make_pair(m_size, vbptr);
+        m_position[vbptr] = 0;
+        m_size += T->size();
       }
     }
     nbvf = accumulate(begin(*bases), end(*bases), 0, base_vf);
@@ -2047,18 +2047,18 @@ cxx_compiler::record_type::record_type(tag* ptr)
       m_size = accumulate(begin(*bases), end(*bases), m_size,
                           base_layouter(m_base_offset, *bases, common));
       m_size = accumulate(begin(common), end(common), m_size,
-			  add_common(m_virt_common_offset));
+                          add_common(m_virt_common_offset));
     }
     else
       error::not_implemented();
     if (vbtbl) {
       map<int, var*>& value = vbtbl->m_value;
       int offset = accumulate(begin(*bases), end(*bases), 0,
-			      set_org_vbtbl(value, m_base_offset,
-					    m_virt_common_offset,
-					    vbtbl_offset));
+                              set_org_vbtbl(value, m_base_offset,
+                                            m_virt_common_offset,
+                                            vbtbl_offset));
       for_each(begin(*bases), end(*bases),
-	       set_own_vbtbl(offset, value, m_base_offset));
+               set_own_vbtbl(offset, value, m_base_offset));
     }
   }
   copy_if(begin(order),end(order),back_inserter(m_member),
@@ -2391,25 +2391,25 @@ namespace cxx_compiler {
       tag* m_tag;
       const vector<tag*>& m_route;
       cmp_base(tag* ptr, const vector<tag*>& route)
-	: m_tag(ptr), m_route(route) {}
+        : m_tag(ptr), m_route(route) {}
       bool operator()(base* pb)
       {
-	tag* xtag = pb->m_tag;
-	if (m_route.size() >= 2)
-	  return xtag == m_route[1];
-	if (xtag == m_tag)
-	  return true;
-	const type* Tx = xtag->m_types.second;
-	assert(Tx->m_id == type::RECORD);
-	typedef const record_type REC;
-	REC* Rx = static_cast<REC*>(Tx);
-	const type* Ty = m_tag->m_types.second;
-	assert(Ty->m_id == type::RECORD);
-	REC* Ry = static_cast<REC*>(Ty);
-	vector<tag*> dummy;
-	bool was_virt_common = false;
-	int offset = Rx->base_offset(Ry, dummy, &was_virt_common);
-	return offset >= 0;
+        tag* xtag = pb->m_tag;
+        if (m_route.size() >= 2)
+          return xtag == m_route[1];
+        if (xtag == m_tag)
+          return true;
+        const type* Tx = xtag->m_types.second;
+        assert(Tx->m_id == type::RECORD);
+        typedef const record_type REC;
+        REC* Rx = static_cast<REC*>(Tx);
+        const type* Ty = m_tag->m_types.second;
+        assert(Ty->m_id == type::RECORD);
+        REC* Ry = static_cast<REC*>(Ty);
+        vector<tag*> dummy;
+        bool was_virt_common = false;
+        int offset = Rx->base_offset(Ry, dummy, &was_virt_common);
+        return offset >= 0;
       }
     };
   }  // end of namespace record_impl
@@ -2417,8 +2417,8 @@ namespace cxx_compiler {
 
 int
 cxx_compiler::record_type::base_offset(const record_type* that,
-				       const std::vector<tag*>& route,
-				       bool* was_virt_common) const
+                                       const std::vector<tag*>& route,
+                                       bool* was_virt_common) const
 {
   using namespace record_impl;
   if (this == that)
