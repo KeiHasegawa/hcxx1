@@ -80,8 +80,7 @@ namespace statements {
 struct var {
   const type* m_type;
   scope* m_scope;
-  var(const type* T)
-    : m_type(T), m_scope(scope::current) {}
+  var(const type* T) : m_type(T), m_scope(scope::current) {}
   virtual var* rvalue(){ return this; }
   virtual bool lvalue() const { return false; }
   virtual bool zero() const { return false; }
@@ -314,7 +313,6 @@ struct usr : var {
     NEW_ARRAY   = 1 << 26,
     DELETE_SCALAR = 1 << 27,
     DELETE_ARRAY  = 1 << 28,
-    INLINE_REFED = 1 << 29,
   };
   flag_t m_flag;
   file_t m_file;

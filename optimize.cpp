@@ -90,6 +90,7 @@ namespace cxx_compiler { namespace optimize { namespace symtab {
   extern int simplify(scope*, std::vector<tac*>*);
   namespace literal {
     void simplify(const vector<tac*>&);
+    void just_clear();
   } // end of namespace literal
 } } } // end of namespace symtab, optimize and cxx_compiler
 
@@ -97,9 +98,9 @@ void
 cxx_compiler::optimize::basic_block::action(fundef* fdef, std::vector<tac*>& v)
 {
   using namespace std;
+  usr* u = fdef->m_usr;
   if ( cmdline::output_medium && cmdline::output_optinfo ){
     cout << "Before optimization\n";
-    usr* u = fdef->m_usr;
     scope* org = scope::current;
     scope::current = &scope::root;
     cout << dump::names::ref(u) << ":\n";
@@ -138,7 +139,13 @@ cxx_compiler::optimize::basic_block::action(fundef* fdef, std::vector<tac*>& v)
     assert(p->m_id == scope::BLOCK);
     symtab::simplify(p,&v);
   }
-  symtab::literal::simplify(v);
+
+  usr::flag_t flag = u->m_flag;
+  scope* ptr = u->m_scope;
+  if ((flag & usr::INLINE) && ptr->m_id == scope::TAG)
+    symtab::literal::just_clear();
+  else
+    symtab::literal::simplify(v);
 }
 
 namespace cxx_compiler { namespace optimize { namespace basic_block {
@@ -1057,6 +1064,11 @@ void cxx_compiler::optimize::symtab::literal::simplify(const std::vector<tac*>& 
   for_each(vc.begin(), vc.end(), mark1);
   mark2(&scope::root);
   for_each(canbe_erased.begin(), canbe_erased.end(), erase);
+  canbe_erased.clear();
+}
+
+void cxx_compiler::optimize::symtab::literal::just_clear()
+{
   canbe_erased.clear();
 }
 

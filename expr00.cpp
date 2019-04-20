@@ -859,11 +859,6 @@ cxx_compiler::usr* cxx_compiler::expressions::primary::literal::stringa::new_obj
 {
   using namespace std;
   with_initial* ret = new with_initial(name,0,parse::position);
-  if ( fundef::current ){
-    usr* u = fundef::current->m_usr;
-    if ( u->m_flag & usr::INLINE )
-      ret->m_flag = usr::flag_t(ret->m_flag | usr::INLINE_REFED);
-  }
   map<int,var*>& value = ret->m_value;
   bool wide = name[0] == '"' ? false : true;
   if ( wide ){
