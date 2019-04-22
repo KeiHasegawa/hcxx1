@@ -2407,8 +2407,8 @@ namespace cxx_compiler {
         assert(Ty->m_id == type::RECORD);
         REC* Ry = static_cast<REC*>(Ty);
         vector<tag*> dummy;
-        bool was_virt_common = false;
-        int offset = Rx->base_offset(Ry, dummy, &was_virt_common);
+        bool direct_virtual = false;
+        int offset = Rx->base_offset(Ry, dummy, &direct_virtual);
         return offset >= 0;
       }
     };
@@ -2418,7 +2418,7 @@ namespace cxx_compiler {
 int
 cxx_compiler::record_type::base_offset(const record_type* that,
                                        const std::vector<tag*>& route,
-                                       bool* was_virt_common) const
+                                       bool* direct_virtual) const
 {
   using namespace record_impl;
   if (this == that)
@@ -2438,10 +2438,8 @@ cxx_compiler::record_type::base_offset(const record_type* that,
     return -1;
   }
   base* b = *py;
-  if (b->m_virtual) {
-    *was_virt_common = true;
-    return -1;
-  }
+  if (b->m_virtual)
+    *direct_virtual = true;
   map<base*, int>::const_iterator q = m_base_offset.find(b);
   assert(q != m_base_offset.end());
   int n = q->second;
@@ -2454,8 +2452,9 @@ cxx_compiler::record_type::base_offset(const record_type* that,
   vector<tag*> route2;
   if (!route.empty())
     copy(begin(route)+1, end(route), back_inserter(route2));
-  int m = Rb->base_offset(that, route2, was_virt_common);
-  if (*was_virt_common) {
+  bool direct_virtual2 = false;
+  int m = Rb->base_offset(that, route2, &direct_virtual2);
+  if (direct_virtual2) {
     typedef map<const record_type*, int>::const_iterator ITx;
     ITx px = m_virt_common_offset.find(that);
     if (px != m_virt_common_offset.end())

@@ -260,9 +260,10 @@ void cxx_compiler::statements::compound::gen_dtor(usr* u)
   FT* ft = static_cast<FT*>(T);
   call_impl::common(ft,dtor,&arg,false,u);
   usr::flag_t flag = dtor->m_flag;
-  if (!error::counter) {
+  if (!error::counter && !cmdline::no_inline_sub) {
     if (flag & usr::INLINE) {
-      using namespace declarations::declarators::function::definition::static_inline::skip;
+      using namespace declarations::declarators::function;
+      using namespace definition::static_inline::skip;
       table_t::const_iterator p = table.find(dtor);
       if (p != table.end())
         substitute(code, code.size()-1, p->second);

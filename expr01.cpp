@@ -179,7 +179,7 @@ cxx_compiler::genaddr::call(std::vector<var*>* arg)
     }
   }
   var* ret = call_impl::common(ft, u, arg, false, this_ptr);
-  if (!error::counter) {
+  if (!error::counter && !cmdline::no_inline_sub) {
     if (flag & usr::INLINE) {
       using namespace declarations::declarators::function;
       using namespace definition::static_inline::skip;
@@ -200,9 +200,10 @@ cxx_compiler::member_function::call(std::vector<var*>* arg)
   FUNC* ft = static_cast<FUNC*>(m_fun->m_type);
   var* ret = call_impl::common(ft,m_fun,arg,false,m_obj);
   usr::flag_t flag = m_fun->m_flag;
-  if (!error::counter) {
+  if (!error::counter && !cmdline::no_inline_sub) {
     if (flag & usr::INLINE) {
-      using namespace declarations::declarators::function::definition::static_inline::skip;
+      using namespace declarations::declarators::function;
+      using namespace definition::static_inline::skip;
       table_t::const_iterator p = table.find(m_fun);
       if (p != table.end())
         substitute(code, code.size()-1, p->second);
@@ -262,9 +263,10 @@ cxx_compiler::overload_impl::trial(usr* u, std::vector<cxx_compiler::var*>* arg)
   FUNC* ft = static_cast<FUNC*>(T);
   usr::flag_t flag = u->m_flag;
   var* tmp = call_impl::common(ft,u,arg,true);
-  if (!error::counter) {
+  if (!error::counter && !cmdline::no_inline_sub) {
     if (flag & usr::INLINE) {
-      using namespace declarations::declarators::function::definition::static_inline::skip;
+      using namespace declarations::declarators::function;
+      using namespace definition::static_inline::skip;
       table_t::const_iterator p = table.find(u);
       if (p != table.end())
         substitute(code, code.size()-1, p->second);
@@ -849,8 +851,8 @@ namespace cxx_compiler {
       int operator()(int n, const record_type* rec)
       {
         vector<tag*> dummy;
-        bool was_virt_common = false;
-        int offset = m_rec->base_offset(rec, dummy, &was_virt_common);
+        bool direct_virtual = false;
+        int offset = m_rec->base_offset(rec, dummy, &direct_virtual);
         if (offset < 0)
           return n;
         return n + rec->size();
@@ -873,8 +875,8 @@ namespace cxx_compiler {
       assert(T->m_id == type::RECORD);
       typedef const record_type REC;
       REC* mrec = static_cast<REC*>(T);
-      bool was_virt_common = false;
-      int base_offset = rec->base_offset(mrec, route, &was_virt_common);
+      bool direct_virtual = false;
+      int base_offset = rec->base_offset(mrec, route, &direct_virtual);
       assert(base_offset >= 0);
       vector<tag*> dummy;
       pair<int, usr*> off = mrec->offset(member->m_name, dummy);
@@ -1195,8 +1197,8 @@ assignment::valid(const type* T, var* src, bool* discard)
         REC* rx = static_cast<REC*>(Tx);
         REC* ry = static_cast<REC*>(Ty);
         vector<tag*> dummy;
-        bool was_virt_common = false;
-        if (ry->base_offset(rx, dummy, &was_virt_common) >= 0) {
+        bool direct_virtual = false;
+        if (ry->base_offset(rx, dummy, &direct_virtual) >= 0) {
           if (include(cvr_x, cvr_y))
             return px;
           else {

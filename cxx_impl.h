@@ -60,7 +60,6 @@ namespace parse {
   extern void save(int state, short* b0, short* t0, YYSTYPE* b1, YYSTYPE* t1);
   extern void restore(int* state, short** b0, short** t0, short* a0,
                       YYSTYPE** b1, YYSTYPE** t1, YYSTYPE* a1);
-  extern void common(int token, list<void*>& lval);
   
   extern read_t g_read;
   extern int last_token;
