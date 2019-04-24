@@ -728,12 +728,12 @@ cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr)
       if ((flag & usr::FUNCTION) && (flag & usr::EXTERN)){
         using namespace declarators::function::definition;
         using namespace static_inline;
-        skip::table_t::iterator r = skip::table.find(prev);
-        if (r != skip::table.end()) {
+        skip::table_t::iterator r = skip::stbl.find(prev);
+        if (r != skip::stbl.end()) {
           info_t* info = r->second;
           usr::flag_t& flag = info->m_fundef->m_usr->m_flag;
           flag = usr::flag_t(flag | usr::EXTERN);
-          skip::table.erase(r);
+          skip::stbl.erase(r);
           gencode(info);
         }
       }

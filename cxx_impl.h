@@ -90,7 +90,7 @@ namespace parse {
       read_t m_read;
       save_t() : m_param(0) {}
     };
-    extern map<usr*, save_t> table;
+    extern map<usr*, save_t> stbl;
     extern save_t* saved;
     extern int get_token();
   } // end of namespace member_function_body
@@ -433,6 +433,10 @@ namespace type_impl {
   extern void update(int (*)(int id));
 } // end of namespace type_impl
 
+namespace record_impl {
+  extern int base_vb(int n, const base* bp);
+} // end of namespace record_impl
+
 namespace expressions {
   struct base;
 } // end of namespace expressions
@@ -500,7 +504,7 @@ namespace declarations {
         extern void action(fundef* fdef, vector<tac*>&);
         typedef pair<pair<string, scope*>,const vector<const type*>*> KEY;
         typedef map<KEY,usr*> table_t;
-        extern table_t table;
+        extern table_t dtbl;
         namespace static_inline {
           struct info_t {
             fundef* m_fundef;
@@ -518,7 +522,7 @@ namespace declarations {
               ~table_t(){ for (auto p : *this) delete p.second; }
 #endif // _DEBUG
             };
-            extern table_t table;
+            extern table_t stbl;
             void add(fundef* fdef, vector<tac*>& vc, bool b);
             struct chk_t {
               int m_pos;
@@ -552,7 +556,7 @@ namespace declarations {
         } // end of namespace static_inline
         namespace mem_initializer {
           typedef vector<pair<var*, vector<expressions::base*>*> > VALUE;
-          extern map<usr*, VALUE> table;
+          extern map<usr*, VALUE> mtbl;
           void action(var*, vector<expressions::base*>*);
         } // end of mem_initializer
       } // end of namespace definition

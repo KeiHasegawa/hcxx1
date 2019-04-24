@@ -146,8 +146,8 @@ namespace cxx_compiler {
           if (flag & usr::INLINE) {
             using namespace declarations::declarators::function::definition;
             using namespace static_inline;
-            skip::table_t::const_iterator p = skip::table.find(ctor);
-            if (p != skip::table.end())
+            skip::table_t::const_iterator p = skip::stbl.find(ctor);
+            if (p != skip::stbl.end())
               substitute(code, code.size()-1, p->second);
           }
         }

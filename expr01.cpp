@@ -183,8 +183,8 @@ cxx_compiler::genaddr::call(std::vector<var*>* arg)
     if (flag & usr::INLINE) {
       using namespace declarations::declarators::function;
       using namespace definition::static_inline::skip;
-      table_t::const_iterator p = table.find(u);
-      if (p != table.end())
+      table_t::const_iterator p = stbl.find(u);
+      if (p != stbl.end())
         substitute(code, code.size()-1, p->second);
     }
   }
@@ -204,8 +204,8 @@ cxx_compiler::member_function::call(std::vector<var*>* arg)
     if (flag & usr::INLINE) {
       using namespace declarations::declarators::function;
       using namespace definition::static_inline::skip;
-      table_t::const_iterator p = table.find(m_fun);
-      if (p != table.end())
+      table_t::const_iterator p = stbl.find(m_fun);
+      if (p != stbl.end())
         substitute(code, code.size()-1, p->second);
     }
   }
@@ -267,8 +267,8 @@ cxx_compiler::overload_impl::trial(usr* u, std::vector<cxx_compiler::var*>* arg)
     if (flag & usr::INLINE) {
       using namespace declarations::declarators::function;
       using namespace definition::static_inline::skip;
-      table_t::const_iterator p = table.find(u);
-      if (p != table.end())
+      table_t::const_iterator p = stbl.find(u);
+      if (p != stbl.end())
         substitute(code, code.size()-1, p->second);
     }
   }
@@ -845,19 +845,6 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::member::info_t::gen()
 namespace cxx_compiler {
   namespace member_impl {
     using namespace std;
-    struct virt_common {
-      const record_type* m_rec;
-      virt_common(const record_type* rec) : m_rec(rec) {}
-      int operator()(int n, const record_type* rec)
-      {
-        vector<tag*> dummy;
-        bool direct_virtual = false;
-        int offset = m_rec->base_offset(rec, dummy, &direct_virtual);
-        if (offset < 0)
-          return n;
-        return n + rec->size();
-      }
-    };
     inline int offset(const record_type* rec, usr* member,
                       const vector<tag*>& route)
     {
@@ -882,9 +869,7 @@ namespace cxx_compiler {
       pair<int, usr*> off = mrec->offset(member->m_name, dummy);
       int offset = off.first;
       assert(offset >= 0);
-      const vector<REC*>& va = mrec->virt_ancestor();
-      int n = accumulate(begin(va), end(va), 0, virt_common(rec));
-      return base_offset + offset - n;
+      return base_offset + offset;
     }
   }  // end of namespace member_impl
 }  // end of namespace cxx_compiler

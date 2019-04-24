@@ -76,13 +76,14 @@ namespace cxx_compiler {
     inline int nth_virt_base(tag* ptr, const base* bp)
     {
       vector<base*>& bases = *ptr->m_bases;
+      int n = accumulate(begin(bases), end(bases), 0, record_impl::base_vb);
       vector<base*> tmp;
       copy_if(begin(bases), end(bases), back_inserter(tmp),
               [](base* bp){ return bp->m_virtual; });
       typedef vector<base*>::iterator IT;
       IT p = find(begin(tmp), end(tmp), bp);
       assert(p != end(tmp));
-      return distance(begin(tmp), p);
+      return n + distance(begin(tmp), p);
     }
     inline var* ref_vbtbl(const record_type* rec, const base* bp, var* src)
     {
@@ -126,7 +127,7 @@ namespace cxx_compiler {
       }
       else
         garbage.push_back(t1);
-      code.push_back(new invladdr3ac(t1, t0));
+      code.push_back(new invraddr3ac(t1, t0));
       if (int n = nth_virt_base(ptr, bp)) {
         var* off = integer::create(n * T2->size());
         code.push_back(new add3ac(t1, t1, off));
@@ -138,7 +139,7 @@ namespace cxx_compiler {
       }
       else
         garbage.push_back(t2);
-      code.push_back(new invladdr3ac(t2, t1));
+      code.push_back(new invraddr3ac(t2, t1));
       return t2;
     }
     inline var* base_ptr_offset(const type* Tx, var* src)

@@ -264,8 +264,8 @@ void cxx_compiler::statements::compound::gen_dtor(usr* u)
     if (flag & usr::INLINE) {
       using namespace declarations::declarators::function;
       using namespace definition::static_inline::skip;
-      table_t::const_iterator p = table.find(dtor);
-      if (p != table.end())
+      table_t::const_iterator p = stbl.find(dtor);
+      if (p != stbl.end())
         substitute(code, code.size()-1, p->second);
     }
   }

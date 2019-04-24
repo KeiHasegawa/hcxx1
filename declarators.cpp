@@ -354,13 +354,13 @@ cxx_compiler::declarations::declarators::function::definition::begin(declaration
     if ( ptr->m_id == scope::BLOCK )
       ptr = &scope::root;
     KEY key(make_pair(name,ptr),&param);
-    table_t::const_iterator p = table.find(key);
-    if ( p != table.end() ){
+    table_t::const_iterator p = dtbl.find(key);
+    if ( p != dtbl.end() ){
       using namespace error::declarations::declarators::function::definition;
       multiple(parse::position,p->second);
     }
     else
-      table[key] = u;
+      dtbl[key] = u;
   }
 }
 
@@ -394,7 +394,7 @@ namespace cxx_compiler {
           namespace static_inline {
             using namespace std;
             extern void remember(fundef*, vector<tac*>&);
-            skip::table_t skip::table;
+            skip::table_t skip::stbl;
             namespace defer {
               map<string, vector<ref_t> > refs;
               map<string, set<usr*> > callers;
@@ -418,7 +418,7 @@ action(statements::base* stmt)
   auto_ptr<statements::base> sweeper(stmt);
   usr* u = fundef::current->m_usr;
   using namespace parse::member_function_body;
-  const map<usr*, save_t>& tbl = parse::member_function_body::table;
+  const map<usr*, save_t>& tbl = parse::member_function_body::stbl;
   map<usr*, save_t>::const_iterator p = tbl.find(u);
   if (p != tbl.end() && !parse::member_function_body::saved) {
     // member function body is already saved
@@ -434,13 +434,13 @@ action(statements::base* stmt)
   }
   else {
     typedef map<usr*, mem_initializer::VALUE>::iterator IT;
-    IT p = mem_initializer::table.find(u);
-    if (p != mem_initializer::table.end()) {
+    IT p = mem_initializer::mtbl.find(u);
+    if (p != mem_initializer::mtbl.end()) {
       mem_initializer::VALUE& v = p->second;
       for_each(begin(v), end(v),
                [](pair<var*, vector<expressions::base*>*> x)
                { mem_initializer::action(x.first, x.second); });
-      mem_initializer::table.erase(p);
+      mem_initializer::mtbl.erase(p);
     }
     file_t org = parse::position;
     stmt->gen();
@@ -535,19 +535,20 @@ namespace cxx_compiler { namespace declarations { namespace declarators { namesp
         return;
     }
 
-    table_t::iterator it = table.find(u);
-    if (it != table.end()) {
+    table_t::iterator it = stbl.find(u);
+    if (it != stbl.end()) {
       info_t* info = it->second;
-      table.erase(it);
+      stbl.erase(it);
       return gencode(info);
     }
 
     string name = u->m_name;
-    it = find_if(table.begin(),table.end(),
-         [name](const pair<usr*, info_t*>& p){ return p.first->m_name == name; });
-    if (it != table.end()) {
+    it = find_if(stbl.begin(),stbl.end(),
+         [name](const pair<usr*, info_t*>& p)
+		 { return p.first->m_name == name; });
+    if (it != stbl.end()) {
       info_t* info = it->second;
-      table.erase(it);
+      stbl.erase(it);
       return gencode(info);
     }
 
@@ -557,7 +558,7 @@ namespace cxx_compiler { namespace declarations { namespace declarators { namesp
     FT* ft = static_cast<FT*>(T);
     const vector<const type*>& param = ft->param();
     KEY key(make_pair(name, u->m_scope), &param);
-    if (definition::table.find(key) != definition::table.end())
+    if (definition::dtbl.find(key) != definition::dtbl.end())
       return;
 
     using namespace defer;
@@ -583,8 +584,8 @@ namespace cxx_compiler { namespace declarations { namespace declarators { namesp
         map<usr*, vector<int> >::iterator p = positions.find(ucaller);
         assert(p != positions.end());
         vector<int>& vi = p->second;
-        table_t::iterator q = table.find(ucaller);
-        assert(q != table.end());
+        table_t::iterator q = stbl.find(ucaller);
+        assert(q != stbl.end());
         info_t* caller = q->second;
         {
           vector<tac*>& vc = caller->m_code;
@@ -626,7 +627,7 @@ namespace cxx_compiler { namespace declarations { namespace declarators { namesp
             optimize::action(caller->m_fundef, caller->m_code);
           usr::flag_t flag = ucaller->m_flag;
           if (!(flag & (usr::STATIC|usr::INLINE))) {
-            table.erase(q);
+            stbl.erase(q);
             gencode(caller);
           }
         }
@@ -638,7 +639,7 @@ namespace cxx_compiler { namespace declarations { namespace declarators { namesp
         vector<const type*> vt;
         type::collect_tmp(vt);
         info_t* info = new info_t(fdef,vc,vt);
-        table[u] = info;
+        stbl[u] = info;
         vector<scope*>& ch = u->m_scope->m_children;
         assert(!ch.empty());
         assert(ch.back() == fdef->m_param);
@@ -656,7 +657,7 @@ namespace cxx_compiler { namespace declarations { namespace declarators { namesp
         refs.erase(p);
         map<string, set<usr*> >::iterator q = callers.find(callee);
         if (q == callers.end()) {
-          table.erase(u);
+          stbl.erase(u);
           return gencode(info);
         }
 
@@ -684,7 +685,7 @@ namespace cxx_compiler { namespace declarations { namespace declarators { namesp
 } } } } } // end of namespace definition, function, declarators, declarations and cxx_compiler
 
 cxx_compiler::declarations::declarators::function::definition::table_t
-cxx_compiler::declarations::declarators::function::definition::table;
+cxx_compiler::declarations::declarators::function::definition::dtbl;
 
 cxx_compiler::declarations::declarators::function::definition::static_inline::info_t::~info_t()
 {
@@ -704,8 +705,8 @@ function::definition::static_inline::gencode(info_t* info)
   skip::chk_t arg(fdef);
   for_each(vc.begin(), vc.end(), bind2nd(ptr_fun(skip::check), &arg));
   if (arg.m_wait_inline) {
-    assert(skip::table.find(fdef->m_usr) == skip::table.end());
-    skip::table[fdef->m_usr] = info;
+    assert(skip::stbl.find(fdef->m_usr) == skip::stbl.end());
+    skip::stbl[fdef->m_usr] = info;
     return;
   }
   scope* param = info->m_fundef->m_param;

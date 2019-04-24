@@ -1424,24 +1424,24 @@ namespace cxx_compiler {
     }
     struct gather {
       vector<const record_type*>& m_common;
-      const record_type* m_rec;
+      const record_type* yrec;
       gather(vector<const record_type*>& common, const record_type* rec)
-        : m_common(common), m_rec(rec) {}
-      void operator()(base* bp)
+	: m_common(common), yrec(rec) {}
+      void operator()(base* xbp)
       {
-        tag* ptr = bp->m_tag;
+        tag* ptr = xbp->m_tag;
         const type* T = ptr->m_types.second;
         assert(T);
         assert(T->m_id == type::RECORD);
-        typedef const record_type REC;
-        REC* rec = static_cast<REC*>(T);
-        if (rec == m_rec)
+	typedef const record_type REC;
+        REC* xrec = static_cast<REC*>(T);
+        if (xrec == yrec)
           return;
-        const vector<REC*>& x =   rec->virt_ancestor();
-        const vector<REC*>& y = m_rec->virt_ancestor();
+        const vector<REC*>& x = xrec->virt_ancestor();
+	const vector<REC*>& y = yrec->virt_ancestor();
         vector<REC*> t;
-        set_intersection(begin(x), end(x), begin(y), end(y),
-                         back_inserter(t));
+	set_intersection(begin(x), end(x), begin(y), end(y),
+			 back_inserter(t));
         vector<REC*> t2;
         set_union(begin(m_common), end(m_common),
                   begin(t), end(t), back_inserter(t2));
@@ -1451,32 +1451,65 @@ namespace cxx_compiler {
     struct base_layouter {
       map<base*, int>& m_base_offset;
       const vector<base*>& m_bases;
-      vector<const record_type*>& m_common;
+      set<const record_type*>& m_common;
       base_layouter(map<base*, int>& bo, const vector<base*>& bases,
-                    vector<const record_type*>& common)
+                    set<const record_type*>& common)
         : m_base_offset(bo), m_bases(bases), m_common(common) {}
-      int operator()(int n, base* b)
+      int operator()(int n, base* bp)
       {
-        tag* ptr = b->m_tag;
-        pair<const type*, const type*> x = ptr->m_types;
-        const type* T = x.second;
-        if (!T)
-          error::not_implemented();
+        tag* ptr = bp->m_tag;
+        const type* T = ptr->m_types.second;
+        assert(T);
         assert(T->m_id == type::RECORD);
-        typedef const record_type REC;
-        REC* rec = static_cast<REC*>(T);
+	typedef const record_type REC;
+	REC* rec = static_cast<REC*>(T);
+	if (bp->m_virtual) {
+	  m_common.insert(rec);
+	  return n;
+	}
         vector<const record_type*> tmp;
         for_each(begin(m_bases), end(m_bases), gather(tmp, rec));
         int m = T->size();
         assert(m);
         m -= accumulate(begin(tmp), end(tmp), 0, add_size);
         assert(m > 0);
-        m_base_offset[b] = n;
-        vector<const record_type*> tmp2;
+        set<const record_type*> tmp2;
         set_union(begin(m_common), end(m_common),
-                  begin(tmp), end(tmp), back_inserter(tmp2));
+                  begin(tmp), end(tmp), inserter(tmp2, tmp2.begin()));
         m_common = tmp2;
+        m_base_offset[bp] = n;
         return n + m;
+      }
+    };
+    struct vbase_layouter {
+      map<base*, int>& m_base_offset;
+      set<const record_type*>& m_common;
+      map<const record_type*, int>& m_common_offset;
+      vbase_layouter(map<base*, int>& bo, set<const record_type*>& c,
+		     map<const record_type*, int>& co)
+	: m_base_offset(bo), m_common(c), m_common_offset(co) {}
+      int operator()(int n, base* bp)
+      {
+	if (!bp->m_virtual) {
+	  assert(m_base_offset.find(bp) != m_base_offset.end());
+	  return n;
+	}
+	assert(m_base_offset.find(bp) == m_base_offset.end());
+	m_base_offset[bp] = n;
+	tag* ptr = bp->m_tag;
+	const type* T = ptr->m_types.second;
+	assert(T->m_id == type::RECORD);
+	typedef const record_type REC;
+	REC* rec = static_cast<REC*>(T);
+	typedef set<const record_type*>::iterator IT;
+	IT p = m_common.find(rec);
+	if (p != end(m_common)) {
+	  m_common.erase(p);
+	  m_common_offset[rec] = n;
+	}
+	int m = T->size();
+	assert(m > 0);
+	return n + m;
       }
     };
     struct add_common {
@@ -1502,15 +1535,19 @@ namespace cxx_compiler {
       usr* u = v.back();
       assert(u->m_flag & usr::WITH_INI);
       with_initial* vtbl = static_cast<with_initial*>(u);
-      return n + vtbl->m_value.size();;
+      return n + vtbl->m_value.size();
     }
     inline int base_vf(int n, const base* b)
     {
       return base_vcommon(n, b, vftbl_name);
     }
-    struct base_vb {
+    int base_vb(int n, const base* b)
+    {
+      return base_vcommon(n, b, vbtbl_name);
+    }
+    struct base_vb_t {
       vector<const record_type*>& m_virt_ancestor;
-      base_vb(vector<const record_type*>& v) : m_virt_ancestor(v) {}
+      base_vb_t(vector<const record_type*>& v) : m_virt_ancestor(v) {}
       int operator()(int n, const base* bp)
       {
         tag* ptr = bp->m_tag;
@@ -1524,7 +1561,7 @@ namespace cxx_compiler {
         set_union(begin(m_virt_ancestor), end(m_virt_ancestor), 
                   begin(va), end(va), back_inserter(tmp));
         m_virt_ancestor = tmp;
-        return base_vcommon(n, bp, vbtbl_name);
+        return base_vb(n, bp);
       }
     };
     struct direct_virt {
@@ -1769,8 +1806,8 @@ namespace cxx_compiler {
           if (flag & usr::INLINE) {
             using namespace declarations::declarators::function::definition;
             using namespace static_inline;
-            skip::table_t::const_iterator p = skip::table.find(ctor);
-            if (p != skip::table.end())
+            skip::table_t::const_iterator p = skip::stbl.find(ctor);
+            if (p != skip::stbl.end())
               substitute(code, code.size()-1, p->second);
           }
         }
@@ -1859,13 +1896,17 @@ namespace cxx_compiler {
       map<string, vector<usr*> >& usrs = ptr->m_usrs;
       map<string, vector<usr*> >::const_iterator p = usrs.find(tgn);
       if (p == usrs.end()) {
-        vector<const type*> param;
-        param.push_back(void_type::create());
-        const type* T = func_type::create(0,param);
+        vector<const type*> tmp;
+        tmp.push_back(void_type::create());
+        const func_type* ft = func_type::create(0, tmp);
         usr::flag_t flag =
           usr::flag_t(usr::CTOR | usr::FUNCTION | usr::INLINE);
-        ctor = new usr(tgn,T,flag,file_t());
+        ctor = new usr(tgn, ft, flag, file_t());
         ptr->m_usrs[tgn].push_back(ctor);
+	using namespace declarations::declarators::function::definition;
+	const vector<const type*>& param = ft->param();
+	KEY key(make_pair(tgn, ptr), &param);
+	dtbl[key] = ctor;
       }
       else {
         const vector<usr*>& v = p->second;
@@ -1988,7 +2029,7 @@ cxx_compiler::record_type::record_type(tag* ptr)
   with_initial* vbtbl = 0;
   if (bases) {
     int nbvb = accumulate(begin(*bases), end(*bases), 0,
-                          base_vb(m_virt_ancestor));
+                          base_vb_t(m_virt_ancestor));
     int nvb = count_if(begin(*bases), end(*bases),
                        direct_virt(m_virt_ancestor));
     if (nbvb + nvb) {
@@ -2041,26 +2082,16 @@ cxx_compiler::record_type::record_type(tag* ptr)
     accumulate(begin(order), end(order), offset, own_vf(vftbl->m_value));
   }
   map<base*, int> vbtbl_offset;
+  set<const record_type*> common;
   if (bases) {
     if (m_tag->m_kind != tag::UNION) {
-      vector<const record_type*> common;
       m_size = accumulate(begin(*bases), end(*bases), m_size,
                           base_layouter(m_base_offset, *bases, common));
-      m_size = accumulate(begin(common), end(common), m_size,
-                          add_common(m_virt_common_offset));
     }
     else
       error::not_implemented();
-    if (vbtbl) {
-      map<int, var*>& value = vbtbl->m_value;
-      int offset = accumulate(begin(*bases), end(*bases), 0,
-                              set_org_vbtbl(value, m_base_offset,
-                                            m_virt_common_offset,
-                                            vbtbl_offset));
-      for_each(begin(*bases), end(*bases),
-               set_own_vbtbl(offset, value, m_base_offset));
-    }
   }
+
   copy_if(begin(order),end(order),back_inserter(m_member),
           [](usr* u) {
             usr::flag_t flag = u->m_flag;
@@ -2130,6 +2161,26 @@ cxx_compiler::record_type::record_type(tag* ptr)
           T = bf->integer_type();
         }
       }
+    }
+  }
+  if (bases) {
+    if (m_tag->m_kind != tag::UNION) {
+      m_size = accumulate(begin(*bases), end(*bases), m_size,
+			  vbase_layouter(m_base_offset, common,
+					 m_virt_common_offset));
+      m_size = accumulate(begin(common), end(common), m_size,
+                          add_common(m_virt_common_offset));
+    }
+    else
+      error::not_implemented();
+    if (vbtbl) {
+      map<int, var*>& value = vbtbl->m_value;
+      int offset = accumulate(begin(*bases), end(*bases), 0,
+                              set_org_vbtbl(value, m_base_offset,
+                                            m_virt_common_offset,
+                                            vbtbl_offset));
+      for_each(begin(*bases), end(*bases),
+               set_own_vbtbl(offset, value, m_base_offset));
     }
   }
   if (bases) {

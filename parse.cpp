@@ -704,7 +704,7 @@ void cxx_compiler::parse::block::leave()
 }
 
 namespace cxx_compiler { namespace parse { namespace member_function_body {
-  std::map<usr*, save_t> table;
+  std::map<usr*, save_t> stbl;
   save_t* saved;
   void save_brace();
 } } } // end of namespace parse, member_function_body and cxx_compiler
@@ -716,8 +716,8 @@ void cxx_compiler::parse::member_function_body::save()
   usr* key = fundef::current->m_usr;
   scope* ptr = scope::current->m_parent;
   assert(ptr->m_id == scope::PARAM);
-  table[key].m_param = ptr;
-  table[key].m_read.m_token.push_back(make_pair('{',position));
+  stbl[key].m_param = ptr;
+  stbl[key].m_read.m_token.push_back(make_pair('{',position));
   save_brace();
   g_read.m_token.push_front(make_pair('}',position));
   identifier::mode = identifier::look;
@@ -727,7 +727,7 @@ void cxx_compiler::parse::member_function_body::save_brace()
 {
   using namespace std;
   usr* key = fundef::current->m_usr;
-  save_t& tmp = table[key];
+  save_t& tmp = stbl[key];
   list<pair<int, file_t> >& token = tmp.m_read.m_token;
   list<void*>& lval = tmp.m_read.m_lval;
   while ( 1 ){

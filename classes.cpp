@@ -74,7 +74,7 @@ const cxx_compiler::type* cxx_compiler::classes::specifier::action()
   const type* ret = record_type::create(ptr);
   ptr->m_types.second = ret;
   map<usr*, parse::member_function_body::save_t>& tbl =
-    parse::member_function_body::table;
+    parse::member_function_body::stbl;
   if (tbl.empty()) {
     using namespace class_or_namespace_name;
     assert(!before.empty());
@@ -251,7 +251,7 @@ namespace cxx_compiler {
               const type* T = dst->result_type();
               T->scalar() ? for_scalar(dst, p) : for_aggregate(dst, p);
             }
-            map<usr*, VALUE> table;
+            map<usr*, VALUE> mtbl;
             void action(var* v, vector<expressions::base*>* p)
             {
               using namespace expressions::primary;
@@ -275,7 +275,7 @@ namespace cxx_compiler {
               const type* T = ptr->m_types.second;
               if (!T) {
                 assert(scope::current->m_id == scope::PARAM);
-                table[fun].push_back(make_pair(v,p));
+                mtbl[fun].push_back(make_pair(v,p));
                 return;
               }
               assert(v->usr_cast());
