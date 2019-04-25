@@ -22,7 +22,7 @@ namespace cxx_compiler {
         scope::id_t id = p->m_id;
         if (id != scope::TAG)
           return u;
-        return  from_member(u, route);
+        return from_member(u, route);
       }
     } // end of namespace primary
   } // end of namespace expressions
@@ -1254,8 +1254,7 @@ cxx_compiler::expressions::primary::from_member(usr* u,
   assert(T->m_id == type::RECORD);
   typedef const record_type REC;
   REC* rec = static_cast<REC*>(T);
-  pair<int,usr*> ret = rec->offset(u->m_name, route);
-  int offset = ret.first;
+  int offset = member_impl::offset(rec, u, route);
   if (offset < 0)
     return u;
   T = u->m_type;

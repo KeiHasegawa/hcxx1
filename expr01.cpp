@@ -848,8 +848,7 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::member::info_t::gen()
 namespace cxx_compiler {
   namespace member_impl {
     using namespace std;
-    inline int offset(const record_type* rec, usr* member,
-                      const vector<tag*>& route)
+    int offset(const record_type* rec, usr* member,  const vector<tag*>& route)
     {
       tag* rtag = rec->get_tag();
       scope* msp = member->m_scope;

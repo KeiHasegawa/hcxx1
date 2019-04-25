@@ -1102,6 +1102,10 @@ namespace classes {
 extern vector<var*> garbage;
 extern string new_name(string);
 
+namespace member_impl {
+  int offset(const record_type* rec, usr* member,  const vector<tag*>& route);
+} // end of namespace member_impl
+
 struct generated : virtual var {
   const type* m_org;
   vector<tac*> m_code;

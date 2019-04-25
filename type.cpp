@@ -2003,17 +2003,28 @@ namespace cxx_compiler {
     }
     const usr::flag_t vtbl_flag
     = usr::flag_t(usr::WITH_INI| usr::STATIC | usr::STATIC_DEF);
-    struct has {
+    struct have {
       string m_name;
       const vector<tag*>& m_route;
-      has(string name, const vector<tag*>& route)
+      have(string name, const vector<tag*>& route)
         : m_name(name), m_route(route) {}
       bool operator()(base* bp)
       {
         tag* ptr = bp->m_tag;
         if (m_route.size() >= 2)
           return ptr == m_route[1];
-        return ptr->m_usrs.find(m_name) != ptr->m_usrs.end();
+	const map<string, vector<usr*> >& usrs = ptr->m_usrs;
+	if (usrs.find(m_name) != usrs.end())
+	  return true;
+	if (!ptr->m_bases)
+	  return false;
+	const vector<base*>& bases = *ptr->m_bases;
+	vector<tag*> route2;
+	if (!m_route.empty())
+	  copy(begin(m_route)+1, end(m_route), back_inserter(route2));
+	typedef vector<base*>::const_iterator IT;
+	IT p = find_if(begin(bases), end(bases), have(m_name, route2));
+	return p != end(bases);
       }
     };
   } // end of namespace record_imp
@@ -2417,9 +2428,13 @@ record_type::offset(std::string name, const std::vector<tag*>& route) const
     return make_pair(-1,static_cast<usr*>(0));    
 
   typedef vector<base*>::const_iterator ITx;
-  ITx q = find_if(begin(*bases), end(*bases), has(name, route));
+  ITx q = find_if(begin(*bases), end(*bases), have(name, route));
   if (q == end(*bases))
-    return make_pair(-1,static_cast<usr*>(0));    
+    return make_pair(-1,static_cast<usr*>(0));
+  ITx e = end(*bases);
+  ITx r = find_if(q+1, e, have(name, route));
+  if (r != end(*bases))
+    error::not_implemented();
 
   base* b = *q;
   typedef map<base*, int>::const_iterator ITy;
