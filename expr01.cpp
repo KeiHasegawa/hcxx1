@@ -105,7 +105,8 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::call::gen()
   return func->call(&arg);
 }
 
-const cxx_compiler::file_t& cxx_compiler::expressions::postfix::call::file() const
+const cxx_compiler::file_t&
+cxx_compiler::expressions::postfix::call::file() const
 {
   return m_func->file();
 }
@@ -139,7 +140,7 @@ cxx_compiler::var* cxx_compiler::var::call(std::vector<var*>* arg)
   }
   typedef const func_type FUNC;
   FUNC* ft = static_cast<FUNC*>(T);
-  return call_impl::common(ft,func,arg);
+  return call_impl::common(ft, func, arg, false, 0);
 }
 
 cxx_compiler::var*
@@ -212,34 +213,57 @@ cxx_compiler::member_function::call(std::vector<var*>* arg)
   return ret;
 }
 
-namespace cxx_compiler { namespace overload_impl {
-  struct result {
-    var* m_var;
-    bool NG(){ return m_var == 0; }
-    result(var* v) : m_var(v) {}
-  };
-  result* trial(usr*, std::vector<cxx_compiler::var*>*);
-} } // end of namespace overload_impl and cxx_compiler
+namespace cxx_compiler {
+  namespace overload_impl {
+    struct result {
+      var* m_var;
+      result(var* v) : m_var(v) {}
+      bool NG(){ return m_var == 0; }
+    };
+    result* do_trial(usr* u, std::vector<var*>* arg, var* obj)
+    {
+      using namespace std;
+      const type* T = u->m_type;
+      typedef const func_type FUNC;
+      FUNC* ft = static_cast<FUNC*>(T);
+      var* tmp = call_impl::common(ft, u, arg, true, obj);
+      if (tmp) {
+	if (!error::counter && !cmdline::no_inline_sub) {
+	  usr::flag_t flag = u->m_flag;
+	  if (flag & usr::INLINE) {
+	    using namespace declarations::declarators::function;
+	    using namespace definition::static_inline::skip;
+	    table_t::const_iterator p = stbl.find(u);
+	    if (p != stbl.end())
+	      substitute(code, code.size()-1, p->second);
+	  }
+	}
+      }
+      return new result(tmp);
+    }
+  } // end of namespace overload_impl
+} // end of namespace cxx_compiler
 
-cxx_compiler::var*
-cxx_compiler::overload::call(std::vector<cxx_compiler::var*>* arg)
+cxx_compiler::var* cxx_compiler::overload::call(std::vector<var*>* arg)
 {
   using namespace std;
   using namespace overload_impl;
-  const vector<usr*>& u = m_candidacy;
-  misc::pvector<result> v;
-  transform(u.begin(),u.end(),back_inserter(v),bind2nd(ptr_fun(trial),arg));
-  vector<result*>::iterator p = v.begin();
-  while ( p != v.end() ){
-    p = find_if(p,v.end(),mem_fun(&result::NG));
-    if ( p != v.end() ){
+  const vector<usr*>& cand = m_candidacy;
+  var* obj = m_obj;
+  misc::pvector<result> res;
+  transform(begin(cand), end(cand), back_inserter(res),
+	    [arg, obj](usr* u){ return do_trial(u, arg, obj); });
+  vector<result*>::iterator p = begin(res);
+  while ( p != end(res) ){
+    p = find_if(p, end(res), mem_fun(&result::NG));
+    if ( p != res.end() ){
       delete *p;
-      p = v.erase(p);
+      p = res.erase(p);
     }
   }
-  if ( v.size() == 1 )
-    return v[0]->m_var;
-  if (v.empty()) {
+  if (res.size() == 1)
+    return res[0]->m_var;
+  if (res.empty()) {
     using namespace error::expressions::postfix::call;
     overload_not_match(this);
     var* ret = new var(int_type::create());
@@ -252,27 +276,6 @@ cxx_compiler::overload::call(std::vector<cxx_compiler::var*>* arg)
     return ret;
   }
   error::not_implemented();
-}
-
-cxx_compiler::overload_impl::result*
-cxx_compiler::overload_impl::trial(usr* u, std::vector<cxx_compiler::var*>* arg)
-{
-  using namespace std;
-  const type* T = u->m_type;
-  typedef const func_type FUNC;
-  FUNC* ft = static_cast<FUNC*>(T);
-  usr::flag_t flag = u->m_flag;
-  var* tmp = call_impl::common(ft,u,arg,true);
-  if (!error::counter && !cmdline::no_inline_sub) {
-    if (flag & usr::INLINE) {
-      using namespace declarations::declarators::function;
-      using namespace definition::static_inline::skip;
-      table_t::const_iterator p = stbl.find(u);
-      if (p != stbl.end())
-        substitute(code, code.size()-1, p->second);
-    }
-  }
-  return new result(tmp);
 }
 
 namespace cxx_compiler {
@@ -903,7 +906,13 @@ cxx_compiler::var::member(var* expr, bool dot, const std::vector<tag*>& route)
   if ( !member )
     return expr;
   T = member->m_type;
-  if ( T->m_id == type::FUNC )
+  if (!T) {
+    assert(member->m_flag & usr::OVERLOAD);
+    overload* ovl = static_cast<overload*>(member);
+    ovl->m_obj = this;
+    return ovl;
+  }
+  if (T->m_id == type::FUNC)
     return new member_function(this,member);
   int offset = member_impl::offset(rec, member, route);
   if (offset < 0)

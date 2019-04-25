@@ -1264,11 +1264,17 @@ namespace optimize {
 
 struct overload : usr {
   vector<usr*> m_candidacy;
-  overload(usr* prev, usr* curr) : usr(*curr)
+  var* m_obj;
+  overload(usr* prev, usr* curr)
+    : usr(curr->m_name, 0, usr::OVERLOAD, curr->m_file), m_obj(0)
   { 
-    m_candidacy.push_back(prev);
+    if (prev->m_flag & usr::OVERLOAD) {
+      overload* ovl = static_cast<overload*>(prev);
+      m_candidacy = ovl->m_candidacy;
+    }
+    else
+      m_candidacy.push_back(prev);
     m_candidacy.push_back(curr);
-    m_flag = usr::flag_t(m_flag | usr::OVERLOAD);
   }
   var* call(vector<var*>*);
 };
@@ -1291,8 +1297,8 @@ namespace call_impl {
   var* common(const func_type* ft,
               var* func,
               vector<var*>* arg,
-              bool trial = false,
-              var* obj = 0);
+              bool trial,
+              var* this_ptr);
 } // end of namespace call_impl
 
 void original_namespace_definition(var*);

@@ -1110,22 +1110,30 @@ struct type {
 inline bool is_external_declaration(var* v)
 {
   scope* s = v->m_scope;
-  if ( !s->m_parent )
-    return true;
-  if ( s->m_id == scope::TAG ){
-    const type* T = v->m_type;
-    if ( T->m_id == type::FUNC )
-      return true;
-    if ( usr* u = v->usr_cast() ){
-      usr::flag_t flag = u->m_flag;
-      usr::flag_t mask = usr::flag_t(usr::STATIC | usr::STATIC_DEF);
-      if ( flag & mask )
-        return true;
+  scope::id_t id = s->m_id;
+  switch (id) {
+  case scope::NONE: case scope::NAMESPACE: return true;
+  case scope::TAG:
+    {
+      const type* T = v->m_type;
+      if (!T) {
+	assert(v->usr_cast());
+	usr* u = static_cast<usr*>(v);
+	assert(u->m_flag & usr::OVERLOAD);
+	return true;
+      }
+      if (T->m_id == type::FUNC)
+	return true;
+      if (usr* u = v->usr_cast()){
+	usr::flag_t flag = u->m_flag;
+	usr::flag_t mask = usr::flag_t(usr::STATIC | usr::STATIC_DEF);
+	if ( flag & mask )
+	  return true;
+      }
+      return false;
     }
+  default: return false;
   }
-  if ( s->m_id == scope::NAMESPACE )
-    return true;
-  return false;
 }
 
 class void_type : public type {

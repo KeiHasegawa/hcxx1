@@ -59,13 +59,16 @@ void cxx_compiler::dump::usrx(const usr* u, int ntab)
   string name = names::ref(const_cast<usr*>(u));
   const type* T = u->m_type;
   if (!T) {
-    assert(flag & usr::NAMESPACE);
-    cout << name << '\n';
-    const name_space* ns = static_cast<const name_space*>(u);
-    scope* org = scope::current;
-    scope::current = const_cast<name_space*>(ns);
-    dump::scopex(scope::current,ntab+1);
-    scope::current = org;
+    if (flag & usr::NAMESPACE) {
+      cout << name << '\n';
+      const name_space* ns = static_cast<const name_space*>(u);
+      scope* org = scope::current;
+      scope::current = const_cast<name_space*>(ns);
+      dump::scopex(scope::current,ntab+1);
+      scope::current = org;
+      return;
+    }
+    assert(flag & usr::OVERLOAD);
     return;
   }
   T->decl(cout,name);

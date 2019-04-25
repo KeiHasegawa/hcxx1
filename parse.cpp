@@ -176,6 +176,9 @@ namespace cxx_compiler {
               error::not_implemented();
             usr* u = res1.back();
             cxx_compiler_lval.m_usr = u;
+	    usr::flag_t flag = u->m_flag;
+	    if (flag & usr::OVERLOAD)
+	      return IDENTIFIER_LEX;
             const type* T = u->m_type;
             if (const pointer_type* G = T->ptr_gen()) {
               cxx_compiler_lval.m_var = new genaddr(G,T,u,0);
@@ -647,8 +650,9 @@ void cxx_compiler::parse::block::enter()
       scope::current = children.back();
       if (!T) {
         parameter::decide_dim(), new_block(), parameter::move();
-        usr::flag_t& flag = fundef::current->m_usr->m_flag;
-        flag = usr::flag_t(flag | usr::INLINE);
+	usr* u = fundef::current->m_usr;
+	assert(!(u->m_flag & usr::OVERLOAD));
+	u->m_flag = usr::flag_t(u->m_flag | usr::INLINE);
         return member_function_body::save();
       }
       if ( !(fundef::current->m_usr->m_flag & usr::STATIC) ){

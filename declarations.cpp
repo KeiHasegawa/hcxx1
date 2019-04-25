@@ -716,7 +716,8 @@ cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr)
   map<string, vector<usr*> >& usrs = curr->m_scope->m_usrs;
   map<string, vector<usr*> >::const_iterator p = usrs.find(name);
   if ( p != usrs.end() ){
-    usr* prev = p->second.back();
+    const vector<usr*>& v = p->second;
+    usr* prev = v.back();
     assert(prev != curr);
     if ( conflict(prev,curr) ){
       using namespace error::declarations;
@@ -725,6 +726,11 @@ cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr)
     else {
       curr = combine(prev,curr);
       usr::flag_t flag = curr->m_flag;
+      if (flag & usr::OVERLOAD) {
+	overload* ovl = static_cast<overload*>(curr);
+	usr* tmp = ovl->m_candidacy.back();
+	flag = tmp->m_flag;
+      }
       if ((flag & usr::FUNCTION) && (flag & usr::EXTERN)){
         using namespace declarators::function::definition;
         using namespace static_inline;
@@ -755,6 +761,10 @@ namespace cxx_compiler { namespace declarations {
 bool cxx_compiler::declarations::conflict(usr* x, usr* y)
 {
   if ( conflict(x->m_flag,y->m_flag) ){
+    if (!x->m_type) {
+      assert(x->m_flag & usr::OVERLOAD);
+      return false;
+    }
     if ( x->m_type->m_id != type::FUNC )
       return true;
   }
@@ -762,37 +772,42 @@ bool cxx_compiler::declarations::conflict(usr* x, usr* y)
     if ((x->m_flag & usr::WITH_INI) && (y->m_flag & usr::WITH_INI))
       return true;
   }
+  if (x->m_flag & usr::OVERLOAD)
+    return false;
   return conflict(x->m_type,y->m_type);
 }
 
-namespace cxx_compiler { namespace declarations {
-  struct table {
-    std::map<std::pair<usr::flag_t, usr::flag_t>,bool> m_root;
-    std::map<std::pair<usr::flag_t, usr::flag_t>,bool> m_tag;
-    std::map<std::pair<usr::flag_t, usr::flag_t>,bool> m_other;
-    table();
-  } m_table;
-} } // end of namespace declarations and cxx_compiler
+namespace cxx_compiler {
+  namespace declarations {
+    using namespace std;
+    struct table_t {
+      map<pair<usr::flag_t, usr::flag_t>,bool> m_root;
+      map<pair<usr::flag_t, usr::flag_t>,bool> m_tag;
+      map<pair<usr::flag_t, usr::flag_t>,bool> m_other;
+      table_t();
+    } ctbl;
+  } // end of namespace declarations
+} // end of namespace cxx_compiler
 
 bool cxx_compiler::declarations::conflict(usr::flag_t x, usr::flag_t y)
 {
   using namespace std;
   if ((x & usr::ENUM_MEMBER) || (y & usr::ENUM_MEMBER))
     return true;
-  usr::flag_t mask = usr::flag_t(usr::TYPEDEF|usr::EXTERN|usr::STATIC|usr::AUTO|usr::REGISTER);
+  usr::flag_t mask =
+    usr::flag_t(usr::TYPEDEF|usr::EXTERN|usr::STATIC|usr::AUTO|usr::REGISTER);
   x = usr::flag_t(x & mask);
   y = usr::flag_t(y & mask);
   pair<usr::flag_t, usr::flag_t> key(x,y);
-  if ( scope::current == &scope::root )
-    return m_table.m_root[key];
-  if ( scope::current->m_id == scope::NAMESPACE )
-    return m_table.m_root[key];
-  if ( scope::current->m_id == scope::TAG )
-    return m_table.m_tag[key];
-  return m_table.m_other[key];
+  scope::id_t id = scope::current->m_id;
+  switch (id) {
+  case scope::NONE: case scope::NAMESPACE: return ctbl.m_root[key];
+  case scope::TAG: return ctbl.m_tag[key];
+  default: return ctbl.m_other[key];
+  }
 }
 
-cxx_compiler::declarations::table::table()
+cxx_compiler::declarations::table_t::table_t()
 {
   using namespace std;
   m_other[make_pair(usr::NONE,usr::NONE)] = true;
@@ -827,37 +842,44 @@ bool cxx_compiler::declarations::conflict(const type* prev, const type* curr)
 cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
 {
   using namespace std;
-
-  if ( scope::current == &scope::root || scope::current->m_id == scope::NAMESPACE ){
-    usr::flag_t a = prev->m_flag;
-    usr::flag_t& b = curr->m_flag;
-    if ( a == usr::NONE && b == usr::NONE )
-      b = usr::EXTERN;
-    else if ( a & usr::STATIC )
-      b = usr::flag_t(b | usr::STATIC);
-    else if ( a & usr::INLINE )
-      b = usr::flag_t(b | usr::INLINE);
-    if (a & usr::C_SYMBOL)
-      b = usr::flag_t(b | usr::C_SYMBOL);
-  }
-  else if ( scope::current->m_id == scope::TAG ){
+  scope::id_t id = scope::current->m_id;
+  switch (id) {
+  case scope::NONE: case scope::NAMESPACE:
+    {
+      usr::flag_t a = prev->m_flag;
+      usr::flag_t& b = curr->m_flag;
+      if ( a == usr::NONE && b == usr::NONE )
+	b = usr::EXTERN;
+      else if ( a & usr::STATIC )
+	b = usr::flag_t(b | usr::STATIC);
+      else if ( a & usr::INLINE )
+	b = usr::flag_t(b | usr::INLINE);
+      if (a & usr::C_SYMBOL)
+	b = usr::flag_t(b | usr::C_SYMBOL);
+    }
+    break;
+  case scope::TAG:
+    {
     usr::flag_t a = prev->m_flag;
     usr::flag_t& b = curr->m_flag;
     if ( a & usr::STATIC )
       b = usr::flag_t(b | usr::STATIC_DEF);
+    }
+    break;
   }
-  const type* x = prev->m_type;
-  const type* y = curr->m_type;
-  const type* z = x->composite(y);
-  if ( z ){
-    curr->m_type = z;
-    return curr;
+
+  if (const type* x = prev->m_type ) {
+    const type* y = curr->m_type;
+    const type* z = composite(x, y);
+    if (z) {
+      curr->m_type = z;
+      return curr;
+    }
   }
-  else {
-    string name = curr->m_name;
-    scope::current->m_usrs[name].push_back(curr);
-    return new overload(prev,curr);
-  }
+
+  string name = curr->m_name;
+  scope::current->m_usrs[name].push_back(curr);
+  return new overload(prev,curr);
 }
 
 void

@@ -330,32 +330,36 @@ cxx_compiler::declarations::declarators::function::definition::begin(declaration
   scope* param = children.back();
   const vector<usr*>& order = param->m_order;
   for_each(order.begin(),order.end(),check_object);
+  if (u->m_flag & usr::OVERLOAD) {
+    overload* ovl = static_cast<overload*>(u);
+    u = ovl->m_candidacy.back();
+  }
   fundef::current = new fundef(u,param);
   {
     string name = u->m_name;
     usr::flag_t& flag = u->m_flag;
-    if ( flag & usr::TYPEDEF ){
+    if (flag & usr::TYPEDEF) {
       using namespace error::declarations::declarators::function::definition;
       typedefed(parse::position);
       flag = usr::flag_t(flag & ~usr::TYPEDEF);
     }
     const type* T = u->m_type;
-    if ( T->m_id != type::FUNC )
+    if (T->m_id != type::FUNC)
       return;
     typedef const func_type FUNC;
     FUNC* func = static_cast<FUNC*>(T);
     T = func->return_type();
-    if ( !valid(T,u) ){
+    if (!valid(T,u)) {
       using namespace error::declarations::declarators::function::definition;
       invalid_return(fundef::current->m_usr,T);
     }
     const vector<const type*>& param = func->param();
     scope* ptr = u->m_scope;
-    if ( ptr->m_id == scope::BLOCK )
+    if (ptr->m_id == scope::BLOCK)
       ptr = &scope::root;
     KEY key(make_pair(name,ptr),&param);
     table_t::const_iterator p = dtbl.find(key);
-    if ( p != dtbl.end() ){
+    if (p != dtbl.end()) {
       using namespace error::declarations::declarators::function::definition;
       multiple(parse::position,p->second);
     }

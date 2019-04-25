@@ -239,6 +239,10 @@ void cxx_compiler::statements::compound::gen_dtor(usr* u)
 {
   using namespace std;
   const type* T = u->m_type;
+  if (!T) {
+    assert(u->m_flag & usr::OVERLOAD);
+    return;
+  }
   T = T->unqualified();
   if ( T->m_id != type::RECORD )
     return;

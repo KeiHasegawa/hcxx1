@@ -702,8 +702,8 @@ cxx_compiler::error::expressions::postfix::call::overload_not_match(const usr* u
 {
   const file_t& file = u->m_file;
   assert(u->m_flag & usr::OVERLOAD);
-  const overload* o = static_cast<const overload*>(u);
-  const vector<usr*>& candidacy = o->m_candidacy;
+  const overload* ovl = static_cast<const overload*>(u);
+  const vector<usr*>& candidacy = ovl->m_candidacy;
   switch ( lang ){
   case jpn:
     header(file,"ÉGÉâÅ[");
