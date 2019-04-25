@@ -1650,28 +1650,31 @@ namespace cxx_compiler {
     bool member_modifiable(usr*);
     bool base_modifiable(base*);
     struct set_org_vbtbl_subr {
-      map<int, var*>& m_value;
+      int* m_offset;
       int m_base_offset;
       map<const record_type*, int>& m_common_offset;
-      set_org_vbtbl_subr(map<int, var*>& value,
-                         int base_offset,
-                         map<const record_type*, int>& common_offset)
-        : m_value(value), m_base_offset(base_offset),
-          m_common_offset(common_offset) {}
-      int operator()(int offset, const record_type* rec)
+      set_org_vbtbl_subr(int* offset, int base_offset,
+			 map<const record_type*, int>& common_offset)
+        : m_offset(offset), m_base_offset(base_offset),
+	  m_common_offset(common_offset) {}
+      pair<int, var*> operator()(const record_type* rec, pair<int, var*> org)
       {
         using namespace expressions::primary::literal;
         typedef map<const record_type*, int>::const_iterator IT;
+	int delta = org.second->m_type->size();
         IT p = m_common_offset.find(rec);
-        if (p == m_common_offset.end())
-          return offset;
-        int common_offset = p->second;
-        int n = common_offset - m_base_offset;
-        assert(n > 0);
-        var* v = integer::create(n);
-        assert(m_value.find(offset) == m_value.end());
-        m_value[offset] = v;
-        return offset + v->m_type->size();
+        if (p != m_common_offset.end()) {
+	  int common_offset = p->second;
+	  int n = common_offset - m_base_offset;
+	  assert(n > 0);
+	  var* v = integer::create(n);
+	  pair<int, var*> ret(*m_offset, v);
+	  *m_offset += delta;
+	  return ret;
+	}
+	org.first += *m_offset;
+	*m_offset += delta;
+	return org;
       }
     };
     struct set_org_vbtbl {
@@ -1701,9 +1704,21 @@ namespace cxx_compiler {
         if (va.empty())
           return offset;
         m_vbtbl_offset[bp] = offset;
-        return accumulate(begin(va), end(va), offset,
-                          set_org_vbtbl_subr(m_value, base_offset,
-                                             m_common_offset));
+	const map<string, vector<usr*> >& usrs = ptr->m_usrs;
+	typedef map<string, vector<usr*> >::const_iterator IT2;
+	IT2 q = usrs.find(vbtbl_name);
+	assert(q != end(usrs));
+	const vector<usr*>& v = q->second;
+	usr* u = v.back();
+	usr::flag_t flag = u->m_flag;
+	assert(flag & usr::WITH_INI);
+	with_initial* wi = static_cast<with_initial*>(u);
+	const map<int, var*>& org = wi->m_value;
+	assert(va.size() == org.size());
+	transform(begin(va), end(va), begin(org),
+		  inserter(m_value, m_value.begin()),
+		  set_org_vbtbl_subr(&offset, base_offset, m_common_offset));
+	return offset;
       }
     };
     struct set_own_vbtbl {
