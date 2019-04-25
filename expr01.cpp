@@ -911,8 +911,37 @@ cxx_compiler::var::member(var* expr, bool dot, const std::vector<tag*>& route)
     ovl->m_obj = this;
     return ovl;
   }
-  if (T->m_id == type::FUNC)
-    return new member_function(this,member);
+  if (T->m_id == type::FUNC) {
+    scope* msp = member->m_scope;
+    assert(msp->m_id == scope::TAG);
+    tag* ptr = static_cast<tag*>(msp);
+    if (rec->get_tag() == ptr)
+      return new member_function(this, member);
+    const type* T = ptr->m_types.second;
+    assert(T);
+    assert(T->m_id == type::RECORD);
+    REC* mrec = static_cast<REC*>(T);
+    bool direct_virt = false;
+    int offset = rec->base_offset(mrec, route, &direct_virt);
+    assert(offset >= 0);
+    T = pointer_type::create(T);
+    var* tmp = new var(T);
+    if (scope::current->m_id == scope::BLOCK) {
+      block* b = static_cast<block*>(scope::current);
+      b->m_vars.push_back(tmp);
+    }
+    else
+      garbage.push_back(tmp);
+    if (dot)
+      code.push_back(new addr3ac(tmp, this));
+    else
+      code.push_back(new cast3ac(tmp, this, T));
+    if (offset) {
+      var* off = integer::create(offset);
+      code.push_back(new add3ac(tmp, tmp, off));
+    }
+    return new member_function(tmp, member);
+  }
   usr::flag_t flag = member->m_flag;
   usr::flag_t mask = usr::flag_t(usr::STATIC | usr::ENUM_MEMBER);
   if (flag & usr::STATIC)
