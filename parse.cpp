@@ -199,9 +199,23 @@ namespace cxx_compiler {
           vector<pair<int, var*> > res3;
           for_each(begin(*bases), end(*bases), recursive(name, res3));
           if (!res3.empty()) {
-            if (res3.size() != 1)
-              error::not_implemented();
-            const pair<int, var*> tmp = res3.back(); 
+            if (res3.size() != 1) {
+	      typedef vector<pair<int, var*> >::const_iterator IT;
+	      pair<int, var*> x = res3[0];
+	      IT p = find_if(begin(res3) + 1, end(res3),
+			     [x](const pair<int, var*>& y){ return x != y; });
+	      if (p != end(res3))
+		error::not_implemented();
+	      var* v = x.second;
+	      usr* u = v->usr_cast();
+	      if (!u)
+		error::not_implemented();
+	      usr::flag_t flag = u->m_flag;
+	      usr::flag_t mask = usr::flag_t(usr::STATIC | usr::ENUM_MEMBER);
+	      if (!(flag & mask))
+		error::not_implemented();
+	    }
+            const pair<int, var*>& tmp = res3.back(); 
             return tmp.first;
           }
 
@@ -222,10 +236,6 @@ int cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
     const vector<usr*>& v = p->second;
     usr* u = v.back();
     cxx_compiler_lval.m_usr = u;
-    if (u->m_flag & usr::ENUM_MEMBER) {
-      cxx_compiler_lval.m_usr = static_cast<enum_member*>(u)->m_value;
-      return INTEGER_LITERAL_LEX;
-    }
     if (u->m_flag & usr::TYPEDEF) {
       type_def* tdef = static_cast<type_def*>(u);
       tdef->m_refed.push_back(parse::position);

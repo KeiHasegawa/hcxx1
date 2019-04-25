@@ -41,6 +41,13 @@ cxx_compiler::expressions::primary::info_t::info_t(var* v)
 {
   m_route = parse::identifier::base_lookup::route;
   parse::identifier::base_lookup::route.clear();
+  if (usr* u = m_var->usr_cast()) {
+    usr::flag_t flag = u->m_flag;
+    if (flag & usr::ENUM_MEMBER) {
+      enum_member* p = static_cast<enum_member*>(u);
+      m_var = p->m_value;
+    }
+  }
 }
 
 cxx_compiler::var* cxx_compiler::expressions::primary::info_t::gen()

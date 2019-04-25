@@ -914,10 +914,18 @@ cxx_compiler::var::member(var* expr, bool dot, const std::vector<tag*>& route)
   }
   if (T->m_id == type::FUNC)
     return new member_function(this,member);
+  usr::flag_t flag = member->m_flag;
+  usr::flag_t mask = usr::flag_t(usr::STATIC | usr::ENUM_MEMBER);
+  if (flag & usr::STATIC)
+    return member;
+  if (flag & usr::ENUM_MEMBER) {
+    enum_member* p = static_cast<enum_member*>(member);
+    return p->m_value;
+  }
   int offset = member_impl::offset(rec, member, route);
   if (offset < 0)
     return this;
-  if (member->m_flag & usr::BIT_FIELD) {
+  if (flag & usr::BIT_FIELD) {
     int pos = rec->position(member);
     typedef const bit_field_type BF;
     BF* bf = static_cast<BF*>(T);

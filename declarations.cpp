@@ -666,6 +666,17 @@ cxx_compiler::declarations::action1(var* v, bool ini)
       }
     }
   }
+
+  if (lookuped && u->m_scope->m_id == scope::TAG && (flag & usr::STATIC)
+      && T->size()) {
+    usr* tmp = new usr(*u);
+    tmp->m_flag = usr::flag_t(tmp->m_flag | usr::STATIC_DEF);
+    tmp->m_file = parse::position;
+    map<string, vector<usr*> >& usrs = tmp->m_scope->m_usrs;
+    usrs[name].push_back(tmp);
+    u = tmp;
+  }
+
   return lookuped ? u : action2(u);
 }
 
