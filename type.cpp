@@ -2443,12 +2443,13 @@ record_type::offset(std::string name, const std::vector<tag*>& route) const
     return make_pair(-1,static_cast<usr*>(0));    
 
   typedef vector<base*>::const_iterator ITx;
-  ITx q = find_if(begin(*bases), end(*bases), have(name, route));
-  if (q == end(*bases))
+  ITx q = begin(*bases);
+  ITx last = end(*bases);
+  q = find_if(q, last, have(name, route));
+  if (q == last)
     return make_pair(-1,static_cast<usr*>(0));
-  ITx e = end(*bases);
-  ITx r = find_if(q+1, e, have(name, route));
-  if (r != end(*bases))
+  ITx r = find_if(q+1, last, have(name, route));
+  if (r != last)
     error::not_implemented();
 
   base* b = *q;
