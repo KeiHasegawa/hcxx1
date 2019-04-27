@@ -919,10 +919,10 @@ class_head
   ;
 
 member_specification
-  : member_declaration member_specification { }
-  | member_declaration { }
-  | access_specifier ':' member_specification { }
-  | access_specifier ':' { }
+  : member_declaration member_specification
+  | member_declaration
+  | access_specifier ':' member_specification
+  | access_specifier ':'
   ;
 
 member_declaration
