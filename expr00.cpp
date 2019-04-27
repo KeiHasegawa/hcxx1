@@ -1248,36 +1248,46 @@ cxx_compiler::expressions::primary::from_member(usr* u,
   scope* q = u->m_scope;
   if (q->m_id != scope::TAG)
     return u;
-  const type* T = tp->m_types.second;
-  if (!T)
+  tag* tq = static_cast<tag*>(q);
+  const type* Tp = tp->m_types.second;
+  if (!Tp)
     return u;
-  assert(T->m_id == type::RECORD);
+  assert(Tp->m_id == type::RECORD);
   typedef const record_type REC;
-  REC* rec = static_cast<REC*>(T);
-  int offset = member_impl::offset(rec, u, route);
-  if (offset < 0)
+  REC* rec = static_cast<REC*>(Tp);
+  const type* Tq = tq->m_types.second;
+  if (!Tq)
     return u;
-  T = u->m_type;
+  assert(Tq->m_id == type::RECORD);
+  REC* mrec = static_cast<REC*>(Tq);
+
+  scope* s = fundef::current->m_param;
+  const map<string, vector<usr*> >& usrs = s->m_usrs;
+  map<string, vector<usr*> >::const_iterator it = usrs.find("this");
+  assert(it != usrs.end());
+  const vector<usr*>& v = it->second;
+  assert(v.size() == 1);
+  usr* this_ptr = v.back();
+  const type* pmrec = pointer_type::create(mrec);
+  var* tmp = cast_impl::with_route(this_ptr, pmrec, route);
+
+  vector<tag*> dummy;
+  pair<int, usr*> off = mrec->offset(u->m_name, dummy);
+  int offset = off.first;
+  assert(offset >= 0);
+  const type* T = u->m_type;
   const pointer_type* pt = pointer_type::create(T);
-  var* tmp = new var(pt);
   var* res = new ref(pt);
   block* b = get_block();
-  if ( b ) {
+  if ( b )
     b->m_vars.push_back(res);
-    b->m_vars.push_back(tmp);
-  }
-  else {
-    garbage.push_back(tmp);
+  else
     garbage.push_back(res);
+  code.push_back(new cast3ac(res, tmp, pt));
+  if (offset) {
+    var* off = integer::create(offset);
+    code.push_back(new add3ac(res, res, off));
   }
-  scope* s = fundef::current->m_param;
-  map<string, vector<usr*> >::const_iterator it = s->m_usrs.find("this");
-  assert(it != s->m_usrs.end());
-  const vector<usr*>& t = it->second;
-  usr* this_ptr = t.back();
-  code.push_back(new cast3ac(tmp, this_ptr, pt));
-  var* off = integer::create(offset);
-  code.push_back(new add3ac(res, tmp, off));
   return res;
 }
 

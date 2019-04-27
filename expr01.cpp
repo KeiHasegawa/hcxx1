@@ -845,131 +845,124 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::member::info_t::gen()
   return m_expr->member(m_member,m_dot,m_route);
 }
 
-namespace cxx_compiler {
-  namespace member_impl {
-    using namespace std;
-    int offset(const record_type* rec, usr* member,  const vector<tag*>& route)
-    {
-      tag* rtag = rec->get_tag();
-      scope* msp = member->m_scope;
-      if (rtag == msp) {
-        vector<tag*> dummy;
-        pair<int, usr*> off = rec->offset(member->m_name, dummy);
-        return off.first;
-      }
-      assert(msp->m_id == scope::TAG);
-      tag* mtag = static_cast<tag*>(msp);
-      const type* T = mtag->m_types.second;
-      assert(T);
-      assert(T->m_id == type::RECORD);
-      typedef const record_type REC;
-      REC* mrec = static_cast<REC*>(T);
-      bool direct_virtual = false;
-      int base_offset = rec->base_offset(mrec, route, &direct_virtual);
-      assert(base_offset >= 0);
-      vector<tag*> dummy;
-      pair<int, usr*> off = mrec->offset(member->m_name, dummy);
-      int offset = off.first;
-      assert(offset >= 0);
-      return base_offset + offset;
-    }
-  }  // end of namespace member_impl
-}  // end of namespace cxx_compiler
-
 cxx_compiler::var*
 cxx_compiler::var::member(var* expr, bool dot, const std::vector<tag*>& route)
 {
   using namespace std;
   using namespace expressions::primary::literal;
+  if (genaddr* addr = expr->genaddr_cast())
+    expr = addr->m_ref;
   const type* T = result_type();
   int cvr = 0;
   T = T->unqualified(dot ? &cvr : 0);
   typedef const pointer_type PT;
-  if ( !dot ){
-    if ( T->m_id == type::POINTER ){
-      PT* pt = static_cast<PT*>(T);
-      T = pt->referenced_type();
-      T = T->unqualified(&cvr);
-    }
-    else
+  if (!dot) {
+    if (T->m_id != type::POINTER)
       return this;
+    PT* pt = static_cast<PT*>(T);
+    T = pt->referenced_type();
+    T = T->unqualified(&cvr);
   }
   T = T->complete_type();
-  if ( T->m_id != type::RECORD )
+  if (T->m_id != type::RECORD)
     return this;
   typedef const record_type REC;
   REC* rec = static_cast<REC*>(T);
-  if (genaddr* addr = expr->genaddr_cast())
-    expr = addr->m_ref;
   usr* member = expr->usr_cast();
-  if ( !member )
+  if (!member)
     return expr;
-  T = member->m_type;
-  if (!T) {
-    assert(member->m_flag & usr::OVERLOAD);
-    overload* ovl = static_cast<overload*>(member);
-    ovl->m_obj = this;
-    return ovl;
-  }
-  if (T->m_id == type::FUNC) {
-    scope* msp = member->m_scope;
-    assert(msp->m_id == scope::TAG);
-    tag* ptr = static_cast<tag*>(msp);
-    if (rec->get_tag() == ptr)
-      return new member_function(this, member);
-    const type* T = ptr->m_types.second;
-    assert(T);
-    assert(T->m_id == type::RECORD);
-    REC* mrec = static_cast<REC*>(T);
-    bool direct_virt = false;
-    int offset = rec->base_offset(mrec, route, &direct_virt);
-    assert(offset >= 0);
-    T = pointer_type::create(T);
-    var* tmp = new var(T);
-    if (scope::current->m_id == scope::BLOCK) {
-      block* b = static_cast<block*>(scope::current);
-      b->m_vars.push_back(tmp);
-    }
-    else
-      garbage.push_back(tmp);
-    if (dot)
-      code.push_back(new addr3ac(tmp, this));
-    else
-      code.push_back(new cast3ac(tmp, this, T));
-    if (offset) {
-      var* off = integer::create(offset);
-      code.push_back(new add3ac(tmp, tmp, off));
-    }
-    return new member_function(tmp, member);
-  }
   usr::flag_t flag = member->m_flag;
-  usr::flag_t mask = usr::flag_t(usr::STATIC | usr::ENUM_MEMBER);
   if (flag & usr::STATIC)
     return member;
   if (flag & usr::ENUM_MEMBER) {
     enum_member* p = static_cast<enum_member*>(member);
     return p->m_value;
   }
-  int offset = member_impl::offset(rec, member, route);
-  if (offset < 0)
-    return this;
-  if (flag & usr::BIT_FIELD) {
-    int pos = rec->position(member);
-    typedef const bit_field_type BF;
-    BF* bf = static_cast<BF*>(T);
-    T = bf->integer_type();
-    PT* pt = pointer_type::create(T);
-    int bit = bf->bit();
-    var* ret = new refbit(pt,this,offset,member,pos,bit,dot);
-    garbage.push_back(ret);
-    return ret;
+  const type* Mt = member->m_type;
+  if (!Mt) {
+    assert(flag & usr::OVERLOAD);
+    overload* ovl = static_cast<overload*>(member);
+    ovl->m_obj = this;
+    return ovl;
   }
-  T = T->qualified(cvr);
+
+  scope* msp = member->m_scope;
+  assert(msp->m_id == scope::TAG);
+  tag* ptr = static_cast<tag*>(msp);
+  const type* Tm = ptr->m_types.second;
+  assert(Tm->m_id == type::RECORD);
+  REC* mrec = static_cast<REC*>(Tm);
+
+  if (Mt->m_id == type::FUNC) {
+    if (rec == mrec)
+      return new member_function(this, member);
+    const type* T = pointer_type::create(mrec);
+    if (dot) {
+      var* tmp = new var(T);
+      if (scope::current->m_id == scope::BLOCK) {
+	block* b = static_cast<block*>(scope::current);
+	b->m_vars.push_back(tmp);
+      }
+      else
+	garbage.push_back(tmp);
+      code.push_back(new addr3ac(tmp, this));
+      bool direct_virt = false;
+      int offset = rec->base_offset(mrec, route, &direct_virt);
+      assert(offset >= 0);
+      if (offset) {
+	var* off = integer::create(offset);
+	code.push_back(new add3ac(tmp, tmp, off));
+      }
+      return new member_function(tmp, member);
+    }
+    var* tmp = cast(T);
+    return new member_function(tmp, member);
+  }
+
+  if (rec == mrec) {
+    pair<int, usr*> off = rec->offset(member->m_name, route);
+    int offset = off.first;
+    if (offset < 0)
+      return this;
+    if (flag & usr::BIT_FIELD) {
+      int pos = rec->position(member);
+      typedef const bit_field_type BF;
+      BF* bf = static_cast<BF*>(Mt);
+      T = bf->integer_type();
+      PT* pt = pointer_type::create(T);
+      int bit = bf->bit();
+      var* ret = new refbit(pt,this,offset,member,pos,bit,dot);
+      garbage.push_back(ret);
+      return ret;
+    }
+    Mt = Mt->qualified(cvr);
+    var* O = integer::create(offset);
+    if (dot)
+      return offref(Mt, O);
+    var* rv = rvalue();
+    return rv->offref(Mt, O);
+  }
+
+  bool direct_virtual = false;
+  int base_offset = rec->base_offset(mrec, route, &direct_virtual);
+  assert(base_offset >= 0);
+  vector<tag*> dummy;
+  pair<int, usr*> off = mrec->offset(member->m_name, dummy);
+  int offset = off.first;
+  assert(offset >= 0);
+
+  if (flag & usr::BIT_FIELD)
+    error::not_implemented();
+
+  if (dot) {
+    var* O = integer::create(base_offset + offset);
+    return offref(Mt, O);
+  }
+  var* rv = rvalue();
+  T = pointer_type::create(mrec);
+  var* tmp = cast_impl::with_route(rv, T, route);
   var* O = integer::create(offset);
-  if (dot)
-    return offref(T, O);
-  else
-    return rvalue()->offref(T, O);
+  return tmp->offref(Mt, O);
 }
 
 cxx_compiler::var* cxx_compiler::expressions::postfix::ppmm::gen()

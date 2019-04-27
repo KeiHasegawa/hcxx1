@@ -142,7 +142,8 @@ namespace cxx_compiler {
       code.push_back(new invraddr3ac(t2, t1));
       return t2;
     }
-    inline var* base_ptr_offset(const type* Tx, var* src)
+    inline var*
+    base_ptr_offset(const type* Tx, var* src, const vector<tag*>& route)
     {
       using namespace expressions::primary::literal;
       Tx = Tx->unqualified();
@@ -175,37 +176,42 @@ namespace cxx_compiler {
         if (p != end(bases))
           return ref_vbtbl(Ry, *p, src);
       }
-      vector<tag*> dummy;
       bool direct_virtual = false;
-      int offset = Ry->base_offset(Rx, dummy, &direct_virtual);
+      int offset = Ry->base_offset(Rx, route, &direct_virtual);
       if (offset <= 0)
         return 0;
       return integer::create(offset);
+    }
+    var* with_route(var* y, const type* Tx, const vector<tag*>& route)
+    {
+      const type* Ty = y->m_type;
+      if ( Tx == Ty )
+	return y;
+      var* x = new var(Tx);
+      if ( scope::current->m_id == scope::BLOCK ){
+	block* b = static_cast<block*>(scope::current);
+	b->m_vars.push_back(x);
+      }
+      else
+	garbage.push_back(x);
+      if (!cast_impl::require(Tx, Ty))
+	code.push_back(new assign3ac(x, y));
+      else {
+	code.push_back(new cast3ac(x, y, Tx));
+	if (var* off = cast_impl::base_ptr_offset(Tx, y, route))
+	  code.push_back(new add3ac(x, x, off));
+	else if (var* off = cast_impl::base_ptr_offset(Ty, x, route))
+	  code.push_back(new sub3ac(x, x, off));
+      }
+      return x;
     }
   }  // end of namespace cast_impl
 }  // end of namespace cxx_compiler
 
 cxx_compiler::var* cxx_compiler::var::cast(const type* T)
 {
-  if ( T == m_type )
-    return this;
-  var* ret = new var(T);
-  if ( scope::current->m_id == scope::BLOCK ){
-    block* b = static_cast<block*>(scope::current);
-    b->m_vars.push_back(ret);
-  }
-  else
-    garbage.push_back(ret);
-  if (!cast_impl::require(T, m_type))
-    code.push_back(new assign3ac(ret,this));
-  else {
-    code.push_back(new cast3ac(ret,this,T));
-    if (var* off = cast_impl::base_ptr_offset(T, this))
-      code.push_back(new add3ac(ret, ret, off));
-    else if (var* off = cast_impl::base_ptr_offset(m_type, ret))
-      code.push_back(new sub3ac(ret, ret, off));
-  }
-  return ret;
+  vector<tag*> dummy;
+  return cast_impl::with_route(this, T, dummy);
 }
 
 cxx_compiler::var* cxx_compiler::addrof::cast(const type* T)
