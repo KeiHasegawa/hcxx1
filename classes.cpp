@@ -148,8 +148,10 @@ void cxx_compiler::classes::members::action(var* v, expressions::base* expr)
   for ( IT p = begin(children) ; p != end(children) ; ) {
     scope* ptr = *p;
     scope::id_t id = ptr->m_id;
-    if (id == scope::PARAM)
+    if (id == scope::PARAM) {
+      delete ptr;
       p = children.erase(p);
+    }
     else
       ++p;
   }

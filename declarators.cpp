@@ -395,6 +395,17 @@ namespace cxx_compiler {
     namespace declarators {
       namespace function {
         namespace definition {
+	  inline void delete_erase(scope* param)
+	  {
+	    assert(param->m_id == scope::PARAM);
+	    vector<scope*>& children = param->m_parent->m_children;
+	    typedef vector<scope*>::reverse_iterator IT;
+	    IT p = find(rbegin(children), rend(children), param);
+	    assert(p != rend(children));
+	    vector<scope*>::iterator q = p.base() - 1;
+	    delete param;
+	    children.erase(q);
+	  }
           namespace static_inline {
             using namespace std;
             extern void remember(fundef*, vector<tac*>&);
@@ -498,19 +509,22 @@ function::definition::action(fundef* fdef, std::vector<tac*>& vc)
     cout << '\n';
     dump::scopex();
   }
-  if ( !error::counter ){
-    if ( generator::generate ){
+  if (!error::counter) {
+    if (generator::generate) {
       generator::interface_t tmp = {
         &scope::root,
         fdef,
         &vc
       };
       generator::generate(&tmp);
+      delete_erase(fdef->m_param);
     }
     else if (generator::last) {
       remember(fdef, vc);
       fundef::current = 0;
     }
+    else
+      delete_erase(fdef->m_param);
   }
   fdef->m_usr->m_type = fdef->m_usr->m_type->vla2a();
 }
@@ -680,9 +694,10 @@ namespace cxx_compiler { namespace declarations { namespace declarators { namesp
       vector<scope*>& children = param->m_parent->m_children;
       typedef vector<scope*>::reverse_iterator IT;
       IT p = find(rbegin(children), rend(children), param);
-      assert(p != rend(children));
-      vector<scope*>::iterator q = p.base() - 1;
-      children.erase(q);
+      if (p != rend(children)) {
+	vector<scope*>::iterator q = p.base() - 1;
+	children.erase(q);
+      }
       vc.clear();
     }
   } // end of namespace static_inline
