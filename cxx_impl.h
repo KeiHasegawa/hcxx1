@@ -1123,6 +1123,7 @@ namespace cast_impl {
 } // end of namespace cast_impl
 
 struct genaddr : generated, addrof {
+  bool m_qualified_func;
   genaddr(const pointer_type*, const type*, var*, int);
   var* rvalue();
   var* subscripting(var*);
@@ -1248,7 +1249,9 @@ struct log01 : var01 {
 struct member_function : var {
   var* m_obj;
   usr* m_fun;
-  member_function(var* obj, usr* fun) : var(0), m_obj(obj), m_fun(fun) {}
+  bool m_qualified_func;
+  member_function(var* obj, usr* fun, bool qf)
+    : var(0), m_obj(obj), m_fun(fun), m_qualified_func(qf) {}
   var* call(vector<var*>*);
 };
 
@@ -1295,7 +1298,11 @@ namespace class_or_namespace_name {
 namespace unqualified_id {
   extern var* from_nonmember(var*);
   extern var* dtor(tag*);
-} // end of unqualifed_id
+} // end of namespace unqualifed_id
+
+namespace qualified_id {
+  extern var* action(var*);
+} // end of namespace qualified_id
 
 namespace call_impl {
   var* common(const func_type* ft,
@@ -1303,7 +1310,7 @@ namespace call_impl {
               vector<var*>* arg,
               bool trial,
               var* this_ptr,
-	      bool not_virtual);
+	      bool qualified_func);
 } // end of namespace call_impl
 
 void original_namespace_definition(var*);

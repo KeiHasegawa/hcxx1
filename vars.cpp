@@ -6,7 +6,7 @@ cxx_compiler::addrof::addrof(const type* T, var* ref, int offset)
   : var(T), m_ref(ref), m_offset(offset) {}
 
 cxx_compiler::genaddr::genaddr(const pointer_type* G, const type* T, var* ref, int offset)
-  : var(G), generated(G,T), addrof(G,ref,offset)
+  : var(G), generated(G,T), addrof(G,ref,offset), m_qualified_func(false)
 {
   using namespace std;
   m_code.push_back(new addr3ac(this,m_ref));

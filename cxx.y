@@ -1296,7 +1296,11 @@ boolean_literal
 
 id_expression
   : unqualified_id
-  | qualified_id { cxx_compiler::class_or_namespace_name::after(); }
+  | qualified_id
+    {
+      $$ = cxx_compiler::qualified_id::action($1);
+      cxx_compiler::class_or_namespace_name::after();
+    }
   ;
 
 unqualified_id

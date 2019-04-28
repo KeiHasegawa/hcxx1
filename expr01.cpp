@@ -160,7 +160,6 @@ cxx_compiler::genaddr::call(std::vector<var*>* arg)
   usr::flag_t flag = u->m_flag;
   scope* fun_scope = u->m_scope;
   var* this_ptr = 0;
-  bool not_virtual = false;
   if (fun_scope->m_id == scope::TAG) {
     if (!(flag & usr::STATIC)) {
       int r = parse::identifier::lookup("this", scope::current);
@@ -169,11 +168,9 @@ cxx_compiler::genaddr::call(std::vector<var*>* arg)
       assert(r == IDENTIFIER_LEX);
       this_ptr = cxx_compiler_lval.m_var;
     }
-#if 1
     if (this_ptr) {
       scope* this_parent = this_ptr->m_scope->m_parent;
       if (fun_scope != this_parent) {
-	not_virtual = true;
         tag* b = static_cast<tag*>(fun_scope);
         const type* Tb = b->m_types.second;
         assert(Tb);
@@ -181,9 +178,8 @@ cxx_compiler::genaddr::call(std::vector<var*>* arg)
         this_ptr = this_ptr->cast(pTb);
       }
     }
-#endif
   }
-  var* ret = call_impl::common(ft, u, arg, false, this_ptr, not_virtual);
+  var* ret = call_impl::common(ft, u, arg, false, this_ptr, m_qualified_func);
   if (!error::counter && !cmdline::no_inline_sub) {
     if (flag & usr::INLINE) {
       using namespace declarations::declarators::function;
@@ -203,7 +199,7 @@ cxx_compiler::member_function::call(std::vector<var*>* arg)
   auto_ptr<member_function> sweeper(this);
   typedef const func_type FUNC;
   FUNC* ft = static_cast<FUNC*>(m_fun->m_type);
-  var* ret = call_impl::common(ft,m_fun,arg,false,m_obj,false);
+  var* ret = call_impl::common(ft,m_fun,arg,false,m_obj, m_qualified_func);
   usr::flag_t flag = m_fun->m_flag;
   if (!error::counter && !cmdline::no_inline_sub) {
     if (flag & usr::INLINE) {
@@ -306,7 +302,7 @@ cxx_compiler::call_impl::common(const func_type* ft,
                                 std::vector<var*>* arg,
                                 bool trial,
                                 var* obj,
-				bool not_virtual)
+				bool qualified_func)
 {
   using namespace std;
   const vector<const type*>& param = ft->param();
@@ -339,8 +335,8 @@ cxx_compiler::call_impl::common(const func_type* ft,
       assert(T->m_id == type::POINTER);
       usr* u = func->usr_cast();
       usr::flag_t flag = u->m_flag;
-      if ((flag & usr::VIRTUAL) && !not_virtual)
-        func = ref_vftbl(u,obj);
+      if ((flag & usr::VIRTUAL) && !qualified_func)
+	func = ref_vftbl(u,obj);
       code.push_back(new param3ac(obj));
     }
     else {
@@ -856,8 +852,9 @@ cxx_compiler::var::member(var* expr, bool dot, const std::vector<tag*>& route)
 {
   using namespace std;
   using namespace expressions::primary::literal;
-  if (genaddr* addr = expr->genaddr_cast())
-    expr = addr->m_ref;
+  genaddr* ga = expr->genaddr_cast();
+  if (ga)
+    expr = ga->m_ref;
   const type* T = result_type();
   int cvr = 0;
   T = T->unqualified(dot ? &cvr : 0);
@@ -900,8 +897,10 @@ cxx_compiler::var::member(var* expr, bool dot, const std::vector<tag*>& route)
   REC* mrec = static_cast<REC*>(Tm);
 
   if (Mt->m_id == type::FUNC) {
+    assert(ga);
+    bool qualified_func = ga->m_qualified_func;
     if (rec == mrec)
-      return new member_function(this, member);
+      return new member_function(this, member, qualified_func);
     const type* T = pointer_type::create(mrec);
     if (dot) {
       var* tmp = new var(T);
@@ -919,10 +918,10 @@ cxx_compiler::var::member(var* expr, bool dot, const std::vector<tag*>& route)
 	var* off = integer::create(offset);
 	code.push_back(new add3ac(tmp, tmp, off));
       }
-      return new member_function(tmp, member);
+      return new member_function(tmp, member, qualified_func);
     }
     var* tmp = cast(T);
-    return new member_function(tmp, member);
+    return new member_function(tmp, member, qualified_func);
   }
 
   if (rec == mrec) {

@@ -1383,3 +1383,19 @@ cxx_compiler::unqualified_id::from_nonmember(var* v)
   garbage.push_back(ret);
   return ret;
 }
+
+cxx_compiler::var* cxx_compiler::qualified_id::action(var* v)
+{
+  genaddr* ga = v->genaddr_cast();
+  if (!ga)
+    return v;
+  var* r = ga->m_ref;
+  usr* u = r->usr_cast();
+  if (!u)
+    return v;
+  const type* T = u->m_type;
+  if (T->m_id != type::FUNC)
+    return v;
+  ga->m_qualified_func = true;
+  return ga;
+}
