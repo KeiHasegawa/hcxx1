@@ -73,6 +73,7 @@ namespace parse {
     extern mode_t mode;
     namespace base_lookup {
       extern vector<tag*> route;
+      extern int action(string name, tag* ptr, bool* virt);
     } // end of namespace base_lookup
   } // end of namespace identifier
   extern bool is_last_decl;

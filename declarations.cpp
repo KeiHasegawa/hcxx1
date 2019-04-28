@@ -903,7 +903,7 @@ cxx_compiler::declarations::check_lookuped(usr* u, specifier_seq::info_t* p)
   if (Tu->m_id  == type::FUNC) {
     typedef const func_type FT;
     FT* ft = static_cast<FT*>(Tu);
-    const type *T = ft->return_type();
+    const type* T = ft->return_type();
     if (!compatible(T, p->m_type)) {
       error::not_implemented();
     }

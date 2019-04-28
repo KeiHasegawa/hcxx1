@@ -34,7 +34,14 @@ action(std::vector<int>* p, bool pm)
 const cxx_compiler::type*
 cxx_compiler::declarations::declarators::pointer::action(const type* pointer, const type* T)
 {
-  return T->patch(pointer,0);
+  if (T->backpatch())
+    return T->patch(pointer,0);
+
+  assert(!specifier_seq::info_t::s_stack.empty());
+  specifier_seq::info_t* p = specifier_seq::info_t::s_stack.top();
+  p->update();
+  p->m_type = pointer_type::create(p->m_type);
+  return T;
 }
 
 const cxx_compiler::type* cxx_compiler::declarations::declarators::reference::action()
@@ -297,11 +304,12 @@ namespace cxx_compiler { namespace declarations { namespace declarators { namesp
 } } } } }
 
 void
-cxx_compiler::declarations::declarators::function::definition::begin(declarations::specifier_seq::info_t* p, var* v)
+cxx_compiler::declarations::declarators::
+function::definition::begin(declarations::specifier_seq::info_t* p, var* v)
 {
   using namespace std;
   usr* u = v->usr_cast();
-  if ( !u ){
+  if (!u) {
     /*
      Definition like
      struct S { void f(); };
@@ -316,7 +324,7 @@ cxx_compiler::declarations::declarators::function::definition::begin(declaration
   parse::identifier::mode = parse::identifier::look;
   u = declarations::action1(u,false);
   vector<scope*>& children = scope::current->m_children;
-  if ( children.empty() ){
+  if (children.empty()) {
     using namespace error::declarations::declarators::function::definition;
     invalid(parse::position);
     scope* param = new scope(scope::PARAM);

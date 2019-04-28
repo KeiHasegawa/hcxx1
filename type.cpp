@@ -2,6 +2,7 @@
 #include "stdafx.h"
 #include "cxx_core.h"
 #include "cxx_impl.h"
+#include "cxx_y.h"
 
 namespace cxx_compiler { namespace type_impl {
     struct sizeof_table : std::map<const type*, int> {
@@ -1391,7 +1392,55 @@ namespace cxx_compiler {
     usr* x = static_cast<usr*>(v);
     if (x->m_name != y->m_name)
       return false;
-    return compatible(x->m_type, y->m_type);
+    const type* Tx = x->m_type;
+    assert(Tx->m_id == type::FUNC);
+    const type* Ty = y->m_type;
+    assert(Ty->m_id == type::FUNC);
+    typedef const func_type FT;
+    FT* Fx = static_cast<FT*>(Tx);
+    FT* Fy = static_cast<FT*>(Ty);
+    const vector<const type*>& px = Fx->param();
+    const vector<const type*>& py = Fy->param();
+    if (px.size() != py.size())
+      return false;
+    if (mismatch(px.begin(),px.end(),py.begin(),cxx_compiler::compatible)
+	!= make_pair(px.end(),py.end())) {
+      return false;
+    }
+    Tx = Fx->return_type();
+    Ty = Fy->return_type();
+    if (compatible(Tx, Ty))
+      return true;
+    if (Tx->m_id != type::POINTER)
+      return false;
+    if (Ty->m_id != type::POINTER)
+      return false;
+    typedef const pointer_type PT;
+    PT* Px = static_cast<PT*>(Tx);
+    PT* Py = static_cast<PT*>(Ty);
+    Tx = Px->referenced_type();
+    Ty = Py->referenced_type();
+    Tx = Tx->complete_type();
+    Ty = Ty->complete_type();
+    if (Tx->m_id != type::RECORD)
+      return false;
+    if (Ty->m_id == type::INCOMPLETE_TAGGED) {
+      tag* xtag = Tx->get_tag();
+      tag* ytag = Ty->get_tag();
+      string name = xtag->m_name;
+      bool virt = false;
+      int r = parse::identifier::base_lookup::action(name, ytag, &virt);
+      return r == CLASS_NAME_LEX;
+    }
+    if (Ty->m_id != type::RECORD)
+      return false;
+    typedef const record_type REC;
+    REC* Rx = static_cast<REC*>(Tx);
+    REC* Ry = static_cast<REC*>(Ty);
+    vector<tag*> dummy;
+    bool direct_virt = false;
+    int offset = Ry->base_offset(Rx, dummy, &direct_virt);
+    return offset >= 0;
   }
   namespace record_impl {
     struct layouter {

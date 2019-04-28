@@ -535,7 +535,11 @@ init_declarator
 declarator
   : direct_declarator
   | ptr_operator declarator
-    { $$ = $2; $$->m_type = cxx_compiler::declarations::declarators::pointer::action($1,$2->m_type); }
+    {
+      $$ = $2;
+      using namespace cxx_compiler::declarations::declarators;
+      $$->m_type = pointer::action($1,$2->m_type);
+    }
   ;
 
 direct_declarator
