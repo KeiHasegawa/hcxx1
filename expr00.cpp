@@ -1240,6 +1240,9 @@ cxx_compiler::expressions::primary::from_member(usr* u,
                                                 const std::vector<tag*>& route)
 {
   using namespace expressions::primary::literal;
+  usr::flag_t flag = u->m_flag;
+  if (flag & usr::STATIC)
+    return u;
   usr* func = fundef::current->m_usr;
   assert(func);
   scope* p = func->m_scope;
