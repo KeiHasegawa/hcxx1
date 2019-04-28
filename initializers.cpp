@@ -140,7 +140,7 @@ namespace cxx_compiler {
         typedef const func_type FT;
         FT* ft = static_cast<FT*>(ctor->m_type);
         vector<var*> empty;
-        call_impl::common(ft,ctor,&empty,false,u);
+        call_impl::common(ft,ctor,&empty,false,u,false);
         usr::flag_t flag = ctor->m_flag;
         if (!error::counter && !cmdline::no_inline_sub) {
           if (flag & usr::INLINE) {
@@ -266,7 +266,7 @@ namespace cxx_compiler {
         typedef const func_type FT;
         FT* ft = static_cast<FT*>(ctor->m_type);
         int n = code.size();
-        var* r = call_impl::common(ft,ctor,arg,true,argument::dst);
+        var* r = call_impl::common(ft,ctor,arg,true,argument::dst,false);
         vector<tac*>& c = table[argument::dst].m_code;
         copy(begin(code)+n, end(code), back_inserter(c));
         code.resize(n);

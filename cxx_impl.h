@@ -1302,7 +1302,8 @@ namespace call_impl {
               var* func,
               vector<var*>* arg,
               bool trial,
-              var* this_ptr);
+              var* this_ptr,
+	      bool not_virtual);
 } // end of namespace call_impl
 
 void original_namespace_definition(var*);

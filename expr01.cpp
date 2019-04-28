@@ -140,7 +140,7 @@ cxx_compiler::var* cxx_compiler::var::call(std::vector<var*>* arg)
   }
   typedef const func_type FUNC;
   FUNC* ft = static_cast<FUNC*>(T);
-  return call_impl::common(ft, func, arg, false, 0);
+  return call_impl::common(ft, func, arg, false, 0, false);
 }
 
 cxx_compiler::var*
@@ -160,6 +160,7 @@ cxx_compiler::genaddr::call(std::vector<var*>* arg)
   usr::flag_t flag = u->m_flag;
   scope* fun_scope = u->m_scope;
   var* this_ptr = 0;
+  bool not_virtual = false;
   if (fun_scope->m_id == scope::TAG) {
     if (!(flag & usr::STATIC)) {
       int r = parse::identifier::lookup("this", scope::current);
@@ -168,9 +169,11 @@ cxx_compiler::genaddr::call(std::vector<var*>* arg)
       assert(r == IDENTIFIER_LEX);
       this_ptr = cxx_compiler_lval.m_var;
     }
+#if 1
     if (this_ptr) {
       scope* this_parent = this_ptr->m_scope->m_parent;
       if (fun_scope != this_parent) {
+	not_virtual = true;
         tag* b = static_cast<tag*>(fun_scope);
         const type* Tb = b->m_types.second;
         assert(Tb);
@@ -178,8 +181,9 @@ cxx_compiler::genaddr::call(std::vector<var*>* arg)
         this_ptr = this_ptr->cast(pTb);
       }
     }
+#endif
   }
-  var* ret = call_impl::common(ft, u, arg, false, this_ptr);
+  var* ret = call_impl::common(ft, u, arg, false, this_ptr, not_virtual);
   if (!error::counter && !cmdline::no_inline_sub) {
     if (flag & usr::INLINE) {
       using namespace declarations::declarators::function;
@@ -199,7 +203,7 @@ cxx_compiler::member_function::call(std::vector<var*>* arg)
   auto_ptr<member_function> sweeper(this);
   typedef const func_type FUNC;
   FUNC* ft = static_cast<FUNC*>(m_fun->m_type);
-  var* ret = call_impl::common(ft,m_fun,arg,false,m_obj);
+  var* ret = call_impl::common(ft,m_fun,arg,false,m_obj,false);
   usr::flag_t flag = m_fun->m_flag;
   if (!error::counter && !cmdline::no_inline_sub) {
     if (flag & usr::INLINE) {
@@ -226,7 +230,7 @@ namespace cxx_compiler {
       const type* T = u->m_type;
       typedef const func_type FUNC;
       FUNC* ft = static_cast<FUNC*>(T);
-      var* tmp = call_impl::common(ft, u, arg, true, obj);
+      var* tmp = call_impl::common(ft, u, arg, true, obj, false);
       if (tmp) {
 	if (!error::counter && !cmdline::no_inline_sub) {
 	  usr::flag_t flag = u->m_flag;
@@ -301,7 +305,8 @@ cxx_compiler::call_impl::common(const func_type* ft,
                                 var* func,
                                 std::vector<var*>* arg,
                                 bool trial,
-                                var* obj)
+                                var* obj,
+				bool not_virtual)
 {
   using namespace std;
   const vector<const type*>& param = ft->param();
@@ -328,12 +333,13 @@ cxx_compiler::call_impl::common(const func_type* ft,
     if ( trial && find(conved.begin(),conved.end(),(var*)0) != conved.end() )
       return 0;
   }
-  if ( obj ){
+  if (obj) {
     const type* T = obj->m_type;
-    if ( T->scalar() ){
+    if (T->scalar()) {
+      assert(T->m_id == type::POINTER);
       usr* u = func->usr_cast();
       usr::flag_t flag = u->m_flag;
-      if ( flag & usr::VIRTUAL )
+      if ((flag & usr::VIRTUAL) && !not_virtual)
         func = ref_vftbl(u,obj);
       code.push_back(new param3ac(obj));
     }
