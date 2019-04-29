@@ -1024,9 +1024,10 @@ cxx_compiler::var* cxx_compiler::refaddr::offref(const type* T, var* offset)
 
 cxx_compiler::var* cxx_compiler::refsomewhere::offref(const type* T, var* offset)
 {
-  conversion::arithmetic::gen(&offset, &m_offset);
-  offset = offset->add(m_offset);
-  var* ret = new refsomewhere(pointer_type::create(T),m_ref,offset);
+  conversion::arithmetic::gen(&m_offset, &offset);
+  offset = m_offset->add(offset);
+  const pointer_type* pt = pointer_type::create(T);
+  var* ret = new refsomewhere(pt, m_ref, offset);
   garbage.push_back(ret);
   return ret;
 }

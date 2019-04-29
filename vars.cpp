@@ -122,8 +122,17 @@ cxx_compiler::var * cxx_compiler::refaddr::rvalue()
   Tr = Tr->complete_type();
   if (Tr->aggregate()) {
     if (x != ref) {
-      if (offset)
-	code.push_back(new add3ac(x, x, off));
+      if (offset) {
+	var* tmp = new var(x->m_type);
+	if ( scope::current->m_id == scope::BLOCK ){
+	  block* b = static_cast<block*>(scope::current);
+	  b->m_vars.push_back(tmp);
+	}
+	else
+	  garbage.push_back(tmp);
+	code.push_back(new add3ac(tmp, x, off));
+	x = tmp;
+      }
       code.push_back(new invraddr3ac(ret,x));
     }
     else
@@ -200,8 +209,13 @@ cxx_compiler::var* cxx_compiler::refsomewhere::rvalue()
   vector<tag*> dummy;
   var* x = expressions::primary::action(m_ref, dummy);
   if (x != m_ref) {
-    code.push_back(new add3ac(x, x, m_offset));
-    code.push_back(new invraddr3ac(ret, x));
+    var* tmp = new var(x->m_type);
+    if (b)
+      b->m_vars.push_back(tmp);
+    else
+      garbage.push_back(tmp);
+    code.push_back(new add3ac(tmp, x, m_offset));
+    code.push_back(new invraddr3ac(ret, tmp));
   }
   else
     code.push_back(new roff3ac(ret,m_ref,m_offset));

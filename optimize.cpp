@@ -342,7 +342,7 @@ int cxx_compiler::optimize::basic_block::dag::mknode(tac** pp, mknode_t* mt)
   vector<var*>& v = n->m_vars;
   v.push_back(x);
   (*node)[x] = n;
-  if ( ptr->m_id == tac::ADDR )
+  if (ptr->m_id == tac::ADDR)
     mt->pa->addr.insert(y);
   return 0;
 }

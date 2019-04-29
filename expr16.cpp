@@ -72,7 +72,7 @@ cxx_compiler::var* cxx_compiler::ref::assign(var* op)
   if ( !y->isconstant() )
     return y;
   var* x = new var(T);
-  if ( scope::current->m_id == scope::BLOCK ){
+  if (scope::current->m_id == scope::BLOCK) {
     block* b = static_cast<block*>(scope::current);
     b->m_vars.push_back(x);
   }
@@ -85,14 +85,14 @@ cxx_compiler::var* cxx_compiler::ref::assign(var* op)
 cxx_compiler::var* cxx_compiler::refaddr::assign(var* op)
 {
   using namespace std;
-  if ( !lvalue() ){
+  if (!lvalue()) {
     using namespace error::expressions::assignment;
     not_lvalue(parse::position);
     return this;
   }
   m_result = m_result->complete_type();
   const type* T = m_result;
-  if ( !T->modifiable() ){
+  if (!T->modifiable()) {
     using namespace error::expressions::assignment;
     not_modifiable(parse::position,0);
   }
@@ -112,8 +112,17 @@ cxx_compiler::var* cxx_compiler::refaddr::assign(var* op)
   vector<tag*> dummy;
   var* xx = expressions::primary::action(x, dummy);
   if (x != xx) {
-    if (offset)
-      code.push_back(new add3ac(xx, xx, y));
+    if (offset) {
+      var* tmp = new var(xx->m_type);
+      if (scope::current->m_id == scope::BLOCK) {
+	block* b = static_cast<block*>(scope::current);
+	b->m_vars.push_back(tmp);
+      }
+      else
+	garbage.push_back(tmp);
+      code.push_back(new add3ac(tmp, xx, y));
+      xx = tmp;
+    }
     code.push_back(new invladdr3ac(xx,z));
   }
   else
@@ -201,8 +210,15 @@ cxx_compiler::var* cxx_compiler::refsomewhere::assign(var* op)
   vector<tag*> dummy;
   var* x = expressions::primary::action(m_ref, dummy);
   if (x != m_ref) {
-    code.push_back(new add3ac(x, x, m_offset));
-    code.push_back(new invladdr3ac(x,op));
+    var* tmp = new var(x->m_type);
+    if (scope::current->m_id == scope::BLOCK) {
+      block* b = static_cast<block*>(scope::current);
+      b->m_vars.push_back(tmp);
+    }
+    else
+      garbage.push_back(tmp);
+    code.push_back(new add3ac(tmp, x, m_offset));
+    code.push_back(new invladdr3ac(tmp,op));
   }
   else
     code.push_back(new loff3ac(m_ref,m_offset,op));
