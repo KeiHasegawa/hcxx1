@@ -737,6 +737,7 @@ namespace expressions {
         usr* create(bool);
       } // end of namespace boolean
     } // end of namespace literal
+    extern var* action(var* v, const vector<tag*>& route);
     extern var* from_member(usr* u, const vector<tag*>&);
   } // end of namespace primary
   namespace postfix {

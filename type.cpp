@@ -1382,12 +1382,22 @@ const cxx_compiler::incomplete_tagged_type* cxx_compiler::incomplete_tagged_type
 
 namespace cxx_compiler {
   using namespace std;
+  struct pure_virt : constant<void*> {
+    usr* m_usr;
+    pure_virt(usr* u, constant<void*>* c)
+      : m_usr(u), constant<void*>(*c) {}
+  };
   bool match_vf(pair<int, var*> p, usr* y)
   {
     var* v = p.second;
-    addrof* a = v->addrof_cast();
-    assert(a);
-    v = a->m_ref;
+    if (addrof* a = v->addrof_cast()) {
+      v = a->m_ref;
+    }
+    else {
+      assert(dynamic_cast<pure_virt*>(v));
+      pure_virt* pv = static_cast<pure_virt*>(v);
+      v = pv->m_usr;
+    }
     assert(v->usr_cast());
     usr* x = static_cast<usr*>(v);
     if (x->m_name != y->m_name)
@@ -1675,6 +1685,7 @@ namespace cxx_compiler {
         IT p = find_if(begin(m_value), end(m_value),
                        bind2nd(ptr_fun(match_vf), u));
         if (p != end(m_value)) {
+	  u->m_flag = usr::flag_t(u->m_flag | usr::OVERRIDE);
           const type* T = u->m_type;
           T = pointer_type::create(T);
           p->second = new addrof(T, u, 0);
@@ -1686,11 +1697,20 @@ namespace cxx_compiler {
       own_vf(map<int, var*>& value) : m_value(value) {}
       int operator()(int offset, usr* u)
       {
-        if (!(u->m_flag & usr::VIRTUAL))
+	using namespace expressions::primary::literal;
+	usr::flag_t flag = u->m_flag;
+        if (!(flag & usr::VIRTUAL))
           return offset;
-        assert(u->m_flag & usr::FUNCTION);
-        const type* T = pointer_type::create(u->m_type);
-        m_value[offset] = new addrof(T, u, 0);
+        assert(flag & usr::FUNCTION);
+	const type* T = u->m_type;
+        T = pointer_type::create(T);
+	if (flag & usr::PURE_VIRT) {
+	  var* tmp = integer::create(0)->cast(T);
+	  constant<void*>* c = static_cast<constant<void*>*>(tmp);
+	  m_value[offset] = new pure_virt(u, c);
+	}
+	else
+	  m_value[offset] = new addrof(T, u, 0);
         return offset + T->size();
       }
     };

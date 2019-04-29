@@ -1042,7 +1042,8 @@ cxx_compiler::var* cxx_compiler::genaddr::offref(const type* T, var* offset)
     return ret;
   }
   if ( m_offset ) {
-    var* tmp = expressions::primary::literal::integer::create(m_offset);
+    using namespace expressions::primary::literal;
+    var* tmp = integer::create(m_offset);
     conversion::arithmetic::gen(&offset, &tmp);
     offset = offset->add(tmp);
   }

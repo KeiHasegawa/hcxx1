@@ -100,8 +100,9 @@ cxx_compiler::var* cxx_compiler::ref::rvalue()
 cxx_compiler::var * cxx_compiler::refaddr::rvalue()
 {
   const type* T = m_result;
+  int offset = m_addrof.m_offset;
   if ( const pointer_type* G = T->ptr_gen() ){
-    genaddr* tmp = new genaddr(G,T,m_addrof.m_ref,m_addrof.m_offset);
+    genaddr* tmp = new genaddr(G,T,m_addrof.m_ref,offset);
     garbage.push_back(tmp);
     return tmp->rvalue();
   }
@@ -113,16 +114,29 @@ cxx_compiler::var * cxx_compiler::refaddr::rvalue()
   else
     garbage.push_back(ret);
   using namespace expressions::primary::literal;
-  var* off = integer::create(m_addrof.m_offset);
+  var* off = integer::create(offset);
   var* ref = m_addrof.m_ref;
+  vector<tag*> dummy;
+  var* x = expressions::primary::action(ref, dummy);
   const type* Tr = ref->m_type;
   Tr = Tr->complete_type();
-  if (Tr->aggregate())
-    code.push_back(new roff3ac(ret,ref,off));
+  if (Tr->aggregate()) {
+    if (x != ref) {
+      if (offset)
+	code.push_back(new add3ac(x, x, off));
+      code.push_back(new invraddr3ac(ret,x));
+    }
+    else
+      code.push_back(new roff3ac(ret,ref,off));
+  }
   else {
     assert(!m_addrof.m_offset);
-    ref = ref->rvalue();
-    code.push_back(new assign3ac(ret, ref));
+    if (x != ref)
+      code.push_back(new invraddr3ac(ret,x));
+    else {
+      ref = ref->rvalue();
+      code.push_back(new assign3ac(ret, ref));
+    }
   }
 
   T = T->unqualified();
@@ -183,7 +197,14 @@ cxx_compiler::var* cxx_compiler::refsomewhere::rvalue()
     b->m_vars.push_back(ret);
   else
     garbage.push_back(ret);
-  code.push_back(new roff3ac(ret,m_ref,m_offset));
+  vector<tag*> dummy;
+  var* x = expressions::primary::action(m_ref, dummy);
+  if (x != m_ref) {
+    code.push_back(new add3ac(x, x, m_offset));
+    code.push_back(new invraddr3ac(ret, x));
+  }
+  else
+    code.push_back(new roff3ac(ret,m_ref,m_offset));
   return ret;
 }
 

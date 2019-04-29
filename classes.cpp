@@ -126,22 +126,37 @@ void cxx_compiler::classes::members::action(var* v, expressions::base* expr)
   }
   assert(v->usr_cast());
   usr* u = static_cast<usr*>(v);
-  if (cons) {
-    with_initial* p = new with_initial(*u);
-    p->m_value[0] = cons;
-    delete u;
-    u = p;
-  }
   u = declarations::action1(u, false);
   if (cons) {
     usr::flag_t flag = u->m_flag;
     usr::flag_t mask = usr::flag_t(usr::STATIC | usr::VIRTUAL);
     if (!(flag & mask))
       error::not_implemented();
-    if (flag & usr::STATIC)
-      u->m_flag = usr::flag_t(flag | usr::WITH_INI | usr::STATIC_DEF);
-    if (flag & usr::VIRTUAL)
+    if ((flag & usr::STATIC) && (flag & usr::VIRTUAL))
       error::not_implemented();
+    if (flag & usr::STATIC) {
+      with_initial* wi = new with_initial(*u);
+      wi->m_value[0] = cons;
+      scope* p = u->m_scope;
+      string name = u->m_name;
+      assert(p->m_order.back() == u);
+      p->m_order.back() = wi;
+      assert(p->m_usrs[name].back() == u);
+      p->m_usrs[name].back() = wi;
+      wi->m_flag = usr::flag_t(flag | usr::WITH_INI | usr::STATIC_DEF);
+      delete u;
+      u = wi;
+    }
+    if (flag & usr::VIRTUAL) {
+      const type* T = cons->m_type;
+      T = T->unqualified();
+      if (T->m_id != type::INT)
+	error::not_implemented();
+      constant<int>* c = static_cast<constant<int>*>(cons);
+      if (c->m_value != 0)
+	error::not_implemented();
+      u->m_flag = usr::flag_t(flag | usr::PURE_VIRT);
+    }
   }
   vector<scope*>& children = scope::current->m_children;
   typedef vector<scope*>::iterator IT;

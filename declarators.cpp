@@ -37,7 +37,8 @@ cxx_compiler::declarations::declarators::pointer::action(const type* pointer, co
   if (T->backpatch())
     return T->patch(pointer,0);
 
-  assert(!specifier_seq::info_t::s_stack.empty());
+  if (specifier_seq::info_t::s_stack.empty())
+    return T;
   specifier_seq::info_t* p = specifier_seq::info_t::s_stack.top();
   p->update();
   p->m_type = pointer_type::create(p->m_type);
@@ -403,7 +404,7 @@ namespace cxx_compiler {
     namespace declarators {
       namespace function {
         namespace definition {
-	  inline void delete_erase(scope* param)
+	  inline void delete_erase(scope* param, vector<tac*>& vc)
 	  {
 	    assert(param->m_id == scope::PARAM);
 	    vector<scope*>& children = param->m_parent->m_children;
@@ -413,6 +414,10 @@ namespace cxx_compiler {
 	    vector<scope*>::iterator q = p.base() - 1;
 	    delete param;
 	    children.erase(q);
+
+	    for (tac* p : vc)
+	      delete p;
+	    vc.clear();
 	  }
           namespace static_inline {
             using namespace std;
@@ -474,7 +479,7 @@ action(statements::base* stmt)
     if ( scope::current->m_id == scope::TAG ){
       scope::current = scope::current->m_parent;
       usr::flag_t flag = u->m_flag;
-      if ( !(flag & usr::INLINE) )
+      if (!(flag & usr::INLINE))
         destroy();
     }
     else
@@ -492,7 +497,8 @@ function::definition::action(fundef* fdef, std::vector<tac*>& vc)
   if (!error::counter && cmdline::optimize_level >= 1)
     optimize::action(fdef, vc);
   usr::flag_t flag = fdef->m_usr->m_flag;
-  if (flag & usr::INLINE)
+  usr::flag_t mask = usr::flag_t(usr::VIRTUAL | usr::OVERRIDE);
+  if ((flag & usr::INLINE) && !(flag & mask))
     return skip::add(fdef, vc, true);
   if (flag & usr::STATIC) {
     if (fdef->m_usr->m_scope->m_id != scope::TAG)
@@ -506,7 +512,7 @@ function::definition::action(fundef* fdef, std::vector<tac*>& vc)
 
   if ( cmdline::output_medium ){
     if ( cmdline::output_optinfo )
-      cout << "\nAfter optimization\n";
+      cout << '\n' << "After optimization" << '\n';
     usr* u = fdef->m_usr;
     scope* org = scope::current;
     scope::current = &scope::root;
@@ -525,14 +531,14 @@ function::definition::action(fundef* fdef, std::vector<tac*>& vc)
         &vc
       };
       generator::generate(&tmp);
-      delete_erase(fdef->m_param);
+      delete_erase(fdef->m_param, vc);
     }
     else if (generator::last) {
       remember(fdef, vc);
       fundef::current = 0;
     }
     else
-      delete_erase(fdef->m_param);
+      delete_erase(fdef->m_param, vc);
   }
   fdef->m_usr->m_type = fdef->m_usr->m_type->vla2a();
 }

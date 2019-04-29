@@ -105,19 +105,30 @@ cxx_compiler::var* cxx_compiler::refaddr::assign(var* op)
     T = int_type::create();
   }
   z = z->cast(T);
-  var* y = expressions::primary::literal::integer::create(m_addrof.m_offset);
-  code.push_back(new loff3ac(m_addrof.m_ref,y,z));
-  if ( !z->isconstant() )
-    return z;
-  var* x = new var(T);
-  if ( scope::current->m_id == scope::BLOCK ){
-    block* b = static_cast<block*>(scope::current);
-    b->m_vars.push_back(x);
+  using namespace expressions::primary::literal;
+  int offset = m_addrof.m_offset;
+  var* y = integer::create(offset);
+  var* x = m_addrof.m_ref;
+  vector<tag*> dummy;
+  var* xx = expressions::primary::action(x, dummy);
+  if (x != xx) {
+    if (offset)
+      code.push_back(new add3ac(xx, xx, y));
+    code.push_back(new invladdr3ac(xx,z));
   }
   else
-    garbage.push_back(x);
-  code.push_back(new assign3ac(x,z));
-  return x;
+    code.push_back(new loff3ac(x,y,z));
+  if ( !z->isconstant() )
+    return z;
+  var* res = new var(T);
+  if ( scope::current->m_id == scope::BLOCK ){
+    block* b = static_cast<block*>(scope::current);
+    b->m_vars.push_back(res);
+  }
+  else
+    garbage.push_back(res);
+  code.push_back(new assign3ac(res,z));
+  return res;
 }
 
 cxx_compiler::var* cxx_compiler::refbit::assign(var* op)
@@ -187,7 +198,14 @@ cxx_compiler::var* cxx_compiler::refsomewhere::assign(var* op)
     T = int_type::create();
   }
   op = op->cast(T);
-  code.push_back(new loff3ac(m_ref,m_offset,op));
+  vector<tag*> dummy;
+  var* x = expressions::primary::action(m_ref, dummy);
+  if (x != m_ref) {
+    code.push_back(new add3ac(x, x, m_offset));
+    code.push_back(new invladdr3ac(x,op));
+  }
+  else
+    code.push_back(new loff3ac(m_ref,m_offset,op));
   if ( !op->isconstant() )
     return op;
   var* ret = new var(m_result);
