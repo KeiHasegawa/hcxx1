@@ -521,7 +521,10 @@ init_declarator_list
   : init_declarator
     { $$ = new std::vector<cxx_compiler::usr*>; $$->push_back($1); }
   | init_declarator_list ','
-    { cxx_compiler::parse::identifier::mode = cxx_compiler::parse::identifier::new_obj; }
+    {
+      using namespace cxx_compiler::parse;
+      identifier::mode = identifier::new_obj;
+    }
     init_declarator
     { $$ = $1; $$->push_back($4); }
   ;
@@ -1456,7 +1459,7 @@ unary_expression
   | MINUSMINUS_MK cast_expression
     { $$ = new cxx_compiler::expressions::unary::ppmm(false,$2); }
   | unary_operator cast_expression
-    { $$ = new cxx_compiler::expressions::unary::Operator($1,$2); }
+    { $$ = new cxx_compiler::expressions::unary::ope($1,$2); }
   | SIZEOF_KW unary_expression
     { $$ = new cxx_compiler::expressions::unary::size_of($2); }
   | SIZEOF_KW '(' type_id ')'
@@ -1493,10 +1496,12 @@ new_expression
     { cxx_compiler::error::not_implemented(); }
   |                            NEW_KW               new_type_id new_initializer
     { cxx_compiler::error::not_implemented(); }
-  |                            NEW_KW               new_type_id
+  | NEW_KW new_type_id
     {
       using namespace cxx_compiler::expressions::unary;
       $$ = new new_expr($2, cxx_compiler::parse::position);
+      using namespace cxx_compiler::parse;
+      identifier::mode = identifier::look;
     }
   | COLONCOLON_MK move_to_root NEW_KW new_placement '(' type_id ')' new_initializer
     { cxx_compiler::error::not_implemented(); }
@@ -1816,15 +1821,23 @@ for_init_statement
   ;
 
 jump_statement
-  : BREAK_KW ';' { $$ = new cxx_compiler::statements::break_stmt::info_t; }
-  | CONTINUE_KW ';' { $$ = new cxx_compiler::statements::continue_stmt::info_t; }
-  | RETURN_KW expression ';' { $$ = new cxx_compiler::statements::return_stmt::info_t($2); }
-  | RETURN_KW            ';' { $$ = new cxx_compiler::statements::return_stmt::info_t(0); }
+  : BREAK_KW ';'
+    { $$ = new cxx_compiler::statements::break_stmt::info_t; }
+  | CONTINUE_KW ';'
+    { $$ = new cxx_compiler::statements::continue_stmt::info_t; }
+  | RETURN_KW expression ';'
+    { $$ = new cxx_compiler::statements::return_stmt::info_t($2); }
+  | RETURN_KW ';'
+    { $$ = new cxx_compiler::statements::return_stmt::info_t(0); }
   | GOTO_KW
-    { cxx_compiler::parse::identifier::mode = cxx_compiler::parse::identifier::new_obj; }
+    {
+      using namespace cxx_compiler::parse;
+      identifier::mode = identifier::new_obj;
+    }
     IDENTIFIER_LEX ';'
     {
-      cxx_compiler::parse::identifier::mode = cxx_compiler::parse::identifier::look;
+      using namespace cxx_compiler::parse;
+      identifier::mode = identifier::look;
       $$ = new cxx_compiler::statements::goto_stmt::info_t($3);
     }
   ;

@@ -794,13 +794,13 @@ namespace expressions {
       const file_t& file() const;
       ~ppmm(){ delete m_expr; }
     };
-    struct Operator : base {
+    struct ope : base {
       int m_op;
       base* m_expr;
-      Operator(int op, base* expr) : m_op(op), m_expr(expr) {}
+      ope(int op, base* expr) : m_op(op), m_expr(expr) {}
       var* gen();
       const file_t& file() const;
-      ~Operator(){ delete m_expr; }
+      ~ope(){ delete m_expr; }
     };
     struct size_of : base {
       base* m_expr;

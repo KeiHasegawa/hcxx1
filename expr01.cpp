@@ -332,7 +332,8 @@ cxx_compiler::call_impl::common(const func_type* ft,
   if (obj) {
     const type* T = obj->m_type;
     if (T->scalar()) {
-      assert(T->m_id == type::POINTER);
+      type::id_t id = T->m_id;
+      assert(id == type::POINTER || id == type::REFERENCE);
       usr* u = func->usr_cast();
       usr::flag_t flag = u->m_flag;
       if ((flag & usr::VIRTUAL) && !qualified_func)
@@ -421,33 +422,38 @@ cxx_compiler::var* cxx_compiler::call_impl::convert::operator()(var* arg)
     mismatch_argument(parse::position,m_counter,discard,m_func);
     return arg;
   }
-  arg = arg->cast(T);
+  if (T->scalar())
+    arg = arg->cast(T);
   if (U->m_id == type::REFERENCE) {
     typedef const reference_type RT;
     RT* rt = static_cast<RT*>(U);
     const type* R = rt->referenced_type();
     R = R->unqualified();
     if (R == T) {
-      var* tmp = new var(U);
-      if (scope::current->m_id == scope::BLOCK) {
-        block* b = static_cast<block*>(scope::current);
-        b->m_vars.push_back(tmp);
-      }
-      else
-        garbage.push_back(tmp);
       if (arg->isconstant()) {
-        var* tmp2 = new var(R);
+        var* tmp = new var(R);
         if (scope::current->m_id == scope::BLOCK) {
           block* b = static_cast<block*>(scope::current);
-          b->m_vars.push_back(tmp2);
+          b->m_vars.push_back(tmp);
         }
         else
-          garbage.push_back(tmp2);
-        code.push_back(new assign3ac(tmp2, arg));
-        arg = tmp2;
+          garbage.push_back(tmp);
+        code.push_back(new assign3ac(tmp, arg));
+        arg = tmp;
       }
-      code.push_back(new addr3ac(tmp, arg));
-      arg = tmp;
+      if (arg->lvalue())
+	arg = arg->address();
+      else {
+	var* tmp = new var(U);
+	if (scope::current->m_id == scope::BLOCK) {
+	  block* b = static_cast<block*>(scope::current);
+	  b->m_vars.push_back(tmp);
+	}
+	else
+	  garbage.push_back(tmp);
+	code.push_back(new addr3ac(tmp, arg));
+	arg = tmp;
+      }
     }
   }
   return arg;
@@ -801,7 +807,15 @@ cxx_compiler::expressions::postfix::member::begin(base* expr, bool dot)
   copy(code.begin()+n,code.begin()+m,back_inserter(nm));
   code.resize(n);
   const type* T = v->result_type();
-  if ( !dot ){
+  if (dot) {
+    T = T->unqualified();
+    if (T->m_id == type::REFERENCE) {
+      typedef const reference_type RT;
+      RT* rt = static_cast<RT*>(T);
+      T = rt->referenced_type();
+    }
+  }
+  else {
     T = T->unqualified();
     if ( T->m_id != type::POINTER ){
       using namespace error::expressions::postfix::member;
@@ -859,7 +873,14 @@ cxx_compiler::var::member(var* expr, bool dot, const std::vector<tag*>& route)
   int cvr = 0;
   T = T->unqualified(dot ? &cvr : 0);
   typedef const pointer_type PT;
-  if (!dot) {
+  if (dot) {
+    if (T->m_id == type::REFERENCE) {
+      typedef const reference_type RT;
+      RT* rt = static_cast<RT*>(T);
+      T = rt->referenced_type();
+    }
+  }
+  else {
     if (T->m_id != type::POINTER)
       return this;
     PT* pt = static_cast<PT*>(T);
@@ -1173,7 +1194,7 @@ cxx_compiler::expressions::
 assignment::valid(const type* T, var* src, bool* discard)
 {
   const type* xx = T;
-  const type* yy = src->m_type;
+  const type* yy = src->result_type();
   xx = xx->unqualified();
   yy = yy->unqualified();
   if ( xx->arithmetic() && yy->arithmetic() )
@@ -1245,10 +1266,12 @@ assignment::valid(const type* T, var* src, bool* discard)
   }
 
   if (xx->m_id == type::REFERENCE) {
+    if (compatible(xx, yy))
+      return xx;
     typedef const reference_type REF;
     REF* ref = static_cast<REF*>(xx);
     const type* T = ref->referenced_type();
-    const type* X = src->m_type;
+    const type* X = src->result_type();
     if (T == X)
       return T;
     if (!T->modifiable() || !X->modifiable())

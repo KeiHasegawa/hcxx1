@@ -84,7 +84,7 @@ cxx_compiler::expressions::unary::size_of::file() const
   return m_expr ? m_expr->file() : m_file;
 }
 
-cxx_compiler::var* cxx_compiler::expressions::unary::Operator::gen()
+cxx_compiler::var* cxx_compiler::expressions::unary::ope::gen()
 {
   var* expr = m_expr->gen();
   switch ( m_op ){
@@ -97,7 +97,8 @@ cxx_compiler::var* cxx_compiler::expressions::unary::Operator::gen()
   }
 }
 
-const cxx_compiler::file_t& cxx_compiler::expressions::unary::Operator::file() const
+const cxx_compiler::file_t&
+cxx_compiler::expressions::unary::ope::file() const
 {
   return m_expr->file();
 }
@@ -113,7 +114,7 @@ cxx_compiler::var* cxx_compiler::expressions::unary::new_expr::gen()
   map<string, vector<usr*> >::const_iterator it = usrs.find(name);
   const type* vp = pointer_type::create(void_type::create());
   usr* new_entry = 0;
-  if ( it != usrs.end() ){
+  if (it != usrs.end()) {
     const vector<usr*>& v = it->second;
     if (v.size() != 1)
       error::not_implemented();
@@ -128,7 +129,7 @@ cxx_compiler::var* cxx_compiler::expressions::unary::new_expr::gen()
     new_entry->m_scope = &scope::root;
     usrs[name].push_back(new_entry);
   }
-  var* ret = new var(vp);
+  var* ret = new var(pointer_type::create(m_T));
   if ( scope::current->m_id == scope::BLOCK ){
     block* b = static_cast<block*>(scope::current);
     b->m_vars.push_back(ret);
@@ -136,6 +137,37 @@ cxx_compiler::var* cxx_compiler::expressions::unary::new_expr::gen()
   else
     garbage.push_back(ret);
   code.push_back(new call3ac(ret,new_entry));
+  const type* U = m_T->unqualified();
+  if (U->m_id == type::RECORD) {
+    typedef const record_type REC;
+    REC* rec = static_cast<REC*>(U);
+    tag* ptr = rec->get_tag();
+    map<string, vector<usr*> >& usrs = ptr->m_usrs;
+    string name = ptr->m_name;
+    map<string, vector<usr*> >::const_iterator p = usrs.find(name);
+    if (p != usrs.end()) {
+      const vector<usr*>& v = p->second;
+      if (v.size() != 1)
+	error::not_implemented();
+      usr* ctor = v.back();
+      const type* T = ctor->m_type;
+      assert(T->m_id == type::FUNC);
+      typedef const func_type FT;
+      FT* ft = static_cast<FT*>(T);
+      vector<var*> arg;
+      call_impl::common(ft, ctor, &arg, false, ret, false);
+      usr::flag_t flag = ctor->m_flag;
+      if (!error::counter && !cmdline::no_inline_sub) {
+	if (flag & usr::INLINE) {
+	  using namespace declarations::declarators::function;
+	  using namespace definition::static_inline::skip;
+	  table_t::const_iterator p = stbl.find(ctor);
+	  if (p != stbl.end())
+	    substitute(code, code.size()-1, p->second);
+	}
+      }
+    }
+  }
   return ret;
 }
 

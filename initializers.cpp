@@ -428,8 +428,13 @@ assign(var* y, argument* arg)
         y = tmp;
       }
     }
-    const type* pt = pointer_type::create(y->m_type);
-    arg->V[arg->off] = new addrof(pt, y, 0);
+    const type* Ty = y->m_type;
+    const type* pt = pointer_type::create(Ty);
+    Ty = Ty->unqualified();
+    if (Ty->m_id == type::REFERENCE)
+      arg->V[arg->off] = y;
+    else
+      arg->V[arg->off] = new addrof(pt, y, 0);
   }
   else
     arg->V[arg->off] = y;
