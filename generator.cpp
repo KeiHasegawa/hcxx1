@@ -157,10 +157,12 @@ void cxx_compiler::generator::terminate()
     if ( error::counter )
       unlink(cmdline::output.c_str());
 #ifdef _MSC_VER
-    FreeLibrary(m_module);
+    if (m_module)
+      FreeLibrary(m_module);
 #endif // _MSC_VER
 #ifdef unix
-    dlclose(m_module);
+    if (m_module)
+      dlclose(m_module);
 #endif // unix
   }
 }
