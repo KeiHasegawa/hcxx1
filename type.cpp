@@ -1916,16 +1916,17 @@ namespace cxx_compiler {
     struct update_vptr {
       const map<base*, int>& m_base_offset;
       const map<base*, int>& m_vtbl_offset;
-      var* m_this;
+      var* m_this_ptr;
       block* m_block;
-      usr* m_vtbl;
+      var* m_vtbl_addr;
       string m_vptr_name;
       update_vptr(const map<base*, int>& base_offset,
                   const map<base*, int>& vtbl_offset,
-                  var* this_ptr, block* b, usr* vtbl,
+                  var* this_ptr, block* bp, var* vtbl_addr,
                   string vptr_name)
         : m_base_offset(base_offset), m_vtbl_offset(vtbl_offset),
-          m_this(this_ptr), m_block(b), m_vtbl(vtbl), m_vptr_name(vptr_name) {}
+          m_this_ptr(this_ptr), m_block(bp), m_vtbl_addr(vtbl_addr),
+	  m_vptr_name(vptr_name) {}
       void operator()(base* bp)
       {
         using namespace expressions::primary::literal;
@@ -1939,23 +1940,33 @@ namespace cxx_compiler {
 	  const map<base*, int>& base_offset = rec->base_offset();
 	  const map<base*, int>& vtbl_offset = m_vptr_name == vbptr_name ?
 	    rec->vbtbl_offset() : rec->vftbl_offset();
-	  map<base*, int>::const_iterator p = m_base_offset.find(bp);
-	  assert(p != m_base_offset.end());
-	  int offset = p->second;
 	  T = pointer_type::create(rec);
 	  var* this_ptr = new var(T);
 	  m_block->m_vars.push_back(this_ptr);
-	  code.push_back(new cast3ac(this_ptr, m_this, T));
-	  if (offset) {
+	  code.push_back(new cast3ac(this_ptr, m_this_ptr, T));
+	  map<base*, int>::const_iterator p = m_base_offset.find(bp);
+	  assert(p != m_base_offset.end());
+	  if (int offset = p->second) {
 	    var* off = integer::create(offset);
 	    var* tmp = new var(T);
 	    m_block->m_vars.push_back(tmp);
 	    code.push_back(new add3ac(tmp, this_ptr, off));
 	    this_ptr = tmp;
 	  }
-          for_each(begin(bases), end(bases),
-                   update_vptr(base_offset, vtbl_offset, this_ptr,
-			       m_block, m_vtbl, m_vptr_name));
+	  var* vtbl_addr = m_vtbl_addr;
+	  map<base*, int>::const_iterator q = m_vtbl_offset.find(bp);
+	  if (q != m_vtbl_offset.end()) {
+	    if (int offset = q->second) {
+	      var* off = integer::create(offset);
+	      var* tmp = new var(vtbl_addr->m_type);
+	      m_block->m_vars.push_back(tmp);
+	      code.push_back(new add3ac(tmp, vtbl_addr, off));
+	      vtbl_addr = tmp;
+	    }
+	    for_each(begin(bases), end(bases),
+		     update_vptr(base_offset, vtbl_offset, this_ptr,
+				 m_block, vtbl_addr, m_vptr_name));
+	  }
 	}
         usr* vptr = get_virt(ptr, m_vptr_name);
         if (!vptr)
@@ -1972,9 +1983,9 @@ namespace cxx_compiler {
         assert(p != m_base_offset.end());
         vptr_off += p->second;
         T = vptr->m_type;
-        var* t0 = new var(T);
-        m_block->m_vars.push_back(t0);
-        code.push_back(new addr3ac(t0, m_vtbl));
+	var* t0 = new var(T);
+	m_block->m_vars.push_back(t0);
+	code.push_back(new cast3ac(t0, m_vtbl_addr, T));
         map<base*, int>::const_iterator q = m_vtbl_offset.find(bp);
         assert(q != m_vtbl_offset.end());
         int vtbl_off = q->second;
@@ -1985,7 +1996,7 @@ namespace cxx_compiler {
         T = pointer_type::create(T);
         var* t1 = new var(T);
         m_block->m_vars.push_back(t1);
-        code.push_back(new cast3ac(t1, m_this, T));
+        code.push_back(new cast3ac(t1, m_this_ptr, T));
         if (vptr_off) {
           var* vo = integer::create(vptr_off);
           code.push_back(new add3ac(t1, t1, vo));
@@ -2041,39 +2052,49 @@ namespace cxx_compiler {
       param->m_order.push_back(this_ptr);
       param->m_usrs[name].push_back(this_ptr);
 
-      block* b = new block;
+      block* pb = new block;
       assert(!before.empty());
-      assert(before.back() == b);
+      assert(before.back() == pb);
       before.pop_back();
-      b->m_parent = param;
-      param->m_children.push_back(b);
+      pb->m_parent = param;
+      param->m_children.push_back(pb);
 
       assert(code.empty());
       if (ptr->m_bases) {
         vector<base*>& bases = *ptr->m_bases;
         scope* org = scope::current;
-        scope::current = b;
+        scope::current = pb;
         for_each(begin(bases), end(bases),
-                 call_ctor(base_offset, this_ptr, b));
+                 call_ctor(base_offset, this_ptr, pb));
         scope::current = org;
         if (usr* vbtbl = get_vbtbl(ptr)) {
+	  const type* T = vbtbl->m_type;
+	  T = pointer_type::create(T);
+	  var* vbtbl_addr = new var(T);
+	  pb->m_vars.push_back(vbtbl_addr);
+	  code.push_back(new addr3ac(vbtbl_addr, vbtbl));
           for_each(begin(bases), end(bases),
-                   update_vptr(base_offset, vbtbl_offset, this_ptr, b, vbtbl,
-                               vbptr_name));
+                   update_vptr(base_offset, vbtbl_offset, this_ptr, pb,
+			       vbtbl_addr, vbptr_name));
         }
         if (usr* vftbl = get_vftbl(ptr)) {
+	  const type* T = vftbl->m_type;
+	  T = pointer_type::create(T);
+	  var* vftbl_addr = new var(T);
+	  pb->m_vars.push_back(vftbl_addr);
+	  code.push_back(new addr3ac(vftbl_addr, vftbl));
           for_each(begin(bases), end(bases),
-                   update_vptr(base_offset, vftbl_offset, this_ptr, b, vftbl,
-                               vfptr_name));
+                   update_vptr(base_offset, vftbl_offset, this_ptr, pb,
+			       vftbl_addr, vfptr_name));
         }
       }
       if (usr* vbptr = get_vbptr(ptr)) {
         const type* T = vbptr->m_type;
         var* t0 = new var(T);
-        b->m_vars.push_back(t0);
+        pb->m_vars.push_back(t0);
         T = pointer_type::create(T);
         var* t1 = new var(T);
-        b->m_vars.push_back(t1);
+        pb->m_vars.push_back(t1);
         usr* vbtbl = get_vbtbl(ptr);
         code.push_back(new addr3ac(t0, vbtbl));
         code.push_back(new cast3ac(t1, this_ptr, T));
@@ -2091,10 +2112,10 @@ namespace cxx_compiler {
       if (usr* vfptr = get_vfptr(ptr)) {
         const type* T = vfptr->m_type;
         var* t0 = new var(T);
-        b->m_vars.push_back(t0);
+        pb->m_vars.push_back(t0);
         T = pointer_type::create(T);
         var* t1 = new var(T);
-        b->m_vars.push_back(t1);
+        pb->m_vars.push_back(t1);
         usr* vftbl = get_vftbl(ptr);
         code.push_back(new addr3ac(t0, vftbl));
         code.push_back(new cast3ac(t1, this_ptr, T));
@@ -2471,9 +2492,9 @@ bool cxx_compiler::record_impl::member_modifiable(usr* u)
   return T->modifiable();
 }
 
-bool cxx_compiler::record_impl::base_modifiable(base* b)
+bool cxx_compiler::record_impl::base_modifiable(base* bp)
 {
-  tag* ptr = b->m_tag;
+  tag* ptr = bp->m_tag;
   const type* T = ptr->m_types.second;
   assert(T);
   return T->modifiable();
