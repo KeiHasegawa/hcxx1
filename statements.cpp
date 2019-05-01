@@ -1072,19 +1072,20 @@ int cxx_compiler::statements::return_stmt::info_t::gen()
 {
   using namespace std;
   var* expr = 0;
-  if ( m_expr ){
+  if (m_expr) {
     parse::position = m_expr->file();
     expr = m_expr->gen();
-    expr = expr->rvalue();
   }
   const type* T = fundef::current->m_usr->m_type;
-  if ( T->m_id != type::FUNC )
+  if (T->m_id != type::FUNC)
     return 0;
   typedef const func_type FUNC;
   FUNC* func = static_cast<FUNC*>(T);
   T = func->return_type();
   T = T->unqualified();
-  if ( expr ){
+  if (T->m_id != type::REFERENCE && expr)
+    expr = expr->rvalue();
+  if (expr) {
     bool discard = false;
     T = cxx_compiler::expressions::assignment::valid(T,expr,&discard);
     if ( !T ){
