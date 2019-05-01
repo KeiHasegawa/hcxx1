@@ -396,6 +396,33 @@ std::pair<int,int> cxx_compiler::call_impl::num_of_range(const std::vector<const
     return make_pair(param.size(),param.size());
 }
 
+namespace cxx_compiler {
+  namespace call_impl {
+    using namespace std;
+    inline pair<const type*, int>
+    addr_case(const reference_type* rt, const type* T)
+    {
+      T = T->unqualified();
+      const type* R = rt->referenced_type();
+      R = R->unqualified();
+      if (R == T)
+	return make_pair(R,0);
+      pair<const type*, int> zero;
+      if (R->m_id != type::RECORD)
+	return zero;
+      if (T->m_id != type::RECORD)
+	return zero;
+      typedef const record_type REC;
+      REC* x = static_cast<REC*>(R);
+      REC* y = static_cast<REC*>(T);
+      vector<tag*> dummy;
+      bool direct_virt = false;
+      int offset = y->base_offset(x, dummy, &direct_virt);
+      return offset >= 0 ? make_pair(R,offset) : zero;
+    }
+  } // end of namepsace call_impl
+} // end of namespace cxx_compiler
+
 cxx_compiler::var* cxx_compiler::call_impl::convert::operator()(var* arg)
 {
   using namespace std;
@@ -422,14 +449,15 @@ cxx_compiler::var* cxx_compiler::call_impl::convert::operator()(var* arg)
     mismatch_argument(parse::position,m_counter,discard,m_func);
     return arg;
   }
-  if (T->scalar())
+  if (T->scalar() && arg->m_type->scalar())
     arg = arg->cast(T);
   if (U->m_id == type::REFERENCE) {
     typedef const reference_type RT;
     RT* rt = static_cast<RT*>(U);
-    const type* R = rt->referenced_type();
-    R = R->unqualified();
-    if (R == T) {
+    pair<const type*, int> res = call_impl::addr_case(rt, arg->m_type);
+    const type* R = res.first;
+    int offset = res.second;
+    if (R) {
       if (arg->isconstant()) {
         var* tmp = new var(R);
         if (scope::current->m_id == scope::BLOCK) {
@@ -452,6 +480,19 @@ cxx_compiler::var* cxx_compiler::call_impl::convert::operator()(var* arg)
 	else
 	  garbage.push_back(tmp);
 	code.push_back(new addr3ac(tmp, arg));
+	arg = tmp;
+      }
+      if (offset) {
+	using namespace expressions::primary::literal;
+	var* off = integer::create(offset);
+	var* tmp = new var(U);
+	if (scope::current->m_id == scope::BLOCK) {
+	  block* b = static_cast<block*>(scope::current);
+	  b->m_vars.push_back(tmp);
+	}
+	else
+	  garbage.push_back(tmp);
+	code.push_back(new add3ac(tmp, arg, off));
 	arg = tmp;
       }
     }
@@ -1276,6 +1317,13 @@ assignment::valid(const type* T, var* src, bool* discard)
       return T;
     if (!T->modifiable() || !X->modifiable())
       return valid(T,src,discard);
+    if (T->m_id == type::RECORD && X->m_id == type::RECORD) {
+      T = pointer_type::create(T);
+      X = pointer_type::create(X);
+      var tmp(X);
+      if (valid(T, &tmp, discard))
+	return xx;
+    }
     return 0;
   }
 
