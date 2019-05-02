@@ -1250,11 +1250,16 @@ struct log01 : var01 {
 
 struct member_function : var {
   var* m_obj;
-  usr* m_fun;
+  var* m_fun;
   bool m_qualified_func;
+  var* m_vftbl_off;
   member_function(var* obj, usr* fun, bool qf)
-    : var(0), m_obj(obj), m_fun(fun), m_qualified_func(qf) {}
+    : var(0), m_obj(obj), m_fun(fun), m_qualified_func(qf), m_vftbl_off(0) {}
+  member_function(var* obj, var* fun, var* vftbl_off)
+    : var(0), m_obj(obj), m_fun(fun), m_qualified_func(false),
+    m_vftbl_off(vftbl_off) {}
   var* call(vector<var*>*);
+  var* rvalue();
 };
 
 struct opposite_t : map<goto3ac::op,goto3ac::op> {
@@ -1312,7 +1317,8 @@ namespace call_impl {
               vector<var*>* arg,
               bool trial,
               var* this_ptr,
-	      bool qualified_func);
+	      bool qualified_func,
+	      var* vftbl_off);
 } // end of namespace call_impl
 
 void original_namespace_definition(var*);

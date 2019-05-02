@@ -1884,7 +1884,7 @@ namespace cxx_compiler {
           code.push_back(new add3ac(tmp, tmp, off));
         }
         vector<var*> arg;
-        call_impl::common(ft, ctor, &arg, false, tmp, false);
+        call_impl::common(ft, ctor, &arg, false, tmp, false, 0);
         usr::flag_t flag = ctor->m_flag;
         if (!error::counter && !cmdline::no_inline_sub) {
           if (flag & usr::INLINE) {
@@ -3044,6 +3044,27 @@ cxx_compiler::pointer_member_type::encode(std::ostream& os) const
   const type* T = m_tag->m_types.first;
   T->encode(os);
   m_T->encode(os);
+}
+
+bool
+cxx_compiler::pointer_member_type::integer() const
+{
+  return m_T->m_id != type::FUNC;
+}
+
+bool
+cxx_compiler::pointer_member_type::scalar() const
+{
+  return m_T->m_id != type::FUNC;
+}
+
+int
+cxx_compiler::pointer_member_type::size() const
+{
+  int n = int_type::create()->size();
+  if (m_T->m_id == type::FUNC)
+    return 2 * n + type_impl::pointer_sizeof;
+  return n;
 }
 
 bool

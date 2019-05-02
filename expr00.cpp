@@ -1337,6 +1337,7 @@ namespace cxx_compiler {
       }
       var* address()
       {
+	using namespace expressions::primary::literal;
         assert(m_scope->m_id == scope::TAG);
         tag* ptr = static_cast<tag*>(m_scope);
         const type* T = pointer_member_type::create(ptr, m_type);
@@ -1347,6 +1348,17 @@ namespace cxx_compiler {
         }
         else
           garbage.push_back(ret);
+	assert(m_type->m_id != type::FUNC);
+	T = ptr->m_types.second;
+	assert(T->m_id == type::RECORD);
+	typedef const record_type REC;
+	REC* rec = static_cast<REC*>(T);
+	vector<tag*> dummy;
+	pair<int, usr*> p = rec->offset(m_name, dummy);
+	int offset = p.first;
+	assert(offset >= 0);
+	var* off = integer::create(offset);
+	code.push_back(new assign3ac(ret, off));
         return ret;
       }
     };
@@ -1367,6 +1379,10 @@ cxx_compiler::unqualified_id::from_nonmember(var* v)
   scope* q = v->m_scope;
   if (q->m_id != scope::TAG)
     return v;
+#if 0
+  if (genaddr* ga = v->genaddr_cast())
+    v = ga->m_ref;
+#endif
   usr* u = v->usr_cast();
   if (!u)
     return v;

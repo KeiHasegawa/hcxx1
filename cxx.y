@@ -530,8 +530,13 @@ init_declarator_list
   ;
 
 init_declarator
-  : declarator { $1 = cxx_compiler::declarations::action1($1,true); }
-    initializer { cxx_compiler::declarations::initializers::action($1,$3); }
+  : declarator
+    {
+      cxx_compiler::class_or_namespace_name::after();
+      $1 = cxx_compiler::declarations::action1($1,true);
+    }
+    initializer
+    { cxx_compiler::declarations::initializers::action($1,$3); }
   | declarator { $$ = cxx_compiler::declarations::action1($1,false); }
   ;
 

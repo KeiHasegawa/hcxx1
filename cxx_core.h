@@ -93,6 +93,7 @@ struct var {
   virtual var* subscripting(var*);
   virtual var* call(std::vector<var*>*);
   var* member(var*, bool, const std::vector<tag*>&);
+  var* ptr_member(var*, bool);
   virtual var* ppmm(bool, bool);
   virtual var* address();
   virtual var* indirection();
@@ -1724,16 +1725,10 @@ class pointer_member_type : public type {
 public:
   void decl(std::ostream&, std::string) const;
   void encode(std::ostream&) const;
-  bool integer() const { return false; }
+  bool integer() const;
   bool real() const { return false; }
-  bool scalar() const
-  {
-    return m_T->m_id != type::FUNC;
-  }
-  int size() const
-  {
-    return m_T->m_id == type::FUNC ? 2 * sizeof(int) + sizeof(void*) : sizeof(int);
-  }
+  bool scalar() const;
+  int size() const;
   const type* patch(const type*, usr*) const;
   bool backpatch() const { return m_T->backpatch(); }
   bool compatible(const type*) const;

@@ -56,8 +56,8 @@ cxx_compiler::var* cxx_compiler::expressions::binary::info_t::gen()
   }
 
   switch ( m_op ){
-  case DOTASTER_MK :   error::not_implemented();
-  case ARROWASTER_MK : error::not_implemented();
+  case DOTASTER_MK :   return leftc->ptr_member(rightc, true);
+  case ARROWASTER_MK : return leftc->ptr_member(rightc,false);
   case '*' :           return leftc->mul(rightc);
   case '/' :           return leftc->div(rightc);
   case '%' :           return leftc->mod(rightc);

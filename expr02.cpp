@@ -155,7 +155,7 @@ cxx_compiler::var* cxx_compiler::expressions::unary::new_expr::gen()
       typedef const func_type FT;
       FT* ft = static_cast<FT*>(T);
       vector<var*> arg;
-      call_impl::common(ft, ctor, &arg, false, ret, false);
+      call_impl::common(ft, ctor, &arg, false, ret, false, 0);
       usr::flag_t flag = ctor->m_flag;
       if (!error::counter && !cmdline::no_inline_sub) {
 	if (flag & usr::INLINE) {
@@ -310,20 +310,62 @@ cxx_compiler::var* cxx_compiler::usr::address()
   }
 }
 
+namespace cxx_compiler {
+  namespace genaddr_impl {
+    inline var* normal(var* ref, block* b)
+    {
+      const type* T = ref->m_type;
+      T = pointer_type::create(T);
+      var* ret = new var(T);
+      b->m_vars.push_back(ret);
+      code.push_back(new addr3ac(ret, ref));
+      return ret;
+    }
+  } // end of namespace genaddr_impl
+} // end of nmaespace cxx_compiler
+
 cxx_compiler::var* cxx_compiler::genaddr::address()
 {
-  block* b = scope::current->m_id == scope::BLOCK ? static_cast<block*>(scope::current) : 0;
-  if ( b && !expressions::constant_flag ){
-    var* ret = new var(pointer_type::create(m_ref->m_type));
-    b->m_vars.push_back(ret);
-    code.push_back(new addr3ac(ret,m_ref));
-    return ret;
-  }
-  else {
-    var* ret = new addrof(pointer_type::create(m_ref->m_type),m_ref,0);
+  using namespace expressions::primary::literal;
+  block* b = 0;
+  if (scope::current->m_id == scope::BLOCK)
+    b = static_cast<block*>(scope::current);
+  if (!b || expressions::constant_flag) {
+    const type* T = m_ref->m_type;
+    const pointer_type* pt = pointer_type::create(T);
+    var* ret = new addrof(pt , m_ref, 0);
     garbage.push_back(ret);
     return ret;
   }
+
+  assert(fundef::current);
+  usr* func = fundef::current->m_usr;
+  scope* p = func->m_scope;
+  if (p->m_id == scope::TAG)
+    return genaddr_impl::normal(m_ref, b);
+  scope* q = m_ref->m_scope;
+  if (q->m_id != scope::TAG)
+    return genaddr_impl::normal(m_ref, b);
+  tag* ptr = static_cast<tag*>(q);
+  usr* u = m_ref->usr_cast();
+  if (!u)
+    return genaddr_impl::normal(m_ref, b);
+  usr::flag_t flag = u->m_flag;
+  if (flag & usr::STATIC)
+    return genaddr_impl::normal(m_ref, b);
+
+  const type* T = m_ref->m_type;
+  const type* pt = pointer_type::create(T);
+  var* tmp = new var(pt);
+  b->m_vars.push_back(tmp);
+  code.push_back(new addr3ac(tmp, m_ref));
+
+  T = pointer_member_type::create(ptr, T);
+  var* ret = new var(T);
+  b->m_vars.push_back(ret);
+  var* zero = integer::create(0);
+  code.push_back(new loff3ac(ret, zero, tmp));
+  return ret;
 }
 
 cxx_compiler::var* cxx_compiler::refbit::address()

@@ -262,7 +262,7 @@ void cxx_compiler::statements::compound::gen_dtor(usr* u)
   assert(T->m_id == type::FUNC);
   typedef const func_type FT;
   FT* ft = static_cast<FT*>(T);
-  call_impl::common(ft,dtor,&arg,false,u,false);
+  call_impl::common(ft,dtor,&arg,false,u,false,0);
   usr::flag_t flag = dtor->m_flag;
   if (!error::counter && !cmdline::no_inline_sub) {
     if (flag & usr::INLINE) {
