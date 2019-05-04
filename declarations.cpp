@@ -738,9 +738,9 @@ cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr)
       curr = combine(prev,curr);
       usr::flag_t flag = curr->m_flag;
       if (flag & usr::OVERLOAD) {
-	overload* ovl = static_cast<overload*>(curr);
-	usr* tmp = ovl->m_candidacy.back();
-	flag = tmp->m_flag;
+        overload* ovl = static_cast<overload*>(curr);
+        usr* tmp = ovl->m_candidacy.back();
+        flag = tmp->m_flag;
       }
       if ((flag & usr::FUNCTION) && (flag & usr::EXTERN)){
         using namespace declarators::function::definition;
@@ -860,13 +860,13 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
       usr::flag_t a = prev->m_flag;
       usr::flag_t& b = curr->m_flag;
       if ( a == usr::NONE && b == usr::NONE )
-	b = usr::EXTERN;
+        b = usr::EXTERN;
       else if ( a & usr::STATIC )
-	b = usr::flag_t(b | usr::STATIC);
+        b = usr::flag_t(b | usr::STATIC);
       else if ( a & usr::INLINE )
-	b = usr::flag_t(b | usr::INLINE);
+        b = usr::flag_t(b | usr::INLINE);
       if (a & usr::C_SYMBOL)
-	b = usr::flag_t(b | usr::C_SYMBOL);
+        b = usr::flag_t(b | usr::C_SYMBOL);
     }
     break;
   case scope::TAG:

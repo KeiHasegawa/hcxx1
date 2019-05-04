@@ -148,7 +148,7 @@ cxx_compiler::var* cxx_compiler::expressions::unary::new_expr::gen()
     if (p != usrs.end()) {
       const vector<usr*>& v = p->second;
       if (v.size() != 1)
-	error::not_implemented();
+        error::not_implemented();
       usr* ctor = v.back();
       const type* T = ctor->m_type;
       assert(T->m_id == type::FUNC);
@@ -158,13 +158,13 @@ cxx_compiler::var* cxx_compiler::expressions::unary::new_expr::gen()
       call_impl::common(ft, ctor, &arg, false, ret, false, 0);
       usr::flag_t flag = ctor->m_flag;
       if (!error::counter && !cmdline::no_inline_sub) {
-	if (flag & usr::INLINE) {
-	  using namespace declarations::declarators::function;
-	  using namespace definition::static_inline::skip;
-	  table_t::const_iterator p = stbl.find(ctor);
-	  if (p != stbl.end())
-	    substitute(code, code.size()-1, p->second);
-	}
+        if (flag & usr::INLINE) {
+          using namespace declarations::declarators::function;
+          using namespace definition::static_inline::skip;
+          table_t::const_iterator p = stbl.find(ctor);
+          if (p != stbl.end())
+            substitute(code, code.size()-1, p->second);
+        }
       }
     }
   }

@@ -968,8 +968,7 @@ dot(usr* member, argument* arg)
   typedef const record_type REC;
   REC* rec = static_cast<REC*>(arg->T);
   string name = member->m_name;
-  vector<tag*> dummy;
-  pair<int, usr*> ret = rec->offset(name, dummy);
+  pair<int, usr*> ret = rec->offset(name);
   int offset = ret.first;
   if ( !ret.second ){
     using namespace error::declarations::initializers::designator;

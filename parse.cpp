@@ -110,121 +110,121 @@ namespace cxx_compiler {
       } // end of namespace underscore_func
       using namespace std;
       namespace base_lookup {
-	struct help {
-	  string m_name;
-	  bool* m_virt;
-	  int* m_res;
-	  bool lookup(const map<string, vector<usr*> >& usrs, bool virt)
-	  {
+        struct help {
+          string m_name;
+          bool* m_virt;
+          int* m_res;
+          bool lookup(const map<string, vector<usr*> >& usrs, bool virt)
+          {
             map<string, vector<usr*> >::const_iterator p = usrs.find(m_name);
             if (p == end(usrs))
-	      return false;
-	    const vector<usr*>& v = p->second;
-	    usr* u = v.back();
-	    usr::flag_t flag = u->m_flag;
-	    if (flag & usr::CTOR)
-	      return false;
-	    *m_res = IDENTIFIER_LEX;
-	    *m_virt = virt;
-	    cxx_compiler_lval.m_var = u;
-	    if (flag & usr::OVERLOAD)
-	      return true;
-	    const type* T = u->m_type;
-	    if (const pointer_type* G = T->ptr_gen()) {
-	      cxx_compiler_lval.m_var = new genaddr(G,T,u,0);
-	      garbage.push_back(cxx_compiler_lval.m_var);
-	    }
-	    return true;
-	  }
-	  bool lookup(const map<string, tag*>& tags, bool virt)
-	  {
-	    map<string, tag*>::const_iterator p = tags.find(m_name);
-	    if (p == end(tags))
-	      return false;
-	    *m_res = CLASS_NAME_LEX;
-	    *m_virt = virt;
-	    tag* ptr = p->second;
-	    cxx_compiler_lval.m_tag = ptr;
-	    return true;
-	  }
-	  help(string name, bool* virt, int* res)
-	    : m_name(name), m_virt(virt), m_res(res) {}
-	  bool operator()(base* bp)
-	  {
+              return false;
+            const vector<usr*>& v = p->second;
+            usr* u = v.back();
+            usr::flag_t flag = u->m_flag;
+            if (flag & usr::CTOR)
+              return false;
+            *m_res = IDENTIFIER_LEX;
+            *m_virt = virt;
+            cxx_compiler_lval.m_var = u;
+            if (flag & usr::OVERLOAD)
+              return true;
+            const type* T = u->m_type;
+            if (const pointer_type* G = T->ptr_gen()) {
+              cxx_compiler_lval.m_var = new genaddr(G,T,u,0);
+              garbage.push_back(cxx_compiler_lval.m_var);
+            }
+            return true;
+          }
+          bool lookup(const map<string, tag*>& tags, bool virt)
+          {
+            map<string, tag*>::const_iterator p = tags.find(m_name);
+            if (p == end(tags))
+              return false;
+            *m_res = CLASS_NAME_LEX;
+            *m_virt = virt;
+            tag* ptr = p->second;
+            cxx_compiler_lval.m_tag = ptr;
+            return true;
+          }
+          help(string name, bool* virt, int* res)
+            : m_name(name), m_virt(virt), m_res(res) {}
+          bool operator()(base* bp)
+          {
             tag* ptr = bp->m_tag;
-	    if (lookup(ptr->m_usrs, bp->m_virtual))
-	      return true;
-	    
-	    if (lookup(ptr->m_tags, bp->m_virtual))
-	      return true;
+            if (lookup(ptr->m_usrs, bp->m_virtual))
+              return true;
+            
+            if (lookup(ptr->m_tags, bp->m_virtual))
+              return true;
 
-	    if (ptr->m_name == m_name) {
-	      *m_virt = bp->m_virtual;
-	      *m_res = CLASS_NAME_LEX;
-	      cxx_compiler_lval.m_tag = ptr;
-	      return true;
-	    }
+            if (ptr->m_name == m_name) {
+              *m_virt = bp->m_virtual;
+              *m_res = CLASS_NAME_LEX;
+              cxx_compiler_lval.m_tag = ptr;
+              return true;
+            }
 
-	    if (!ptr->m_bases)
-	      return false;
+            if (!ptr->m_bases)
+              return false;
 
-	    vector<base*>& bases = *ptr->m_bases;
-	    typedef vector<base*>::const_iterator IT;
-	    IT p = begin(bases);
-	    IT last = end(bases);
-	    p = find_if(p, last, help(m_name, m_virt, m_res));
-	    if (p == last)
-	      return false;
+            vector<base*>& bases = *ptr->m_bases;
+            typedef vector<base*>::const_iterator IT;
+            IT p = begin(bases);
+            IT last = end(bases);
+            p = find_if(p, last, help(m_name, m_virt, m_res));
+            if (p == last)
+              return false;
 
-	    bool virt2 = false;
-	    int res2 = 0;
-	    IT q = find_if(p+1, last, help(m_name, &virt2, &res2));
-	    if (q != last)
-	      error::not_implemented();
+            bool virt2 = false;
+            int res2 = 0;
+            IT q = find_if(p+1, last, help(m_name, &virt2, &res2));
+            if (q != last)
+              error::not_implemented();
 
-	    return true;
-	  }
-	};
+            return true;
+          }
+        };
         int action(string name, tag* ptr, bool* virt)
         {
           const vector<base*>* bases = ptr->m_bases;
           if ( !bases )
             return 0;
           typedef vector<base*>::const_iterator IT;
-	  int res = 0;
+          int res = 0;
           IT p = find_if(begin(*bases), end(*bases),
-			 help(name, virt, &res));
-	  if (p == end(*bases))
-	    return 0;
-	  var* save = cxx_compiler_lval.m_var;
-	  bool virt2 = false;
-	  int res2 = 0;
-	  IT q = find_if(p+1, end(*bases), help(name, &virt2, &res2));
-	  if (q != end(*bases)) {
-	    if (!*virt && !virt2) {
-	      if (cxx_compiler_lval.m_var != save)
-		error::not_implemented();
-	      assert(res == res2);
-	      var* v = cxx_compiler_lval.m_var;
-	      usr* u = v->usr_cast();
-	      if (!u)
-		error::not_implemented();
-	      usr::flag_t flag = u->m_flag;
-	      usr::flag_t mask = usr::flag_t(usr::STATIC | usr::ENUM_MEMBER);
-	      if (flag & mask)
-		return res;
-	    }
+                         help(name, virt, &res));
+          if (p == end(*bases))
+            return 0;
+          var* save = cxx_compiler_lval.m_var;
+          bool virt2 = false;
+          int res2 = 0;
+          IT q = find_if(p+1, end(*bases), help(name, &virt2, &res2));
+          if (q != end(*bases)) {
+            if (!*virt && !virt2) {
+              if (cxx_compiler_lval.m_var != save)
+                error::not_implemented();
+              assert(res == res2);
+              var* v = cxx_compiler_lval.m_var;
+              usr* u = v->usr_cast();
+              if (!u)
+                error::not_implemented();
+              usr::flag_t flag = u->m_flag;
+              usr::flag_t mask = usr::flag_t(usr::STATIC | usr::ENUM_MEMBER);
+              if (flag & mask)
+                return res;
+            }
 
-	    if (*virt && !virt2)
-	      return res2;
-	  }
+            if (*virt && !virt2)
+              return res2;
+          }
 
-	  if (*virt && virt2) {
-	    if (cxx_compiler_lval.m_var != save)
-	      error::not_implemented();
-	  }
-	  cxx_compiler_lval.m_var = save;
-	  return res;
+          if (*virt && virt2) {
+            if (cxx_compiler_lval.m_var != save)
+              error::not_implemented();
+          }
+          cxx_compiler_lval.m_var = save;
+          return res;
         }
         vector<tag*> route;
       }  // end of namespace base_lookup
@@ -354,14 +354,14 @@ namespace cxx_compiler {
       case DEFAULT_KW:
       case ORIGINAL_NAMESPACE_NAME_LEX:
       case NAMESPACE_ALIAS_LEX:
-	if (src) {
-	  assert(!src->empty());
-	  lval.push_back(src->front());
-	  src->pop_front();
-	}
-	else
-	  lval.push_back(cxx_compiler_lval.m_var);
-	break;
+        if (src) {
+          assert(!src->empty());
+          lval.push_back(src->front());
+          src->pop_front();
+        }
+        else
+          lval.push_back(cxx_compiler_lval.m_var);
+        break;
       }
     }
     inline int get_id_from_mem_fun_body(int n)
@@ -380,66 +380,66 @@ namespace cxx_compiler {
     {
       switch (n) {
       case PEEKED_NAME_LEX:
-	assert(!lval.empty());
-	cxx_compiler_lval.m_var = static_cast<var*>(lval.front());
-	lval.pop_front();
-	if (from_mem_fun_body)
-	  return get_id_from_mem_fun_body(n);
-	{
-	  usr* u = static_cast<usr*>(cxx_compiler_lval.m_var);
-	  assert(u->m_type->m_id == type::BACKPATCH);
-	  string name = u->m_name;
-	  last_token = identifier::judge(name);
-	  delete u;
-	}
-	return n;
+        assert(!lval.empty());
+        cxx_compiler_lval.m_var = static_cast<var*>(lval.front());
+        lval.pop_front();
+        if (from_mem_fun_body)
+          return get_id_from_mem_fun_body(n);
+        {
+          usr* u = static_cast<usr*>(cxx_compiler_lval.m_var);
+          assert(u->m_type->m_id == type::BACKPATCH);
+          string name = u->m_name;
+          last_token = identifier::judge(name);
+          delete u;
+        }
+        return n;
       case IDENTIFIER_LEX:
-	assert(!lval.empty());
-	cxx_compiler_lval.m_var = static_cast<var*>(lval.front());
-	lval.pop_front();
-	if (from_mem_fun_body)
-	  return get_id_from_mem_fun_body(n);
-	if (context_t::retry[DECL_FCAST_CONFLICT_STATE]) {
-	  usr* u = static_cast<usr*>(cxx_compiler_lval.m_var);
-	  assert(u->m_type->backpatch());
-	  string name = u->m_name;
-	  last_token = identifier::lookup(name, scope::current);
-	  delete u;
-	}
-	return n;
+        assert(!lval.empty());
+        cxx_compiler_lval.m_var = static_cast<var*>(lval.front());
+        lval.pop_front();
+        if (from_mem_fun_body)
+          return get_id_from_mem_fun_body(n);
+        if (context_t::retry[DECL_FCAST_CONFLICT_STATE]) {
+          usr* u = static_cast<usr*>(cxx_compiler_lval.m_var);
+          assert(u->m_type->backpatch());
+          string name = u->m_name;
+          last_token = identifier::lookup(name, scope::current);
+          delete u;
+        }
+        return n;
       case INTEGER_LITERAL_LEX:
       case CHARACTER_LITERAL_LEX:
       case FLOATING_LITERAL_LEX:
       case TYPEDEF_NAME_LEX:
-	assert(!lval.empty());
-	cxx_compiler_lval.m_usr = static_cast<usr*>(lval.front());
-	lval.pop_front();
-	return n;
+        assert(!lval.empty());
+        cxx_compiler_lval.m_usr = static_cast<usr*>(lval.front());
+        lval.pop_front();
+        return n;
       case STRING_LITERAL_LEX:
-	assert(!lval.empty());
-	cxx_compiler_lval.m_var = static_cast<var*>(lval.front());
-	lval.pop_front();
-	return n;
+        assert(!lval.empty());
+        cxx_compiler_lval.m_var = static_cast<var*>(lval.front());
+        lval.pop_front();
+        return n;
       case CLASS_NAME_LEX:
       case ENUM_NAME_LEX:
-	assert(!lval.empty());
-	cxx_compiler_lval.m_tag = static_cast<tag*>(lval.front());
-	lval.pop_front();
-	return n;
+        assert(!lval.empty());
+        cxx_compiler_lval.m_tag = static_cast<tag*>(lval.front());
+        lval.pop_front();
+        return n;
       case DEFAULT_KW:
-	assert(!lval.empty());
-	cxx_compiler_lval.m_file = static_cast<file_t*>(lval.front());
-	lval.pop_front();
-	return n;
+        assert(!lval.empty());
+        cxx_compiler_lval.m_file = static_cast<file_t*>(lval.front());
+        lval.pop_front();
+        return n;
       case ORIGINAL_NAMESPACE_NAME_LEX:
       case NAMESPACE_ALIAS_LEX:
-	assert(!lval.empty());
-	cxx_compiler_lval.m_name_space =
-	  static_cast<name_space*>(lval.front());
-	lval.pop_front();
-	return n;
+        assert(!lval.empty());
+        cxx_compiler_lval.m_name_space =
+          static_cast<name_space*>(lval.front());
+        lval.pop_front();
+        return n;
       default:
-	return n;
+        return n;
       }
     }
   } // end of namespace parse
@@ -665,9 +665,9 @@ void cxx_compiler::parse::block::enter()
       scope::current = children.back();
       if (!T) {
         parameter::decide_dim(), new_block(), parameter::move();
-	usr* u = fundef::current->m_usr;
-	assert(!(u->m_flag & usr::OVERLOAD));
-	u->m_flag = usr::flag_t(u->m_flag | usr::INLINE);
+        usr* u = fundef::current->m_usr;
+        assert(!(u->m_flag & usr::OVERLOAD));
+        u->m_flag = usr::flag_t(u->m_flag | usr::INLINE);
         return member_function_body::save();
       }
       if ( !(fundef::current->m_usr->m_flag & usr::STATIC) ){

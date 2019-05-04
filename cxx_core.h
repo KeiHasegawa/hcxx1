@@ -1120,18 +1120,18 @@ inline bool is_external_declaration(var* v)
     {
       const type* T = v->m_type;
       if (!T) {
-	assert(v->usr_cast());
-	usr* u = static_cast<usr*>(v);
-	assert(u->m_flag & usr::OVERLOAD);
-	return true;
+        assert(v->usr_cast());
+        usr* u = static_cast<usr*>(v);
+        assert(u->m_flag & usr::OVERLOAD);
+        return true;
       }
       if (T->m_id == type::FUNC)
-	return true;
+        return true;
       if (usr* u = v->usr_cast()){
-	usr::flag_t flag = u->m_flag;
-	usr::flag_t mask = usr::flag_t(usr::STATIC | usr::STATIC_DEF);
-	if ( flag & mask )
-	  return true;
+        usr::flag_t flag = u->m_flag;
+        usr::flag_t mask = usr::flag_t(usr::STATIC | usr::STATIC_DEF);
+        if ( flag & mask )
+          return true;
       }
       return false;
     }
@@ -1624,7 +1624,7 @@ public:
   int size() const { return m_size; }
   bool scalar() const { return false; }
   bool modifiable() const { return m_modifiable; }
-  std::pair<int, usr*> offset(std::string, const std::vector<tag*>&) const;
+  std::pair<int, usr*> offset(std::string) const;
   const std::map<base*, int>& base_offset() const { return m_base_offset; }
   const std::map<base*, int>& vbtbl_offset() const { return m_vbtbl_offset; }
   const std::map<base*, int>& vftbl_offset() const { return m_vftbl_offset; }

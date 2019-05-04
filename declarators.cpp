@@ -404,21 +404,21 @@ namespace cxx_compiler {
     namespace declarators {
       namespace function {
         namespace definition {
-	  inline void delete_erase(scope* param, vector<tac*>& vc)
-	  {
-	    assert(param->m_id == scope::PARAM);
-	    vector<scope*>& children = param->m_parent->m_children;
-	    typedef vector<scope*>::reverse_iterator IT;
-	    IT p = find(rbegin(children), rend(children), param);
-	    assert(p != rend(children));
-	    vector<scope*>::iterator q = p.base() - 1;
-	    delete param;
-	    children.erase(q);
+          inline void delete_erase(scope* param, vector<tac*>& vc)
+          {
+            assert(param->m_id == scope::PARAM);
+            vector<scope*>& children = param->m_parent->m_children;
+            typedef vector<scope*>::reverse_iterator IT;
+            IT p = find(rbegin(children), rend(children), param);
+            assert(p != rend(children));
+            vector<scope*>::iterator q = p.base() - 1;
+            delete param;
+            children.erase(q);
 
-	    for (tac* p : vc)
-	      delete p;
-	    vc.clear();
-	  }
+            for (tac* p : vc)
+              delete p;
+            vc.clear();
+          }
           namespace static_inline {
             using namespace std;
             extern void remember(fundef*, vector<tac*>&);
@@ -577,7 +577,7 @@ namespace cxx_compiler { namespace declarations { namespace declarators { namesp
     string name = u->m_name;
     it = find_if(stbl.begin(),stbl.end(),
          [name](const pair<usr*, info_t*>& p)
-		 { return p.first->m_name == name; });
+                 { return p.first->m_name == name; });
     if (it != stbl.end()) {
       info_t* info = it->second;
       stbl.erase(it);
@@ -709,8 +709,8 @@ namespace cxx_compiler { namespace declarations { namespace declarators { namesp
       typedef vector<scope*>::reverse_iterator IT;
       IT p = find(rbegin(children), rend(children), param);
       if (p != rend(children)) {
-	vector<scope*>::iterator q = p.base() - 1;
-	children.erase(q);
+        vector<scope*>::iterator q = p.base() - 1;
+        children.erase(q);
       }
       vc.clear();
     }

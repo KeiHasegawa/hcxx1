@@ -91,8 +91,7 @@ namespace cxx_compiler {
       tag* ptr = rec->get_tag();
       map<string, vector<usr*> >& usrs = ptr->m_usrs;
       assert(usrs.find(vbptr_name) != usrs.end());
-      vector<tag*> dummy;
-      pair<int, usr*> off = rec->offset(vbptr_name, dummy);
+      pair<int, usr*> off = rec->offset(vbptr_name);
       int offset = off.first;
       assert(offset >= 0);
       usr* u = off.second;
@@ -186,22 +185,22 @@ namespace cxx_compiler {
     {
       const type* Ty = y->m_type;
       if ( Tx == Ty )
-	return y;
+        return y;
       var* x = new var(Tx);
       if ( scope::current->m_id == scope::BLOCK ){
-	block* b = static_cast<block*>(scope::current);
-	b->m_vars.push_back(x);
+        block* b = static_cast<block*>(scope::current);
+        b->m_vars.push_back(x);
       }
       else
-	garbage.push_back(x);
+        garbage.push_back(x);
       if (!cast_impl::require(Tx, Ty))
-	code.push_back(new assign3ac(x, y));
+        code.push_back(new assign3ac(x, y));
       else {
-	code.push_back(new cast3ac(x, y, Tx));
-	if (var* off = cast_impl::base_ptr_offset(Tx, y, route))
-	  code.push_back(new add3ac(x, x, off));
-	else if (var* off = cast_impl::base_ptr_offset(Ty, x, route))
-	  code.push_back(new sub3ac(x, x, off));
+        code.push_back(new cast3ac(x, y, Tx));
+        if (var* off = cast_impl::base_ptr_offset(Tx, y, route))
+          code.push_back(new add3ac(x, x, off));
+        else if (var* off = cast_impl::base_ptr_offset(Ty, x, route))
+          code.push_back(new sub3ac(x, x, off));
       }
       return x;
     }

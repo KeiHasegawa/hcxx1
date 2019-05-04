@@ -151,10 +151,10 @@ void cxx_compiler::classes::members::action(var* v, expressions::base* expr)
       const type* T = cons->m_type;
       T = T->unqualified();
       if (T->m_id != type::INT)
-	error::not_implemented();
+        error::not_implemented();
       constant<int>* c = static_cast<constant<int>*>(cons);
       if (c->m_value != 0)
-	error::not_implemented();
+        error::not_implemented();
       u->m_flag = usr::flag_t(flag | usr::PURE_VIRT);
     }
   }

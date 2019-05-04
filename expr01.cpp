@@ -180,7 +180,7 @@ cxx_compiler::genaddr::call(std::vector<var*>* arg)
     }
   }
   var* ret = call_impl::common(ft, u, arg, false, this_ptr,
-			       m_qualified_func, 0);
+                               m_qualified_func, 0);
   if (!error::counter && !cmdline::no_inline_sub) {
     if (flag & usr::INLINE) {
       using namespace declarations::declarators::function;
@@ -208,16 +208,16 @@ cxx_compiler::member_function::call(std::vector<var*>* arg)
   typedef const func_type FT;
   FT* ft = static_cast<FT*>(T);
   var* ret = call_impl::common(ft,m_fun,arg,false,m_obj,m_qualified_func,
-			       m_vftbl_off);
+                               m_vftbl_off);
   if (usr* u = m_fun->usr_cast()) {
     usr::flag_t flag = u->m_flag;
     if (!error::counter && !cmdline::no_inline_sub) {
       if (flag & usr::INLINE) {
-	using namespace declarations::declarators::function;
-	using namespace definition::static_inline::skip;
-	table_t::const_iterator p = stbl.find(u);
-	if (p != stbl.end())
-	  substitute(code, code.size()-1, p->second);
+        using namespace declarations::declarators::function;
+        using namespace definition::static_inline::skip;
+        table_t::const_iterator p = stbl.find(u);
+        if (p != stbl.end())
+          substitute(code, code.size()-1, p->second);
       }
     }
   }
@@ -262,7 +262,7 @@ cxx_compiler::member_function::rvalue()
     with_initial* vftbl = static_cast<with_initial*>(u);
     map<int, var*>::const_iterator q =
       find_if(begin(vftbl->m_value), end(vftbl->m_value),
-	      bind2nd(ptr_fun(match_vf),vf));
+              bind2nd(ptr_fun(match_vf),vf));
     assert(q != end(vftbl->m_value));
     int offset = q->first;
     var* off = integer::create(offset);
@@ -290,16 +290,16 @@ namespace cxx_compiler {
       FUNC* ft = static_cast<FUNC*>(T);
       var* tmp = call_impl::common(ft, u, arg, true, obj, false, 0);
       if (tmp) {
-	if (!error::counter && !cmdline::no_inline_sub) {
-	  usr::flag_t flag = u->m_flag;
-	  if (flag & usr::INLINE) {
-	    using namespace declarations::declarators::function;
-	    using namespace definition::static_inline::skip;
-	    table_t::const_iterator p = stbl.find(u);
-	    if (p != stbl.end())
-	      substitute(code, code.size()-1, p->second);
-	  }
-	}
+        if (!error::counter && !cmdline::no_inline_sub) {
+          usr::flag_t flag = u->m_flag;
+          if (flag & usr::INLINE) {
+            using namespace declarations::declarators::function;
+            using namespace definition::static_inline::skip;
+            table_t::const_iterator p = stbl.find(u);
+            if (p != stbl.end())
+              substitute(code, code.size()-1, p->second);
+          }
+        }
       }
       return new result(tmp);
     }
@@ -314,7 +314,7 @@ cxx_compiler::var* cxx_compiler::overload::call(std::vector<var*>* arg)
   var* obj = m_obj;
   misc::pvector<result> res;
   transform(begin(cand), end(cand), back_inserter(res),
-	    [arg, obj](usr* u){ return do_trial(u, arg, obj); });
+            [arg, obj](usr* u){ return do_trial(u, arg, obj); });
   vector<result*>::iterator p = begin(res);
   while ( p != end(res) ){
     p = find_if(p, end(res), mem_fun(&result::NG));
@@ -365,8 +365,8 @@ cxx_compiler::call_impl::common(const func_type* ft,
                                 std::vector<var*>* arg,
                                 bool trial,
                                 var* obj,
-				bool qualified_func,
-				var* vftbl_off)
+                                bool qualified_func,
+                                var* vftbl_off)
 {
   using namespace std;
   const vector<const type*>& param = ft->param();
@@ -399,21 +399,21 @@ cxx_compiler::call_impl::common(const func_type* ft,
       type::id_t id = T->m_id;
       assert(id == type::POINTER || id == type::REFERENCE);
       if (usr* u = func->usr_cast()) {
-	usr::flag_t flag = u->m_flag;
-	if ((flag & usr::VIRTUAL) && !qualified_func)
-	  func = ref_vftbl(u,obj);
+        usr::flag_t flag = u->m_flag;
+        if ((flag & usr::VIRTUAL) && !qualified_func)
+          func = ref_vftbl(u,obj);
       }
       else if (vftbl_off) {
-	  using namespace expressions::primary::literal;
-	  var* zero = integer::create(0);
-	  goto3ac* go = new goto3ac(goto3ac::LT, vftbl_off, zero);
-	  code.push_back(go);
-	  if (var* vf = ref_vftbl(obj, vftbl_off, ft))
-	    code.push_back(new assign3ac(func, vf));
-	  to3ac* to = new to3ac;
-	  code.push_back(to);
-	  go->m_to = to;
-	  to->m_goto.push_back(go);
+        using namespace expressions::primary::literal;
+        var* zero = integer::create(0);
+        goto3ac* go = new goto3ac(goto3ac::LT, vftbl_off, zero);
+        code.push_back(go);
+        if (var* vf = ref_vftbl(obj, vftbl_off, ft))
+          code.push_back(new assign3ac(func, vf));
+        to3ac* to = new to3ac;
+        code.push_back(to);
+        go->m_to = to;
+        to->m_goto.push_back(go);
       }
       code.push_back(new param3ac(obj));
     }
@@ -431,7 +431,7 @@ cxx_compiler::call_impl::common(const func_type* ft,
     }
   }
   transform(conved.begin(),conved.end(),back_inserter(code),
-	    call_impl::gen_param);
+            call_impl::gen_param);
   
   const type* T = ft->return_type();
   if ( T )
@@ -484,12 +484,12 @@ namespace cxx_compiler {
       const type* R = rt->referenced_type();
       R = R->unqualified();
       if (R == T)
-	return make_pair(R,0);
+        return make_pair(R,0);
       pair<const type*, int> zero;
       if (R->m_id != type::RECORD)
-	return zero;
+        return zero;
       if (T->m_id != type::RECORD)
-	return zero;
+        return zero;
       typedef const record_type REC;
       REC* x = static_cast<REC*>(R);
       REC* y = static_cast<REC*>(T);
@@ -548,30 +548,30 @@ cxx_compiler::var* cxx_compiler::call_impl::convert::operator()(var* arg)
         arg = tmp;
       }
       if (arg->lvalue())
-	arg = arg->address();
+        arg = arg->address();
       else {
-	var* tmp = new var(U);
-	if (scope::current->m_id == scope::BLOCK) {
-	  block* b = static_cast<block*>(scope::current);
-	  b->m_vars.push_back(tmp);
-	}
-	else
-	  garbage.push_back(tmp);
-	code.push_back(new addr3ac(tmp, arg));
-	arg = tmp;
+        var* tmp = new var(U);
+        if (scope::current->m_id == scope::BLOCK) {
+          block* b = static_cast<block*>(scope::current);
+          b->m_vars.push_back(tmp);
+        }
+        else
+          garbage.push_back(tmp);
+        code.push_back(new addr3ac(tmp, arg));
+        arg = tmp;
       }
       if (offset) {
-	using namespace expressions::primary::literal;
-	var* off = integer::create(offset);
-	var* tmp = new var(U);
-	if (scope::current->m_id == scope::BLOCK) {
-	  block* b = static_cast<block*>(scope::current);
-	  b->m_vars.push_back(tmp);
-	}
-	else
-	  garbage.push_back(tmp);
-	code.push_back(new add3ac(tmp, arg, off));
-	arg = tmp;
+        using namespace expressions::primary::literal;
+        var* off = integer::create(offset);
+        var* tmp = new var(U);
+        if (scope::current->m_id == scope::BLOCK) {
+          block* b = static_cast<block*>(scope::current);
+          b->m_vars.push_back(tmp);
+        }
+        else
+          garbage.push_back(tmp);
+        code.push_back(new add3ac(tmp, arg, off));
+        arg = tmp;
       }
     }
   }
@@ -598,8 +598,7 @@ cxx_compiler::var* cxx_compiler::call_impl::ref_vftbl(usr* vf, var* vp)
   const func_type* ft = static_cast<const func_type*>(T);
   const pointer_type* pt = pointer_type::create(ft);
   var* tmp = 0;
-  vector<tag*> dummy;
-  pair<int, usr*> off = rec->offset(vfptr_name, dummy);
+  pair<int, usr*> off = rec->offset(vfptr_name);
   int vfptr_offset = off.first;
   assert(vfptr_offset >= 0);
   if (!vfptr_offset)  {
@@ -664,7 +663,7 @@ cxx_compiler::var* cxx_compiler::call_impl::ref_vftbl(usr* vf, var* vp)
 
 cxx_compiler::var*
 cxx_compiler::call_impl::ref_vftbl(var* vp, var* vftbl_off,
-				   const func_type* ft)
+                                   const func_type* ft)
 {
   const type* T = vp->m_type;
   T = T->unqualified();
@@ -684,8 +683,7 @@ cxx_compiler::call_impl::ref_vftbl(var* vp, var* vftbl_off,
   assert(T->m_id == type::RECORD);
   typedef const record_type REC;
   REC* rec = static_cast<REC*>(T);
-  vector<tag*> dummy;
-  pair<int, usr*> p = rec->offset(vfptr_name, dummy);
+  pair<int, usr*> p = rec->offset(vfptr_name);
   int vfptr_offset = p.first;
   if (vfptr_offset < 0)
     return 0;
@@ -1121,18 +1119,18 @@ cxx_compiler::var::member(var* expr, bool dot, const std::vector<tag*>& route)
     if (dot) {
       var* tmp = new var(T);
       if (scope::current->m_id == scope::BLOCK) {
-	block* b = static_cast<block*>(scope::current);
-	b->m_vars.push_back(tmp);
+        block* b = static_cast<block*>(scope::current);
+        b->m_vars.push_back(tmp);
       }
       else
-	garbage.push_back(tmp);
+        garbage.push_back(tmp);
       code.push_back(new addr3ac(tmp, this));
       bool direct_virt = false;
       int offset = type_impl::calc_offset(rec, mrec, route, &direct_virt);
       assert(offset >= 0);
       if (offset) {
-	var* off = integer::create(offset);
-	code.push_back(new add3ac(tmp, tmp, off));
+        var* off = integer::create(offset);
+        code.push_back(new add3ac(tmp, tmp, off));
       }
       return new member_function(tmp, member, qualified_func);
     }
@@ -1141,7 +1139,7 @@ cxx_compiler::var::member(var* expr, bool dot, const std::vector<tag*>& route)
   }
 
   if (rec == mrec) {
-    pair<int, usr*> off = rec->offset(member->m_name, route);
+    pair<int, usr*> off = rec->offset(member->m_name);
     int offset = off.first;
     if (offset < 0)
       return this;
@@ -1167,8 +1165,7 @@ cxx_compiler::var::member(var* expr, bool dot, const std::vector<tag*>& route)
   bool direct_virtual = false;
   int base_offset = type_impl::calc_offset(rec, mrec, route, &direct_virtual);
   assert(base_offset >= 0);
-  vector<tag*> dummy;
-  pair<int, usr*> off = mrec->offset(member->m_name, dummy);
+  pair<int, usr*> off = mrec->offset(member->m_name);
   int offset = off.first;
   assert(offset >= 0);
 
@@ -1539,7 +1536,7 @@ assignment::valid(const type* T, var* src, bool* discard)
       X = pointer_type::create(X);
       var tmp(X);
       if (valid(T, &tmp, discard))
-	return xx;
+        return xx;
     }
     return 0;
   }

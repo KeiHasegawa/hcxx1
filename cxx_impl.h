@@ -433,8 +433,8 @@ namespace dump {
 namespace type_impl {
   extern void update(int (*)(int id));
   extern int calc_offset(const record_type* drec,
-			 const record_type* brec,
-			 const std::vector<tag*>&, bool*);
+                         const record_type* brec,
+                         const std::vector<tag*>&, bool*);
 } // end of namespace type_impl
 
 namespace record_impl {
@@ -761,7 +761,7 @@ namespace expressions {
         scope* m_scope;
         file_t m_file;
         var* m_member;
-	vector<tag*> m_route;
+        vector<tag*> m_route;
         var* gen();
         const file_t& file() const { return m_file; }
         info_t(const vector<tac*>& c, var* expr, bool dot, scope* s, const file_t& file)
@@ -1320,8 +1320,8 @@ namespace call_impl {
               vector<var*>* arg,
               bool trial,
               var* this_ptr,
-	      bool qualified_func,
-	      var* vftbl_off);
+              bool qualified_func,
+              var* vftbl_off);
 } // end of namespace call_impl
 
 void original_namespace_definition(var*);

@@ -115,11 +115,11 @@ cxx_compiler::var* cxx_compiler::refaddr::assign(var* op)
     if (offset) {
       var* tmp = new var(xx->m_type);
       if (scope::current->m_id == scope::BLOCK) {
-	block* b = static_cast<block*>(scope::current);
-	b->m_vars.push_back(tmp);
+        block* b = static_cast<block*>(scope::current);
+        b->m_vars.push_back(tmp);
       }
       else
-	garbage.push_back(tmp);
+        garbage.push_back(tmp);
       code.push_back(new add3ac(tmp, xx, y));
       xx = tmp;
     }
