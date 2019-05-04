@@ -177,7 +177,7 @@ namespace cxx_compiler {
           return ref_vbtbl(Ry, *p, src);
       }
       bool direct_virtual = false;
-      int offset = Ry->base_offset(Rx, route, &direct_virtual);
+      int offset = type_impl::calc_offset(Ry, Rx, route, &direct_virtual);
       if (offset <= 0)
         return 0;
       return integer::create(offset);

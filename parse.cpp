@@ -15,8 +15,15 @@ namespace cxx_compiler {
   } // end of namespace parse and
 } // end of namespace cxx_compiler
 
+void debug_break()
+{
+}
+
 int cxx_compiler::parse::identifier::judge(std::string name)
 {
+  if (name == "a" && position.m_lineno == 9)
+    debug_break();
+
   if (mode == peeking)
     return create(name), PEEKED_NAME_LEX;
 

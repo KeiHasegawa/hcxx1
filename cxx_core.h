@@ -1625,10 +1625,11 @@ public:
   bool scalar() const { return false; }
   bool modifiable() const { return m_modifiable; }
   std::pair<int, usr*> offset(std::string, const std::vector<tag*>&) const;
-  int base_offset(const record_type*, const std::vector<tag*>&, bool*) const;
   const std::map<base*, int>& base_offset() const { return m_base_offset; }
   const std::map<base*, int>& vbtbl_offset() const { return m_vbtbl_offset; }
   const std::map<base*, int>& vftbl_offset() const { return m_vftbl_offset; }
+  const std::map<const record_type*, int>& virt_common_offset() const
+  { return m_virt_common_offset; }
   int position(usr*) const;
   std::pair<int, const type*> current(int) const;
   const std::vector<usr*> member() const { return m_member; }

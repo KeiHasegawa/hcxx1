@@ -495,7 +495,7 @@ namespace cxx_compiler {
       REC* y = static_cast<REC*>(T);
       vector<tag*> dummy;
       bool direct_virt = false;
-      int offset = y->base_offset(x, dummy, &direct_virt);
+      int offset = type_impl::calc_offset(y, x, dummy, &direct_virt);
       return offset >= 0 ? make_pair(R,offset) : zero;
     }
   } // end of namepsace call_impl
@@ -1128,7 +1128,7 @@ cxx_compiler::var::member(var* expr, bool dot, const std::vector<tag*>& route)
 	garbage.push_back(tmp);
       code.push_back(new addr3ac(tmp, this));
       bool direct_virt = false;
-      int offset = rec->base_offset(mrec, route, &direct_virt);
+      int offset = type_impl::calc_offset(rec, mrec, route, &direct_virt);
       assert(offset >= 0);
       if (offset) {
 	var* off = integer::create(offset);
@@ -1165,7 +1165,7 @@ cxx_compiler::var::member(var* expr, bool dot, const std::vector<tag*>& route)
   }
 
   bool direct_virtual = false;
-  int base_offset = rec->base_offset(mrec, route, &direct_virtual);
+  int base_offset = type_impl::calc_offset(rec, mrec, route, &direct_virtual);
   assert(base_offset >= 0);
   vector<tag*> dummy;
   pair<int, usr*> off = mrec->offset(member->m_name, dummy);
@@ -1507,7 +1507,7 @@ assignment::valid(const type* T, var* src, bool* discard)
         REC* ry = static_cast<REC*>(Ty);
         vector<tag*> dummy;
         bool direct_virtual = false;
-        if (ry->base_offset(rx, dummy, &direct_virtual) >= 0) {
+        if (type_impl::calc_offset(ry, rx, dummy, &direct_virtual) >= 0) {
           if (include(cvr_x, cvr_y))
             return px;
           else {

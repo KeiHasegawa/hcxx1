@@ -312,7 +312,7 @@ cxx_compiler::var* cxx_compiler::usr::address()
 
 namespace cxx_compiler {
   namespace genaddr_impl {
-    inline var* normal(var* ref, block* b)
+    inline var* addr_normal(var* ref, block* b)
     {
       const type* T = ref->m_type;
       T = pointer_type::create(T);
@@ -342,17 +342,17 @@ cxx_compiler::var* cxx_compiler::genaddr::address()
   usr* func = fundef::current->m_usr;
   scope* p = func->m_scope;
   if (p->m_id == scope::TAG)
-    return genaddr_impl::normal(m_ref, b);
+    return genaddr_impl::addr_normal(m_ref, b);
   scope* q = m_ref->m_scope;
   if (q->m_id != scope::TAG)
-    return genaddr_impl::normal(m_ref, b);
+    return genaddr_impl::addr_normal(m_ref, b);
   tag* ptr = static_cast<tag*>(q);
   usr* u = m_ref->usr_cast();
   if (!u)
-    return genaddr_impl::normal(m_ref, b);
+    return genaddr_impl::addr_normal(m_ref, b);
   usr::flag_t flag = u->m_flag;
   if (flag & usr::STATIC)
-    return genaddr_impl::normal(m_ref, b);
+    return genaddr_impl::addr_normal(m_ref, b);
 
   const type* T = m_ref->m_type;
   const type* pt = pointer_type::create(T);
