@@ -1438,8 +1438,7 @@ namespace cxx_compiler {
       tag* xtag = Tx->get_tag();
       tag* ytag = Ty->get_tag();
       string name = xtag->m_name;
-      bool virt = false;
-      int r = parse::identifier::base_lookup::action(name, ytag, &virt);
+      int r = parse::identifier::base_lookup::action(name, ytag);
       return r == CLASS_NAME_LEX;
     }
     if (Ty->m_id != type::RECORD)
@@ -1447,9 +1446,8 @@ namespace cxx_compiler {
     typedef const record_type REC;
     REC* Rx = static_cast<REC*>(Tx);
     REC* Ry = static_cast<REC*>(Ty);
-    vector<tag*> dummy;
-    bool direct_virt = false;
-    int offset = type_impl::calc_offset(Ry, Rx, dummy, &direct_virt);
+    vector<route_t> dummy;
+    int offset = type_impl::calc_offset(Ry, Rx, dummy);
     return offset >= 0;
   }
   namespace record_impl {
@@ -2529,16 +2527,25 @@ record_type::offset(std::string name) const
 namespace cxx_compiler {
   namespace record_impl {
     using namespace std;
+    inline bool match(const route_t& r, const record_type* yrec)
+    {
+      base* bp = r.first;
+      if (!bp)
+	return false;
+      if (!bp->m_virtual)
+	return false;
+      return bp->m_tag == yrec->get_tag();
+    }
     struct cmp_base {
       tag* m_tag;
-      const vector<tag*>& m_route;
-      cmp_base(tag* ptr, const vector<tag*>& route)
+      const vector<route_t>& m_route;
+      cmp_base(tag* ptr, const vector<route_t>& route)
         : m_tag(ptr), m_route(route) {}
       bool operator()(base* pb)
       {
+        if (!m_route.empty())
+          return pb == m_route[0].first;
         tag* xtag = pb->m_tag;
-        if (m_route.size() >= 2)
-          return xtag == m_route[1];
         if (xtag == m_tag)
           return true;
         const type* Tx = xtag->m_types.second;
@@ -2548,9 +2555,8 @@ namespace cxx_compiler {
         const type* Ty = m_tag->m_types.second;
         assert(Ty->m_id == type::RECORD);
         REC* Ry = static_cast<REC*>(Ty);
-        vector<tag*> dummy;
-        bool direct_virtual = false;
-        int offset = type_impl::calc_offset(Rx, Ry, dummy, &direct_virtual);
+        vector<route_t> dummy;
+        int offset = type_impl::calc_offset(Rx, Ry, dummy);
         return offset >= 0;
       }
     };
@@ -2560,12 +2566,49 @@ namespace cxx_compiler {
 int
 cxx_compiler::type_impl::calc_offset(const record_type* xrec,
                                      const record_type* yrec,
-                                     const std::vector<tag*>& route,
-                                     bool* direct_virtual)
+                                     const std::vector<route_t>& route)
 {
+  using namespace std;
   using namespace record_impl;
+
+  if (route.empty()) {
+    typedef map<const record_type*, int>::const_iterator ITx;
+    const map<const record_type*, int>& vco = xrec->virt_common_offset();
+    ITx px = vco.find(yrec);
+    if (px != vco.end())
+      return px->second;
+  }
+  else {
+    typedef const record_type REC;
+    if (REC* rec = route[0].second) {
+      typedef map<const record_type*, int>::const_iterator ITx;
+      const map<const record_type*, int>& vco = xrec->virt_common_offset();
+      ITx px = vco.find(rec);
+      assert(px != vco.end());
+      int n = px->second;
+      vector<route_t> route2;
+      copy(begin(route)+1, end(route), back_inserter(route2));
+      return n + calc_offset(rec, yrec, route2);
+    }
+  }
+
+  typedef vector<route_t>::const_iterator IT;
+  IT p = begin(route);
+  while (p != end(route)) {
+    p = find_if(p, end(route),
+		[yrec](const route_t& r){ return match(r, yrec); });
+    if (p != end(route)) {
+      typedef map<const record_type*, int>::const_iterator ITx;
+      const map<const record_type*, int>& vco = xrec->virt_common_offset();
+      ITx px = vco.find(yrec);
+      if (px != vco.end())
+	return px->second;
+    }
+  }
+
   if (xrec == yrec)
     return 0;
+
   tag* xtag = xrec->get_tag();
   tag* ytag = yrec->get_tag();
   if (!xtag->m_bases)
@@ -2573,17 +2616,9 @@ cxx_compiler::type_impl::calc_offset(const record_type* xrec,
   const vector<base*>& bases = *xtag->m_bases;
   typedef vector<base*>::const_iterator ITy;
   ITy py = find_if(begin(bases), end(bases), cmp_base(ytag, route));
-  if (py == end(bases)) {
-    typedef map<const record_type*, int>::const_iterator ITx;
-    const map<const record_type*, int>& vco = xrec->virt_common_offset();
-    ITx px = vco.find(yrec);
-    if (px != vco.end())
-      return px->second;
+  if (py == end(bases))
     return -1;
-  }
   base* b = *py;
-  if (b->m_virtual)
-    *direct_virtual = true;
   const map<base*, int>& base_offset = xrec->base_offset();
   map<base*, int>::const_iterator q = base_offset.find(b);
   assert(q != base_offset.end());
@@ -2594,19 +2629,10 @@ cxx_compiler::type_impl::calc_offset(const record_type* xrec,
   assert(Tb->m_id == type::RECORD);
   typedef const record_type REC;
   REC* Rb = static_cast<REC*>(Tb);
-  vector<tag*> route2;
+  vector<route_t> route2;
   if (!route.empty())
     copy(begin(route)+1, end(route), back_inserter(route2));
-  bool direct_virtual2 = false;
-  int m = type_impl::calc_offset(Rb, yrec, route2, &direct_virtual2);
-  if (direct_virtual2) {
-    typedef map<const record_type*, int>::const_iterator ITx;
-    const map<const record_type*, int>& vco = xrec->virt_common_offset();
-    ITx px = vco.find(yrec);
-    if (px != vco.end())
-      return px->second;
-    return -1;
-  }
+  int m = type_impl::calc_offset(Rb, yrec, route2);
   assert(m >= 0);
   return n + m;
 }
@@ -2623,10 +2649,9 @@ std::pair<int, const cxx_compiler::type*>
 cxx_compiler::record_type::current(int nth) const
 {
   using namespace std;
-  tag* ptr = get_tag();
-  if ( ptr->m_kind == tag::UNION && nth >= 1 )
+  if (m_tag->m_kind == tag::UNION && nth >= 1)
     return make_pair(-1,static_cast<const type*>(0));
-  if ( m_member.size() <= nth )
+  if (m_member.size() <= nth)
     return make_pair(-1,static_cast<const type*>(0));
   usr* u = m_member[nth];
   const type* T = u->m_type;

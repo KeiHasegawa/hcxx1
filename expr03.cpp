@@ -142,7 +142,7 @@ namespace cxx_compiler {
       return t2;
     }
     inline var*
-    base_ptr_offset(const type* Tx, var* src, const vector<tag*>& route)
+    base_ptr_offset(const type* Tx, var* src, const vector<route_t>& route)
     {
       using namespace expressions::primary::literal;
       Tx = Tx->unqualified();
@@ -175,13 +175,12 @@ namespace cxx_compiler {
         if (p != end(bases))
           return ref_vbtbl(Ry, *p, src);
       }
-      bool direct_virtual = false;
-      int offset = type_impl::calc_offset(Ry, Rx, route, &direct_virtual);
+      int offset = type_impl::calc_offset(Ry, Rx, route);
       if (offset <= 0)
         return 0;
       return integer::create(offset);
     }
-    var* with_route(var* y, const type* Tx, const vector<tag*>& route)
+    var* with_route(var* y, const type* Tx, const vector<route_t>& route)
     {
       const type* Ty = y->m_type;
       if ( Tx == Ty )
@@ -209,7 +208,7 @@ namespace cxx_compiler {
 
 cxx_compiler::var* cxx_compiler::var::cast(const type* T)
 {
-  vector<tag*> dummy;
+  vector<route_t> dummy;
   return cast_impl::with_route(this, T, dummy);
 }
 

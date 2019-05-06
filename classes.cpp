@@ -305,7 +305,7 @@ namespace cxx_compiler {
               block* b = static_cast<block*>(ps);
               scope* org = scope::current;
               scope::current = b;
-              vector<tag*> dummy;
+              vector<route_t> dummy;
               var* dst = from_member(u, dummy);
               gen(dst, p);
               scope::current = org;

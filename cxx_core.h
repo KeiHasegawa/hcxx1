@@ -77,6 +77,9 @@ namespace statements {
   namespace do_stmt { struct info_t; }
 } // end of namespace statements
 
+class record_type;
+typedef std::pair<base*, const record_type*> route_t;
+
 struct var {
   const type* m_type;
   scope* m_scope;
@@ -92,7 +95,7 @@ struct var {
 
   virtual var* subscripting(var*);
   virtual var* call(std::vector<var*>*);
-  var* member(var*, bool, const std::vector<tag*>&);
+  var* member(var*, bool, const std::vector<route_t>&);
   var* ptr_member(var*, bool);
   virtual var* ppmm(bool, bool);
   virtual var* address();

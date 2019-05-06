@@ -15,15 +15,8 @@ namespace cxx_compiler {
   } // end of namespace parse and
 } // end of namespace cxx_compiler
 
-void debug_break()
-{
-}
-
 int cxx_compiler::parse::identifier::judge(std::string name)
 {
-  if (name == "a" && position.m_lineno == 9)
-    debug_break();
-
   if (mode == peeking)
     return create(name), PEEKED_NAME_LEX;
 
@@ -110,11 +103,17 @@ namespace cxx_compiler {
       } // end of namespace underscore_func
       using namespace std;
       namespace base_lookup {
-        struct help {
+	struct info_t {
+	  int m_kind;
+	  var* m_lval;
+	  vector<base*> m_base;
+	  info_t(int kind, var* lval, base* bp)
+	    : m_kind(kind), m_lval(lval) { m_base.push_back(bp); }
+	};
+        struct gather {
           string m_name;
-          bool* m_virt;
-          int* m_res;
-          bool lookup(const map<string, vector<usr*> >& usrs, bool virt)
+	  vector<info_t>& m_choice; 
+          bool lookup(const map<string, vector<usr*> >& usrs, base* bp)
           {
             map<string, vector<usr*> >::const_iterator p = usrs.find(m_name);
             if (p == end(usrs))
@@ -124,109 +123,169 @@ namespace cxx_compiler {
             usr::flag_t flag = u->m_flag;
             if (flag & usr::CTOR)
               return false;
-            *m_res = IDENTIFIER_LEX;
-            *m_virt = virt;
-            cxx_compiler_lval.m_var = u;
-            if (flag & usr::OVERLOAD)
+	    info_t tmp(IDENTIFIER_LEX, u, bp);
+	    if (flag & usr::OVERLOAD) {
+	      m_choice.push_back(tmp);
               return true;
+	    }
             const type* T = u->m_type;
-            if (const pointer_type* G = T->ptr_gen()) {
-              cxx_compiler_lval.m_var = new genaddr(G,T,u,0);
-              garbage.push_back(cxx_compiler_lval.m_var);
-            }
+            if (const pointer_type* G = T->ptr_gen())
+              garbage.push_back(tmp.m_lval = new genaddr(G,T,u,0));
+	    m_choice.push_back(tmp);
             return true;
           }
-          bool lookup(const map<string, tag*>& tags, bool virt)
+          bool lookup(const map<string, tag*>& tags, base* bp)
           {
             map<string, tag*>::const_iterator p = tags.find(m_name);
             if (p == end(tags))
               return false;
-            *m_res = CLASS_NAME_LEX;
-            *m_virt = virt;
-            tag* ptr = p->second;
-            cxx_compiler_lval.m_tag = ptr;
+	    tag* ptr = p->second;
+	    info_t tmp(CLASS_NAME_LEX, (var*)ptr, bp);
+	    m_choice.push_back(tmp);
             return true;
           }
-          help(string name, bool* virt, int* res)
-            : m_name(name), m_virt(virt), m_res(res) {}
-          bool operator()(base* bp)
+	  static inline void insert(info_t& info, base* bp)
+	  {
+	    vector<base*>& v = info.m_base;
+	    v.insert(v.begin(), bp);
+	  }
+          gather(string name, vector<info_t>& choice)
+            : m_name(name), m_choice(choice) {}
+          void operator()(base* bp)
           {
             tag* ptr = bp->m_tag;
-            if (lookup(ptr->m_usrs, bp->m_virtual))
-              return true;
+            if (lookup(ptr->m_usrs, bp))
+              return;
             
-            if (lookup(ptr->m_tags, bp->m_virtual))
-              return true;
+            if (lookup(ptr->m_tags, bp))
+              return;
 
             if (ptr->m_name == m_name) {
-              *m_virt = bp->m_virtual;
-              *m_res = CLASS_NAME_LEX;
-              cxx_compiler_lval.m_tag = ptr;
-              return true;
+	      m_choice.push_back(info_t(CLASS_NAME_LEX, (var*)ptr, bp));
+              return;
             }
 
-            if (!ptr->m_bases)
-              return false;
-
-            vector<base*>& bases = *ptr->m_bases;
-            typedef vector<base*>::const_iterator IT;
-            IT p = begin(bases);
-            IT last = end(bases);
-            p = find_if(p, last, help(m_name, m_virt, m_res));
-            if (p == last)
-              return false;
-
-            bool virt2 = false;
-            int res2 = 0;
-            IT q = find_if(p+1, last, help(m_name, &virt2, &res2));
-            if (q != last)
-              error::not_implemented();
-
-            return true;
+            if (vector<base*>* bases = ptr->m_bases) {
+	      vector<info_t> tmp;
+              for_each(begin(*bases), end(*bases), gather(m_name, tmp));
+	      for (auto& info : tmp)
+		insert(info, bp);
+	      copy(begin(tmp), end(tmp), back_inserter(m_choice));
+	    }
           }
         };
-        int action(string name, tag* ptr, bool* virt)
-        {
-          const vector<base*>* bases = ptr->m_bases;
-          if ( !bases )
-            return 0;
-          typedef vector<base*>::const_iterator IT;
-          int res = 0;
-          IT p = find_if(begin(*bases), end(*bases),
-                         help(name, virt, &res));
-          if (p == end(*bases))
-            return 0;
-          var* save = cxx_compiler_lval.m_var;
-          bool virt2 = false;
-          int res2 = 0;
-          IT q = find_if(p+1, end(*bases), help(name, &virt2, &res2));
-          if (q != end(*bases)) {
-            if (!*virt && !virt2) {
-              if (cxx_compiler_lval.m_var != save)
-                error::not_implemented();
-              assert(res == res2);
-              var* v = cxx_compiler_lval.m_var;
-              usr* u = v->usr_cast();
-              if (!u)
-                error::not_implemented();
-              usr::flag_t flag = u->m_flag;
-              usr::flag_t mask = usr::flag_t(usr::STATIC | usr::ENUM_MEMBER);
-              if (flag & mask)
-                return res;
-            }
+	inline bool operator<(const info_t& x, const info_t& y)
+	{
+	  const vector<base*>& xb = x.m_base;
+	  const vector<base*>& yb = y.m_base;
+	  typedef vector<base*>::const_iterator IT;
+	  auto virt_base = [](base* bp){ return bp->m_virtual; };
+	  IT xp = find_if(begin(xb), end(xb), virt_base);
+	  IT yp = find_if(begin(yb), end(yb), virt_base);
+	  if (xp == end(xb) && yp == end(yb))
+	    return xb.size() < yb.size();
+	  if (xp != end(xb) && yp == end(yb))
+	    return false;
+	  if (xp == end(xb) && yp != end(yb))
+	    return true;
+	  assert(xp != end(xb) && yp != end(yb));
+	  return distance(begin(xb), xp) < distance(begin(yb), yp);
+	}
+	inline bool conflict(const info_t& x, const info_t& y,
+			     vector<base*>::const_reverse_iterator* xit)
+	{
+	  const vector<base*>& xb = x.m_base;
+	  const vector<base*>& yb = y.m_base;
+	  if (xb.size() != yb.size()) {
+	    *xit = rbegin(x.m_base);
+	    return false;
+	  }
+	  if (x.m_kind != y.m_kind)
+	    return true;
+	  if (x.m_lval != y.m_lval)
+	    return true;
+	  if (x.m_kind == IDENTIFIER_LEX) {
+	    var* v = x.m_lval;
+	    usr* u = v->usr_cast();
+	    usr::flag_t flag = u->m_flag;
+	    usr::flag_t mask = usr::flag_t(usr::ENUM_MEMBER | usr::STATIC);
+	    if (flag & mask) {
+	      *xit = rbegin(x.m_base);
+	      return false;
+	    }
+	  }
+	  typedef vector<base*>::const_reverse_iterator IT;
+	  assert(xb.size() == yb.size());
+	  pair<IT, IT> res = mismatch(rbegin(xb), rend(xb), rbegin(yb));
+	  assert(res != make_pair(rend(xb), rend(yb)));
+	  base* bx = *res.first;
+	  base* by = *res.second;
+	  if (bx->m_tag != by->m_tag)
+	    return true;
+	  if (!bx->m_virtual)
+	    return true;
+	  if (!by->m_virtual)
+	    return true;
+	  if (*xit != rend(xb))  {
+	    if (*xit != res.first)
+	      return true;
+	  }
+	  *xit = res.first;
+	  return false;
+	}
+	int action(string name, tag* ptr)
+	{
+	  vector<info_t> choice;
+          if (const vector<base*>* bases = ptr->m_bases)
+	    for_each(begin(*bases), end(*bases), gather(name, choice));
 
-            if (*virt && !virt2)
-              return res2;
-          }
+	  if (choice.empty())
+	    return 0;
+	  if (choice.size() == 1) {
+	    const info_t& x = choice.back();
+	    cxx_compiler_lval.m_var = x.m_lval;
+	    const vector<base*>& v = x.m_base;
+	    transform(begin(v), end(v), back_inserter(route),
+		      [](base* bp){
+			const record_type* zero = 0;
+			return make_pair(bp, zero);
+		      });
+	    return x.m_kind;
+	  }
 
-          if (*virt && virt2) {
-            if (cxx_compiler_lval.m_var != save)
-              error::not_implemented();
-          }
-          cxx_compiler_lval.m_var = save;
-          return res;
-        }
-        vector<tag*> route;
+	  typedef vector<info_t>::const_iterator IT;
+	  IT p = min_element(begin(choice), end(choice));
+	  assert(p != end(choice));
+	  const info_t& x = *p;
+	  vector<base*>::const_reverse_iterator xit = rend(x.m_base);
+	  IT q = find_if(begin(choice), end(choice),
+			 [&x, &xit](const info_t& y)
+			 { return &x == &y ? false : conflict(x,y,&xit); } );
+	  if (q != end(choice))
+	    error::not_implemented();
+
+	  cxx_compiler_lval.m_var = x.m_lval;
+	  const vector<base*>& v = x.m_base;
+	  assert(xit != rend(v));
+	  vector<base*>::const_iterator beg = xit.base() - 1;
+	  base* bp = *beg;
+	  if (bp->m_virtual) {
+	    tag* ptag = bp->m_tag;
+	    const type* T = ptag->m_types.second;
+	    assert(T->m_id == type::RECORD);
+	    typedef const record_type REC;
+	    REC* rec = static_cast<REC*>(T);
+	    route.push_back(make_pair((base*)0, rec));
+	    ++beg;
+	  }
+	  transform(beg, end(v), back_inserter(route),
+		    [](base* bp){
+		      const record_type* zero = 0;
+		      return make_pair(bp, zero);
+		    });
+	  return x.m_kind;
+	}
+        vector<route_t> route;
       }  // end of namespace base_lookup
     }  // end of namespace identifier
   }  // end of namespace parse
@@ -269,11 +328,8 @@ int cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
   if (mode == member) {
     assert(scope::current->m_id == scope::TAG);
     tag* ptag = static_cast<tag*>(scope::current);
-    bool virt = false;
-    if (int r = base_lookup::action(name, ptag, &virt)) {
-      base_lookup::route.push_back(ptag);
+    if (int r = base_lookup::action(name, ptag))
       return r;
-    }
     error::undeclared(parse::position,name);
     int r = create(name,int_type::create());
     usr* u = cxx_compiler_lval.m_usr;
@@ -283,11 +339,8 @@ int cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
   else {
     if (ptr->m_id == scope::TAG) {
       tag* ptag = static_cast<tag*>(ptr);
-      bool virt = false;
-      if (int n = base_lookup::action(name, ptag, &virt)) {
-        base_lookup::route.push_back(ptag);
+      if (int n = base_lookup::action(name, ptag))
         return n;
-      }
     }
     if ( ptr->m_parent )
       return lookup(name,ptr->m_parent);

@@ -493,9 +493,8 @@ namespace cxx_compiler {
       typedef const record_type REC;
       REC* x = static_cast<REC*>(R);
       REC* y = static_cast<REC*>(T);
-      vector<tag*> dummy;
-      bool direct_virt = false;
-      int offset = type_impl::calc_offset(y, x, dummy, &direct_virt);
+      vector<route_t> dummy;
+      int offset = type_impl::calc_offset(y, x, dummy);
       return offset >= 0 ? make_pair(R,offset) : zero;
     }
   } // end of namepsace call_impl
@@ -1055,7 +1054,8 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::member::info_t::gen()
 }
 
 cxx_compiler::var*
-cxx_compiler::var::member(var* expr, bool dot, const std::vector<tag*>& route)
+cxx_compiler::var::member(var* expr, bool dot,
+                          const std::vector<route_t>& route)
 {
   using namespace std;
   using namespace expressions::primary::literal;
@@ -1125,8 +1125,7 @@ cxx_compiler::var::member(var* expr, bool dot, const std::vector<tag*>& route)
       else
         garbage.push_back(tmp);
       code.push_back(new addr3ac(tmp, this));
-      bool direct_virt = false;
-      int offset = type_impl::calc_offset(rec, mrec, route, &direct_virt);
+      int offset = type_impl::calc_offset(rec, mrec, route);
       assert(offset >= 0);
       if (offset) {
         var* off = integer::create(offset);
@@ -1162,9 +1161,6 @@ cxx_compiler::var::member(var* expr, bool dot, const std::vector<tag*>& route)
     return rv->offref(Mt, O);
   }
 
-  bool direct_virtual = false;
-  int base_offset = type_impl::calc_offset(rec, mrec, route, &direct_virtual);
-  assert(base_offset >= 0);
   pair<int, usr*> off = mrec->offset(member->m_name);
   int offset = off.first;
   assert(offset >= 0);
@@ -1173,6 +1169,8 @@ cxx_compiler::var::member(var* expr, bool dot, const std::vector<tag*>& route)
     error::not_implemented();
 
   if (dot) {
+    int base_offset = type_impl::calc_offset(rec, mrec, route);
+    assert(base_offset >= 0);
     var* O = integer::create(base_offset + offset);
     return offref(Mt, O);
   }
@@ -1502,9 +1500,8 @@ assignment::valid(const type* T, var* src, bool* discard)
         typedef const record_type REC;
         REC* rx = static_cast<REC*>(Tx);
         REC* ry = static_cast<REC*>(Ty);
-        vector<tag*> dummy;
-        bool direct_virtual = false;
-        if (type_impl::calc_offset(ry, rx, dummy, &direct_virtual) >= 0) {
+        vector<route_t> dummy;
+        if (type_impl::calc_offset(ry, rx, dummy) >= 0) {
           if (include(cvr_x, cvr_y))
             return px;
           else {

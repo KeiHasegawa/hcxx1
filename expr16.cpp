@@ -109,7 +109,7 @@ cxx_compiler::var* cxx_compiler::refaddr::assign(var* op)
   int offset = m_addrof.m_offset;
   var* y = integer::create(offset);
   var* x = m_addrof.m_ref;
-  vector<tag*> dummy;
+  vector<route_t> dummy;
   var* xx = expressions::primary::action(x, dummy);
   if (x != xx) {
     if (offset) {
@@ -207,7 +207,7 @@ cxx_compiler::var* cxx_compiler::refsomewhere::assign(var* op)
     T = int_type::create();
   }
   op = op->cast(T);
-  vector<tag*> dummy;
+  vector<route_t> dummy;
   var* x = expressions::primary::action(m_ref, dummy);
   if (x != m_ref) {
     var* tmp = new var(x->m_type);

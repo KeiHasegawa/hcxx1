@@ -116,7 +116,7 @@ cxx_compiler::var * cxx_compiler::refaddr::rvalue()
   using namespace expressions::primary::literal;
   var* off = integer::create(offset);
   var* ref = m_addrof.m_ref;
-  vector<tag*> dummy;
+  vector<route_t> dummy;
   var* x = expressions::primary::action(ref, dummy);
   const type* Tr = ref->m_type;
   Tr = Tr->complete_type();
@@ -206,7 +206,7 @@ cxx_compiler::var* cxx_compiler::refsomewhere::rvalue()
     b->m_vars.push_back(ret);
   else
     garbage.push_back(ret);
-  vector<tag*> dummy;
+  vector<route_t> dummy;
   var* x = expressions::primary::action(m_ref, dummy);
   if (x != m_ref) {
     var* tmp = new var(x->m_type);

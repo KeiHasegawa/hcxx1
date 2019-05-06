@@ -72,8 +72,8 @@ namespace parse {
     enum mode_t { look, new_obj, member, peeking };
     extern mode_t mode;
     namespace base_lookup {
-      extern vector<tag*> route;
-      extern int action(string name, tag* ptr, bool* virt);
+      extern vector<route_t> route;
+      extern int action(string name, tag* ptr);
     } // end of namespace base_lookup
   } // end of namespace identifier
   extern bool is_last_decl;
@@ -434,7 +434,7 @@ namespace type_impl {
   extern void update(int (*)(int id));
   extern int calc_offset(const record_type* drec,
                          const record_type* brec,
-                         const std::vector<tag*>&, bool*);
+                         const std::vector<route_t>& route);
 } // end of namespace type_impl
 
 namespace record_impl {
@@ -686,7 +686,7 @@ namespace expressions {
       var* m_var;
       base* m_expr;
       file_t m_file;
-      vector<tag*> m_route;
+      vector<route_t> m_route;
       info_t();
       info_t(var* v);
       info_t(base* b) : m_var(0), m_expr(b) {}
@@ -740,8 +740,8 @@ namespace expressions {
         usr* create(bool);
       } // end of namespace boolean
     } // end of namespace literal
-    extern var* action(var* v, const vector<tag*>& route);
-    extern var* from_member(usr* u, const vector<tag*>&);
+    extern var* action(var* v, const vector<route_t>& route);
+    extern var* from_member(usr* u, const vector<route_t>&);
   } // end of namespace primary
   namespace postfix {
     struct call : base {
@@ -761,7 +761,7 @@ namespace expressions {
         scope* m_scope;
         file_t m_file;
         var* m_member;
-        vector<tag*> m_route;
+        vector<route_t> m_route;
         var* gen();
         const file_t& file() const { return m_file; }
         info_t(const vector<tac*>& c, var* expr, bool dot, scope* s, const file_t& file)
@@ -1124,7 +1124,7 @@ struct generated : virtual var {
 };
 
 namespace cast_impl {
-  extern var* with_route(var* src, const type* Tx, const vector<tag*>&);
+  extern var* with_route(var* src, const type* Tx, const vector<route_t>&);
 } // end of namespace cast_impl
 
 struct genaddr : generated, addrof {

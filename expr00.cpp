@@ -9,7 +9,7 @@ namespace cxx_compiler {
     namespace primary {
       using namespace std;
       block* get_block();
-      var* action(var* v, const vector<tag*>& route)
+      var* action(var* v, const vector<route_t>& route)
       {
         using namespace std;
         usr* u = v->usr_cast();
@@ -1236,8 +1236,8 @@ cxx_compiler::expressions::primary::literal::boolean::create(bool x)
 }
 
 cxx_compiler::var*
-cxx_compiler::expressions::primary::from_member(usr* u,
-                                                const std::vector<tag*>& route)
+cxx_compiler::expressions::primary::
+from_member(usr* u, const std::vector<route_t>& route)
 {
   using namespace expressions::primary::literal;
   usr::flag_t flag = u->m_flag;
