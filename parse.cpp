@@ -191,8 +191,32 @@ namespace cxx_compiler {
 	  assert(xp != end(xb) && yp != end(yb));
 	  return distance(begin(xb), xp) < distance(begin(yb), yp);
 	}
-	inline bool conflict(const info_t& x, const info_t& y,
-			     vector<route_t>& result)
+	bool conflict(base* bx, base* by, vector<route_t>& result)
+	{
+	  if (bx->m_tag != by->m_tag)
+	    return true;
+	  if (!bx->m_virtual)
+	    return true;
+	  if (!by->m_virtual)
+	    return true;
+	  tag* ptr = bx->m_tag;
+	  const type* T = ptr->m_types.second;
+	  assert(T->m_id == type::RECORD);
+	  typedef const record_type REC;
+	  REC* rec = static_cast<REC*>(T);
+	  typedef vector<route_t>::iterator IT;
+	  IT p = find(begin(result)+1, end(result), route_t(bx,0));
+	  if (p == end(result)) {
+	    p = find(begin(result)+1, end(result), route_t(0,rec));
+	    assert(p != end(result));
+	    return false;
+	  }
+	  *p = route_t(0, rec);
+	  result.erase(--p);
+	  return false;
+	}
+	bool conflict(const info_t& x, const info_t& y,
+		      vector<route_t>& result)
 	{
 	  const vector<base*>& xb = x.m_base;
 	  const vector<base*>& yb = y.m_base;
@@ -210,32 +234,29 @@ namespace cxx_compiler {
 	    if (flag & mask)
 	      return false;
 	  }
-	  typedef vector<base*>::const_reverse_iterator IT;
 	  assert(xb.size() == yb.size());
-	  pair<IT, IT> res = mismatch(rbegin(xb), rend(xb), rbegin(yb));
-	  assert(res != make_pair(rend(xb), rend(yb)));
-	  base* bx = *res.first;
-	  base* by = *res.second;
-	  if (bx->m_tag != by->m_tag)
-	    return true;
-	  if (!bx->m_virtual)
-	    return true;
-	  if (!by->m_virtual)
-	    return true;
-	  tag* ptr = bx->m_tag;
-	  const type* T = ptr->m_types.second;
-	  assert(T->m_id == type::RECORD);
-	  typedef const record_type REC;
-	  REC* rec = static_cast<REC*>(T);
-	  typedef vector<route_t>::iterator IT2;
-	  IT2 p = find(begin(result)+1, end(result), route_t(bx,0));
-	  if (p == end(result)) {
-	    p = find(begin(result)+1, end(result), route_t(0,rec));
-	    assert(p != end(result));
-	    return false;
+	  typedef vector<base*>::const_reverse_iterator IT;
+	  pair<IT, IT> pit(rbegin(xb), rbegin(yb));
+	  pair<IT, IT> last(rend(xb), rend(yb));
+	  while (pit != last) {
+	    pit = mismatch(pit.first, rend(xb), pit.second);
+	    if (pit != last) {
+	      if (conflict(*pit.first, *pit.second, result))
+		return true;
+	      ++pit.first, ++pit.second;
+	      assert(pit != last);
+	      ++pit.first, ++pit.second;
+	      for ( ; pit != last ; ++pit.first, ++pit.second ) {
+		if (*pit.first != *pit.second) {
+		  base* bx = *pit.first;
+		  typedef vector<route_t>::iterator IT;
+		  IT p = find(begin(result), end(result), route_t(bx,0));
+		  if (p != end(result))
+		    result.erase(p);
+		}
+	      }
+	    }
 	  }
-	  *p = route_t(0, rec);
-	  result.erase(--p);
 	  return false;
 	}
 	int action(string name, tag* ptr)
