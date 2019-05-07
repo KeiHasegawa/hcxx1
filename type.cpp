@@ -1614,10 +1614,7 @@ namespace cxx_compiler {
         typedef const record_type REC;
         REC* rec = static_cast<REC*>(T);
         const vector<const record_type*>& va = rec->virt_ancestor();
-        vector<const record_type*> tmp;
-        set_union(begin(m_virt_ancestor), end(m_virt_ancestor), 
-                  begin(va), end(va), back_inserter(tmp));
-        m_virt_ancestor = tmp;
+	copy(begin(va), end(va), back_inserter(m_virt_ancestor));
         return base_vb(n, bp);
       }
     };

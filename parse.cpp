@@ -192,14 +192,12 @@ namespace cxx_compiler {
 	  return distance(begin(xb), xp) < distance(begin(yb), yp);
 	}
 	inline bool conflict(const info_t& x, const info_t& y,
-			     vector<base*>::const_reverse_iterator* xit)
+			     vector<route_t>& result)
 	{
 	  const vector<base*>& xb = x.m_base;
 	  const vector<base*>& yb = y.m_base;
-	  if (xb.size() != yb.size()) {
-	    *xit = rbegin(x.m_base);
+	  if (xb.size() != yb.size())
 	    return false;
-	  }
 	  if (x.m_kind != y.m_kind)
 	    return true;
 	  if (x.m_lval != y.m_lval)
@@ -209,10 +207,8 @@ namespace cxx_compiler {
 	    usr* u = v->usr_cast();
 	    usr::flag_t flag = u->m_flag;
 	    usr::flag_t mask = usr::flag_t(usr::ENUM_MEMBER | usr::STATIC);
-	    if (flag & mask) {
-	      *xit = rbegin(x.m_base);
+	    if (flag & mask)
 	      return false;
-	    }
 	  }
 	  typedef vector<base*>::const_reverse_iterator IT;
 	  assert(xb.size() == yb.size());
@@ -226,11 +222,20 @@ namespace cxx_compiler {
 	    return true;
 	  if (!by->m_virtual)
 	    return true;
-	  if (*xit != rend(xb))  {
-	    if (*xit != res.first)
-	      return true;
+	  tag* ptr = bx->m_tag;
+	  const type* T = ptr->m_types.second;
+	  assert(T->m_id == type::RECORD);
+	  typedef const record_type REC;
+	  REC* rec = static_cast<REC*>(T);
+	  typedef vector<route_t>::iterator IT2;
+	  IT2 p = find(begin(result)+1, end(result), route_t(bx,0));
+	  if (p == end(result)) {
+	    p = find(begin(result)+1, end(result), route_t(0,rec));
+	    assert(p != end(result));
+	    return false;
 	  }
-	  *xit = res.first;
+	  *p = route_t(0, rec);
+	  result.erase(--p);
 	  return false;
 	}
 	int action(string name, tag* ptr)
@@ -257,32 +262,19 @@ namespace cxx_compiler {
 	  IT p = min_element(begin(choice), end(choice));
 	  assert(p != end(choice));
 	  const info_t& x = *p;
-	  vector<base*>::const_reverse_iterator xit = rend(x.m_base);
-	  IT q = find_if(begin(choice), end(choice),
-			 [&x, &xit](const info_t& y)
-			 { return &x == &y ? false : conflict(x,y,&xit); } );
-	  if (q != end(choice))
-	    error::not_implemented();
-
-	  cxx_compiler_lval.m_var = x.m_lval;
 	  const vector<base*>& v = x.m_base;
-	  assert(xit != rend(v));
-	  vector<base*>::const_iterator beg = xit.base() - 1;
-	  base* bp = *beg;
-	  if (bp->m_virtual) {
-	    tag* ptag = bp->m_tag;
-	    const type* T = ptag->m_types.second;
-	    assert(T->m_id == type::RECORD);
-	    typedef const record_type REC;
-	    REC* rec = static_cast<REC*>(T);
-	    route.push_back(make_pair((base*)0, rec));
-	    ++beg;
-	  }
-	  transform(beg, end(v), back_inserter(route),
-		    [](base* bp){
+	  vector<route_t> res;
+	  transform(begin(v), end(v), back_inserter(res), [](base* bp) {
 		      const record_type* zero = 0;
 		      return make_pair(bp, zero);
 		    });
+	  IT q = find_if(begin(choice), end(choice),
+			 [&x, &res](const info_t& y)
+			 { return &x == &y ? false : conflict(x,y,res); } );
+	  if (q != end(choice))
+	    error::not_implemented();
+	  copy(begin(res), end(res), back_inserter(route));
+	  cxx_compiler_lval.m_var = x.m_lval;
 	  return x.m_kind;
 	}
         vector<route_t> route;
