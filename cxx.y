@@ -911,8 +911,18 @@ class_key
   ;
 
 class_specifier
-  : class_specifier_begin member_specification '}' { $$ = cxx_compiler::classes::specifier::action(); }
-  | class_specifier_begin                      '}' { $$ = cxx_compiler::classes::specifier::action(); }
+  : class_specifier_begin member_specification '}'
+    { $$ = cxx_compiler::classes::specifier::action(); }
+  | class_specifier_begin '}'
+    {
+      using namespace std;
+      using namespace cxx_compiler::declarations::specifier_seq;
+      stack<info_t*>& s = info_t::s_stack;
+      assert(!s.empty());
+      assert(!s.top());
+      s.pop();
+      $$ = cxx_compiler::classes::specifier::action();
+    }
   ;
 
 class_specifier_begin
@@ -921,13 +931,17 @@ class_specifier_begin
   ;
 
 class_head
-  : class_key IDENTIFIER_LEX base_clause { cxx_compiler::classes::specifier::begin($1,$2,$3); }
-  | class_key                base_clause { cxx_compiler::classes::specifier::begin($1,0,$2); }
-  | class_key                            { cxx_compiler::classes::specifier::begin($1,0,0); }
+  : class_key IDENTIFIER_LEX base_clause
+    { cxx_compiler::classes::specifier::begin($1,$2,$3); }
+  | class_key base_clause
+    { cxx_compiler::classes::specifier::begin($1,0,$2); }
+  | class_key
+    { cxx_compiler::classes::specifier::begin($1,0,0); }
   | class_key nested_name_specifier IDENTIFIER_LEX base_clause
-  | class_key nested_name_specifier CLASS_NAME_LEX             { cxx_compiler::classes::specifier::begin2($1,$3); }
+  | class_key nested_name_specifier CLASS_NAME_LEX
+    { cxx_compiler::classes::specifier::begin2($1,$3); }
   | class_key nested_name_specifier template_id base_clause
-  | class_key                       template_id base_clause
+  | class_key template_id base_clause
   ;
 
 member_specification

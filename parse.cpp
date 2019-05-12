@@ -58,6 +58,7 @@ int cxx_compiler::parse::identifier::judge(std::string name)
       return r;
     using namespace declarations::specifier_seq;
     const stack<info_t*>& s = info_t::s_stack;
+    int n = s.size();
     if (s.empty()) {
       if (last_token == EXTERN_KW && r == IDENTIFIER_LEX) {
         // Rare case like:
@@ -179,7 +180,7 @@ namespace cxx_compiler {
 	  const vector<base*>& xb = x.m_base;
 	  const vector<base*>& yb = y.m_base;
 	  typedef vector<base*>::const_iterator IT;
-	  auto virt_base = [](base* bp){ return bp->m_virtual; };
+	  auto virt_base = [](base* bp){ return bp->m_flag & usr::VIRTUAL; };
 	  IT xp = find_if(begin(xb), end(xb), virt_base);
 	  IT yp = find_if(begin(yb), end(yb), virt_base);
 	  if (xp == end(xb) && yp == end(yb))
@@ -195,9 +196,9 @@ namespace cxx_compiler {
 	{
 	  if (bx->m_tag != by->m_tag)
 	    return true;
-	  if (!bx->m_virtual)
+	  if (!(bx->m_flag & usr::VIRTUAL))
 	    return true;
-	  if (!by->m_virtual)
+	  if (!(by->m_flag & usr::VIRTUAL))
 	    return true;
 	  tag* ptr = bx->m_tag;
 	  const type* T = ptr->m_types.second;

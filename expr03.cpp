@@ -71,7 +71,7 @@ namespace cxx_compiler {
     }
     inline bool virt_base(const base* bp, tag* ptr)
     {
-      return bp->m_virtual && bp->m_tag == ptr;
+      return (bp->m_flag & usr::VIRTUAL) && bp->m_tag == ptr;
     }
     inline int nth_virt_base(tag* ptr, const base* bp)
     {
@@ -79,7 +79,7 @@ namespace cxx_compiler {
       int n = accumulate(begin(bases), end(bases), 0, record_impl::base_vb);
       vector<base*> tmp;
       copy_if(begin(bases), end(bases), back_inserter(tmp),
-              [](base* bp){ return bp->m_virtual; });
+              [](base* bp){ return bp->m_flag & usr::VIRTUAL; });
       typedef vector<base*>::iterator IT;
       IT p = find(begin(tmp), end(tmp), bp);
       assert(p != end(tmp));

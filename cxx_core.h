@@ -22,8 +22,6 @@ struct scope {
 
 struct var;
 
-struct tac;
-
 struct block : scope {
   std::vector<var*> m_vars;
   block() : scope(BLOCK) {}
@@ -33,17 +31,12 @@ struct block : scope {
 struct file_t {
   std::string m_name;
   int m_lineno;
-  file_t(std::string name = "", int lineno = 0) : m_name(name), m_lineno(lineno) {}
+  file_t(std::string name = "", int lineno = 0)
+  : m_name(name), m_lineno(lineno) {}
 };
 
 struct type;
-
-struct base {
-  int m_access;
-  bool m_virtual;
-  tag* m_tag;
-  base(int a, bool v, tag* t) : m_access(a), m_virtual(v), m_tag(t) {}
-};
+struct base;
 
 struct tag : scope {
   enum kind_t { STRUCT, UNION, CLASS, ENUM };
@@ -319,6 +312,9 @@ struct usr : var {
     NEW_ARRAY   = 1 << 27,
     DELETE_SCALAR = 1 << 28,
     DELETE_ARRAY  = 1 << 29,
+    PRIVATE     = 1 << 30,
+    PROTECTED   = 1 << 31,
+    PUBLIC      = 1LL << 32,
   };
   flag_t m_flag;
   file_t m_file;

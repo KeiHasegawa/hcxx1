@@ -5,6 +5,12 @@ union YYSTYPE;
 
 namespace cxx_compiler {
 
+struct base {
+  usr::flag_t m_flag;
+  tag* m_tag;
+  base(int access, bool virt, tag* ptr);
+};
+
 using namespace std;  
 extern vector<tac*> code;
 
@@ -475,7 +481,12 @@ namespace declarations {
       static stack<info_t*> s_stack;
       static void clear();
       info_t(info_t*, specifier*);
-      ~info_t(){ s_stack.pop(); }
+      ~info_t()
+      {
+	assert(!s_stack.empty());
+	assert(s_stack.top() == this);
+	s_stack.pop();
+      }
     };
     namespace func_spec {
       extern void check(var*);

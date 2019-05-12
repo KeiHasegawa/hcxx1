@@ -99,6 +99,18 @@ cxx_compiler::tag::~tag()
   }
 }
 
+cxx_compiler::base::base(int access, bool virt, tag* ptr)
+  : m_flag(usr::NONE), m_tag(ptr)
+{
+  switch (access) {
+  PRIVATE_KEY: m_flag = usr::PRIVATE; break;
+  PROTECTED_KEY: m_flag = usr::PROTECTED; break;
+  PUBLIC_KEY: m_flag = usr::PUBLIC; break;
+  }
+  if (virt)
+    m_flag = usr::flag_t(m_flag | usr::VIRTUAL);
+}
+
 void cxx_compiler::original_namespace_definition(var* v)
 {
   using namespace std;

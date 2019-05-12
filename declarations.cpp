@@ -96,7 +96,8 @@ namespace cxx_compiler { namespace declarations { namespace specifier_seq { name
   extern usr::flag_t merge(usr::flag_t, usr::flag_t);
 } } } } // end of namespace flag, specifier_seq, declarations and cxx_compiler
 
-cxx_compiler::declarations::specifier_seq::info_t::info_t(info_t* prev, specifier* spec)
+cxx_compiler::declarations::specifier_seq::
+info_t::info_t(info_t* prev, specifier* spec)
 {
   using namespace std;
   auto_ptr<specifier> sweeper(spec);
@@ -151,7 +152,8 @@ cxx_compiler::declarations::specifier_seq::info_t::info_t(info_t* prev, specifie
 
 void cxx_compiler::declarations::specifier_seq::info_t::clear()
 {
-  parse::identifier::mode = parse::identifier::look; s_stack.push(0);
+  parse::identifier::mode = parse::identifier::look;
+  s_stack.push(0);
 }
 
 cxx_compiler::declarations::specifier_seq::flag::table::table()

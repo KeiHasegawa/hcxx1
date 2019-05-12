@@ -1377,10 +1377,6 @@ cxx_compiler::unqualified_id::from_nonmember(var* v)
   scope* q = v->m_scope;
   if (q->m_id != scope::TAG)
     return v;
-#if 0
-  if (genaddr* ga = v->genaddr_cast())
-    v = ga->m_ref;
-#endif
   usr* u = v->usr_cast();
   if (!u)
     return v;
