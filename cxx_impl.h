@@ -438,10 +438,11 @@ namespace dump {
 
 namespace type_impl {
   extern void update(int (*)(int id));
-  extern int calc_offset(const record_type* drec,
-                         const record_type* brec,
-                         const std::vector<route_t>& route);
 } // end of namespace type_impl
+
+extern int calc_offset(const record_type* drec,
+		       const record_type* brec,
+		       const std::vector<route_t>& route);
 
 namespace record_impl {
   extern int base_vb(int n, const base* bp);

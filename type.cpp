@@ -1447,7 +1447,7 @@ namespace cxx_compiler {
     REC* Rx = static_cast<REC*>(Tx);
     REC* Ry = static_cast<REC*>(Ty);
     vector<route_t> dummy;
-    int offset = type_impl::calc_offset(Ry, Rx, dummy);
+    int offset = calc_offset(Ry, Rx, dummy);
     return offset >= 0;
   }
   namespace record_impl {
@@ -1986,6 +1986,17 @@ namespace cxx_compiler {
           m_this_ptr(this_ptr), m_block(bp), m_vtbl_addr(vtbl_addr),
 	  m_vptr_name(vptr_name),
           m_common_vftbl_offset(common_vftbl_offset) {}
+      int subr(base* bp, const record_type* rec)
+      {
+        map<base*, int>::const_iterator p = m_vtbl_offset.find(bp);
+	if (p != m_vtbl_offset.end())
+	  return p->second;
+	assert(m_common_vftbl_offset);
+	typedef const record_type REC;
+	map<REC*, int>::const_iterator q = m_common_vftbl_offset->find(rec);
+	assert(q != m_common_vftbl_offset->end());
+	return q->second;
+      }
       void operator()(base* bp)
       {
         using namespace expressions::primary::literal;
@@ -2045,17 +2056,7 @@ namespace cxx_compiler {
         var* t0 = new var(T);
         m_block->m_vars.push_back(t0);
         code.push_back(new cast3ac(t0, m_vtbl_addr, T));
-        map<base*, int>::const_iterator q = m_vtbl_offset.find(bp);
-	int vtbl_off = -1;
-	if (q != m_vtbl_offset.end())
-	  vtbl_off = q->second;
-	else {
-	  assert(m_common_vftbl_offset);
-	  map<REC*, int>::const_iterator p = m_common_vftbl_offset->find(rec);
-	  assert(p != m_common_vftbl_offset->end());
-	  vtbl_off = p->second;
-	}
-        if (vtbl_off) {
+        if (int vtbl_off = subr(bp, rec)) {
           var* vo = integer::create(vtbl_off);
           code.push_back(new add3ac(t0, t0, vo));
         }
@@ -2070,11 +2071,67 @@ namespace cxx_compiler {
         code.push_back(new invladdr3ac(t1, t0));
       }
     };
+    struct update_common_vfptr {
+      var* m_this_ptr;
+      block* m_block;
+      var* m_vftbl_addr;
+      const map<const record_type*, int>& m_virt_common_offset;
+      const map<const record_type*, int>& m_common_vftbl_offset;
+      update_common_vfptr(var* this_ptr, block* pb,
+			  var* vftbl_addr,
+			  const map<const record_type*, int>& vco,
+			  const map<const record_type*, int>& cvo)
+	: m_this_ptr(this_ptr), m_block(pb), m_vftbl_addr(vftbl_addr),
+	  m_virt_common_offset(vco), m_common_vftbl_offset(cvo) {}
+      void operator()(const record_type* rec)
+      {
+	using namespace expressions::primary::literal;
+	typedef map<const record_type*, int>::const_iterator IT;
+
+	pair<int, usr*> ret = rec->offset(vfptr_name);
+	int vfptr_off = ret.first;
+	if (vfptr_off < 0)
+	  return;
+	usr* vfptr = ret.second;
+	const type* T = vfptr->m_type;
+	var* dst = new var(T);
+	m_block->m_vars.push_back(dst);
+	code.push_back(new cast3ac(dst, m_this_ptr, T));
+	IT p = m_virt_common_offset.find(rec);
+	assert(p != m_virt_common_offset.end());
+	if (int vc_off = p->second) {
+	  var* tmp = new var(T);
+	  m_block->m_vars.push_back(tmp);
+	  var* off = integer::create(vc_off);
+	  code.push_back(new add3ac(tmp, dst, off));
+	  dst = tmp;
+	}
+	if (vfptr_off) {
+	  var* off = integer::create(vfptr_off);
+	  code.push_back(new add3ac(dst, dst, off));
+	}
+
+	var* src = m_vftbl_addr;
+	IT q = m_common_vftbl_offset.find(rec);
+	assert(q != m_common_vftbl_offset.end());
+	if (int cv_off = q->second) {
+	  var* tmp = new var(src->m_type);
+	  m_block->m_vars.push_back(tmp);
+	  var* off = integer::create(cv_off);
+	  code.push_back(new add3ac(tmp, src, off));
+	  src = tmp;
+	}
+
+	code.push_back(new invladdr3ac(dst, src));
+      }
+    };
     void add_ctor(tag* ptr,
                   const map<string, pair<int, usr*> >& layout,
                   const map<base*, int>& base_offset,
                   const map<base*, int>& vbtbl_offset,
                   const map<base*, int>& vftbl_offset,
+		  const set<const record_type*>& common,
+		  const map<const record_type*, int>& virt_common_offset,
 		  const map<const record_type*, int>& common_vftbl_offset)
     {
       if (!bases_have_ctor(ptr) && !get_vbptr(ptr) && !get_vfptr(ptr))
@@ -2153,6 +2210,10 @@ namespace cxx_compiler {
           for_each(begin(bases), end(bases),
                    update_vptr(base_offset, vftbl_offset, this_ptr, pb,
                                vftbl_addr, vfptr_name, &common_vftbl_offset));
+	  for_each(begin(common), end(common),
+		   update_common_vfptr(this_ptr, pb, vftbl_addr,
+				       virt_common_offset,
+				       common_vftbl_offset));
         }
       }
       if (usr* vbptr = get_vbptr(ptr)) {
@@ -2401,7 +2462,7 @@ cxx_compiler::record_type::record_type(tag* ptr)
     m_size += al - n;
   }
   add_ctor(m_tag, m_layout, m_base_offset, m_vbtbl_offset, m_vftbl_offset,
-	   common_vftbl_offset);
+	   common, m_virt_common_offset, common_vftbl_offset);
 }
 
 int cxx_compiler::record_impl::layouter::operator()(int offset, usr* member)
@@ -2641,7 +2702,7 @@ namespace cxx_compiler {
         assert(Ty->m_id == type::RECORD);
         REC* Ry = static_cast<REC*>(Ty);
         vector<route_t> dummy;
-        int offset = type_impl::calc_offset(Rx, Ry, dummy);
+        int offset = calc_offset(Rx, Ry, dummy);
         return offset >= 0;
       }
     };
@@ -2649,9 +2710,9 @@ namespace cxx_compiler {
 }  // end of namespace cxx_compiler
 
 int
-cxx_compiler::type_impl::calc_offset(const record_type* xrec,
-                                     const record_type* yrec,
-                                     const std::vector<route_t>& route)
+cxx_compiler::calc_offset(const record_type* xrec,
+			  const record_type* yrec,
+			  const std::vector<route_t>& route)
 {
   using namespace std;
   using namespace record_impl;
@@ -2717,7 +2778,7 @@ cxx_compiler::type_impl::calc_offset(const record_type* xrec,
   vector<route_t> route2;
   if (!route.empty())
     copy(begin(route)+1, end(route), back_inserter(route2));
-  int m = type_impl::calc_offset(Rb, yrec, route2);
+  int m = calc_offset(Rb, yrec, route2);
   assert(m >= 0);
   return n + m;
 }

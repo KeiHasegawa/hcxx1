@@ -494,7 +494,7 @@ namespace cxx_compiler {
       REC* x = static_cast<REC*>(R);
       REC* y = static_cast<REC*>(T);
       vector<route_t> dummy;
-      int offset = type_impl::calc_offset(y, x, dummy);
+      int offset = calc_offset(y, x, dummy);
       return offset >= 0 ? make_pair(R,offset) : zero;
     }
   } // end of namepsace call_impl
@@ -1125,7 +1125,7 @@ cxx_compiler::var::member(var* expr, bool dot,
       else
         garbage.push_back(tmp);
       code.push_back(new addr3ac(tmp, this));
-      int offset = type_impl::calc_offset(rec, mrec, route);
+      int offset = calc_offset(rec, mrec, route);
       assert(offset >= 0);
       if (offset) {
         var* off = integer::create(offset);
@@ -1169,7 +1169,7 @@ cxx_compiler::var::member(var* expr, bool dot,
     error::not_implemented();
 
   if (dot) {
-    int base_offset = type_impl::calc_offset(rec, mrec, route);
+    int base_offset = calc_offset(rec, mrec, route);
     assert(base_offset >= 0);
     var* O = integer::create(base_offset + offset);
     return offref(Mt, O);
@@ -1501,7 +1501,7 @@ assignment::valid(const type* T, var* src, bool* discard)
         REC* rx = static_cast<REC*>(Tx);
         REC* ry = static_cast<REC*>(Ty);
         vector<route_t> dummy;
-        if (type_impl::calc_offset(ry, rx, dummy) >= 0) {
+        if (calc_offset(ry, rx, dummy) >= 0) {
           if (include(cvr_x, cvr_y))
             return px;
           else {
