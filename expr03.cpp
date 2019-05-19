@@ -180,7 +180,7 @@ namespace cxx_compiler {
         return 0;
       return integer::create(offset);
     }
-    var* with_route(var* y, const type* Tx, const vector<route_t>& route)
+    var* with_route(const type* Tx, var* y, const vector<route_t>& route)
     {
       const type* Ty = y->m_type;
       if ( Tx == Ty )
@@ -209,7 +209,7 @@ namespace cxx_compiler {
 cxx_compiler::var* cxx_compiler::var::cast(const type* T)
 {
   vector<route_t> dummy;
-  return cast_impl::with_route(this, T, dummy);
+  return cast_impl::with_route(T, this, dummy);
 }
 
 cxx_compiler::var* cxx_compiler::addrof::cast(const type* T)

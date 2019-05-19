@@ -1176,7 +1176,7 @@ cxx_compiler::var::member(var* expr, bool dot,
   }
   var* rv = rvalue();
   T = pointer_type::create(mrec);
-  var* tmp = cast_impl::with_route(rv, T, route);
+  var* tmp = cast_impl::with_route(T, rv, route);
   var* O = integer::create(offset);
   return tmp->offref(Mt, O);
 }
@@ -1456,6 +1456,15 @@ assignment::valid(const type* T, var* src, bool* discard)
   if (xx->m_id == type::RECORD) {
     if (compatible(xx, yy))
       return xx;
+    if (yy->m_id == type::RECORD) {
+      typedef const record_type REC;
+      REC* xrec = static_cast<REC*>(xx);
+      REC* yrec = static_cast<REC*>(yy);
+      vector<route_t> dummy;
+      int offset = calc_offset(yrec, xrec, dummy);
+      if (offset >= 0)
+	return xx;
+    }
     return 0;
   }
 

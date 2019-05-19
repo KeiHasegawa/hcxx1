@@ -1272,7 +1272,7 @@ from_member(usr* u, const std::vector<route_t>& route)
   assert(v.size() == 1);
   usr* this_ptr = v.back();
   const type* pmrec = pointer_type::create(mrec);
-  var* tmp = cast_impl::with_route(this_ptr, pmrec, route);
+  var* tmp = cast_impl::with_route(pmrec, this_ptr, route);
 
   pair<int, usr*> off = mrec->offset(u->m_name);
   int offset = off.first;

@@ -12,7 +12,7 @@ void cxx_compiler::optimize::action(fundef* fdef, std::vector<tac*>& v)
 {
   goto_to(v);
   empty_to3ac(v);
-  if ( cmdline::bb_optimize )
+  if (cmdline::bb_optimize)
     basic_block::action(fdef, v);
 }
 
@@ -72,12 +72,12 @@ void cxx_compiler::optimize::empty_to3ac(std::vector<tac*>& v)
 
 namespace cxx_compiler { namespace optimize { namespace basic_block {
   namespace dag {
+    using namespace std;
     struct action_t {
-      std::vector<tac*> conv;
-      std::set<var*> addr;
-      std::map<var*, std::vector<std::pair<tac*, int> > > loffs;
+      vector<tac*> conv;
+      set<var*> addr;
     };
-    extern int action(info_t*, action_t*);
+    extern void action(info_t*, action_t*);
   } // end of namespace dag
 } } } // end of namespace basic_block, optimize and cxx_compiler
 
@@ -113,17 +113,9 @@ cxx_compiler::optimize::basic_block::action(fundef* fdef, std::vector<tac*>& v)
   vector<info_t*> bbs;
   create(v,bbs);
   live_var::analize(bbs);
-  if ( cmdline::dag_optimize ){
+  if (cmdline::dag_optimize) {
     dag::action_t seed;
     for_each(bbs.begin(),bbs.end(),bind2nd(ptr_fun(dag::action),&seed));
-    const map<var*, vector<pair<tac*,int> > >& m = seed.loffs;
-    typedef map<var*, vector<pair<tac*, int> > >::const_iterator IT;
-    for ( IT p = m.begin() ; p != m.end() ; ++p ){
-      const vector<pair<tac*, int> >& v = p->second;
-      typedef vector<pair<tac*, int> >::const_iterator X;
-      for ( X q = v.begin() ; q != v.end() ; ++q )
-        delete q->first;
-    }
     v = seed.conv;
   }
   for (auto p : bbs)
@@ -246,7 +238,7 @@ namespace cxx_compiler { namespace optimize { namespace basic_block { namespace 
     mknode_t(std::map<var*, dag::info_t*>* n, std::map<dag::info_t*, var*>* r, basic_block::info_t* b, action_t* a)
       : node(n), result(r), B(b), pa(a), ret(false) {}
   };
-  int mknode(tac**, mknode_t*);
+  void mknode(tac**, mknode_t*);
   namespace generate {
     struct action_t {
       mknode_t* mt;
@@ -257,8 +249,8 @@ namespace cxx_compiler { namespace optimize { namespace basic_block { namespace 
   } // end of namespace generate
 } } } } // end of namespace dag, basic_block, optimize and c_compiler
 
-int cxx_compiler::optimize::basic_block::dag::action(basic_block::info_t* B,
-  action_t* pa)
+void cxx_compiler::optimize::
+basic_block::dag::action(basic_block::info_t* B, action_t* pa)
 {
   using namespace std;
   tac** begin = B->m_leader;
@@ -270,52 +262,54 @@ int cxx_compiler::optimize::basic_block::dag::action(basic_block::info_t* B,
     mknode(p,&mt);
   generate::action_t act(&mt,end-1);
   generate::action(&act);
-  return 0;
 }
 
 namespace cxx_compiler { namespace optimize { namespace basic_block { namespace dag {
+  using namespace std;
   struct info_t {
     tac* m_tac;
-    std::vector<var*> m_vars;
-    std::vector<info_t*> m_parents;
+    vector<var*> m_vars;
+    vector<info_t*> m_parents;
     info_t* m_left;
     info_t* m_right;
+    info_t* m_extra;
     static std::vector<info_t*> all;
-    info_t() : m_tac(0), m_left(0), m_right(0) { all.push_back(this); }
+    info_t()
+      : m_tac(0), m_left(0), m_right(0), m_extra(0) { all.push_back(this); }
   };
-  std::vector<dag::info_t*> info_t::all;
-  info_t* get(tac*, std::map<var*, dag::info_t*>*, bool*);
+  vector<dag::info_t*> info_t::all;
+  info_t* get(tac*, map<var*, dag::info_t*>*, bool*);
 } } } } // end of namespace dag, basic_block, optimize and cxx_compiler
 
-int cxx_compiler::optimize::basic_block::dag::mknode(tac** pp, mknode_t* mt)
+void cxx_compiler::optimize::basic_block::dag::mknode(tac** pp, mknode_t* mt)
 {
   using namespace std;
   tac* ptr = *pp;
   tac::id_t id = ptr->m_id;
-  if ( mt->ret ){
-    if ( id != tac::TO && id != tac::GOTO ){
+  if (mt->ret) {
+    if (id != tac::TO && id != tac::GOTO) {
       delete ptr;
-      return 0;
+      return;
     }
     mt->ret = false;
   }
-  if ( id == tac::RETURN )
+  if (id == tac::RETURN)
     mt->ret = true;
   var* y = ptr->y;
-  if ( !y ){
+  if (!y) {
     // Special case. return3ac, goto3ac, to3ac or asm3ac.
     dag::info_t* p = new dag::info_t;
     p->m_tac = ptr;
-    return 0;
+    return;
   }
   map<var*, dag::info_t*>* node = mt->node;
-  if ( node->find(y) == node->end() ){
+  if (node->find(y) == node->end()) {
     dag::info_t* leaf = new dag::info_t;
     leaf->m_vars.push_back(y);
     (*node)[y] = leaf;
   }
-  if ( var* z = ptr->z ){
-    if ( node->find(z) == node->end() ){
+  if (var* z = ptr->z) {
+    if (node->find(z) == node->end()) {
       dag::info_t* leaf = new dag::info_t;
       leaf->m_vars.push_back(z);
       (*node)[z] = leaf;
@@ -323,8 +317,8 @@ int cxx_compiler::optimize::basic_block::dag::mknode(tac** pp, mknode_t* mt)
   }
   bool found = false;
   dag::info_t* n = get(ptr,node,&found);
-  if ( id == tac::CALL || id == tac::INVLADDR ){
-    if ( var* x = ptr->x ){
+  if (id == tac::CALL || id == tac::INVLADDR) {
+    if (var* x = ptr->x) {
       vector<var*>& v = n->m_vars;
       v.push_back(x);
       (*node)[x] = n;
@@ -333,23 +327,36 @@ int cxx_compiler::optimize::basic_block::dag::mknode(tac** pp, mknode_t* mt)
     generate::action(&act);
     node->clear();
     mt->result->clear();
-    return 0;
+    return;
   }
   var* x = ptr->x;
-  if ( !x )
-    return 0;
+  if (!x)
+    return;
   auto_ptr<tac> sweeper(found ? ptr : 0);
   vector<var*>& v = n->m_vars;
   v.push_back(x);
   (*node)[x] = n;
   if (ptr->m_id == tac::ADDR)
     mt->pa->addr.insert(y);
-  return 0;
 }
 
 namespace cxx_compiler { namespace optimize { namespace basic_block { namespace dag {
   bool match(info_t*, std::pair<tac*, std::map<var*, dag::info_t*>*>);
   bool roff_match_loff(info_t*, std::pair<tac*, std::map<var*, dag::info_t*>*>);
+  void extra(info_t* info, var* x)
+  {
+    tac* ptr = info->m_tac;
+    if (!ptr)
+      return;
+    tac::id_t id = ptr->m_id;
+    if (id != tac::LOFF)
+      return;
+    info_t* extra = info->m_extra;
+    if (!extra)
+      return;
+    vector<var*>& v = extra->m_vars;
+    v.push_back(x);
+  }
 } } } } // end of namespace dag, basic_block, optimize and cxx_compiler
 
 cxx_compiler::optimize::basic_block::dag::info_t*
@@ -357,19 +364,22 @@ cxx_compiler::optimize::basic_block::dag::get(tac* ptr, std::map<var*, dag::info
 {
   using namespace std;
   tac::id_t id = ptr->m_id;
-  switch ( id ){
+  switch (id) {
   case tac::ASSIGN:
     {
       var* y = ptr->y;
       map<var*, info_t*>::const_iterator p = node->find(y);
       assert(p != node->end());
       *found = true;
-      return p->second;
+      info_t* info = p->second;
+      var* x = ptr->x;
+      extra(info, x);
+      return info;
     }
   case tac::CALL: case tac::VAARG:
     break;
   default:
-    if ( ptr->x ){
+    if (ptr->x) {
       const vector<dag::info_t*>& v = dag::info_t::all;
       vector<dag::info_t*>::const_iterator p =
         find_if(v.begin(),v.end(),bind2nd(ptr_fun(match),make_pair(ptr,node)));
@@ -394,44 +404,57 @@ cxx_compiler::optimize::basic_block::dag::get(tac* ptr, std::map<var*, dag::info
   info_t* i = q->second;
   i->m_parents.push_back(ret);
   ret->m_left = i;
-  if ( var* z = ptr->z ){
+  if (var* z = ptr->z) {
     map<var*, info_t*>::const_iterator q = node->find(z);
     assert(q != node->end());
     info_t* i = q->second;
     i->m_parents.push_back(ret);
     ret->m_right = i;
   }
+  if (ptr->m_id == tac::LOFF) {
+    var* x = ptr->x;
+    map<var*, info_t*>::const_iterator q = node->find(x);
+    if (q != node->end()) {
+      info_t* i = q->second;
+      i->m_parents.push_back(ret);
+      ret->m_extra = i;
+      vector<var*>& v = i->m_vars;
+      vector<var*>::const_iterator p = find(begin(v), end(v), x);
+      assert(p != end(v));
+      v.erase(begin(v), p);
+    }
+  }
   return ret;
 }
 
-bool
-cxx_compiler::optimize::basic_block::dag::match(info_t* xinfo, std::pair<tac*, std::map<var*, dag::info_t*>*> arg)
+bool cxx_compiler::optimize::basic_block::
+dag::match(info_t* xinfo, std::pair<tac*, std::map<var*, dag::info_t*>*> arg)
 {
   using namespace std;
   tac* xtac = xinfo->m_tac;
   tac* ytac = arg.first;
-  if ( !xtac )
+  if (!xtac)
     return false;
-  if ( xtac->m_id != ytac->m_id )
+  if (xtac->m_id != ytac->m_id)
     return false;
   map<var*, dag::info_t*>* node = arg.second;
-  if ( dag::info_t* left = xinfo->m_left ){
+  if (dag::info_t* left = xinfo->m_left) {
     var* y = ytac->y;
     map<var*, dag::info_t*>::const_iterator p = node->find(ytac->y);
     assert(p != node->end());
     dag::info_t* i = p->second;
-    if ( left != i )
+    if (left != i)
       return false;
   }
-  if ( dag::info_t* right = xinfo->m_right ){
+  if (dag::info_t* right = xinfo->m_right) {
     map<var*, dag::info_t*>::const_iterator p = node->find(ytac->z);
     assert(p != node->end());
     dag::info_t* i = p->second;
-    if ( right != i )
+    if (right != i)
       return false;
   }
   tac::id_t id = xtac->m_id;
-  switch ( id ){
+  switch (id) {
   case tac::ROFF:
   case tac::INVRADDR:
     {
@@ -460,26 +483,28 @@ cxx_compiler::optimize::basic_block::dag::match(info_t* xinfo, std::pair<tac*, s
 }
 
 bool
-cxx_compiler::optimize::basic_block::dag::roff_match_loff(info_t* xinfo, std::pair<tac*, std::map<var*, dag::info_t*>*> arg)
+cxx_compiler::optimize::basic_block::dag::
+roff_match_loff(info_t* xinfo,
+		std::pair<tac*, std::map<var*, dag::info_t*>*> arg)
 {
   using namespace std;
   tac* roff = arg.first;
   assert(roff->m_id == tac::ROFF);
   tac* loff = xinfo->m_tac;
-  if ( !loff )
+  if (!loff)
     return false;
-  if ( loff->m_id != tac::LOFF )
+  if (loff->m_id != tac::LOFF)
     return false;
   map<var*, dag::info_t*>* node = arg.second;
   var* a = roff->y;
   map<var*, dag::info_t*>::const_iterator p = node->find(a);
   assert(p != node->end());
-  if ( xinfo != p->second )
+  if (xinfo != p->second)
     return false;
   var* i = roff->z;
   map<var*, dag::info_t*>::const_iterator q = node->find(i);
   assert(q != node->end());
-  if ( xinfo->m_left != q->second )
+  if (xinfo->m_left != q->second)
     return false;
   const type* x = roff->x->m_type;
   const type* y = loff->z->m_type;
@@ -551,7 +576,11 @@ void cxx_compiler::optimize::live_var::setup(tac** pp, basic_block::info_t* B)
     IT q = use.find(B);
     if ( q != use.end() )
       q->second.erase(x);
-    basic_block::live[x].push_back(make_pair(pp,false));
+    tac::id_t id = p->m_id;
+    if (id == tac::LOFF)
+      basic_block::live[x].push_back(make_pair(pp,true));
+    else
+      basic_block::live[x].push_back(make_pair(pp,false));
   }
   if ( var* y = p->y ){
     use[B].insert(y);
@@ -663,9 +692,8 @@ cxx_compiler::optimize::basic_block::dag::generate::action(action_t* act)
 {
   using namespace std;
   vector<info_t*>& v = info_t::all;
-  for_each(v.begin(),v.end(),bind2nd(ptr_fun(inorder),act));
-  for (auto p : v)
-    delete p;
+  for (auto p : v) inorder(p, act);
+  for (auto p : v) delete p;
   v.clear();
 }
 
@@ -682,37 +710,16 @@ cxx_compiler::optimize::basic_block::dag::generate::inorder(dag::info_t* d, acti
   using namespace std;
   map<dag::info_t*, var*>& result = *act->mt->result;
   tac* ptr = d->m_tac;
-  if ( !ptr )
+  if (!ptr)
     return result[d] = assigns(d,act);
-  tac::id_t id = ptr->m_id;
   dag::action_t* pa = act->mt->pa;
-  map<var*, vector<pair<tac*, int> > >& loffs = pa->loffs;
   vector<tac*>& conv = pa->conv;
-  switch ( id ){
-  case tac::LOFF:
-    {
-      if ( d->m_parents.empty() )
-        break;
-      var* x = ptr->x;
-      map<var*, vector<pair<tac*, int> > >::iterator p = loffs.find(x);
-      if ( p != loffs.end() ){
-        const vector<pair<tac*, int> >& v = p->second;
-        typedef vector<pair<tac*, int> >::const_reverse_iterator IT;
-        for ( IT q = v.rbegin() ; q != v.rend() ; ++q ){
-          vector<tac*>::iterator r = conv.begin() + q->second;
-          conv.insert(r,q->first);
-        }
-        loffs.erase(p);
-      }
-    }
-    break;
-  }
-  if ( dag::info_t* i = d->m_left ){
+  if (dag::info_t* i = d->m_left) {
     map<dag::info_t*, var*>::const_iterator p = result.find(i);
     assert(p != result.end());
     ptr->y = p->second;
   }
-  if ( dag::info_t* i = d->m_right ){
+  if (dag::info_t* i = d->m_right) {
     map<dag::info_t*, var*>::const_iterator p = result.find(i);
     assert(p != result.end());
     ptr->z = p->second;
@@ -720,18 +727,19 @@ cxx_compiler::optimize::basic_block::dag::generate::inorder(dag::info_t* d, acti
   int n = conv.size();
   conv.push_back(ptr);
   var* x = ptr->x = assigns(d,act);
-  if ( !x || !d->m_parents.empty() )
+  if (!x || !d->m_parents.empty())
     return result[d] = x;
   basic_block::info_t* B = act->mt->B;
-  if ( liveout(x,B) )
+  if (liveout(x,B))
     return result[d] = x;
   bool b = use_after(x,act);
-  if ( b && resident(x,make_pair(d,act->mt->node)) )
+  if (b && resident(x,make_pair(d,act->mt->node)))
     return result[d] = x;
   const set<var*>& addr = act->mt->pa->addr;
-  if ( addr.find(x) != addr.end() )
+  if (addr.find(x) != addr.end())
     return result[d] = x;
-  switch ( id ){
+  tac::id_t id = ptr->m_id;
+  switch (id) {
   case tac::CALL:
     if ( !b ){
       ptr->x = 0;
@@ -741,17 +749,12 @@ cxx_compiler::optimize::basic_block::dag::generate::inorder(dag::info_t* d, acti
     return result[d] = x;
   }
   conv.erase(conv.begin()+n);
-  if ( id == tac::LOFF ){
-    loffs[x].push_back(make_pair(ptr,conv.size()));
-    return result[d] = 0;
-  }
   delete ptr;
   return result[d] = 0;
 }
 
 namespace cxx_compiler { namespace optimize { namespace basic_block { namespace dag { namespace generate {
   var* special1(dag::info_t*, action_t*);
-  void special2(var*, var*, mknode_t*);
   struct assign_t {
     action_t* act;
     var* y;
@@ -761,6 +764,32 @@ namespace cxx_compiler { namespace optimize { namespace basic_block { namespace 
     assign_t(action_t* a, var* yy, info_t* dd) : act(a), y(yy), x(yy), d(dd), addrrefed(0) {}
   };
   int assign(var*, assign_t*);
+  typedef vector<var*>::iterator IT;
+  IT chose(vector<var*>& v, dag::info_t* d, action_t* act)
+  {
+    if (!d->m_left)
+      return v.begin();
+    mknode_t* mt = act->mt;
+    basic_block::info_t* B = mt->B;
+    IT p = find_if(v.begin(),v.end(),bind2nd(ptr_fun(liveout),B));
+    if (p != v.end())
+      return p;
+    p = find_if(v.begin(),v.end(),bind2nd(ptr_fun(use_after),act));
+    if (p != v.end())
+      return p;
+    p = find_if(v.begin(),v.end(),bind2nd(ptr_fun(resident),
+					  make_pair(d,mt->node)));
+    if (p != v.end())
+      return p;
+    p = find_if(v.begin(),v.end(),
+		[mt](var* v){
+		  set<var*>& addr = mt->pa->addr;
+		  return addr.find(v) != addr.end();
+		});
+    if (p != v.end())
+      return p;
+    return v.begin();
+  }
 } } } } } // end of namespace generate, dag, basic_block, optimize and cxx_compiler
 
 cxx_compiler::var*
@@ -768,43 +797,15 @@ cxx_compiler::optimize::basic_block::dag::generate::assigns(dag::info_t* d, acti
 {
   using namespace std;
   vector<var*>& v = d->m_vars;
-  if ( v.empty() )
+  if (v.empty())
     return 0;
-  if ( var* ret = special1(d,act) )
+  if (var* ret = special1(d,act))
     return ret;
-  mknode_t* mt = act->mt;
-  basic_block::info_t* B = mt->B;
-  vector<var*>::iterator p;
-  if ( d->m_left ){
-    p = find_if(v.begin(),v.end(),bind2nd(ptr_fun(resident),make_pair(d,mt->node)));
-    if ( p != v.end() ){
-      vector<var*>::iterator q =
-        find_if(p,v.end(),bind2nd(ptr_fun(liveout),B));
-      if ( q != v.end() ){
-        if ( resident(*q,make_pair(d,mt->node)) )
-          p = q;
-      }
-      else {
-        q = find_if(p,v.end(),bind2nd(ptr_fun(use_after),act));
-        if ( q != v.end() ){
-          p = q;
-          special2(*v.begin(),*p,mt);
-        }
-      }
-    }
-    if ( p != v.end() ){
-      if ( p != v.begin() )
-        special2(*v.begin(),*p,mt);
-    }
-    else
-      p = v.begin();
-  }
-  else
-    p = v.begin();
+  vector<var*>::iterator p = chose(v, d, act);
   var* y = *p;
   assign_t arg(act,y,d);
   for_each(p+1,v.end(),bind2nd(ptr_fun(assign),&arg));
-  if ( var* ret = arg.addrrefed )
+  if (var* ret = arg.addrrefed)
     return ret;
   return y;
 }
@@ -850,27 +851,6 @@ bool cxx_compiler::optimize::basic_block::dag::generate::resident(var* v,
 namespace cxx_compiler { namespace optimize { namespace basic_block { namespace dag { namespace generate {
   tac* replace_dst(tac*, var*);
 } } } } } // end of namespace generate, dag, basic_block, optimize and cxx_compiler
-
-void
-cxx_compiler::optimize::basic_block::dag::generate::special2(var* old, var* _new, mknode_t* mt)
-{
-  using namespace std;
-  map<var*, vector<pair<tac*, int> > >& loffs = mt->pa->loffs;
-  map<var*, vector<pair<tac*, int> > >::iterator p = loffs.find(old);
-  if ( p == loffs.end() )
-    return;
-  const vector<pair<tac*, int> >& v = p->second;
-  vector<tac*>& conv = mt->pa->conv;
-  tac* tmp = conv.back();
-  conv.pop_back();
-  typedef vector<pair<tac*, int> >::const_reverse_iterator IT;
-  for ( IT q = v.rbegin() ; q != v.rend() ; ++q ){
-    vector<tac*>::iterator r = conv.begin() + q->second;
-    conv.insert(r,replace_dst(q->first,_new));
-  }
-  conv.push_back(tmp);
-  loffs.erase(p);
-}
 
 cxx_compiler::tac*
 cxx_compiler::optimize::basic_block::dag::generate::replace_dst(tac* ptr, var* x)

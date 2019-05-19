@@ -444,6 +444,8 @@ extern int calc_offset(const record_type* drec,
 		       const record_type* brec,
 		       const std::vector<route_t>& route);
 
+extern var* aggregate_conv(const type* T, var* y);
+
 namespace record_impl {
   extern int base_vb(int n, const base* bp);
 } // end of namespace record_impl
@@ -1136,7 +1138,7 @@ struct generated : virtual var {
 };
 
 namespace cast_impl {
-  extern var* with_route(var* src, const type* Tx, const vector<route_t>&);
+  extern var* with_route(const type* Tx, var* src, const vector<route_t>&);
 } // end of namespace cast_impl
 
 struct genaddr : generated, addrof {

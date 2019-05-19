@@ -401,8 +401,8 @@ assign(var* y, argument* arg)
   typedef const bit_field_type BF;
   if ( T->m_id == type::BIT_FIELD )
     return bit_field(y,arg);
-  y = y->cast(T);
-  if ( y->addrof_cast() ){
+  y = T->scalar() ? y->cast(T) : aggregate_conv(T, y);
+  if (y->addrof_cast()) {
     vector<var*>& v = garbage;
     vector<var*>::reverse_iterator p = find(v.rbegin(),v.rend(),y);
     if (p != v.rend())

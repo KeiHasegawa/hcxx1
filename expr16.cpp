@@ -10,6 +10,73 @@ cxx_compiler::var* cxx_compiler::var::assign(var*)
   return this;
 }
 
+namespace cxx_compiler {
+  struct set_va {
+    var* x;
+    var* y;
+    const map<const record_type*, int>& xvco;
+    const map<const record_type*, int>& yvco;
+    set_va(var* xx, var* yy, const map<const record_type*, int>& xv,
+	   const map<const record_type*, int>& yv)
+      : x(xx), y(yy), xvco(xv), yvco(yv) {}
+    void operator()(const record_type* rec)
+    {
+      using namespace expressions::primary::literal;
+      typedef map<const record_type*, int>::const_iterator IT;
+      IT py = yvco.find(rec);
+      assert(py != yvco.end());
+      int yvc_off = py->second;
+      assert(yvc_off);
+      var* yoff = integer::create(yvc_off);
+      var* tmp = new var(rec);
+      if (scope::current->m_id == scope::BLOCK) {
+	block* b = static_cast<block*>(scope::current);
+	b->m_vars.push_back(tmp);
+      }
+      else
+	garbage.push_back(tmp);
+      code.push_back(new roff3ac(tmp, y, yoff));
+      IT px = xvco.find(rec);
+      assert(px != xvco.end());
+      int xvc_off = px->second;
+      assert(xvc_off);
+      var* xoff = integer::create(xvc_off);
+      code.push_back(new loff3ac(x, xoff, tmp));
+    }
+  };
+  var* aggregate_conv(const type* T, var* y)
+  {
+    using namespace expressions::primary::literal;
+    const type* Tx = T->unqualified();
+    const type* Ty = y->m_type;
+    Ty = Ty->unqualified();
+    if (compatible(Tx, Ty))
+      return y;
+    assert(Tx->m_id == type::RECORD);
+    typedef const record_type REC;
+    REC* xrec = static_cast<REC*>(Tx);
+    assert(Ty->m_id == type::RECORD);
+    REC* yrec = static_cast<REC*>(Ty);
+    vector<route_t> dummy;
+    int offset = calc_offset(yrec, xrec, dummy);
+    assert(offset >= 0);
+    var* x = new var(xrec);
+    if (scope::current->m_id == scope::BLOCK) {
+      block* b = static_cast<block*>(scope::current);
+      b->m_vars.push_back(x);
+    }
+    else
+      garbage.push_back(x);
+    var* off = integer::create(offset);
+    code.push_back(new roff3ac(x, y, off));
+    const vector<REC*>& va = xrec->virt_ancestor();
+    const map<REC*, int>& xvco = xrec->virt_common_offset();
+    const map<REC*, int>& yvco = yrec->virt_common_offset();
+    for_each(begin(va), end(va), set_va(x, y, xvco, yvco));
+    return x;
+  }
+} // end of namespace cxx_compiler
+
 cxx_compiler::var* cxx_compiler::usr::assign(var* op)
 {
   using namespace error::expressions::assignment;
@@ -28,13 +95,13 @@ cxx_compiler::var* cxx_compiler::usr::assign(var* op)
   if (m_type->m_id == type::REFERENCE)
     code.push_back(new invladdr3ac(this,y));
   else {
-    y = y->cast(T);
+    y = T->scalar() ? y->cast(T) : aggregate_conv(T, y);
     code.push_back(new assign3ac(this,y));
   }
   if ( !y->isconstant() )
     return y;
   var* x = new var(T);
-  if ( scope::current->m_id == scope::BLOCK ){
+  if (scope::current->m_id == scope::BLOCK) {
     block* b = static_cast<block*>(scope::current);
     b->m_vars.push_back(x);
   }
@@ -235,10 +302,6 @@ cxx_compiler::var* cxx_compiler::refsomewhere::assign(var* op)
 }
 
 // comma-expression
-#include "stdafx.h"
-#include "cxx_core.h"
-#include "cxx_impl.h"
-
 cxx_compiler::var* cxx_compiler::var::comma(var* right)
 {
   rvalue();
