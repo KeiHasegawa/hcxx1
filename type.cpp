@@ -1100,10 +1100,8 @@ void cxx_compiler::pointer_type::encode(std::ostream& os) const
 const cxx_compiler::type* cxx_compiler::pointer_type::patch(const type* T, usr* u) const
 {
   T = m_T->patch(T,u);
-  if ( u ){
-    usr::flag_t& flag = u->m_flag;
-    flag = (usr::flag_t)(flag & ~usr::FUNCTION & ~usr::VL);
-  }
+  if (u)
+    u->m_flag = (usr::flag_t)(u->m_flag & ~usr::FUNCTION & ~usr::VL);
   return create(T);
 }
 
@@ -1195,10 +1193,8 @@ void cxx_compiler::reference_type::encode(std::ostream& os) const
 const cxx_compiler::type* cxx_compiler::reference_type::patch(const type* T, usr* u) const
 {
   T = m_T->patch(T,u);
-  if ( u ){
-    usr::flag_t& flag = u->m_flag;
-    flag = (usr::flag_t)(flag & ~usr::FUNCTION & ~usr::VL);
-  }
+  if (u)
+    u->m_flag = (usr::flag_t)(u->m_flag & ~usr::FUNCTION & ~usr::VL);
   return create(T);
 }
 
@@ -3215,6 +3211,8 @@ const cxx_compiler::type*
 cxx_compiler::pointer_member_type::patch(const type* T, usr* u) const
 {
   T = m_T->patch(T, u);
+  if (u)
+    u->m_flag = (usr::flag_t)(u->m_flag & ~usr::FUNCTION & ~usr::VL);
   return create(m_tag, T);
 }
 
