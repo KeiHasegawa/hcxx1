@@ -1805,7 +1805,6 @@ namespace cxx_compiler {
           *m_offset += delta;
           return ret;
         }
-        org.first += *m_offset;
         *m_offset += delta;
         return org;
       }
