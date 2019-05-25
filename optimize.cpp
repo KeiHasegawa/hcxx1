@@ -465,7 +465,7 @@ dag::match(info_t* xinfo, std::pair<tac*, std::map<var*, dag::info_t*>*> arg)
 bool
 cxx_compiler::optimize::basic_block::dag::
 roff_match_loff(info_t* xinfo,
-		std::pair<tac*, std::map<var*, dag::info_t*>*> arg)
+                std::pair<tac*, std::map<var*, dag::info_t*>*> arg)
 {
   using namespace std;
   tac* roff = arg.first;
@@ -733,10 +733,10 @@ cxx_compiler::optimize::basic_block::dag::generate::inorder(dag::info_t* d, acti
       typedef vector<var*>::const_iterator IT;
       IT p = find_if(begin(v), end(v), bind2nd(ptr_fun(liveout), B));
       if (p != end(v))
-	return result[d] = x;
+        return result[d] = x;
       p = find_if(begin(v), end(v), bind2nd(ptr_fun(use_after), act));
       if (p != end(v))
-	return result[d] = x;
+        return result[d] = x;
     }
   }
   conv.erase(conv.begin()+n);
@@ -766,7 +766,7 @@ namespace cxx_compiler { namespace optimize { namespace basic_block { namespace 
     if (tac* ptr = d->m_tac) {
       tac::id_t id = ptr->m_id;
       if (id == tac::LOFF)
-	return v.begin();
+        return v.begin();
     }
     mknode_t* mt = act->mt;
     basic_block::info_t* B = mt->B;
@@ -777,14 +777,14 @@ namespace cxx_compiler { namespace optimize { namespace basic_block { namespace 
     if (p != v.end())
       return p;
     p = find_if(v.begin(),v.end(),bind2nd(ptr_fun(resident),
-					  make_pair(d,mt->node)));
+                                          make_pair(d,mt->node)));
     if (p != v.end())
       return p;
     p = find_if(v.begin(),v.end(),
-		[mt](var* v){
-		  set<var*>& addr = mt->pa->addr;
-		  return addr.find(v) != addr.end();
-		});
+                [mt](var* v){
+                  set<var*>& addr = mt->pa->addr;
+                  return addr.find(v) != addr.end();
+                });
     if (p != v.end())
       return p;
     return v.begin();
@@ -908,15 +908,15 @@ dag::generate::assign(var* x, assign_t* arg)
   const vector<dag::info_t*>& parents = arg->d->m_parents;
   typedef vector<dag::info_t*>::const_iterator IT;
   IT p = find_if(begin(parents), end(parents), [x](dag::info_t* parent)
-		 {
-		   if (parent->m_tac->m_id != tac::LOFF)
-		     return false;
-		   dag::info_t* extra = parent->m_extra;
-		   if (!extra)
-		     return false;
-		   const vector<var*>& v = extra->m_vars;
-		   return find(begin(v), end(v), x) != end(v);
-		 });
+                 {
+                   if (parent->m_tac->m_id != tac::LOFF)
+                     return false;
+                   dag::info_t* extra = parent->m_extra;
+                   if (!extra)
+                     return false;
+                   const vector<var*>& v = extra->m_vars;
+                   return find(begin(v), end(v), x) != end(v);
+                 });
   if (p != end(parents))
     return gen_assign(x, arg);
   if ( !resident(x,make_pair(arg->d,arg->act->mt->node)) )
