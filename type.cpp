@@ -1494,58 +1494,49 @@ namespace cxx_compiler {
           common.push_back(p);
       }
     }
-    struct gather {
-      vector<const record_type*>& m_common;
-      const record_type* yrec;
-      gather(vector<const record_type*>& common, const record_type* rec)
-        : m_common(common), yrec(rec) {}
-      void operator()(base* xbp)
-      {
-        tag* ptr = xbp->m_tag;
-        const type* T = ptr->m_types.second;
-        assert(T);
-        assert(T->m_id == type::RECORD);
-        typedef const record_type REC;
-        REC* xrec = static_cast<REC*>(T);
-        if (xrec == yrec)
-          return;
-        const vector<REC*>& x = xrec->virt_ancestor();
-        const vector<REC*>& y = yrec->virt_ancestor();
-        calc_common(x, y, m_common);
-      }
-    };
-    struct base_layouter {
-      map<base*, int>& m_base_offset;
-      const vector<base*>& m_bases;
-      set<const record_type*>& m_common;
-      base_layouter(map<base*, int>& bo, const vector<base*>& bases,
-                    set<const record_type*>& common)
-        : m_base_offset(bo), m_bases(bases), m_common(common) {}
-      int operator()(int n, base* bp)
-      {
-        tag* ptr = bp->m_tag;
-        const type* T = ptr->m_types.second;
-        assert(T);
-        assert(T->m_id == type::RECORD);
-        typedef const record_type REC;
-        REC* rec = static_cast<REC*>(T);
-        if (bp->m_flag & usr::VIRTUAL) {
-          m_common.insert(rec);
-          return n;
-        }
-        vector<const record_type*> tmp;
-        for_each(begin(m_bases), end(m_bases), gather(tmp, rec));
-        int m = T->size();
-        assert(m);
-        m -= accumulate(begin(tmp), end(tmp), 0, add_size);
-        assert(m > 0);
-        set<REC*>& common = m_common;
-        for_each(begin(tmp), end(tmp), [&common](REC* rec)
-                 { common.insert(rec); });
-        m_base_offset[bp] = n;
-        return n + m;
-      }
-    };
+    inline void insert(base* bp, set<const record_type*>& common)
+    {
+      assert(bp->m_flag & usr::VIRTUAL);
+      tag* ptr = bp->m_tag;
+      const type* T = ptr->m_types.second;
+      assert(T);
+      assert(T->m_id == type::RECORD);
+      typedef const record_type REC;
+      REC* rec = static_cast<REC*>(T);
+      common.insert(rec);
+    }
+    inline void gather(base* xbp, base* ybp, vector<const record_type*>& tmp)
+    {
+      tag* xtag = xbp->m_tag;
+      const type* Tx = xtag->m_types.second;
+      assert(Tx);
+      assert(Tx->m_id == type::RECORD);
+      typedef const record_type REC;
+      REC* xrec = static_cast<REC*>(Tx);
+      tag* ytag = ybp->m_tag;
+      const type* Ty = ytag->m_types.second;
+      assert(Ty);
+      assert(Ty->m_id == type::RECORD);
+      typedef const record_type REC;
+      REC* yrec = static_cast<REC*>(Ty);
+      const vector<REC*>& x = xrec->virt_ancestor();
+      const vector<REC*>& y = yrec->virt_ancestor();
+      calc_common(x, y, tmp);
+    }
+    inline int base_layouter(int n, base* bp, map<base*, int>& base_offset,
+			     const vector<const record_type*>& tmp)
+    {
+      assert(!(bp->m_flag & usr::VIRTUAL));
+      tag* ptr = bp->m_tag;
+      const type* T = ptr->m_types.second;
+      assert(T);
+      int m = T->size();
+      assert(m);
+      m -= accumulate(begin(tmp), end(tmp), 0, add_size);
+      assert(m > 0);
+      base_offset[bp] = n;
+      return n + m;
+    }
     struct vbase_layouter {
       map<base*, int>& m_base_offset;
       set<const record_type*>& m_common;
@@ -1556,7 +1547,7 @@ namespace cxx_compiler {
       int operator()(int n, base* bp)
       {
         if (!(bp->m_flag & usr::VIRTUAL)) {
-          assert(m_base_offset.find(bp) != m_base_offset.end());
+	  assert(m_base_offset.find(bp) != m_base_offset.end());
           return n;
         }
         assert(m_base_offset.find(bp) == m_base_offset.end());
@@ -2318,8 +2309,19 @@ cxx_compiler::record_type::record_type(tag* ptr)
   set<const record_type*> common;
   if (bases) {
     if (m_tag->m_kind != tag::UNION) {
-      m_size = accumulate(begin(*bases), end(*bases), m_size,
-                          base_layouter(m_base_offset, *bases, common));
+      for (auto bp : *bases) {
+	if (bp->m_flag & usr::VIRTUAL)
+	  insert(bp, common);
+	else {
+	  vector<const record_type*> tmp;
+	  for (auto bq : *bases) {
+	    if (bp != bq)
+	      gather(bp, bq, tmp);
+	  }
+	  copy(begin(tmp), end(tmp), inserter(common, common.begin()));
+	  m_size = base_layouter(m_size, bp, m_base_offset, tmp);
+	}
+      }
     }
     else
       error::not_implemented();
@@ -2432,6 +2434,7 @@ cxx_compiler::record_type::record_type(tag* ptr)
   }
   if (bases) {
     if (m_tag->m_kind != tag::UNION) {
+      for_each(begin(*bases), end(*bases), [](base* bp){});
       m_size = accumulate(begin(*bases), end(*bases), m_size,
                           vbase_layouter(m_base_offset, common,
                                          m_virt_common_offset));
@@ -2755,7 +2758,7 @@ cxx_compiler::calc_offset(const record_type* xrec,
       const map<const record_type*, int>& vco = xrec->virt_common_offset();
       ITx px = vco.find(yrec);
       if (px != vco.end())
-        return px->second;
+	return px->second;
     }
   }
 
