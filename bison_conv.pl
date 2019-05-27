@@ -47,6 +47,7 @@ EOF2
   print $_,"\n";
   if ( /yystate = yydefgoto/ ){
     print "#include \"patch.00.p\"\n";
+    print "#include \"patch.12.p\"\n";
   }
   if ( /yystate = yyn/ ){
     print "#include \"patch.01.p\"\n";

@@ -1,15 +1,5 @@
-template<class T> class C {
-  T m_value;
-};
+struct B { void f(); };
 
-C<char> x;
-
-template<class T> T f(T a, T b)
+void g(void (B::*pf)())
 {
-  return a + b;
-}
-
-double g(double a, int b)
-{
-  return f<double>(a, b);
 }
