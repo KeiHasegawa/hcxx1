@@ -1218,6 +1218,26 @@ cxx_compiler::var::ptr_member(var* expr, bool dot)
   PM* pm = static_cast<PM*>(T);
   if (pm->scalar()) {
     T = pm->referenced_type();
+    const tag* ptr = pm->ctag();
+    const type* X = ptr->m_types.second;
+    assert(X->m_id == type::RECORD);
+    REC* xrec = static_cast<REC*>(X);
+    vector<route_t> dummy;
+    int offset = calc_offset(rec, xrec, dummy);
+    if (offset < 0)
+      error::not_implemented();
+    if (offset) {
+      var* off = integer::create(offset);
+      var* tmp = new var(T);
+      if (scope::current->m_id == scope::BLOCK) {
+	block* b = static_cast<block*>(scope::current);
+	b->m_vars.push_back(tmp);
+      }
+      else
+	garbage.push_back(tmp);
+      code.push_back(new add3ac(tmp, expr, off));
+      expr = tmp;
+    }
     if (dot)
       return offref(T, expr);
     var* rv = rvalue();
