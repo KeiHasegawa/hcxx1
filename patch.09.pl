@@ -44,7 +44,7 @@ exit 1;
 label:
 print <<EOF
   if (yystate == $xxx && cxx_compiler::parse::peek() != COLONCOLON_MK) {
-    YYDPRINTF((stderr, "rule.09 is applied\\n"));
+    YYDPRINTF((stderr, "patch.09 is applied\\n"));
     yyn = $bbb + 1;
     goto yyreduce;
   }

@@ -93,7 +93,7 @@ print <<EOF
       if (!context_t::retry[$xxx])
         save(yystate, yyss, yyssp, yyvs, yyvsp);
       else {
-        YYDPRINTF((stderr, "rule.10 is applied\\n"));
+        YYDPRINTF((stderr, "patch.10 is applied\\n"));
         yyn = $aaa + 1;
         goto yyreduce;
       }
@@ -122,7 +122,7 @@ print <<EOF_2
       if (!context_t::all.empty()) {
 	context_t& x = context_t::all.back();
 	if (x.m_state == $xxx) {
-          YYDPRINTF((stderr, "rule.10.2 is applied\\n"));
+          YYDPRINTF((stderr, "patch.10.2 is applied\\n"));
           context_t::all.pop_back();
           goto yyerrlab;
 	}

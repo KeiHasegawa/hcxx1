@@ -96,20 +96,13 @@ exit 1;
 label:
 print <<EOF
   if (yystate == $xxx) {
-    using namespace cxx_compiler;
-    if (scope::current->m_id == scope::PARAM) {
-      switch (yychar) {
-      case ORIGINAL_NAMESPACE_NAME_LEX:
-      case NAMESPACE_ALIAS_LEX:
-      case TYPEDEF_NAME_LEX:
-      case CLASS_NAME_LEX:
-      case TEMPLATE_NAME_LEX:
-      case ENUM_NAME_LEX:
-      case COLONCOLON_MK:
-        YYDPRINTF((stderr, "rule.05 is applied\\n"));
-        yyn = $yyy + 1;
-        goto yyreduce;
-      }
+    using namespace cxx_compiler::parse;
+    if (!context_t::retry[$xxx])
+      save(yystate, yyss, yyssp, yyvs, yyvsp);
+    else {
+      YYDPRINTF((stderr, "patch.05 is applied\\n"));
+      yyn = $yyy + 1;
+      goto yyreduce;
     }
   }
 EOF

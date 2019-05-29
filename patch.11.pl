@@ -47,7 +47,7 @@ print <<EOF
         REC* rec = static_cast<REC*>(T);
         tag* y = rec->get_tag();
         if (x == y) {
-          YYDPRINTF((stderr, "rule.11 is applied\\n"));
+          YYDPRINTF((stderr, "patch.11 is applied\\n"));
           yyn = $bbb + 1;
         }
       }

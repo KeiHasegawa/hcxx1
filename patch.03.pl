@@ -45,7 +45,7 @@ print <<EOF
   if (yystate == $xxx && yychar == '(') {
     using namespace cxx_compiler::parse;
     if (!context_t::retry[$xxx]) {
-      YYDPRINTF((stderr, "rule.03 is applied\\n"));
+      YYDPRINTF((stderr, "patch.03 is applied\\n"));
       save(yystate, yyss, yyssp, yyvs, yyvsp);
       yyn = $yyy + 1;
       goto yyreduce;

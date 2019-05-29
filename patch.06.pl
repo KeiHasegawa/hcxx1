@@ -32,7 +32,7 @@ exit 1;
 label:
 print <<EOF
   if (yystate == $xxx && cxx_compiler::parse::peek() == COLONCOLON_MK) {
-    YYDPRINTF((stderr, "rule.06 is applied\\n"));
+    YYDPRINTF((stderr, "patch.06 is applied\\n"));
     yyn = $zzz + 1;
   }
 EOF

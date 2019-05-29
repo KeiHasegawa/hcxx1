@@ -42,10 +42,10 @@ print <<EOF
   if (yystate == $xxx && yychar == '(') {
     using namespace cxx_compiler;
     if (scope::current->m_id == scope::TAG) {
-      if (!cxx_compiler::parse::context_t::retry[$xxx])
-        cxx_compiler::parse::save(yystate, yyss, yyssp, yyvs, yyvsp);
+      if (!parse::context_t::retry[$xxx])
+        parse::save(yystate, yyss, yyssp, yyvs, yyvsp);
       else {
-        YYDPRINTF((stderr, "rule.04 is applied\\n"));
+        YYDPRINTF((stderr, "patch.04 is applied\\n"));
         yyn = $bbb + 1;
         goto yyreduce;
       }

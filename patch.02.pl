@@ -83,7 +83,7 @@ print <<EOF
   if ( yystate == $xxx ){
     using namespace cxx_compiler::parse;
     if (identifier::mode != identifier::new_obj) {
-      YYDPRINTF((stderr, "rule.02 is applied\\n"));
+      YYDPRINTF((stderr, "patch.02 is applied\\n"));
       yystate = $yyy;
     }
   }

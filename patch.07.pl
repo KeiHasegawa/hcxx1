@@ -26,7 +26,7 @@ exit 1;
 label:
 print <<EOF
   if (cxx_compiler::parse::member_function_body::saved) {
-    YYDPRINTF((stderr, "rule.07 is applied\\n"));
+    YYDPRINTF((stderr, "patch.07 is applied\\n"));
     yystate = $xxx;
   }
 EOF
