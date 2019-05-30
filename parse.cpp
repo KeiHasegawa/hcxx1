@@ -124,7 +124,9 @@ namespace cxx_compiler {
             usr::flag_t flag = u->m_flag;
             if (flag & usr::CTOR)
               return false;
-	    info_t tmp(IDENTIFIER_LEX, u, bp);
+	    int kind = (flag & usr::TYPEDEF) ? TYPEDEF_NAME_LEX
+	      : IDENTIFIER_LEX;
+	    info_t tmp(kind, u, bp);
 	    if (flag & usr::OVERLOAD) {
 	      m_choice.push_back(tmp);
               return true;
