@@ -945,16 +945,17 @@ cxx_compiler::declarations::elaborated::action(int keyword, var* v)
     return p.second ? p.second : p.first;
   }
   else {
-    scope* ptr = linkage::braces.empty() ? scope::current : &scope::root;
+    scope* parent = linkage::braces.empty() ? scope::current : &scope::root;
     tag::kind_t kind = classes::specifier::get(keyword);
     const file_t& file = u->m_file;
-    tag* T = new tag(kind,name,file,0);
-    ptr->m_tags[name] = T;
-    T->m_parent = ptr;
+    tag* ptr = new tag(kind,name,file,0);
+    parent->m_tags[name] = ptr;
+    ptr->m_parent = parent;
+    parent->m_children.push_back(ptr);
     using namespace class_or_namespace_name;
     assert(!before.empty());
     before.pop_back();
-    return T->m_types.first = incomplete_tagged_type::create(T);
+    return ptr->m_types.first = incomplete_tagged_type::create(ptr);
   }
 }
 
