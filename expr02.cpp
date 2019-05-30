@@ -354,18 +354,7 @@ cxx_compiler::var* cxx_compiler::genaddr::address()
   if (flag & usr::STATIC)
     return genaddr_impl::addr_normal(m_ref, b);
 
-  const type* T = m_ref->m_type;
-  const type* pt = pointer_type::create(T);
-  var* tmp = new var(pt);
-  b->m_vars.push_back(tmp);
-  code.push_back(new addr3ac(tmp, m_ref));
-
-  T = pointer_member_type::create(ptr, T);
-  var* ret = new var(T);
-  b->m_vars.push_back(ret);
-  var* zero = integer::create(0);
-  code.push_back(new loff3ac(ret, zero, tmp));
-  return ret;
+  return fun_ptr_mem(ptr, u);
 }
 
 cxx_compiler::var* cxx_compiler::refbit::address()

@@ -220,6 +220,8 @@ void cxx_compiler::class_or_namespace_name::after()
   assert(before.back());
   last = scope::current;
   scope::current = before.back();
+  if (scope::current->m_id == scope::PARAM)
+    last = 0;
 }
 
 namespace cxx_compiler {

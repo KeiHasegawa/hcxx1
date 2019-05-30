@@ -652,12 +652,12 @@ cvr_qualifier
 declarator_id
   : id_expression
   | COLONCOLON_MK move_to_root nested_name_specifier type_name
-    { cxx_compiler::error::not_implemented(); }
-  |                            nested_name_specifier type_name
+    { $$ = cxx_compiler::declarations::declarators::ctor($4); }
+  | nested_name_specifier type_name
     { $$ = cxx_compiler::declarations::declarators::ctor($2); }
-  | COLONCOLON_MK move_to_root                       type_name
-    { cxx_compiler::error::not_implemented(); }
-  |                                                  type_name
+  | COLONCOLON_MK move_to_root type_name
+    { $$ = cxx_compiler::declarations::declarators::ctor($3); }
+  | type_name
     {
       /* Note that $1 is already deleted */
       $$ = cxx_compiler::declarations::declarators::ctor();

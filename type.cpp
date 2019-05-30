@@ -2264,10 +2264,6 @@ namespace cxx_compiler {
   } // end of namespace record_imp
 } // end of namespace cxx_compiler
 
-void debug_break()
-{
-}
-
 cxx_compiler::record_type::record_type(tag* ptr)
   : type(RECORD), m_size(0), m_modifiable(true), m_tag(ptr)
 {

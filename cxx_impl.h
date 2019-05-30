@@ -1279,6 +1279,8 @@ struct member_function : var {
   var* rvalue();
 };
 
+var* fun_ptr_mem(tag* ptr, usr* fun);
+
 struct opposite_t : map<goto3ac::op,goto3ac::op> {
   opposite_t();
 };

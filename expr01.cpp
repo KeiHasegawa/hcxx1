@@ -224,55 +224,63 @@ cxx_compiler::member_function::call(std::vector<var*>* arg)
   return ret;
 }
 
+namespace cxx_compiler {
+  var* fun_ptr_mem(tag* ptr, usr* fun)
+  {
+    using namespace expressions::primary::literal;
+    const type* T = fun->m_type;
+    const pointer_type* pt = pointer_type::create(T);
+    var* tmp = new var(pt);
+    T = pointer_member_type::create(ptr, T);
+    var* ret = new var(T);
+    if (scope::current->m_id == scope::BLOCK) {
+      block* b = static_cast<block*>(scope::current);
+      b->m_vars.push_back(tmp);
+      b->m_vars.push_back(ret);
+    }
+    else {
+      garbage.push_back(tmp);
+      garbage.push_back(ret);
+    }
+    code.push_back(new addr3ac(tmp, fun));
+    var* idx = integer::create(0);
+    code.push_back(new loff3ac(ret, idx, tmp));
+    idx = integer::create(pt->size());
+    if (fun->m_flag & usr::VIRTUAL) {
+      const map<string, vector<usr*> >& usrs = ptr->m_usrs;
+      typedef map<string, vector<usr*> >::const_iterator IT;
+      IT p = usrs.find(vftbl_name);
+      assert(p != usrs.end());
+      const vector<usr*>& v = p->second;
+      assert(v.size() == 1);
+      usr* u = v.back();
+      assert(u->m_flag & usr::WITH_INI);
+      with_initial* vftbl = static_cast<with_initial*>(u);
+      map<int, var*>::const_iterator q =
+	find_if(begin(vftbl->m_value), end(vftbl->m_value),
+		bind2nd(ptr_fun(match_vf),fun));
+      assert(q != end(vftbl->m_value));
+      int offset = q->first;
+      var* off = integer::create(offset);
+      code.push_back(new loff3ac(ret, idx, off));
+    }
+    else {
+      var* off = integer::create(-1);
+      code.push_back(new loff3ac(ret, idx, off));
+    }
+    return ret;
+  }
+} // end of namespace cxx_compiler
+
 cxx_compiler::var*
 cxx_compiler::member_function::rvalue()
 {
-  using namespace expressions::primary::literal;
   scope* p = m_fun->m_scope;
   assert(p->m_id == scope::TAG);
   tag* ptr = static_cast<tag*>(p);
-  const type* T = m_fun->m_type;
-  const pointer_type* pt = pointer_type::create(T);
-  var* tmp = new var(pt);
-  T = pointer_member_type::create(ptr, T);
-  var* ret = new var(T);
-  if (scope::current->m_id == scope::BLOCK) {
-    block* b = static_cast<block*>(scope::current);
-    b->m_vars.push_back(tmp);
-    b->m_vars.push_back(ret);
-  }
-  else {
-    garbage.push_back(tmp);
-    garbage.push_back(ret);
-  }
-  code.push_back(new addr3ac(tmp, m_fun));
-  var* idx = integer::create(0);
-  code.push_back(new loff3ac(ret, idx, tmp));
-  idx = integer::create(pt->size());
-  usr* vf = m_fun->usr_cast();
-  if (vf && (vf->m_flag & usr::VIRTUAL)) {
-    const map<string, vector<usr*> >& usrs = ptr->m_usrs;
-    typedef map<string, vector<usr*> >::const_iterator IT;
-    IT p = usrs.find(vftbl_name);
-    assert(p != usrs.end());
-    const vector<usr*>& v = p->second;
-    assert(v.size() == 1);
-    usr* u = v.back();
-    assert(u->m_flag & usr::WITH_INI);
-    with_initial* vftbl = static_cast<with_initial*>(u);
-    map<int, var*>::const_iterator q =
-      find_if(begin(vftbl->m_value), end(vftbl->m_value),
-              bind2nd(ptr_fun(match_vf),vf));
-    assert(q != end(vftbl->m_value));
-    int offset = q->first;
-    var* off = integer::create(offset);
-    code.push_back(new loff3ac(ret, idx, off));
-  }
-  else {
-    var* off = integer::create(-1);
-    code.push_back(new loff3ac(ret, idx, off));
-  }
-  return ret;
+  assert(m_fun->usr_cast());
+  usr* fun = static_cast<usr*>(m_fun);
+  return fun_ptr_mem(ptr, fun);
 }
 
 namespace cxx_compiler {
