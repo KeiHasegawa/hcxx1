@@ -172,7 +172,7 @@ print<<EOF
     if (*yyssp == $yyy && *(yyssp-1) == $xxx) {
       using namespace cxx_compiler;
       using namespace parse;
-      class_or_namespace_name::after();
+      class_or_namespace_name::after(false);
       YYDPRINTF((stderr, "patch.05.2 is applied\\n"));
       restore(&yystate, &yyss, &yyssp, yyssa, &yyvs, &yyvsp, yyvsa);
       ++context_t::retry[$xxx];
@@ -184,7 +184,7 @@ print<<EOF
       if (*yyssp == $uuu && *(yyssp-1) == $zzz && *(yyssp-2) == $xxx) {
 	  using namespace cxx_compiler;
 	  using namespace parse;
-	  class_or_namespace_name::after();
+	  class_or_namespace_name::after(false);
 	  YYDPRINTF((stderr, "patch.05.2 is applied\\n"));
 	  restore(&yystate, &yyss, &yyssp, yyssa, &yyvs, &yyvsp, yyvsa);
 	  ++context_t::retry[$xxx];
@@ -196,7 +196,7 @@ print<<EOF
       if (*yyssp == $vvv && *(yyssp-1) == $uuu && *(yyssp-2) == $zzz && *(yyssp-3) == $xxx) {
 	  using namespace cxx_compiler;
 	  using namespace parse;
-	  class_or_namespace_name::after();
+	  class_or_namespace_name::after(false);
 	  YYDPRINTF((stderr, "patch.05.2 is applied\\n"));
 	  restore(&yystate, &yyss, &yyssp, yyssa, &yyvs, &yyvsp, yyvsa);
 	  ++context_t::retry[$xxx];

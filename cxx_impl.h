@@ -573,9 +573,11 @@ namespace declarations {
           } // end of namespace defer
         } // end of namespace static_inline
         namespace mem_initializer {
-          typedef vector<pair<var*, vector<expressions::base*>*> > VALUE;
+	  typedef pair<var*, tag*> PAIR;
+	  typedef vector<expressions::base*> EXPRS;
+          typedef vector<pair<PAIR*,EXPRS*> > VALUE;
           extern map<usr*, VALUE> mtbl;
-          void action(var*, vector<expressions::base*>*);
+          void action(PAIR*, EXPRS*);
         } // end of mem_initializer
       } // end of namespace definition
     } // end of namespace function
@@ -1315,10 +1317,7 @@ struct overload : usr {
 namespace class_or_namespace_name {
   extern vector<scope*> before;
   extern scope* last;
-  extern void after();
-  struct sweeper {
-    ~sweeper(){ after(); }
-  };
+  extern void after(bool set_last);
 } // end of namespace class_or_namespace_name
 
 namespace unqualified_id {

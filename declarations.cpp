@@ -33,7 +33,7 @@ void cxx_compiler::declarations::destroy()
   declarators::array::variable_length::destroy_tmp();
   if ( cmdline::simple_medium )
     dump::names::reset();
-  class_or_namespace_name::after();
+  class_or_namespace_name::after(false);
   class_or_namespace_name::last = 0;
   parse::context_t::clear();
 }

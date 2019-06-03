@@ -107,10 +107,12 @@ namespace cxx_compiler {
   std::vector<cxx_compiler::base*>* m_base_clause;
   cxx_compiler::base* m_base_specifier;
   cxx_compiler::name_space* m_name_space;
+  std::pair<cxx_compiler::var*, cxx_compiler::tag*>* m_pvt;
 }
 
 %type<m_var> IDENTIFIER_LEX unqualified_id id_expression declarator_id direct_declarator declarator enumerator
-%type<m_var> qualified_id mem_initializer_id
+%type<m_var> qualified_id
+%type<m_pvt> mem_initializer_id
 %type<m_usr> INTEGER_LITERAL_LEX CHARACTER_LITERAL_LEX FLOATING_LITERAL_LEX TYPEDEF_NAME_LEX init_declarator
 %type<m_usr> boolean_literal
 %type<m_usrs> block_declaration simple_declaration init_declarator_list
@@ -258,11 +260,11 @@ type_specifier
 
 simple_type_specifier
   : COLONCOLON_MK move_to_root nested_name_specifier type_name
-    { $$ = $4; cxx_compiler::class_or_namespace_name::after(); }
+    { $$ = $4; cxx_compiler::class_or_namespace_name::after(false); }
   | COLONCOLON_MK move_to_root type_name
-    { $$ = $3; cxx_compiler::class_or_namespace_name::after(); }
+    { $$ = $3; cxx_compiler::class_or_namespace_name::after(false); }
   | nested_name_specifier type_name
-    { $$ = $2; cxx_compiler::class_or_namespace_name::after(); }
+    { $$ = $2; cxx_compiler::class_or_namespace_name::after(false); }
   | type_name
   | COLONCOLON_MK move_to_root nested_name_specifier TEMPLATE_KW template_id
     { cxx_compiler::error::not_implemented(); }
@@ -535,7 +537,7 @@ init_declarator_list
 init_declarator
   : declarator
     {
-      cxx_compiler::class_or_namespace_name::after();
+      cxx_compiler::class_or_namespace_name::after(true);
       $1 = cxx_compiler::declarations::action1($1,true);
     }
     initializer
@@ -614,28 +616,28 @@ ptr_operator
       using namespace cxx_compiler;
       using namespace declarations::declarators;
       $$ = pointer::action($5, true);
-      class_or_namespace_name::after();
+      class_or_namespace_name::after(false);
     }
   | nested_name_specifier '*' cvr_qualifier_seq
     {
       using namespace cxx_compiler;
       using namespace declarations::declarators;
       $$ = pointer::action($3, true);
-      class_or_namespace_name::after();
+      class_or_namespace_name::after(false);
     }
   | COLONCOLON_MK move_to_root nested_name_specifier '*'
     {
       using namespace cxx_compiler;
       using namespace declarations::declarators;
       $$ = pointer::action(0, true);
-      class_or_namespace_name::after();
+      class_or_namespace_name::after(false);
     }
   | nested_name_specifier '*'
     {
       using namespace cxx_compiler;
       using namespace declarations::declarators;
       $$ = pointer::action(0, true);
-      class_or_namespace_name::after();
+      class_or_namespace_name::after(false);
     }
   ;
 
@@ -1062,17 +1064,17 @@ base_specifier
   : COLONCOLON_MK move_to_root nested_name_specifier class_name
     {
       $$ = new cxx_compiler::base(0,false,$4);
-      cxx_compiler::class_or_namespace_name::after();
+      cxx_compiler::class_or_namespace_name::after(false);
     }
   | COLONCOLON_MK move_to_root class_name
     {
       $$ = new cxx_compiler::base(0,false,$3);
-      cxx_compiler::class_or_namespace_name::after();
+      cxx_compiler::class_or_namespace_name::after(false);
     }
   | nested_name_specifier class_name
     {
       $$ = new cxx_compiler::base(0,false,$2);
-      cxx_compiler::class_or_namespace_name::after();
+      cxx_compiler::class_or_namespace_name::after(false);
     }
   | class_name
     { $$ = new cxx_compiler::base(0,false,$1); }
@@ -1080,34 +1082,34 @@ base_specifier
     nested_name_specifier class_name
     {
       $$ = new cxx_compiler::base($2,true,$6);
-      cxx_compiler::class_or_namespace_name::after();
+      cxx_compiler::class_or_namespace_name::after(false);
     }
   | VIRTUAL_KW access_specifier COLONCOLON_MK move_to_root class_name
     {
       $$ = new cxx_compiler::base($2,true,$5);
-      cxx_compiler::class_or_namespace_name::after();
+      cxx_compiler::class_or_namespace_name::after(false);
     }
   | VIRTUAL_KW access_specifier nested_name_specifier class_name
     {
       $$ = new cxx_compiler::base($2,true,$4);
-      cxx_compiler::class_or_namespace_name::after();
+      cxx_compiler::class_or_namespace_name::after(false);
     }
   | VIRTUAL_KW access_specifier class_name
     { $$ = new cxx_compiler::base(0,true,$3); }
   | VIRTUAL_KW COLONCOLON_MK move_to_root nested_name_specifier class_name
     {
       $$ = new cxx_compiler::base(0,true,$5);
-      cxx_compiler::class_or_namespace_name::after();
+      cxx_compiler::class_or_namespace_name::after(false);
     }
   | VIRTUAL_KW COLONCOLON_MK move_to_root class_name
     {
       $$ = new cxx_compiler::base(0,true,$4);
-      cxx_compiler::class_or_namespace_name::after();
+      cxx_compiler::class_or_namespace_name::after(false);
     }
   | VIRTUAL_KW nested_name_specifier class_name
     {
       $$ = new cxx_compiler::base(0,true,$3);
-      cxx_compiler::class_or_namespace_name::after();
+      cxx_compiler::class_or_namespace_name::after(false);
     }
   | VIRTUAL_KW class_name
     { $$ = new cxx_compiler::base(0,true,$2); }
@@ -1115,17 +1117,17 @@ base_specifier
     nested_name_specifier class_name
     {
       $$ = new cxx_compiler::base($1,true,$6);
-      cxx_compiler::class_or_namespace_name::after();
+      cxx_compiler::class_or_namespace_name::after(false);
     }
   | access_specifier VIRTUAL_KW COLONCOLON_MK move_to_root class_name
     {
       $$ = new cxx_compiler::base($1,true,$5);
-      cxx_compiler::class_or_namespace_name::after();
+      cxx_compiler::class_or_namespace_name::after(false);
     }
   | access_specifier VIRTUAL_KW nested_name_specifier class_name
     {
       $$ = new cxx_compiler::base($1,true,$4);
-      cxx_compiler::class_or_namespace_name::after();
+      cxx_compiler::class_or_namespace_name::after(false);
     }
   | access_specifier VIRTUAL_KW class_name
     { $$ = new cxx_compiler::base($1,true,$3); }
@@ -1133,17 +1135,17 @@ base_specifier
     class_name
     {
       $$ = new cxx_compiler::base($1,false,$5);
-      cxx_compiler::class_or_namespace_name::after();
+      cxx_compiler::class_or_namespace_name::after(false);
     }
   | access_specifier COLONCOLON_MK move_to_root class_name
     {
       $$ = new cxx_compiler::base($1,false,$4);
-      cxx_compiler::class_or_namespace_name::after();
+      cxx_compiler::class_or_namespace_name::after(false);
     }
   | access_specifier nested_name_specifier class_name
     {
       $$ = new cxx_compiler::base($1,false,$3);
-      cxx_compiler::class_or_namespace_name::after();
+      cxx_compiler::class_or_namespace_name::after(false);
     }
   | access_specifier class_name
     { $$ = new cxx_compiler::base($1,false,$2); }
@@ -1186,7 +1188,7 @@ mem_initializer
       using namespace cxx_compiler::declarations::declarators;
       function::definition::mem_initializer::action($1, $3);
     }
-  | mem_initializer_id '('                 ')'
+  | mem_initializer_id '(' ')'
     {
       using namespace cxx_compiler::declarations::declarators;
       function::definition::mem_initializer::action($1, 0);
@@ -1195,14 +1197,38 @@ mem_initializer
 
 mem_initializer_id
   : COLONCOLON_MK move_to_root nested_name_specifier class_name
-    { cxx_compiler::error::not_implemented(); }
-  | COLONCOLON_MK move_to_root                       class_name
-    { cxx_compiler::error::not_implemented(); }
-  |               nested_name_specifier class_name
-    { cxx_compiler::error::not_implemented(); }
-  |                                     class_name
-    { cxx_compiler::error::not_implemented(); }
+    {
+      using namespace std;
+      using namespace cxx_compiler;
+      $$ = new pair<var*, tag*>(0, $4);
+      class_or_namespace_name::after(false);
+    }
+  | COLONCOLON_MK move_to_root class_name
+    {
+      using namespace std;
+      using namespace cxx_compiler;
+      $$ = new pair<var*, tag*>(0, $3);
+      class_or_namespace_name::after(false);
+    }
+  | nested_name_specifier class_name
+    {
+      using namespace std;
+      using namespace cxx_compiler;
+      $$ = new pair<var*, tag*>(0, $2);
+      class_or_namespace_name::after(false);
+    }
+  | class_name
+    {
+      using namespace std;
+      using namespace cxx_compiler;
+      $$ = new pair<var*, tag*>(0, $1);
+    }
   | IDENTIFIER_LEX
+    {
+      using namespace std;
+      using namespace cxx_compiler;
+      $$ = new pair<var*, tag*>($1, 0);
+    }
   ;
 
 conversion_function_id
@@ -1377,7 +1403,7 @@ id_expression
   | qualified_id
     {
       $$ = cxx_compiler::qualified_id::action($1);
-      cxx_compiler::class_or_namespace_name::after();
+      cxx_compiler::class_or_namespace_name::after(true);
     }
   ;
 
@@ -1404,7 +1430,7 @@ qualified_id
   | nested_name_specifier unqualified_id
     { $$ = $2; }
   | COLONCOLON_MK move_to_root IDENTIFIER_LEX
-    { $$ = $3; cxx_compiler::class_or_namespace_name::after(); }
+    { $$ = $3; cxx_compiler::class_or_namespace_name::after(false); }
   | COLONCOLON_MK move_to_root operator_function_id
     { cxx_compiler::error::not_implemented(); }
   | COLONCOLON_MK move_to_root template_id

@@ -93,9 +93,12 @@ void cxx_compiler_error(const char*)
 void cxx_compiler::error::header(const file_t& file, std::string msg)
 {
   using namespace std;
-  if ( !headered ){
-    if ( fundef* func = fundef::current ){
-      string name = func->m_usr->m_name;
+  if (!headered) {
+    if (fundef* func = fundef::current) {
+      usr* u = func->m_usr;
+      string name = u->m_name;
+      if (u->m_flag & usr::CTOR)
+	name += "::" + name;
       switch ( lang ){
       case jpn:
         cerr << file.m_name << ": ”Ÿ” `" << name << "' :\n";

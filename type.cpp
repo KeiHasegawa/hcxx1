@@ -1922,7 +1922,7 @@ namespace cxx_compiler {
           error::not_implemented();
         T = param.back();
         if (T->m_id != type::VOID)
-          error::not_implemented();
+	  return;
         T = ptr->m_types.second;
         assert(T->m_id == type::RECORD);
         T = pointer_type::create(T);

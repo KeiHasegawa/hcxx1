@@ -461,14 +461,14 @@ action(statements::base* stmt)
     children.erase(it);
   }
   else {
-    typedef map<usr*, mem_initializer::VALUE>::iterator IT;
-    IT p = mem_initializer::mtbl.find(u);
-    if (p != mem_initializer::mtbl.end()) {
-      mem_initializer::VALUE& v = p->second;
-      for_each(begin(v), end(v),
-               [](pair<var*, vector<expressions::base*>*> x)
+    using namespace mem_initializer;
+    typedef map<usr*, VALUE>::iterator IT;
+    IT p = mtbl.find(u);
+    if (p != mtbl.end()) {
+      VALUE& v = p->second;
+      for_each(begin(v), end(v), [](const pair<PAIR*, EXPRS*>& x)
                { mem_initializer::action(x.first, x.second); });
-      mem_initializer::mtbl.erase(p);
+      mtbl.erase(p);
     }
     file_t org = parse::position;
     stmt->gen();
