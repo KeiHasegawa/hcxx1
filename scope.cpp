@@ -103,12 +103,11 @@ cxx_compiler::base::base(int access, bool virt, tag* ptr)
   : m_flag(usr::NONE), m_tag(ptr)
 {
   switch (access) {
-  PRIVATE_KEY: m_flag = usr::PRIVATE; break;
-  PROTECTED_KEY: m_flag = usr::PROTECTED; break;
-  PUBLIC_KEY: m_flag = usr::PUBLIC; break;
+  PRIVATE_KEY: m_access = PRIVATE; break;
+  PROTECTED_KEY: m_access = PROTECTED; break;
+  PUBLIC_KEY: m_access = PUBLIC; break;
   }
-  if (virt)
-    m_flag = usr::flag_t(m_flag | usr::VIRTUAL);
+  m_flag = virt ? usr::VIRTUAL : usr::NONE;
 }
 
 void cxx_compiler::original_namespace_definition(var* v)

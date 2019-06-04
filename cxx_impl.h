@@ -5,8 +5,13 @@ union YYSTYPE;
 
 namespace cxx_compiler {
 
+enum access_t {
+  PRIVATE, PROTECTED, PUBLIC
+};
+
 struct base {
   usr::flag_t m_flag;
+  access_t m_access;
   tag* m_tag;
   base(int access, bool virt, tag* ptr);
 };
@@ -232,6 +237,9 @@ namespace error {
       extern void negative(const usr*);
       extern void not_integer_type(const usr*);
     } // end of namespace bit_field
+    namespace base {
+      extern void duplicate(const file_t&, string name);
+    } // end of namespace base
   } // end of namespace classes
   namespace expressions {
     namespace primary {

@@ -1790,6 +1790,23 @@ void cxx_compiler::error::classes::bit_field::not_integer_type(const usr* u)
   ++counter;
 }
 
+void
+cxx_compiler::error::classes::base::duplicate(const file_t& file, string name)
+{
+  using namespace std;
+  switch (lang) {
+  case jpn:
+    header(file,"エラー");
+    cerr << "基底クラス `" << name << "' が重複しています.\n";
+    break;
+  default:
+    header(file,"error");
+    cerr << "duplicate base type ‘" << name << "'invalid.\n";
+    break;
+  }
+  ++counter;
+}
+
 void cxx_compiler::error::expressions::unary::size::bit_field(const file_t& file, const usr* u)
 {
   using namespace std;

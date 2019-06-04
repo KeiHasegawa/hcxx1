@@ -2261,6 +2261,13 @@ namespace cxx_compiler {
     }
     const usr::flag_t vtbl_flag
     = usr::flag_t(usr::WITH_INI| usr::STATIC | usr::STATIC_DEF);
+    void dup_chk(const file_t& file, base* p, base* q)
+    {
+      tag* x = p->m_tag;
+      tag* y = q->m_tag;
+      if (x == y)
+	error::classes::base::duplicate(file, x->m_name);
+    }
   } // end of namespace record_imp
 } // end of namespace cxx_compiler
 
@@ -2272,6 +2279,15 @@ cxx_compiler::record_type::record_type(tag* ptr)
   const vector<base*>* bases = m_tag->m_bases;
   with_initial* vbtbl = 0;
   if (bases) {
+    const vector<file_t>& v = m_tag->m_file;
+    assert(!v.empty());
+    const file_t& file = v.back();
+    for (auto p : *bases) {
+      for (auto q : *bases)
+	if (p < q)
+	  dup_chk(file, p, q);
+    }
+
     int nbvb = accumulate(begin(*bases), end(*bases), 0,
                           base_vb_t(m_virt_ancestor));
     int nvb = count_if(begin(*bases), end(*bases),

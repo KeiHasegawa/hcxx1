@@ -500,29 +500,31 @@ cxx_compiler::declarations::action1(var* v, bool ini)
   using namespace error::declarations::specifier_seq::type;
   assert(v->usr_cast());
   usr* u = static_cast<usr*>(v);
-  bool lookuped = !u->m_type->backpatch();
+  const type* T = u->m_type;
+  usr::flag_t flag = u->m_flag;
+  bool lookuped = (flag & usr::OVERLOAD) ? true : !T->backpatch();
   if ( specifier_seq::info_t::s_stack.empty() ){
     usr::flag_t mask = usr::flag_t(usr::CTOR | usr::DTOR);
-    if (u->m_flag & mask) {
-      assert(u->m_type->m_id == type::FUNC);
+    if (flag & mask) {
+      assert(T->m_id == type::FUNC);
       if (lookuped) {
         typedef const func_type FT;
-        FT* ft = static_cast<FT*>(u->m_type);
+        FT* ft = static_cast<FT*>(T);
         assert(!ft->return_type());
       }
       else {
-        assert(u->m_type->backpatch());
-        u->m_type = u->m_type->patch(0,u);
+        assert(T->backpatch());
+        u->m_type = T = T->patch(0,u);
       }
     }
     else {
       implicit_int(u);
-      u->m_type = int_type::create();
+      u->m_type = T = int_type::create();
     }
   }
   else if ( specifier_seq::info_t* p = specifier_seq::info_t::s_stack.top() ){
     usr::flag_t mask = usr::flag_t(usr::CTOR | usr::DTOR);
-    assert(!(u->m_flag & mask));
+    assert(!(flag & mask));
     if ( !p->m_type || !p->m_tmp.empty() ){
       declarations::specifier_seq::type::g_usr = u;
       p->update();
@@ -534,30 +536,30 @@ cxx_compiler::declarations::action1(var* v, bool ini)
     if (lookuped)
       check_lookuped(u, p);
     else {
-      u->m_flag = p->m_flag;
-      u->m_type = u->m_type->patch(p->m_type,u);
+      u->m_flag = flag = p->m_flag;
+      u->m_type = T = T->patch(p->m_type,u);
     }
   }
   else {
-    if (u->m_flag & usr::DTOR) {
-      assert(u->m_type->m_id == type::FUNC);
+    if (flag & usr::DTOR) {
+      assert(T->m_id == type::FUNC);
       if (lookuped) {
         typedef const func_type FT;
-        FT* ft = static_cast<FT*>(u->m_type);
+        FT* ft = static_cast<FT*>(T);
         assert(!ft->return_type());
       }
       else {
-        assert(u->m_type->backpatch());
-        u->m_type = u->m_type->patch(0,u);
+        assert(T->backpatch());
+        u->m_type = T = T->patch(0,u);
       }
     }
     else {
       // Rare case. Maybe already error happened.
-      if (u->m_type->backpatch())
-        u->m_type = u->m_type->patch(int_type::create(),u);
+      if (T->backpatch())
+        u->m_type = T = T->patch(int_type::create(),u);
     }
   }
-  if (u->m_flag & usr::TYPEDEF) {
+  if (flag & usr::TYPEDEF) {
     type_def* tmp = new type_def(*u);
     u = exchange(lookuped, tmp, u);
   }
@@ -570,20 +572,24 @@ cxx_compiler::declarations::action1(var* v, bool ini)
         expressions::constant_flag = true;
     }
   }
-  const type* T = u->m_type;
-  usr::flag_t& flag = u->m_flag;
+  T = u->m_type;
+  flag = u->m_flag;
   string name = u->m_name;
-  block* b = scope::current->m_id == scope::BLOCK ? static_cast<block*>(scope::current) : 0;
+  block* b = 0;
+  if (scope::current->m_id == scope::BLOCK)
+    b = static_cast<block*>(scope::current);
   usr::flag_t mask = usr::flag_t(usr::TYPEDEF | usr::EXTERN | usr::FUNCTION | usr::VL);
-  if ( !(flag & mask) ){
-    if ( b || scope::current == &scope::root ){
+  if (!(flag & mask)) {
+    if (b || scope::current == &scope::root) {
       typedef const array_type ARRAY;
       ARRAY* array = T->m_id == type::ARRAY ? static_cast<ARRAY*>(T) : 0;
-      if ( !array || array->dim() || !ini )
+      if ( !array || array->dim() || !ini ) {
         check_object(u);
+	T = u->m_type;
+      }
     }
   }
-  else if ( flag & usr::EXTERN ){
+  else if (flag & usr::EXTERN) {
     if ( ini ){
       if ( scope::current == &scope::root ){
         using namespace warning::declarations::initializers;
@@ -593,10 +599,10 @@ cxx_compiler::declarations::action1(var* v, bool ini)
         using namespace error::declarations::initializers;
         with_extern(u);
       }
-      flag = usr::flag_t(flag & ~usr::EXTERN);
+      u->m_flag = flag = usr::flag_t(flag & ~usr::EXTERN);
     }
   }
-  else if ( flag & usr::FUNCTION ){
+  else if (flag & usr::FUNCTION) {
     usr::flag_t mask = usr::flag_t(usr::STATIC | usr::AUTO | usr::REGISTER);
     if ( flag & mask ){
       if ( b ){
@@ -606,21 +612,21 @@ cxx_compiler::declarations::action1(var* v, bool ini)
       }
     }
   }
-  if ( (flag & usr::VL) && ini ){
+  if ((flag & usr::VL) && ini) {
     using namespace error::declarations::declarators::array;
     variable_length::initializer(u);
   }
-  if ( b ){
+  if (b) {
     usr::flag_t mask = usr::flag_t(usr::STATIC | usr::EXTERN);
-    if ( flag & mask ){
-      if ( fundef::current->m_usr->m_flag & usr::INLINE ){
+    if (flag & mask) {
+      if (fundef::current->m_usr->m_flag & usr::INLINE) {
         using namespace error::declarations::specifier_seq::function;
         func_spec::static_storage(u);
         fundef::current->m_usr->m_flag = usr::flag_t(fundef::current->m_usr->m_flag & ~usr::INLINE);
       }
     }
   }
-  if ( flag & usr::INLINE ){
+  if (flag & usr::INLINE) {
     using namespace error::declarations::specifier_seq::function;
     if ( !(flag & usr::FUNCTION) )
       not_function(u);
@@ -630,41 +636,43 @@ cxx_compiler::declarations::action1(var* v, bool ini)
         func_spec::main(u);
     }
   }
-  if ( b ){
+  if (b) {
     scope* param = b->m_parent;
     if ( param->m_parent == &scope::root ){
       const map<string, vector<usr*> >& usrs = param->m_usrs;
       map<string, vector<usr*> >::const_iterator p =
         usrs.find(name);
-      if ( p != usrs.end() ){
+      if (p != usrs.end()) {
         using namespace error::declarations;
         usr* prev = p->second.back();
         redeclaration(prev,u,true);
       }
     }
   }
-  else if ( scope::current == &scope::root ){
+  else if (scope::current == &scope::root) {
     usr::flag_t mask = usr::flag_t(usr::AUTO | usr::REGISTER);
     if ( flag & mask ){
       using namespace error::declarations::external;
       invalid_storage(parse::position);
       flag = usr::flag_t(flag & ~mask);
     }
-    u->m_type = u->m_type->vla2a();
+    u->m_type = T = T->vla2a();
   }
-  const type* U = u->m_type->unqualified();
-  if (U->m_id == type::REFERENCE) {
-    if (!(flag & usr::EXTERN)) {
-      switch (scope::current->m_id) {
-      case scope::PARAM:
-      case scope::TAG:
-        break;
-      default:
-        if (!ini) {
-          using namespace error::declarations::declarators;
-          reference::missing_initializer(u);
-        }
-        break;
+  if (T) {
+    const type* U = T->unqualified();
+    if (U->m_id == type::REFERENCE) {
+      if (!(flag & usr::EXTERN)) {
+	switch (scope::current->m_id) {
+	case scope::PARAM:
+	case scope::TAG:
+	  break;
+	default:
+	  if (!ini) {
+	    using namespace error::declarations::declarators;
+	    reference::missing_initializer(u);
+	  }
+	  break;
+	}
       }
     }
   }
@@ -898,15 +906,18 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
 void
 cxx_compiler::declarations::check_lookuped(usr* u, specifier_seq::info_t* p)
 {
-  u->m_flag = usr::flag_t(u->m_flag | p->m_flag);
+  usr::flag_t flag = u->m_flag;
+  u->m_flag = flag = usr::flag_t(flag | p->m_flag);
   const type* Tu = u->m_type;
+  if (flag & usr::OVERLOAD)
+    return;
   assert(!Tu->backpatch());
-  const type* Tp = p->m_type;
   if (Tu->m_id  == type::FUNC) {
     typedef const func_type FT;
     FT* ft = static_cast<FT*>(Tu);
     const type* T = ft->return_type();
-    if (!compatible(T, p->m_type)) {
+    const type* Tp = p->m_type;
+    if (!compatible(T, Tp)) {
       error::not_implemented();
     }
   }

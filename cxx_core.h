@@ -312,9 +312,6 @@ struct usr : var {
     NEW_ARRAY   = 1 << 27,
     DELETE_SCALAR = 1 << 28,
     DELETE_ARRAY  = 1 << 29,
-    PRIVATE     = 1 << 30,
-    PROTECTED   = 1 << 31,
-    PUBLIC      = 1LL << 32,
   };
   flag_t m_flag;
   file_t m_file;

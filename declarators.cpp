@@ -62,6 +62,12 @@ function::action(const type* T,
   auto_ptr<vector<const type*> > sweeper1(pdc);
   auto_ptr<vector<int> > sweeper2(cvr);
   usr* u = v ? v->usr_cast() : 0;
+  if (u) {
+    usr::flag_t flag = u->m_flag;
+    if (flag & usr::OVERLOAD)
+      return T;
+  }
+
   if ( !u && v ){
     /*
      Definition like
@@ -300,9 +306,40 @@ cxx_compiler::declarations::declarators::array::variable_length::allocate(usr* u
 
 cxx_compiler::fundef* cxx_compiler::fundef::current;
 
-namespace cxx_compiler { namespace declarations { namespace declarators { namespace function { namespace definition {
-  bool valid(const type*, usr*);
-} } } } }
+namespace cxx_compiler {
+  namespace declarations {
+    namespace declarators {
+      namespace function {
+	namespace definition {
+	  bool valid(const type*, usr*);
+	  bool match(const usr* u, const vector<usr*>& order)
+	  {
+	    const type* T = u->m_type;
+	    assert(T->m_id == type::FUNC);
+	    typedef const func_type FT;
+	    FT* ft = static_cast<FT*>(T);
+	    const vector<const type*>& param = ft->param();
+	    if (order.empty()) {
+	      if (param.size() != 1)
+		return false;
+	      const type* T = param.back();
+	      return T->m_id == type::VOID;
+	    }
+	    if (param.size() != order.size())
+	      return false;
+	    typedef vector<const type*>::const_iterator ITx;
+	    typedef vector<usr*>::const_iterator ITy;
+	    pair<ITx, ITy> ret = 
+	      mismatch(begin(param), end(param), begin(order),
+		       [](const type* T, const usr* u)
+		       { return compatible(T, u->m_type); });
+	    return ret == make_pair(end(param), end(order));
+	  }
+	} // end of namespace definition
+      } // end of namespace function
+    } // end of namespace declarators
+  } // end of namespace declarations
+} // end of namespace cxx_compiler
 
 void
 cxx_compiler::declarations::declarators::
@@ -339,18 +376,23 @@ function::definition::begin(declarations::specifier_seq::info_t* p, var* v)
   scope* param = children.back();
   const vector<usr*>& order = param->m_order;
   for_each(order.begin(),order.end(),check_object);
-  if (u->m_flag & usr::OVERLOAD) {
+  usr::flag_t flag = u->m_flag;
+  if (flag & usr::OVERLOAD) {
     overload* ovl = static_cast<overload*>(u);
-    u = ovl->m_candidacy.back();
+    const vector<usr*>& c = ovl->m_candidacy;
+    typedef vector<usr*>::const_iterator IT;
+    IT p = find_if(begin(c), end(c),
+		   [order](const usr* u){ return match(u, order); });
+    assert(p != end(c));
+    u = *p;
   }
   fundef::current = new fundef(u,param);
   {
     string name = u->m_name;
-    usr::flag_t& flag = u->m_flag;
     if (flag & usr::TYPEDEF) {
       using namespace error::declarations::declarators::function::definition;
       typedefed(parse::position);
-      flag = usr::flag_t(flag & ~usr::TYPEDEF);
+      u->m_flag = flag = usr::flag_t(flag & ~usr::TYPEDEF);
     }
     const type* T = u->m_type;
     if (T->m_id != type::FUNC)
