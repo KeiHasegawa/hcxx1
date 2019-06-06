@@ -58,7 +58,10 @@ namespace cxx_compiler {
     assert(Ty->m_id == type::RECORD);
     REC* yrec = static_cast<REC*>(Ty);
     vector<route_t> dummy;
-    int offset = calc_offset(yrec, xrec, dummy);
+    bool ambiguous = false;
+    int offset = calc_offset(yrec, xrec, dummy, &ambiguous);
+    if (ambiguous)
+      error::not_implemented();
     assert(offset >= 0);
     var* x = new var(xrec);
     if (scope::current->m_id == scope::BLOCK) {

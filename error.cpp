@@ -2653,3 +2653,25 @@ void cxx_compiler::error::base_lookup::ambiguous(const file_t& file,
   ++counter;
 }
 
+void cxx_compiler::error::ambiguous(const file_t& file,
+				    const record_type* rx,
+				    const record_type* ry)
+{
+  using namespace std;
+  tag* xp = rx->get_tag();
+  tag* yp = ry->get_tag();
+  string xn = xp->m_name;
+  string yn = yp->m_name;
+  
+  switch (lang) {
+  case jpn:
+    header(file,"エラー");
+    cerr << xn << " における " << yn << " のオフセットが曖昧です.";
+    break;
+  default:
+    header(file,"error");
+    cerr << "offset of `" << yn << "' at `" << xn << "' is ambiguous.";
+    break;
+  }
+  ++counter;
+}

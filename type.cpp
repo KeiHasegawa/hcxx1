@@ -1443,7 +1443,10 @@ namespace cxx_compiler {
     REC* Rx = static_cast<REC*>(Tx);
     REC* Ry = static_cast<REC*>(Ty);
     vector<route_t> dummy;
-    int offset = calc_offset(Ry, Rx, dummy);
+    bool ambiguous = false;
+    int offset = calc_offset(Ry, Rx, dummy, &ambiguous);
+    if (ambiguous)
+      error::not_implemented();
     return offset >= 0;
   }
   namespace record_impl {
@@ -2727,7 +2730,10 @@ namespace cxx_compiler {
         assert(Ty->m_id == type::RECORD);
         REC* Ry = static_cast<REC*>(Ty);
         vector<route_t> dummy;
-        int offset = calc_offset(Rx, Ry, dummy);
+	bool ambiguous = false;
+        int offset = calc_offset(Rx, Ry, dummy, &ambiguous);
+	if (ambiguous)
+	  error::not_implemented();
         return offset >= 0;
       }
     };
@@ -2737,7 +2743,7 @@ namespace cxx_compiler {
 int
 cxx_compiler::calc_offset(const record_type* xrec,
                           const record_type* yrec,
-                          const std::vector<route_t>& route)
+                          const std::vector<route_t>& route, bool* ambiguous)
 {
   using namespace std;
   using namespace record_impl;
@@ -2759,7 +2765,7 @@ cxx_compiler::calc_offset(const record_type* xrec,
       int n = px->second;
       vector<route_t> route2;
       copy(begin(route)+1, end(route), back_inserter(route2));
-      return n + calc_offset(rec, yrec, route2);
+      return n + calc_offset(rec, yrec, route2, ambiguous);
     }
   }
 
@@ -2774,9 +2780,16 @@ cxx_compiler::calc_offset(const record_type* xrec,
       assert(T->m_id == type::RECORD);
       REC* rec = static_cast<REC*>(T);
       vector<route_t> dummy;
-      int n = calc_offset(xrec, rec, dummy);
-      if (n >= 0)
-	return n + calc_offset(rec, yrec, dummy);
+      bool ambiguous = false;
+      int n = calc_offset(xrec, rec, dummy, &ambiguous);
+      if (ambiguous)
+	error::not_implemented();
+      if (n >= 0) {
+	int m = calc_offset(rec, yrec, dummy, &ambiguous);
+	if (ambiguous)
+	  error::not_implemented();
+	return n + m;
+      }
       ++p;
     }
   }
@@ -2793,6 +2806,9 @@ cxx_compiler::calc_offset(const record_type* xrec,
   ITy py = find_if(begin(bases), end(bases), cmp_base(ytag, route));
   if (py == end(bases))
     return -1;
+  ITy qy = find_if(py+1, end(bases), cmp_base(ytag, route));
+  if (qy != end(bases) && ambiguous)
+    *ambiguous = true;
   base* bp = *py;
   const map<base*, int>& base_offset = xrec->base_offset();
   map<base*, int>::const_iterator q = base_offset.find(bp);
@@ -2806,7 +2822,7 @@ cxx_compiler::calc_offset(const record_type* xrec,
   vector<route_t> route2;
   if (!route.empty())
     copy(begin(route)+1, end(route), back_inserter(route2));
-  int m = calc_offset(Rb, yrec, route2);
+  int m = calc_offset(Rb, yrec, route2, ambiguous);
   assert(m >= 0);
   return n + m;
 }

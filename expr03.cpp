@@ -175,7 +175,7 @@ namespace cxx_compiler {
         if (p != end(bases))
           return ref_vbtbl(Ry, *p, src);
       }
-      int offset = calc_offset(Ry, Rx, route);
+      int offset = calc_offset(Ry, Rx, route, 0);
       if (offset <= 0)
         return 0;
       return integer::create(offset);

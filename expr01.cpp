@@ -502,7 +502,10 @@ namespace cxx_compiler {
       REC* x = static_cast<REC*>(R);
       REC* y = static_cast<REC*>(T);
       vector<route_t> dummy;
-      int offset = calc_offset(y, x, dummy);
+      bool ambiguous = false;
+      int offset = calc_offset(y, x, dummy, &ambiguous);
+      if (ambiguous)
+	error::not_implemented();
       return offset >= 0 ? make_pair(R,offset) : zero;
     }
   } // end of namepsace call_impl
@@ -1133,7 +1136,7 @@ cxx_compiler::var::member(var* expr, bool dot,
       else
         garbage.push_back(tmp);
       code.push_back(new addr3ac(tmp, this));
-      int offset = calc_offset(rec, mrec, route);
+      int offset = calc_offset(rec, mrec, route, 0);
       assert(offset >= 0);
       if (offset) {
         var* off = integer::create(offset);
@@ -1177,7 +1180,7 @@ cxx_compiler::var::member(var* expr, bool dot,
     error::not_implemented();
 
   if (dot) {
-    int base_offset = calc_offset(rec, mrec, route);
+    int base_offset = calc_offset(rec, mrec, route, 0);
     assert(base_offset >= 0);
     var* O = integer::create(base_offset + offset);
     return offref(Mt, O);
@@ -1231,7 +1234,10 @@ cxx_compiler::var::ptr_member(var* expr, bool dot)
     assert(X->m_id == type::RECORD);
     REC* xrec = static_cast<REC*>(X);
     vector<route_t> dummy;
-    int offset = calc_offset(rec, xrec, dummy);
+    bool ambiguous = false;
+    int offset = calc_offset(rec, xrec, dummy, &ambiguous);
+    if (ambiguous)
+      error::not_implemented();
     if (offset < 0)
       error::not_implemented();
     if (offset) {
@@ -1489,7 +1495,10 @@ assignment::valid(const type* T, var* src, bool* discard)
       REC* xrec = static_cast<REC*>(xx);
       REC* yrec = static_cast<REC*>(yy);
       vector<route_t> dummy;
-      int offset = calc_offset(yrec, xrec, dummy);
+      bool ambiguous = false;
+      int offset = calc_offset(yrec, xrec, dummy, &ambiguous);
+      if (ambiguous)
+	error::not_implemented();
       if (offset >= 0)
 	return xx;
     }
@@ -1538,7 +1547,11 @@ assignment::valid(const type* T, var* src, bool* discard)
         REC* rx = static_cast<REC*>(Tx);
         REC* ry = static_cast<REC*>(Ty);
         vector<route_t> dummy;
-        if (calc_offset(ry, rx, dummy) >= 0) {
+	bool ambiguous = false;
+	int offset = calc_offset(ry, rx, dummy, &ambiguous);
+	if (ambiguous)
+	  error::ambiguous(parse::position, ry, rx);
+        if (offset >= 0) {
           if (include(cvr_x, cvr_y))
             return px;
           else {

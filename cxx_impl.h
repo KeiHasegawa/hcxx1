@@ -374,6 +374,7 @@ namespace error {
     extern void ambiguous(const file_t&, string,
 			  const vector<base*>&, const vector<base*>&);
   } // end of namespace base_lookup
+  extern void ambiguous(const file_t&, const record_type*, const record_type*);
 } // end of namespace error
 
 namespace warning {
@@ -454,7 +455,8 @@ namespace type_impl {
 
 extern int calc_offset(const record_type* drec,
 		       const record_type* brec,
-		       const std::vector<route_t>& route);
+		       const std::vector<route_t>& route,
+		       bool* ambiguous);
 
 extern var* aggregate_conv(const type* T, var* y);
 
