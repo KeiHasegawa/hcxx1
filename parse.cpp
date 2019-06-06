@@ -218,13 +218,22 @@ namespace cxx_compiler {
 	  result.erase(--p);
 	  return false;
 	}
-	bool conflict(const info_t& x, const info_t& y,
-		      vector<route_t>& result)
+	bool conflict(const info_t& x, const info_t& y, vector<route_t>& xres)
 	{
 	  const vector<base*>& xb = x.m_base;
 	  const vector<base*>& yb = y.m_base;
-	  if (xb.size() != yb.size())
-	    return false;
+	  if (xb.size() != yb.size()) {
+	    auto virt = [](const base* bp)
+	      { return bp->m_flag & usr::VIRTUAL; };
+	    typedef vector<base*>::const_iterator IT;
+	    IT p = find_if(begin(xb), end(xb), virt);
+	    if (p != end(xb))
+	      return false;
+	    IT q = find_if(begin(yb), end(yb), virt);
+	    if (q != end(yb))
+	      return false;
+	    return true;
+	  }
 	  if (x.m_kind != y.m_kind)
 	    return true;
 	  if (x.m_lval != y.m_lval)
@@ -244,7 +253,7 @@ namespace cxx_compiler {
 	  while (pit != last) {
 	    pit = mismatch(pit.first, rend(xb), pit.second);
 	    if (pit != last) {
-	      if (conflict(*pit.first, *pit.second, result))
+	      if (conflict(*pit.first, *pit.second, xres))
 		return true;
 	      ++pit.first, ++pit.second;
 	      assert(pit != last);
@@ -253,9 +262,9 @@ namespace cxx_compiler {
 		if (*pit.first != *pit.second) {
 		  base* bx = *pit.first;
 		  typedef vector<route_t>::iterator IT;
-		  IT p = find(begin(result), end(result), route_t(bx,0));
-		  if (p != end(result))
-		    result.erase(p);
+		  IT p = find(begin(xres), end(xres), route_t(bx,0));
+		  if (p != end(xres))
+		    xres.erase(p);
 		}
 	      }
 	    }
@@ -287,17 +296,20 @@ namespace cxx_compiler {
 	  assert(p != end(choice));
 	  const info_t& x = *p;
 	  const vector<base*>& v = x.m_base;
-	  vector<route_t> res;
-	  transform(begin(v), end(v), back_inserter(res), [](base* bp) {
+	  vector<route_t> xres;
+	  transform(begin(v), end(v), back_inserter(xres), [](base* bp) {
 		      const record_type* zero = 0;
 		      return make_pair(bp, zero);
 		    });
 	  IT q = find_if(begin(choice), end(choice),
-			 [&x, &res](const info_t& y)
-			 { return &x == &y ? false : conflict(x,y,res); } );
-	  if (q != end(choice))
-	    error::not_implemented();
-	  copy(begin(res), end(res), back_inserter(route));
+			 [&x, &xres](const info_t& y)
+			 { return &x == &y ? false : conflict(x,y,xres); } );
+	  if (q != end(choice)) {
+	    const info_t&  y = *q;
+	    using namespace error::base_lookup;
+	    ambiguous(parse::position, name, x.m_base, y.m_base);
+	  }
+	  copy(begin(xres), end(xres), back_inserter(route));
 	  cxx_compiler_lval.m_var = x.m_lval;
 	  return x.m_kind;
 	}

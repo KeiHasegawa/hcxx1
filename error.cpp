@@ -2613,3 +2613,43 @@ void cxx_compiler::error::declarations::declarators::function::definition::typed
   }
   ++counter;
 }
+
+namespace cxx_compiler {
+  namespace error {
+    namespace base_lookup {
+      using namespace std;
+      inline string help(const base* bp)
+      {
+	return bp->m_tag->m_name + "::";
+      }
+    } // end of namespace base_lookup
+  } // end of namespace error
+} // end of namespace cxx_compiler
+
+void cxx_compiler::error::base_lookup::ambiguous(const file_t& file,
+						 std::string name,
+						 const std::vector<base*>& x,
+						 const std::vector<base*>& y)
+{
+  using namespace std;
+  switch (lang) {
+  case jpn:
+    header(file,"ÉGÉâÅ[");
+    cerr << '`' << name << "' Ç™ûBñÜÇ≈Ç∑. ";
+    transform(begin(x), end(x), ostream_iterator<string>(cerr), help);
+    cerr << name << " Ç∆ ";
+    transform(begin(y), end(y), ostream_iterator<string>(cerr), help);
+    cerr << name << " Ç™Ç†ÇËÇ‹Ç∑.\n";
+    break;
+  default:
+    header(file,"error");
+    cerr << '`' << name << "' is ambiguous. ";
+    transform(begin(x), end(x), ostream_iterator<string>(cerr), help);
+    cerr << name << " and ";
+    transform(begin(y), end(y), ostream_iterator<string>(cerr), help);
+    cerr << name << " exist.\n";
+    break;
+  }
+  ++counter;
+}
+

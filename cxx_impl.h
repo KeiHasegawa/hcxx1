@@ -370,6 +370,10 @@ namespace error {
       extern void invalid(const file_t&, const type*, const type*);
     } // end of namespace return_stmt
   } // end of namespace statements
+  namespace base_lookup {
+    extern void ambiguous(const file_t&, string,
+			  const vector<base*>&, const vector<base*>&);
+  } // end of namespace base_lookup
 } // end of namespace error
 
 namespace warning {

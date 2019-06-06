@@ -2705,9 +2705,7 @@ namespace cxx_compiler {
       if (!bp)
 	return false;
       usr::flag_t flag = bp->m_flag;
-      if (flag & usr::VIRTUAL)
-	return true;
-      return false;
+      return flag & usr::VIRTUAL;
     }
     struct cmp_base {
       tag* m_tag;
