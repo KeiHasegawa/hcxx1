@@ -1657,20 +1657,52 @@ namespace cxx_compiler {
       const vector<const record_type*>* m_va;
       add_if(map<int, var*>& result, const vector<const record_type*>* va)
         : m_result(result), m_va(va) {}
-      static bool ismember(const record_type* rec, var* v)
+      static bool match(const record_type* rec, usr* vf)
       {
         tag* ptr = rec->get_tag();
-        return v->m_scope == ptr;
+	const map<string, vector<usr*> >& usrs = ptr->m_usrs;
+	typedef map<string, vector<usr*> >::const_iterator ITx;
+	ITx p = usrs.find(vftbl_name);
+	if (p == usrs.end())
+	  return false;
+	const vector<usr*>& v = p->second;
+	assert(v.size() == 1);
+	usr* u = v.back();
+	usr::flag_t flag = u->m_flag;
+	assert(flag & usr::WITH_INI);
+	with_initial* wi = static_cast<with_initial*>(u);
+	const map<int, var*>& value = wi->m_value; 
+	typedef map<int, var*>::const_iterator ITy;
+	ITy q = find_if(begin(value), end(value),
+			bind2nd(ptr_fun(match_vf), vf));
+	return q != end(value);
       }
-      int operator()(int off, pair<int, var*> p)
+      int operator()(int off, pair<int, var*> x)
       {
-        var* v = p.second;
+        var* v = x.second;
         if (m_va) {
-          typedef vector<const record_type*>::const_iterator IT;
-          IT it = find_if(begin(*m_va), end(*m_va),
-                          bind2nd(ptr_fun(ismember), v));
-          if (it != end(*m_va))
-            return off;
+	  var* tmp = 0;
+	  if (addrof* addr = v->addrof_cast()) {
+	    tmp = addr->m_ref;
+	  }
+	  else {
+	    assert(dynamic_cast<pure_virt*>(v));
+	    pure_virt* pv = static_cast<pure_virt*>(v);
+	    tmp = pv->m_usr;
+	  }
+	  assert(tmp->usr_cast());
+	  usr* vf = static_cast<usr*>(tmp);
+	  typedef const record_type REC;
+          typedef vector<REC*>::const_iterator IT;
+	  IT p = find_if(begin(*m_va), end(*m_va),bind2nd(ptr_fun(match), vf));
+	  if (p != end(*m_va)) {
+	    typedef map<int, var*>::iterator IT;
+	    IT r = find_if(begin(m_result), end(m_result),
+			   bind2nd(ptr_fun(match_vf), vf));
+	    assert(r != end(m_result));
+	    r->second = v;
+	    return off;
+	  }
         }
         m_result[off] = v;
         const type* T = void_type::create();
@@ -2347,11 +2379,11 @@ cxx_compiler::record_type::record_type(tag* ptr)
   }
 
   int nbvf = 0;
-  map<const record_type*, int> common_vftbl_offset;
   if (bases) {
     nbvf = accumulate(begin(*bases), end(*bases), 0, base_vf);
     nbvf = accumulate(begin(common), end(common), nbvf, vbase_vf);
   }
+  map<const record_type*, int> common_vftbl_offset;
   if (nbvf + nvf) {
     const type* T = void_type::create();
     T = pointer_type::create(T);
@@ -2370,10 +2402,10 @@ cxx_compiler::record_type::record_type(tag* ptr)
     }
     int offset = 0;
     if (bases) {
+      offset = accumulate(begin(common), end(common), 0,
+			  copy_vbase_vf(vftbl->m_value, common_vftbl_offset));
       offset = accumulate(begin(*bases), end(*bases), offset,
                           copy_base_vf(vftbl->m_value, m_vftbl_offset));
-      offset = accumulate(begin(common), end(common), offset,
-                          copy_vbase_vf(vftbl->m_value, common_vftbl_offset));
       for_each(begin(order), end(order), override_vf(vftbl->m_value));
     }
     accumulate(begin(order), end(order), offset, own_vf(vftbl->m_value));
