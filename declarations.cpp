@@ -563,12 +563,12 @@ cxx_compiler::declarations::action1(var* v, bool ini)
     type_def* tmp = new type_def(*u);
     u = exchange(lookuped, tmp, u);
   }
-  if ( ini ){
+  if (ini) {
     parse::identifier::mode = parse::identifier::look;
-    if ( duration::_static(u) ){
+    if (duration::_static(u)) {
       with_initial* tmp = new with_initial(*u);
       u = exchange(lookuped, tmp, u);
-      if ( scope::current != &scope::root )
+      if (scope::current != &scope::root)
         expressions::constant_flag = true;
     }
   }
@@ -578,7 +578,8 @@ cxx_compiler::declarations::action1(var* v, bool ini)
   block* b = 0;
   if (scope::current->m_id == scope::BLOCK)
     b = static_cast<block*>(scope::current);
-  usr::flag_t mask = usr::flag_t(usr::TYPEDEF | usr::EXTERN | usr::FUNCTION | usr::VL);
+  usr::flag_t mask =
+    usr::flag_t(usr::TYPEDEF | usr::EXTERN | usr::FUNCTION | usr::VL);
   if (!(flag & mask)) {
     if (b || scope::current == &scope::root) {
       typedef const array_type ARRAY;
@@ -611,6 +612,7 @@ cxx_compiler::declarations::action1(var* v, bool ini)
         flag = usr::flag_t(flag & ~mask);
       }
     }
+    check_abstract_func(u);
   }
   if ((flag & usr::VL) && ini) {
     using namespace error::declarations::declarators::array;
@@ -694,12 +696,13 @@ void cxx_compiler::declarations::check_object(usr* u)
 {
   const type* T = u->m_type;
   int size = T->size();
-  if ( !size ){
+  if (!size) {
     using namespace error::declarations;
     not_object(u,T);
     size = int_type::create()->size();
     u->m_type = int_type::create();
   }
+  check_abstract_obj(u);
 }
 
 namespace cxx_compiler { namespace declarations {

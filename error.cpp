@@ -110,7 +110,9 @@ void cxx_compiler::error::header(const file_t& file, std::string msg)
       headered = true;
     }
   }
-  cerr << file.m_name << ':' << file.m_lineno << ": " << msg << ": ";
+  cerr << file.m_name << ':' << file.m_lineno << ": ";
+  if (!msg.empty())
+    cerr << msg << ": ";
 }
 
 void cxx_compiler::error::undeclared(const file_t& file, std::string name)
@@ -2734,6 +2736,112 @@ ambiguous_override(tag* ptr, usr* vfx, usr* vfy)
     cerr << "`" << tnx << "::" << fn << "'.\n";
     header(fy,"candidacy 2");
     cerr << "`" << tny << "::" << fn << "'.\n";
+    break;
+  }
+  ++counter;
+}
+
+namespace cxx_compiler {
+  namespace error {
+    namespace classes {
+      namespace abstract_object_impl {
+	using namespace std;	
+	void help(usr* vf)
+	{
+	  const file_t& vfile = vf->m_file;
+	  string vname = vf->m_name;
+	  switch (lang) {
+	  case jpn:
+	    header(vfile,"");
+	    cerr << "`" << vname << "' は純粋仮想函数です.\n";
+	    break;
+	  default:
+	    header(vfile,"");
+	    cerr << "`" << vname << "' is pure virtual function.\n";
+	    break;
+	  }	  
+	}
+      }  // end of namespace abstract_object_impl
+    }  // end of namespace classes
+  }  // end of namespace error
+} // end of namespace cxx_compiler
+
+void
+cxx_compiler::error::classes::abstract_object(string class_name, usr* obj,
+					      const vector<usr*>& vf)
+{
+  using namespace std;
+  using namespace abstract_object_impl;
+  const file_t& ofile = obj->m_file;
+  string oname = obj->m_name;
+  switch (lang) {
+  case jpn:
+    header(ofile,"エラー");
+    cerr << "抽象クラス " << class_name << " の `" << oname;
+    cerr << "' が宣言されています.\n";
+    for_each(begin(vf), end(vf), help);
+    break;
+  default:
+    header(ofile,"error");
+    cerr << "Abstract class `" << class_name << "' object `";
+    cerr << oname << "' is declared.\n";
+    for_each(begin(vf), end(vf), help);
+    break;
+  }
+  ++counter;
+}
+
+void
+cxx_compiler::error::classes::abstract_return(string class_name, usr* func,
+					      const vector<usr*>& vf)
+{
+  using namespace std;
+  using namespace abstract_object_impl;
+  const file_t& file = func->m_file;
+  string name = func->m_name;
+  switch (lang) {
+  case jpn:
+    header(file,"エラー");
+    cerr << "抽象クラス " << class_name << " を戻り値の型とする `";
+    cerr << name << "' が宣言されています.\n";
+    for_each(begin(vf), end(vf), help);
+    break;
+  default:
+    header(file,"error");
+    cerr << "Return type of function `" << name << "' is abstract class `";
+    cerr << class_name << "'.\n";
+    for_each(begin(vf), end(vf), help);
+    break;
+  }
+  ++counter;
+}
+
+void
+cxx_compiler::error::classes::abstract_param(string class_name, usr* func,
+					     const vector<usr*>& vf, int nth)
+{
+  using namespace std;
+  using namespace abstract_object_impl;
+  const file_t& file = func->m_file;
+  string name = func->m_name;
+  switch (lang) {
+  case jpn:
+    header(file,"エラー");
+    cerr << "函数 `" << name << "' の " << nth << " 番目のパラメータの型が";
+    cerr << "抽象クラス " << class_name << " になっています.\n";
+    for_each(begin(vf), end(vf), help);
+    break;
+  default:
+    header(file,"error");
+    switch (nth) {
+    case 1: cerr << "1st"; break;
+    case 2: cerr << "2nd"; break;
+    case 3: cerr << "3rd"; break;
+    default: cerr << nth << "th"; break;
+    }
+    cerr << " parameter type of function `" << name;
+    cerr << "' is abstract class `" << class_name << "'.\n";
+    for_each(begin(vf), end(vf), help);
     break;
   }
   ++counter;

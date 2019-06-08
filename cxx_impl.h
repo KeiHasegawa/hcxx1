@@ -240,6 +240,12 @@ namespace error {
     namespace base {
       extern void duplicate(const file_t&, string name);
     } // end of namespace base
+    extern void abstract_object(string class_name, usr* obj,
+				const vector<usr*>& vf);
+    extern void abstract_return(string class_name, usr* func,
+				const vector<usr*>& vf);
+    extern void abstract_param(string class_name, usr* func,
+			       const vector<usr*>& vf, int nth);
   } // end of namespace classes
   namespace expressions {
     namespace primary {
@@ -463,6 +469,10 @@ extern int calc_offset(const record_type* drec,
 		       bool* ambiguous);
 
 extern var* aggregate_conv(const type* T, var* y);
+
+extern void check_abstract_obj(usr*);
+
+extern void check_abstract_func(usr* );
 
 namespace record_impl {
   extern int base_vb(int n, const base* bp);

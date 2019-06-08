@@ -3358,3 +3358,72 @@ cxx_compiler::pointer_member_type::collect_tmp(std::vector<const type*>& vt)
     vt.push_back(p.second);
   tmp_tbl.clear();
 }
+
+namespace cxx_compiler {
+  namespace check_abstract_impl {
+    string common(const type* T, vector<usr*>& vf)
+    {
+      if (!T)
+	return "";
+      T = T->complete_type();
+      T = T->unqualified();
+      if (T->m_id != type::RECORD)
+	return "";
+      typedef const record_type REC;
+      REC* rec = static_cast<REC*>(T);
+      tag* ptr = rec->get_tag();
+      const map<string, vector<usr*> >& usrs = ptr->m_usrs;
+      typedef map<string, vector<usr*> >::const_iterator IT;
+      IT p = usrs.find(vftbl_name);
+      if (p == usrs.end())
+	return "";
+      const vector<usr*>& v = p->second;
+      assert(v.size() == 1);
+      usr* u = v.back();
+      usr::flag_t flag = u->m_flag;
+      assert(flag & usr::WITH_INI);
+      with_initial* wi = static_cast<with_initial*>(u);
+      map<int, var*>& value = wi->m_value;
+      for_each(begin(value), end(value), [&vf](const pair<int, var*>& p)
+	       {
+		 if (pure_virt* pv = dynamic_cast<pure_virt*>(p.second))
+		   vf.push_back(pv->m_usr);
+	       });
+      return ptr->m_name;
+    }
+    void param(int i, const type* T, usr* func)
+    {
+      vector<usr*> vf;
+      string class_name = check_abstract_impl::common(T, vf);
+      if (!vf.empty())
+	error::classes::abstract_param(class_name, func, vf, i+1);
+    }
+  } // end of namespace check_abstract_impl
+} // end of namespace cxx_compiler
+
+void cxx_compiler::check_abstract_obj(usr* obj)
+{
+  const type* T = obj->m_type;
+  vector<usr*> vf;
+  string class_name = check_abstract_impl::common(T, vf);
+  if (!vf.empty())
+    error::classes::abstract_object(class_name, obj, vf);
+}
+
+void cxx_compiler::check_abstract_func(usr* func)
+{
+  const type* T = func->m_type;
+  if (T->m_id != type::FUNC)
+    return;
+  typedef const func_type FT;
+  FT* ft = static_cast<FT*>(T);
+  T = ft->return_type();
+  vector<usr*> vf;
+  string class_name = check_abstract_impl::common(T, vf);
+  if (!vf.empty())
+    error::classes::abstract_return(class_name, func, vf);
+
+  const vector<const type*>& param = ft->param();
+  for (int i = 0 ; i != param.size() ; ++i)
+    check_abstract_impl::param(i, param[i], func);
+}
