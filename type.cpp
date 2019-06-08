@@ -1383,19 +1383,26 @@ namespace cxx_compiler {
     pure_virt(usr* u, constant<void*>* c)
       : m_usr(u), constant<void*>(*c) {}
   };
+  struct ambiguous_override : usr {
+    usr* m_org;
+    ambiguous_override(usr* x, usr* y) : usr(*y), m_org(x) {}
+  };
+  inline usr* get_vf(var* v)
+  {
+    if (addrof* a = v->addrof_cast()) {
+      v = a->m_ref;
+      assert(v->usr_cast());
+      return static_cast<usr*>(v);
+    }
+    if (pure_virt* pv = dynamic_cast<pure_virt*>(v))
+      return pv->m_usr;
+    assert(dynamic_cast<ambiguous_override*>(v));
+    return static_cast<usr*>(v);
+  }
   bool match_vf(pair<int, var*> p, usr* y)
   {
     var* v = p.second;
-    if (addrof* a = v->addrof_cast()) {
-      v = a->m_ref;
-    }
-    else {
-      assert(dynamic_cast<pure_virt*>(v));
-      pure_virt* pv = static_cast<pure_virt*>(v);
-      v = pv->m_usr;
-    }
-    assert(v->usr_cast());
-    usr* x = static_cast<usr*>(v);
+    usr* x = get_vf(v);
     if (x->m_name != y->m_name)
       return false;
     const type* Tx = x->m_type;
@@ -1417,10 +1424,14 @@ namespace cxx_compiler {
     Ty = Fy->return_type();
     if (compatible(Tx, Ty))
       return true;
-    if (Tx->m_id != type::POINTER)
+    if (Tx->m_id != type::POINTER) {
+      error::virtual_function::return_only(x, y);
       return false;
-    if (Ty->m_id != type::POINTER)
+    }
+    if (Ty->m_id != type::POINTER) {
+      error::virtual_function::return_only(x, y);
       return false;
+    }
     typedef const pointer_type PT;
     PT* Px = static_cast<PT*>(Tx);
     PT* Py = static_cast<PT*>(Ty);
@@ -1428,17 +1439,25 @@ namespace cxx_compiler {
     Ty = Py->referenced_type();
     Tx = Tx->complete_type();
     Ty = Ty->complete_type();
-    if (Tx->m_id != type::RECORD)
+    if (Tx->m_id != type::RECORD) {
+      error::virtual_function::return_only(x, y);
       return false;
+    }
     if (Ty->m_id == type::INCOMPLETE_TAGGED) {
       tag* xtag = Tx->get_tag();
       tag* ytag = Ty->get_tag();
       string name = xtag->m_name;
       int r = parse::identifier::base_lookup::action(name, ytag);
-      return r == CLASS_NAME_LEX;
+      if (r != CLASS_NAME_LEX) {
+	error::virtual_function::return_only(x, y);
+	return false;
+      }
+      return true;
     }
-    if (Ty->m_id != type::RECORD)
+    if (Ty->m_id != type::RECORD) {
+      error::virtual_function::return_only(x, y);
       return false;
+    }
     typedef const record_type REC;
     REC* Rx = static_cast<REC*>(Tx);
     REC* Ry = static_cast<REC*>(Ty);
@@ -1677,21 +1696,37 @@ namespace cxx_compiler {
 			bind2nd(ptr_fun(match_vf), vf));
 	return q != end(value);
       }
+      static var* override(var* x, var* y)
+      {
+	usr* vfx = get_vf(x);
+	usr* vfy = get_vf(y);
+	scope* px = vfx->m_scope;
+	scope* py = vfy->m_scope;
+	assert(px->m_id == scope::TAG);
+	assert(py->m_id == scope::TAG);
+	tag* ptx = static_cast<tag*>(px);
+	tag* pty = static_cast<tag*>(py);
+	const type* Tx = ptx->m_types.second;
+	const type* Ty = pty->m_types.second;
+	assert(Tx->m_id == type::RECORD);
+	assert(Ty->m_id == type::RECORD);
+	typedef const record_type REC;
+	REC* rx = static_cast<REC*>(Tx);
+	REC* ry = static_cast<REC*>(Ty);
+	vector<route_t> dummy;
+	bool ambiguous = false;
+	int offset = calc_offset(ry, rx, dummy, &ambiguous);
+	if (ambiguous)
+	  error::not_implemented();
+	if (offset >= 0)
+	  return y;
+	return new ambiguous_override(vfx, vfy);
+      }
       int operator()(int off, pair<int, var*> x)
       {
         var* v = x.second;
         if (m_va) {
-	  var* tmp = 0;
-	  if (addrof* addr = v->addrof_cast()) {
-	    tmp = addr->m_ref;
-	  }
-	  else {
-	    assert(dynamic_cast<pure_virt*>(v));
-	    pure_virt* pv = static_cast<pure_virt*>(v);
-	    tmp = pv->m_usr;
-	  }
-	  assert(tmp->usr_cast());
-	  usr* vf = static_cast<usr*>(tmp);
+	  usr* vf = get_vf(v);
 	  typedef const record_type REC;
           typedef vector<REC*>::const_iterator IT;
 	  IT p = find_if(begin(*m_va), end(*m_va),bind2nd(ptr_fun(match), vf));
@@ -1700,7 +1735,7 @@ namespace cxx_compiler {
 	    IT r = find_if(begin(m_result), end(m_result),
 			   bind2nd(ptr_fun(match_vf), vf));
 	    assert(r != end(m_result));
-	    r->second = v;
+	    r->second = override(r->second, v);
 	    return off;
 	  }
         }
@@ -1782,6 +1817,16 @@ namespace cxx_compiler {
         }
       }
     };
+    inline void check_override(pair<int, var*> x, tag* ptr)
+    {
+      var* v = x.second;
+      ambiguous_override* p = dynamic_cast<ambiguous_override*>(v);
+      if (!p)
+	return;
+      usr* vfx = p->m_org;
+      usr* vfy = p;
+      error::virtual_function::ambiguous_override(ptr, vfx, vfy);
+    }
     struct own_vf {
       map<int, var*>& m_value;
       own_vf(map<int, var*>& value) : m_value(value) {}
@@ -2402,11 +2447,14 @@ cxx_compiler::record_type::record_type(tag* ptr)
     }
     int offset = 0;
     if (bases) {
+      map<int, var*>& value = vftbl->m_value;
       offset = accumulate(begin(common), end(common), 0,
-			  copy_vbase_vf(vftbl->m_value, common_vftbl_offset));
+			  copy_vbase_vf(value, common_vftbl_offset));
       offset = accumulate(begin(*bases), end(*bases), offset,
-                          copy_base_vf(vftbl->m_value, m_vftbl_offset));
-      for_each(begin(order), end(order), override_vf(vftbl->m_value));
+                          copy_base_vf(value, m_vftbl_offset));
+      for_each(begin(order), end(order), override_vf(value));
+      for_each(begin(value), end(value),
+	       bind2nd(ptr_fun(check_override), m_tag));
     }
     accumulate(begin(order), end(order), offset, own_vf(vftbl->m_value));
   }

@@ -375,6 +375,10 @@ namespace error {
 			  const vector<base*>&, const vector<base*>&);
   } // end of namespace base_lookup
   extern void ambiguous(const file_t&, const record_type*, const record_type*);
+  namespace virtual_function {
+    extern void return_only(usr*, usr*);
+    extern void ambiguous_override(tag*, usr*, usr*);
+  } // end of namespace virtual_function
 } // end of namespace error
 
 namespace warning {

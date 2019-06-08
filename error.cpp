@@ -2666,11 +2666,74 @@ void cxx_compiler::error::ambiguous(const file_t& file,
   switch (lang) {
   case jpn:
     header(file,"エラー");
-    cerr << xn << " における " << yn << " のオフセットが曖昧です.";
+    cerr << xn << " における " << yn << " のオフセットが曖昧です.\n";
     break;
   default:
     header(file,"error");
-    cerr << "offset of `" << yn << "' at `" << xn << "' is ambiguous.";
+    cerr << "offset of `" << yn << "' at `" << xn << "' is ambiguous.\n";
+    break;
+  }
+  ++counter;
+}
+
+void
+cxx_compiler::error::virtual_function::return_only(usr* x, usr* y)
+{
+  using namespace std;
+  const file_t& fx = x->m_file;
+  const file_t& fy = y->m_file;
+  string name = y->m_name;
+  switch (lang) {
+  case jpn:
+    header(fy,"エラー");
+    cerr << "函数 `" << name << "' は戻り値の型のみが異なります.\n";
+    header(fx,"エラー");
+    cerr << "函数 `" << name << "' はここで宣言されています.\n";
+    break;
+  default:
+    header(fy,"error");
+    cerr << "Function `" << name << "' return type is only different.\n";
+    header(fx,"error");
+    cerr << "Function `" << name << "' is declared here.\n";
+    break;
+  }
+  ++counter;
+}
+
+void
+cxx_compiler::error::virtual_function::
+ambiguous_override(tag* ptr, usr* vfx, usr* vfy)
+{
+  using namespace std;
+  const file_t& file = ptr->m_file.back();
+  const file_t& fx = vfx->m_file;
+  const file_t& fy = vfy->m_file;
+  string name = ptr->m_name;
+  string fn = vfx->m_name;
+  scope* px = vfx->m_scope;
+  scope* py = vfy->m_scope;
+  assert(px->m_id == scope::TAG);
+  assert(py->m_id == scope::TAG);
+  tag* ptx = static_cast<tag*>(px);
+  tag* pty = static_cast<tag*>(py);
+  string tnx = ptx->m_name;
+  string tny = pty->m_name;
+  switch (lang) {
+  case jpn:
+    header(file,"エラー");
+    cerr << name << " での曖昧な仮想函数 `" << fn << "' の上書き.\n";
+    header(fx,"候補1");
+    cerr << "`" << tnx << "::" << fn << "'\n";
+    header(fy,"候補2");
+    cerr << "`" << tny << "::" << fn << "'\n";
+    break;
+  default:
+    header(file,"error");
+    cerr << "Ambiguous override at `" << name << "' for " << fn << ".\n";
+    header(fx,"candidacy 1");
+    cerr << "`" << tnx << "::" << fn << "'.\n";
+    header(fy,"candidacy 2");
+    cerr << "`" << tny << "::" << fn << "'.\n";
     break;
   }
   ++counter;
