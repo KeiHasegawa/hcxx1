@@ -70,6 +70,9 @@ cxx_compiler::var* cxx_compiler::genaddr::rvalue()
 cxx_compiler::ref::ref(const pointer_type* pt)
   : var(pt), m_result(pt->referenced_type()) {}
 
+cxx_compiler::ref::ref(const reference_type* pt)
+  : var(pt), m_result(pt->referenced_type()) {}
+
 cxx_compiler::var* cxx_compiler::ref::rvalue()
 {
   using namespace std;

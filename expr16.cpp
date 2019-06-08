@@ -48,7 +48,7 @@ namespace cxx_compiler {
   {
     using namespace expressions::primary::literal;
     const type* Tx = T->unqualified();
-    const type* Ty = y->m_type;
+    const type* Ty = y->result_type();
     Ty = Ty->unqualified();
     if (compatible(Tx, Ty))
       return y;
@@ -132,7 +132,7 @@ cxx_compiler::var* cxx_compiler::ref::assign(var* op)
   bool discard = false;
   var* y = op->rvalue();
   T = expressions::assignment::valid(T,y,&discard);
-  if ( !T ){
+  if (!T) {
     using namespace error::expressions::assignment;
     invalid(parse::position,0,discard);
     T = int_type::create();

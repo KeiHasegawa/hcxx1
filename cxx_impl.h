@@ -1177,6 +1177,7 @@ struct genaddr : generated, addrof {
 struct ref : var {
   const type* m_result;
   ref(const pointer_type*);
+  ref(const reference_type*);
   var* rvalue();
   bool lvalue() const { return true; }
   var* address();

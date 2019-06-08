@@ -365,7 +365,7 @@ namespace cxx_compiler {
     var* ref_vftbl(usr* vf, var* vp);
     var* ref_vftbl(var* vp, var* vftbl_off, const func_type* ft);
   } // end of namespace call_impl
- } // end of namespace cxx_compiler
+} // end of namespace cxx_compiler
 
 cxx_compiler::var*
 cxx_compiler::call_impl::common(const func_type* ft,
@@ -442,20 +442,21 @@ cxx_compiler::call_impl::common(const func_type* ft,
             call_impl::gen_param);
   
   const type* T = ft->return_type();
-  if ( T )
+  if (T)
     T = T->complete_type();
-  var* x = new var(T);
+  var* x = (!T || T->m_id != type::REFERENCE) ? new var(T) :
+    new ref(static_cast<const reference_type*>(T));
   if (!T || T->m_id == type::VOID){
     code.push_back(new call3ac(0,func));
     garbage.push_back(x);
     return x;
   }
-  if ( !T->size() ){
+  if (!T->size()) {
     using namespace error::expressions::postfix::call;
     not_object(parse::position,func);
     x->m_type = int_type::create();
   }
-  if ( scope::current->m_id == scope::BLOCK ){
+  if (scope::current->m_id == scope::BLOCK) {
     block* b = static_cast<block*>(scope::current);
     b->m_vars.push_back(x);
   }
