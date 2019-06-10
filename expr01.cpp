@@ -138,8 +138,8 @@ cxx_compiler::var* cxx_compiler::var::call(std::vector<var*>* arg)
     not_function(parse::position,func);
     return func;
   }
-  typedef const func_type FUNC;
-  FUNC* ft = static_cast<FUNC*>(T);
+  typedef const func_type FT;
+  FT* ft = static_cast<FT*>(T);
   return call_impl::common(ft, func, arg, false, 0, false, 0);
 }
 
@@ -153,8 +153,8 @@ cxx_compiler::genaddr::call(std::vector<var*>* arg)
     not_function(parse::position,m_ref);
     return rvalue();
   }
-  typedef const func_type FUNC;
-  FUNC* ft = static_cast<FUNC*>(T);
+  typedef const func_type FT;
+  FT* ft = static_cast<FT*>(T);
   assert(m_ref->usr_cast());
   usr* u = static_cast<usr*>(m_ref);
   usr::flag_t flag = u->m_flag;
@@ -207,8 +207,8 @@ cxx_compiler::member_function::call(std::vector<var*>* arg)
   assert(T->m_id == type::FUNC); 
   typedef const func_type FT;
   FT* ft = static_cast<FT*>(T);
-  var* ret = call_impl::common(ft,m_fun,arg,false,m_obj,m_qualified_func,
-                               m_vftbl_off);
+  var* ret = call_impl::common(ft, m_fun, arg, false, m_obj,
+                               m_qualified_func, m_vftbl_off);
   if (usr* u = m_fun->usr_cast()) {
     usr::flag_t flag = u->m_flag;
     if (!error::counter && !cmdline::no_inline_sub) {
@@ -285,31 +285,15 @@ cxx_compiler::member_function::rvalue()
 
 namespace cxx_compiler {
   namespace overload_impl {
-    struct result {
-      var* m_var;
-      result(var* v) : m_var(v) {}
-      bool NG(){ return m_var == 0; }
-    };
-    result* do_trial(usr* u, std::vector<var*>* arg, var* obj)
+    using namespace std;
+    var* do_trial(usr* u, vector<var*>* arg, var* obj)
     {
       using namespace std;
       const type* T = u->m_type;
-      typedef const func_type FUNC;
-      FUNC* ft = static_cast<FUNC*>(T);
-      var* tmp = call_impl::common(ft, u, arg, true, obj, false, 0);
-      if (tmp) {
-        if (!error::counter && !cmdline::no_inline_sub) {
-          usr::flag_t flag = u->m_flag;
-          if (flag & usr::INLINE) {
-            using namespace declarations::declarators::function;
-            using namespace definition::static_inline::skip;
-            table_t::const_iterator p = stbl.find(u);
-            if (p != stbl.end())
-              substitute(code, code.size()-1, p->second);
-          }
-        }
-      }
-      return new result(tmp);
+      assert(T->m_id == type::FUNC);
+      typedef const func_type FT;
+      FT* ft = static_cast<FT*>(T);
+      return call_impl::common(ft, u, arg, true, obj, false, 0);
     }
   } // end of namespace overload_impl
 } // end of namespace cxx_compiler
@@ -320,20 +304,12 @@ cxx_compiler::var* cxx_compiler::overload::call(std::vector<var*>* arg)
   using namespace overload_impl;
   const vector<usr*>& cand = m_candidacy;
   var* obj = m_obj;
-  misc::pvector<result> res;
+  vector<var*> res;
   transform(begin(cand), end(cand), back_inserter(res),
             [arg, obj](usr* u){ return do_trial(u, arg, obj); });
-  vector<result*>::iterator p = begin(res);
-  while ( p != end(res) ){
-    p = find_if(p, end(res), mem_fun(&result::NG));
-    if ( p != res.end() ){
-      delete *p;
-      p = res.erase(p);
-    }
-  }
-  if (res.size() == 1)
-    return res[0]->m_var;
-  if (res.empty()) {
+  auto ok = [](var* v){ return v; };
+  int n = count_if(begin(res), end(res), ok);
+  if (!n) {
     using namespace error::expressions::postfix::call;
     overload_not_match(this);
     var* ret = new var(int_type::create());
@@ -343,6 +319,25 @@ cxx_compiler::var* cxx_compiler::overload::call(std::vector<var*>* arg)
     }
     else
       garbage.push_back(ret);
+    return ret;
+  }
+  if (n == 1) {
+    typedef vector<var*>::const_iterator IT;
+    IT p = find_if(begin(res), end(res), ok);
+    assert(p != end(res));
+    int m = p - begin(res);
+    var* ret = res[m];
+    usr* u = cand[m];
+    usr::flag_t flag = u->m_flag;
+    if (!error::counter && !cmdline::no_inline_sub) {
+      if (flag & usr::INLINE) {
+	using namespace declarations::declarators::function;
+	using namespace definition::static_inline::skip;
+	table_t::const_iterator p = stbl.find(u);
+	if (p != stbl.end())
+	  substitute(code, code.size()-1, p->second);
+      }
+    }
     return ret;
   }
   error::not_implemented();

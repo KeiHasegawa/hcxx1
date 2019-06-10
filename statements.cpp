@@ -1079,19 +1079,19 @@ int cxx_compiler::statements::return_stmt::info_t::gen()
   const type* T = fundef::current->m_usr->m_type;
   if (T->m_id != type::FUNC)
     return 0;
-  typedef const func_type FUNC;
-  FUNC* func = static_cast<FUNC*>(T);
-  T = func->return_type();
+  typedef const func_type FT;
+  FT* ft = static_cast<FT*>(T);
+  T = ft->return_type();
   T = T->unqualified();
   if (T->m_id != type::REFERENCE && expr)
     expr = expr->rvalue();
   if (expr) {
     bool discard = false;
     T = cxx_compiler::expressions::assignment::valid(T,expr,&discard);
-    if ( !T ){
+    if (!T) {
       using namespace error::statements::return_stmt;
       const type* from = expr->m_type;
-      const type* to = func->return_type();
+      const type* to = ft->return_type();
       invalid(m_file,from,to);
       return 0;
     }

@@ -191,7 +191,8 @@ void cxx_compiler::error::declarations::specifier_seq::type::invalid_combination
   ++counter;
 }
 
-void cxx_compiler::error::declarations::specifier_seq::type::implicit_int(const usr* u)
+void cxx_compiler::error::declarations::
+specifier_seq::type::implicit_int(const usr* u)
 {
   using namespace std;
   using namespace error;

@@ -124,6 +124,14 @@ namespace cxx_compiler {
             usr::flag_t flag = u->m_flag;
             if (flag & usr::CTOR)
               return false;
+	    if (flag & usr::OVERLOAD) {
+	      overload* ovl = static_cast<overload*>(u);
+	      vector<usr*>& v = ovl->m_candidacy;
+	      assert(!v.empty());
+	      usr* uu = v.back();
+	      if (uu->m_flag & usr::CTOR)
+		return false;
+	    }
 	    int kind = (flag & usr::TYPEDEF) ? TYPEDEF_NAME_LEX
 	      : IDENTIFIER_LEX;
 	    info_t tmp(kind, u, bp);
@@ -328,16 +336,24 @@ int cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
     const vector<usr*>& v = p->second;
     usr* u = v.back();
     cxx_compiler_lval.m_usr = u;
-    if (u->m_flag & usr::TYPEDEF) {
+    usr::flag_t flag = u->m_flag;
+    if (flag & usr::TYPEDEF) {
       type_def* tdef = static_cast<type_def*>(u);
       tdef->m_refed.push_back(parse::position);
       return TYPEDEF_NAME_LEX;
     }
-    if (u->m_flag & usr::CTOR)
+    if (flag & usr::CTOR)
       return lookup(name, ptr->m_parent);
-    if (u->m_flag & usr::OVERLOAD)
+    if (flag & usr::OVERLOAD) {
+      overload* ovl = static_cast<overload*>(u);
+      const vector<usr*>& v = ovl->m_candidacy;
+      assert(!v.empty());
+      usr* uu = v.back();
+      if (uu->m_flag & usr::CTOR)
+	return lookup(name, ptr->m_parent);
       return IDENTIFIER_LEX;
-    if (u->m_flag & usr::NAMESPACE) {
+    }
+    if (flag & usr::NAMESPACE) {
       cxx_compiler_lval.m_name_space = static_cast<name_space*>(u);
       return ORIGINAL_NAMESPACE_NAME_LEX;
     }
@@ -725,7 +741,8 @@ void cxx_compiler::parse::block::enter()
 {
   using namespace std;
 
-  switch (scope::current->m_id) {
+  scope::id_t id = scope::current->m_id;
+  switch (id) {
   case scope::NONE: case scope::NAMESPACE:
     {
       vector<scope*>& children = scope::current->m_children;
@@ -740,9 +757,10 @@ void cxx_compiler::parse::block::enter()
     }
   case scope::TAG:
     {
-      tag* tg = static_cast<tag*>(scope::current);
-      const type* T = tg->m_types.second;
+      tag* ptr = static_cast<tag*>(scope::current);
+      const type* T = ptr->m_types.second;
       vector<scope*>& children = scope::current->m_children;
+      assert(!children.empty());
       scope::current = children.back();
       if (!T) {
         parameter::decide_dim(), new_block(), parameter::move();
@@ -751,19 +769,23 @@ void cxx_compiler::parse::block::enter()
         u->m_flag = usr::flag_t(u->m_flag | usr::INLINE);
         return member_function_body::save();
       }
-      if ( !(fundef::current->m_usr->m_flag & usr::STATIC) ){
-        T = pointer_type::create(T);
-        string name = "this";
-        usr* u = new usr(name,T,usr::NONE,file_t());
-        scope::current->m_usrs[name].push_back(u);
-        vector<usr*>& order = scope::current->m_order;
-        vector<usr*> tmp = order;
-        order.clear();
-        order.push_back(u);
-        copy(begin(tmp), end(tmp), back_inserter(order));
+      usr::flag_t flag = fundef::current->m_usr->m_flag;
+      if (!(flag & usr::STATIC)) {
+	map<string, vector<usr*> >& usrs = scope::current->m_usrs;
+	if (usrs.find("this") == usrs.end()) {
+	  T = pointer_type::create(T);
+	  string name = "this";
+	  usr* u = new usr(name,T,usr::NONE,file_t());
+	  usrs[name].push_back(u);
+	  vector<usr*>& order = scope::current->m_order;
+	  vector<usr*> tmp = order;
+	  order.clear();
+	  order.push_back(u);
+	  copy(begin(tmp), end(tmp), back_inserter(order));
+	}
       }
       vector<scope*>& c = scope::current->m_children;
-      if ( !c.empty() ){
+      if (!c.empty()) {
         assert(c.size() == 1);
         scope::current = c.back();
         using namespace class_or_namespace_name;

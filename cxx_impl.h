@@ -474,6 +474,8 @@ extern void check_abstract_obj(usr*);
 
 extern void check_abstract_func(usr* );
 
+extern void handle_copy_ctor(tag*);
+
 namespace record_impl {
   extern int base_vb(int n, const base* bp);
 } // end of namespace record_impl
@@ -861,9 +863,13 @@ namespace expressions {
     };
     struct new_expr : base {
       const type* m_T;
+      vector<base*>* m_exprs;
       file_t m_file;
       const file_t& file() const { return m_file; }
-      new_expr(const type* T, const file_t& file) : m_T(T), m_file(file) {}
+      new_expr(const type* T, const file_t& file)
+        : m_T(T), m_exprs(0), m_file(file) {}
+      new_expr(const type* T, vector<base*>* exprs, const file_t& file)
+        : m_T(T), m_exprs(exprs), m_file(file) {}
       var* gen();
     };
     struct delete_expr : base {
@@ -1329,17 +1335,7 @@ namespace optimize {
 struct overload : usr {
   vector<usr*> m_candidacy;
   var* m_obj;
-  overload(usr* prev, usr* curr)
-    : usr(curr->m_name, 0, usr::OVERLOAD, curr->m_file), m_obj(0)
-  { 
-    if (prev->m_flag & usr::OVERLOAD) {
-      overload* ovl = static_cast<overload*>(prev);
-      m_candidacy = ovl->m_candidacy;
-    }
-    else
-      m_candidacy.push_back(prev);
-    m_candidacy.push_back(curr);
-  }
+  overload(usr* prev, usr* curr);
   var* call(vector<var*>*);
 };
 

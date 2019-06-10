@@ -138,34 +138,50 @@ cxx_compiler::var* cxx_compiler::expressions::unary::new_expr::gen()
     garbage.push_back(ret);
   code.push_back(new call3ac(ret,new_entry));
   const type* U = m_T->unqualified();
-  if (U->m_id == type::RECORD) {
-    typedef const record_type REC;
-    REC* rec = static_cast<REC*>(U);
-    tag* ptr = rec->get_tag();
-    map<string, vector<usr*> >& usrs = ptr->m_usrs;
-    string name = ptr->m_name;
-    map<string, vector<usr*> >::const_iterator p = usrs.find(name);
-    if (p != usrs.end()) {
-      const vector<usr*>& v = p->second;
-      if (v.size() != 1)
-        error::not_implemented();
-      usr* ctor = v.back();
-      const type* T = ctor->m_type;
-      assert(T->m_id == type::FUNC);
-      typedef const func_type FT;
-      FT* ft = static_cast<FT*>(T);
-      vector<var*> arg;
-      call_impl::common(ft, ctor, &arg, false, ret, false, 0);
-      usr::flag_t flag = ctor->m_flag;
-      if (!error::counter && !cmdline::no_inline_sub) {
-        if (flag & usr::INLINE) {
-          using namespace declarations::declarators::function;
-          using namespace definition::static_inline::skip;
-          table_t::const_iterator p = stbl.find(ctor);
-          if (p != stbl.end())
-            substitute(code, code.size()-1, p->second);
-        }
-      }
+  if (U->m_id != type::RECORD)
+    return ret;
+
+  typedef const record_type REC;
+  REC* rec = static_cast<REC*>(U);
+  tag* ptr = rec->get_tag();
+  map<string, vector<usr*> >& tusrs = ptr->m_usrs;
+  string tgn = ptr->m_name;
+  map<string, vector<usr*> >::const_iterator p = tusrs.find(tgn);
+  if (p == tusrs.end())
+    return ret;
+
+  const vector<usr*>& v = p->second;
+  assert(!v.empty());
+  usr* ctor = v.back();
+  usr::flag_t flag = ctor->m_flag;
+  if (flag & usr::OVERLOAD) {
+    overload* ovl = static_cast<overload*>(ctor);
+    ovl->m_obj = ret;
+    vector<var*> arg;
+    if (m_exprs) {
+      transform(begin(*m_exprs), end(*m_exprs), back_inserter(arg),
+		mem_fun(&base::gen));
+    }
+    ovl->call(&arg);
+    return ret;
+  }
+  const type* T = ctor->m_type;
+  assert(T->m_id == type::FUNC);
+  typedef const func_type FT;
+  FT* ft = static_cast<FT*>(T);
+  vector<var*> arg;
+  if (m_exprs) {
+    transform(begin(*m_exprs), end(*m_exprs), back_inserter(arg),
+	      mem_fun(&base::gen));
+  }
+  call_impl::common(ft, ctor, &arg, false, ret, false, 0);
+  if (!error::counter && !cmdline::no_inline_sub) {
+    if (flag & usr::INLINE) {
+      using namespace declarations::declarators::function;
+      using namespace definition::static_inline::skip;
+      table_t::const_iterator p = stbl.find(ctor);
+      if (p != stbl.end())
+	substitute(code, code.size()-1, p->second);
     }
   }
   return ret;

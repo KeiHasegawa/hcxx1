@@ -48,9 +48,11 @@ namespace cxx_compiler { namespace dump {
 void cxx_compiler::dump::usrx(const usr* u, int ntab)
 {
   using namespace std;
+  usr::flag_t flag = u->m_flag;
+  if (flag & usr::OVERLOAD)
+    return;
   int n = ntab;
   while ( n-- ) cout << '\t';
-  usr::flag_t flag = u->m_flag;
   if (flag) {
     string s = usr::keyword(flag);
     if ( !s.empty() )
@@ -59,16 +61,13 @@ void cxx_compiler::dump::usrx(const usr* u, int ntab)
   string name = names::ref(const_cast<usr*>(u));
   const type* T = u->m_type;
   if (!T) {
-    if (flag & usr::NAMESPACE) {
-      cout << name << '\n';
-      const name_space* ns = static_cast<const name_space*>(u);
-      scope* org = scope::current;
-      scope::current = const_cast<name_space*>(ns);
-      dump::scopex(scope::current,ntab+1);
-      scope::current = org;
-      return;
-    }
-    assert(flag & usr::OVERLOAD);
+    assert(flag & usr::NAMESPACE);
+    cout << name << '\n';
+    const name_space* ns = static_cast<const name_space*>(u);
+    scope* org = scope::current;
+    scope::current = const_cast<name_space*>(ns);
+    dump::scopex(scope::current,ntab+1);
+    scope::current = org;
     return;
   }
   T->decl(cout,name);

@@ -1611,6 +1611,9 @@ class record_type : public type {
 
   std::map<base*, int> m_vbtbl_offset;
   std::map<base*, int> m_vftbl_offset;
+
+  std::set<const record_type*> m_common;
+  std::map<const record_type*, int> m_common_vftbl_offset;
   record_type(tag*);
 public:
   void decl(std::ostream&, std::string) const;
@@ -1637,6 +1640,7 @@ public:
   static const record_type* create(tag*);
   static void destroy_tmp();
   static void collect_tmp(std::vector<const type*>&);
+  void ctor_code(usr* ctor, scope* param, usr* this_ptr, block* pb) const;
 };
 
 class enum_type : public type {

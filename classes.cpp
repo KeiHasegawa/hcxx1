@@ -62,9 +62,15 @@ cxx_compiler::classes::specifier::begin2(int keyword, tag* ptr)
   begin(keyword,tmp,0);
 }
 
-namespace cxx_compiler { namespace classes { namespace specifier {
-  void member_function_definition(std::pair<usr* const,parse::member_function_body::save_t>&);
-} } } // end of namespace specifier, classes and cxx_compiler
+namespace cxx_compiler {
+  using namespace std;
+  namespace classes {
+    namespace specifier {
+      using namespace std;
+      void member_function_definition(pair<usr* const, parse::member_function_body::save_t>&);
+    } // end of namespace specifier
+  } // end of namespace classes
+} // end of namespace cxx_compiler
 
 const cxx_compiler::type* cxx_compiler::classes::specifier::action()
 {
@@ -74,6 +80,8 @@ const cxx_compiler::type* cxx_compiler::classes::specifier::action()
   tag* ptr = static_cast<tag*>(scope::current);
   const type* ret = record_type::create(ptr);
   ptr->m_types.second = ret;
+  handle_copy_ctor(ptr);
+
   map<usr*, parse::member_function_body::save_t>& tbl =
     parse::member_function_body::stbl;
   if (tbl.empty()) {
@@ -273,6 +281,28 @@ namespace cxx_compiler {
               T->scalar() ? for_scalar(dst, p) : for_aggregate(dst, p);
             }
             map<usr*, VALUE> mtbl;
+	    inline block* get_block(tag* ptr)
+	    {
+              scope* param = fundef::current->m_param;
+              vector<scope*>& children = param->m_children;
+              if (!children.empty()) {
+		scope* ps = children.back();
+		assert(ps->m_id == scope::BLOCK);
+		return static_cast<block*>(ps);
+	      }
+	      block* b = new block;
+	      children.push_back(b);
+	      b->m_parent = param;
+
+	      string name = "this";
+	      const type* T = ptr->m_types.second;
+	      T = pointer_type::create(T);
+	      usr* this_ptr = new usr(name,T,usr::NONE,file_t());
+	      this_ptr->m_scope = param;
+	      param->m_order.push_back(this_ptr);
+	      param->m_usrs[name].push_back(this_ptr);
+	      return b;
+	    }
 	    void id_action(var* v, EXPRS* exprs, usr* ctor)
 	    {
               using namespace expressions::primary;
@@ -287,12 +317,13 @@ namespace cxx_compiler {
               }
               assert(v->usr_cast());
               usr* u = static_cast<usr*>(v);
-              scope* param = fundef::current->m_param;
-              vector<scope*>& c = param->m_children;
-              assert(!c.empty());
-              scope* ps = c.back();
-              assert(ps->m_id == scope::BLOCK);
-              block* b = static_cast<block*>(ps);
+	      block* b = get_block(ptr);
+	      assert(T->m_id == type::RECORD);
+	      typedef const record_type REC;
+	      REC* rec = static_cast<REC*>(T);
+	      scope* param = fundef::current->m_param;
+	      usr* this_ptr = *param->m_order.begin();
+	      rec->ctor_code(ctor, param, this_ptr, b);
               scope* org = scope::current;
               scope::current = b;
               vector<route_t> dummy;

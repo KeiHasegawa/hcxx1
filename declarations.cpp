@@ -16,14 +16,17 @@ void cxx_compiler::declarations::destroy()
   vector<scope*>& children = scope::current->m_children;
   typedef vector<scope*>::iterator IT;
   for (IT p = children.begin() ; p != children.end() ; ) {
-    switch ((*p)->m_id) {
-    case scope::TAG:
-    case scope::NAMESPACE:
+    scope::id_t id = (*p)->m_id;
+    switch (id) {
+    case scope::NONE: case scope::PARAM: case scope::BLOCK:
+      delete *p;
+      p = children.erase(p);
+      break;
+    case scope::TAG: case scope::NAMESPACE:
       ++p;
       break;
     default:
-      delete *p;
-      p = children.erase(p);
+      assert(0);
       break;
     }
   }
@@ -488,8 +491,8 @@ std::stack<cxx_compiler::declarations::specifier_seq::info_t*>
 cxx_compiler::declarations::specifier_seq::info_t::s_stack;
 
 namespace cxx_compiler { namespace declarations {
-  void check_lookuped(usr*, specifier_seq::info_t*);
-  usr* exchange(bool lookuped, usr* new_one, usr* org);
+  void check_installed(usr*, specifier_seq::info_t*);
+  usr* exchange(bool installed, usr* new_one, usr* org);
   usr* action2(usr*);
 } } // end of namespace declarations ans cxx_compiler
 
@@ -502,12 +505,12 @@ cxx_compiler::declarations::action1(var* v, bool ini)
   usr* u = static_cast<usr*>(v);
   const type* T = u->m_type;
   usr::flag_t flag = u->m_flag;
-  bool lookuped = (flag & usr::OVERLOAD) ? true : !T->backpatch();
+  bool installed = (flag & usr::OVERLOAD) ? true : !T->backpatch();
   if ( specifier_seq::info_t::s_stack.empty() ){
     usr::flag_t mask = usr::flag_t(usr::CTOR | usr::DTOR);
     if (flag & mask) {
       assert(T->m_id == type::FUNC);
-      if (lookuped) {
+      if (installed) {
         typedef const func_type FT;
         FT* ft = static_cast<FT*>(T);
         assert(!ft->return_type());
@@ -517,7 +520,7 @@ cxx_compiler::declarations::action1(var* v, bool ini)
         u->m_type = T = T->patch(0,u);
       }
     }
-    else {
+    else if (!(flag & usr::OVERLOAD)) {
       implicit_int(u);
       u->m_type = T = int_type::create();
     }
@@ -533,8 +536,8 @@ cxx_compiler::declarations::action1(var* v, bool ini)
       implicit_int(u);
       p->m_type = int_type::create();
     }
-    if (lookuped)
-      check_lookuped(u, p);
+    if (installed)
+      check_installed(u, p);
     else {
       u->m_flag = flag = p->m_flag;
       u->m_type = T = T->patch(p->m_type,u);
@@ -543,7 +546,7 @@ cxx_compiler::declarations::action1(var* v, bool ini)
   else {
     if (flag & usr::DTOR) {
       assert(T->m_id == type::FUNC);
-      if (lookuped) {
+      if (installed) {
         typedef const func_type FT;
         FT* ft = static_cast<FT*>(T);
         assert(!ft->return_type());
@@ -561,13 +564,13 @@ cxx_compiler::declarations::action1(var* v, bool ini)
   }
   if (flag & usr::TYPEDEF) {
     type_def* tmp = new type_def(*u);
-    u = exchange(lookuped, tmp, u);
+    u = exchange(installed, tmp, u);
   }
   if (ini) {
     parse::identifier::mode = parse::identifier::look;
     if (duration::_static(u)) {
       with_initial* tmp = new with_initial(*u);
-      u = exchange(lookuped, tmp, u);
+      u = exchange(installed, tmp, u);
       if (scope::current != &scope::root)
         expressions::constant_flag = true;
     }
@@ -679,7 +682,7 @@ cxx_compiler::declarations::action1(var* v, bool ini)
     }
   }
 
-  if (lookuped && u->m_scope->m_id == scope::TAG && (flag & usr::STATIC)
+  if (installed && u->m_scope->m_id == scope::TAG && (flag & usr::STATIC)
       && T->size()) {
     usr* tmp = new usr(*u);
     tmp->m_flag = usr::flag_t(tmp->m_flag | usr::STATIC_DEF);
@@ -689,7 +692,7 @@ cxx_compiler::declarations::action1(var* v, bool ini)
     u = tmp;
   }
 
-  return lookuped ? u : action2(u);
+  return installed ? u : action2(u);
 }
 
 void cxx_compiler::declarations::check_object(usr* u)
@@ -857,9 +860,9 @@ bool cxx_compiler::declarations::conflict(const type* prev, const type* curr)
     return true;
   if ( curr->m_id != type::FUNC )
     return true;
-  typedef const func_type FUNC;
-  FUNC* fp = static_cast<FUNC*>(prev);
-  FUNC* fc = static_cast<FUNC*>(curr);
+  typedef const func_type FT;
+  FT* fp = static_cast<FT*>(prev);
+  FT* fc = static_cast<FT*>(curr);
   return !fp->overloadable(fc);
 }
 
@@ -871,31 +874,31 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
   case scope::NONE: case scope::NAMESPACE:
     {
       usr::flag_t a = prev->m_flag;
-      usr::flag_t& b = curr->m_flag;
-      if ( a == usr::NONE && b == usr::NONE )
-        b = usr::EXTERN;
-      else if ( a & usr::STATIC )
-        b = usr::flag_t(b | usr::STATIC);
-      else if ( a & usr::INLINE )
-        b = usr::flag_t(b | usr::INLINE);
+      usr::flag_t b = curr->m_flag;
+      if (a == usr::NONE && b == usr::NONE)
+        curr->m_flag = usr::EXTERN;
+      else if (a & usr::STATIC)
+        curr->m_flag = usr::flag_t(b | usr::STATIC);
+      else if (a & usr::INLINE)
+        curr->m_flag = usr::flag_t(b | usr::INLINE);
       if (a & usr::C_SYMBOL)
-        b = usr::flag_t(b | usr::C_SYMBOL);
+        curr->m_flag = usr::flag_t(b | usr::C_SYMBOL);
     }
     break;
   case scope::TAG:
     {
-    usr::flag_t a = prev->m_flag;
-    usr::flag_t& b = curr->m_flag;
-    if ( a & usr::STATIC )
-      b = usr::flag_t(b | usr::STATIC_DEF);
+      usr::flag_t a = prev->m_flag;
+      usr::flag_t b = curr->m_flag;
+      if (a & usr::STATIC)
+	curr->m_flag = usr::flag_t(b | usr::STATIC_DEF);
     }
     break;
   }
 
-  if (const type* x = prev->m_type ) {
+  const type* x = prev->m_type;
+  if (x) {
     const type* y = curr->m_type;
-    const type* z = composite(x, y);
-    if (z) {
+    if (const type* z = composite(x, y)) {
       curr->m_type = z;
       return curr;
     }
@@ -903,11 +906,34 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
 
   string name = curr->m_name;
   scope::current->m_usrs[name].push_back(curr);
-  return new overload(prev,curr);
+  return new overload(prev, curr);
 }
 
+namespace cxx_compiler {
+  overload::overload(usr* prev, usr* curr)
+    : usr(curr->m_name, 0, usr::OVERLOAD, curr->m_file), m_obj(0)
+  { 
+    usr::flag_t flag = prev->m_flag;
+    if (!(flag & usr::OVERLOAD)) {
+      m_candidacy.push_back(prev);
+      m_candidacy.push_back(curr);
+      return;
+    }
+
+    overload* ovl = static_cast<overload*>(prev);
+    m_candidacy = ovl->m_candidacy;
+    typedef vector<usr*>::iterator IT;
+    IT p = find_if(begin(m_candidacy), end(m_candidacy), [curr](usr* u)
+		   { return compatible(u->m_type, curr->m_type); });
+    if (p != end(m_candidacy))
+      *p = curr;
+    else
+      m_candidacy.push_back(curr);
+  }
+} // end of namespace cxx_compiler
+
 void
-cxx_compiler::declarations::check_lookuped(usr* u, specifier_seq::info_t* p)
+cxx_compiler::declarations::check_installed(usr* u, specifier_seq::info_t* p)
 {
   usr::flag_t flag = u->m_flag;
   u->m_flag = flag = usr::flag_t(flag | p->m_flag);
@@ -927,10 +953,10 @@ cxx_compiler::declarations::check_lookuped(usr* u, specifier_seq::info_t* p)
 }
 
 cxx_compiler::usr*
-cxx_compiler::declarations::exchange(bool lookuped, usr* new_one, usr* org)
+cxx_compiler::declarations::exchange(bool installed, usr* new_one, usr* org)
 {
   using namespace std;
-  if (lookuped) {
+  if (installed) {
     string name = org->m_name;
     map<string, vector<usr*> >& usrs = org->m_scope->m_usrs;
     vector<usr*>& v = usrs[name];

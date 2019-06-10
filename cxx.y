@@ -138,7 +138,7 @@ namespace cxx_compiler {
 %type<m_vi> cvr_qualifier_seq
 %type<m_statements> statement_seq
 %type<m_var> literal string_literal STRING_LITERAL_LEX
-%type<m_expressions> expression_list
+%type<m_expressions> expression_list new_initializer
 %type<m_scope> enter_block
 %type<m_clause> initializer_clause
 %type<m_list> initializer_list
@@ -1593,8 +1593,13 @@ new_expression
     { cxx_compiler::error::not_implemented(); }
   |                            NEW_KW new_placement new_type_id
     { cxx_compiler::error::not_implemented(); }
-  |                            NEW_KW               new_type_id new_initializer
-    { cxx_compiler::error::not_implemented(); }
+  | NEW_KW new_type_id new_initializer
+    {
+      using namespace cxx_compiler::expressions::unary;
+      $$ = new new_expr($2, $3, cxx_compiler::parse::position);
+      using namespace cxx_compiler::parse;
+      identifier::mode = identifier::look;
+    }
   | NEW_KW new_type_id
     {
       using namespace cxx_compiler::expressions::unary;
@@ -1625,8 +1630,8 @@ new_placement
   ;
 
 new_initializer
-  : '(' expression_list ')'
-  | '('                 ')'
+  : '(' expression_list ')' { $$ = $2; }
+  | '('                 ')' { $$ = 0; }
   ;
 
 new_type_id

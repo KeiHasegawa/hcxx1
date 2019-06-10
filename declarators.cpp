@@ -397,14 +397,14 @@ function::definition::begin(declarations::specifier_seq::info_t* p, var* v)
     const type* T = u->m_type;
     if (T->m_id != type::FUNC)
       return;
-    typedef const func_type FUNC;
-    FUNC* func = static_cast<FUNC*>(T);
-    T = func->return_type();
+    typedef const func_type FT;
+    FT* ft = static_cast<FT*>(T);
+    T = ft->return_type();
     if (!valid(T,u)) {
       using namespace error::declarations::declarators::function::definition;
       invalid_return(fundef::current->m_usr,T);
     }
-    const vector<const type*>& param = func->param();
+    const vector<const type*>& param = ft->param();
     scope* ptr = u->m_scope;
     if (ptr->m_id == scope::BLOCK)
       ptr = &scope::root;
@@ -456,6 +456,10 @@ namespace cxx_compiler {
             vector<scope*>::iterator q = p.base() - 1;
             delete param;
             children.erase(q);
+	    if (!class_or_namespace_name::before.empty()) {
+	      if (class_or_namespace_name::before.back() == param)
+		class_or_namespace_name::before.pop_back();
+	    }
 
             for (tac* p : vc)
               delete p;
