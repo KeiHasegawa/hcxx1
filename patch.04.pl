@@ -15,6 +15,18 @@
 #
 #  T();       // temporary object
 #             // use simple_type_specifier -> type_name
+#
+#  struct S { 
+#    S(
+#      S&);   // `S' is not lookuped at 1st time but lookuped at retry time
+#  };
+#
+
+use Getopt::Long;
+
+$opt_header = 0;
+
+GetOptions('header' => \$opt_header);
 
 while ( <> ){
     chop;
@@ -31,6 +43,9 @@ while ( <> ){
 	next;
     }
     $bbb = $1;
+    if ($opt_header) {
+	goto label2;
+    }
     goto label;
 }
 
@@ -54,3 +69,8 @@ print <<EOF
 EOF
     ;
 exit;
+
+label2:
+print <<EOF2
+const int TYPE_NAME_CONFLICT_STATE = $xxx ;
+EOF2

@@ -2356,23 +2356,24 @@ namespace cxx_compiler {
       if (x == y)
 	error::classes::base::duplicate(file, x->m_name);
     }
-    inline const reference_type* copy_ctor_arg_type(tag* ptr)
+    inline const reference_type* copy_ctor_arg_type(tag* ptr, bool const_f)
     {
       const type* T = ptr->m_types.first;
-      T = const_type::create(T);
+      if (const_f)
+	T = const_type::create(T);
       return reference_type::create(T);
     }
-    inline const func_type* copy_ctor_type(tag* ptr)
+    inline const func_type* copy_ctor_type(tag* ptr, bool const_f)
     {
       vector<const type*> tmp;
-      const type* T = copy_ctor_arg_type(ptr);
+      const type* T = copy_ctor_arg_type(ptr, const_f);
       tmp.push_back(T);
       return func_type::create(0, tmp);
     }
     void add_copy_ctor(tag* ptr)
     {
       string tgn = ptr->m_name;
-      const func_type* ft = copy_ctor_type(ptr);
+      const func_type* ft = copy_ctor_type(ptr, true);
       usr::flag_t flag =
 	usr::flag_t(usr::CTOR | usr::FUNCTION | usr::INLINE);
       usr* ctor = new usr(tgn, ft, flag, file_t());
@@ -2402,7 +2403,7 @@ namespace cxx_compiler {
       param->m_usrs[name].push_back(this_ptr);
 
       string aname = new_name(".param");
-      const reference_type* rt = copy_ctor_arg_type(ptr);
+      const reference_type* rt = copy_ctor_arg_type(ptr, true);
       usr* arg = new usr(aname, rt, usr::NONE, file_t());
       arg->m_scope = param;
       param->m_order.push_back(arg);
@@ -3034,11 +3035,17 @@ void cxx_compiler::handle_copy_ctor(tag* ptr)
 		 { return dct->compatible(u->m_type); });
   if (q == end(v))
     return;
-  const func_type* cct = copy_ctor_type(ptr);
+  const func_type* cct = copy_ctor_type(ptr, true);
   IT r = find_if(begin(v), end(v), [cct](usr* u)
 		 { return cct->compatible(u->m_type); });
-  if (r == end(v))
-    add_copy_ctor(ptr);
+  if (r != end(v))
+    return;
+  cct = copy_ctor_type(ptr, false);
+  r = find_if(begin(v), end(v), [cct](usr* u)
+	      { return cct->compatible(u->m_type); });
+  if (r != end(v))
+    return;
+  add_copy_ctor(ptr);
 }
 
 void cxx_compiler::record_type::destroy_tmp()

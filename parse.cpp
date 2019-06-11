@@ -4,6 +4,7 @@
 #include "cxx_y.h"
 #include "yy.h"
 #include "patch.03.q"
+#include "patch.04.q"
 
 namespace cxx_compiler {
   namespace parse {
@@ -35,7 +36,7 @@ int cxx_compiler::parse::identifier::judge(std::string name)
     return ORIGINAL_NAMESPACE_NAME_LEX;
   }
   
-  if (last_token == '(' && scope::current->m_id == scope::PARAM){
+  if (last_token == '(' && scope::current->m_id == scope::PARAM) {
     // guess abstract-declarator
     if (int r = lookup(name,scope::current)) {
       switch (r) {
@@ -58,7 +59,6 @@ int cxx_compiler::parse::identifier::judge(std::string name)
       return r;
     using namespace declarations::specifier_seq;
     const stack<info_t*>& s = info_t::s_stack;
-    int n = s.size();
     if (s.empty()) {
       if (last_token == EXTERN_KW && r == IDENTIFIER_LEX) {
         // Rare case like:
@@ -496,7 +496,8 @@ namespace cxx_compiler {
         lval.pop_front();
         if (from_mem_fun_body)
           return get_id_from_mem_fun_body(n);
-        if (context_t::retry[DECL_FCAST_CONFLICT_STATE]) {
+        if (context_t::retry[DECL_FCAST_CONFLICT_STATE] ||
+            context_t::retry[TYPE_NAME_CONFLICT_STATE]) {
           usr* u = static_cast<usr*>(cxx_compiler_lval.m_var);
           assert(u->m_type->backpatch());
           string name = u->m_name;
@@ -915,7 +916,7 @@ std::string cxx_compiler::ucn::conv(std::string name)
 namespace cxx_compiler {
   namespace parse {
     vector<context_t> context_t::all;
-    map<int, int> context_t::retry;
+    map<int, bool> context_t::retry;
     void save(int state, short* b0, short* t0, YYSTYPE* b1, YYSTYPE* t1)
     {
       using namespace std;

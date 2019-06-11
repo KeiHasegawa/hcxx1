@@ -90,7 +90,8 @@ function::action(const type* T,
 }
 
 const cxx_compiler::type* cxx_compiler::declarations::declarators::
-function::parameter(specifier_seq::info_t* p, var* v)
+function::parameter(specifier_seq::info_t* p, var* v,
+		    expressions::base* expr)
 {
   using namespace std;
   usr* u = static_cast<usr*>(v);
@@ -101,17 +102,21 @@ function::parameter(specifier_seq::info_t* p, var* v)
         cxx_compiler::declarations::specifier_seq::info_t::clear();
     }
   } sweeper2;
+  if (expr)
+    error::not_implemented();
   auto_ptr<specifier_seq::info_t> sweepr(p);
   parse::context_t::clear();
-  usr::flag_t mask = usr::flag_t(usr::TYPEDEF | usr::EXTERN | usr::STATIC | usr::AUTO);
+  usr::flag_t mask =
+    usr::flag_t(usr::TYPEDEF | usr::EXTERN | usr::STATIC | usr::AUTO);
   typedef const pointer_type PT;
-  if ( u ){
+  if (u) {
     usr::flag_t flag = u->m_flag = p->m_flag;
     const type* T = u->m_type;
     if ( PT* pt = T->ptr_gen() )
       u->m_type = pt;
-    if ( flag & mask ){
-      error::declarations::declarators::function::parameter::invalid_storage(parse::position,u);
+    if (flag & mask) {
+      using namespace error::declarations::declarators::function;
+      parameter::invalid_storage(parse::position,u);
       flag = u->m_flag = p->m_flag = usr::flag_t(flag & ~mask);
     }
     u = declarations::action1(u,false);
@@ -127,7 +132,8 @@ function::parameter(specifier_seq::info_t* p, var* v)
       p->update();
     usr::flag_t flag = p->m_flag;
     if (flag & mask) {
-      error::declarations::declarators::function::parameter::invalid_storage(parse::position, 0);
+      using namespace error::declarations::declarators::function;
+      parameter::invalid_storage(parse::position, 0);
       flag = p->m_flag = usr::flag_t(flag & ~mask);
     }
     const type* T = p->m_type;
@@ -138,7 +144,8 @@ function::parameter(specifier_seq::info_t* p, var* v)
 }
 
 const cxx_compiler::type* cxx_compiler::declarations::declarators::
-function::parameter(specifier_seq::info_t* p, const type* T)
+function::parameter(specifier_seq::info_t* p, const type* T,
+		    expressions::base* expr)
 {
   using namespace std;
   struct sweeper2 {
@@ -148,6 +155,8 @@ function::parameter(specifier_seq::info_t* p, const type* T)
         cxx_compiler::declarations::specifier_seq::info_t::clear();
     }
   } sweeper2;
+  if (expr)
+    error::not_implemented();
   auto_ptr<specifier_seq::info_t> sweeper(p);
   parse::context_t::clear();
   string name = new_name(".param");
@@ -156,9 +165,11 @@ function::parameter(specifier_seq::info_t* p, const type* T)
   if ( PT* pt = T->ptr_gen() )
     u->m_type = pt;
   usr::flag_t& flag = u->m_flag = p->m_flag;
-  usr::flag_t mask = usr::flag_t(usr::TYPEDEF | usr::EXTERN | usr::STATIC | usr::AUTO);
-  if ( flag & mask ){
-    error::declarations::declarators::function::parameter::invalid_storage(parse::position,u);
+  usr::flag_t mask =
+    usr::flag_t(usr::TYPEDEF | usr::EXTERN | usr::STATIC | usr::AUTO);
+  if (flag & mask) {
+    using namespace error::declarations::declarators::function;
+    parameter::invalid_storage(parse::position,u);
     flag = usr::flag_t(flag & ~mask);
   }
   u = declarations::action1(u,false);

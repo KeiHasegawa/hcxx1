@@ -1078,6 +1078,7 @@ cxx_compiler::var::member(var* expr, bool dot,
       typedef const reference_type RT;
       RT* rt = static_cast<RT*>(T);
       T = rt->referenced_type();
+      T = T->unqualified(&cvr);
     }
   }
   else {

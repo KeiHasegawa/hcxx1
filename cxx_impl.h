@@ -65,7 +65,7 @@ namespace parse {
               int c)
     : m_state(state), m_stack0(vs), m_stack1(vv), m_char(c) {}
     static vector<context_t> all;
-    static map<int, int> retry;
+    static map<int, bool> retry;
     static void clear(){ all.clear(); retry.clear(); }
   };
   extern void save(int state, short* b0, short* t0, YYSTYPE* b1, YYSTYPE* t1);
@@ -544,8 +544,10 @@ namespace declarations {
     } // end of namespace reference
     namespace function {
       extern const type* action(const type*, vector<const type*>*, var*, vector<int>*);
-      extern const type* parameter(specifier_seq::info_t*, var*);
-      extern const type* parameter(specifier_seq::info_t*, const type*);
+      extern const type* parameter(specifier_seq::info_t*, var*,
+				   expressions::base*);
+      extern const type* parameter(specifier_seq::info_t*, const type*,
+				   expressions::base*);
       namespace definition {
         extern void begin(declarations::specifier_seq::info_t*, var*);
         extern void action(statements::base*);

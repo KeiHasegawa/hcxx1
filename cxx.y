@@ -672,15 +672,23 @@ declarator_id
 parameter_declaration_clause
   : parameter_declaration_list DOTS_MK
     { $$ = $1; $$->push_back(cxx_compiler::ellipsis_type::create()); }
-  |                            DOTS_MK
+  | DOTS_MK
     {
       $$ = new std::vector<const cxx_compiler::type*>;
       $$->push_back(cxx_compiler::ellipsis_type::create());
     }
   | parameter_declaration_list
-  | { $$ = 0; cxx_compiler::declarations::specifier_seq::info_t::s_stack.pop(); }
+  |
+    {
+      $$ = 0;
+      cxx_compiler::declarations::specifier_seq::info_t::s_stack.pop();
+    }
   | parameter_declaration_list ',' DOTS_MK
-    { $$ = $1; $$->push_back(cxx_compiler::ellipsis_type::create()); cxx_compiler::declarations::specifier_seq::info_t::s_stack.pop(); }
+    {
+      $$ = $1;
+      $$->push_back(cxx_compiler::ellipsis_type::create());
+      cxx_compiler::declarations::specifier_seq::info_t::s_stack.pop();
+    }
   ;
 
 parameter_declaration_list
@@ -693,23 +701,39 @@ parameter_declaration_list
 parameter_declaration
   : decl_specifier_seq declarator
     {
-      $$ = cxx_compiler::declarations::declarators::function::parameter($1,$2);
+      cxx_compiler::expressions::base* zero = 0;
+      using namespace cxx_compiler::declarations::declarators;
+      $$ = function::parameter($1, $2, zero);
     }
   | decl_specifier_seq declarator '=' assignment_expression
-    { cxx_compiler::error::not_implemented(); }
+    {
+      using namespace cxx_compiler::declarations::declarators;
+      $$ = function::parameter($1, $2, $4);
+    }
   | decl_specifier_seq abstract_declarator
     {
-      $$ = cxx_compiler::declarations::declarators::function::parameter($1,$2);
+      cxx_compiler::expressions::base* zero = 0;
+      using namespace cxx_compiler::declarations::declarators;
+      $$ = function::parameter($1, $2, zero);
     }
   | decl_specifier_seq
     {
       cxx_compiler::usr* zero = 0;
-      $$ = cxx_compiler::declarations::declarators::function::parameter($1,zero);
+      cxx_compiler::expressions::base* bzero = 0;
+      using namespace cxx_compiler::declarations::declarators;
+      $$ = function::parameter($1, zero, bzero);
     }
   | decl_specifier_seq abstract_declarator '=' assignment_expression
-    { cxx_compiler::error::not_implemented(); }
-  | decl_specifier_seq  '=' assignment_expression
-    { cxx_compiler::error::not_implemented(); }
+    {
+      using namespace cxx_compiler::declarations::declarators;
+      $$ = function::parameter($1, $2, $4);
+    }
+  | decl_specifier_seq '=' assignment_expression
+    {
+      cxx_compiler::usr* zero = 0;
+      using namespace cxx_compiler::declarations::declarators;
+      $$ = function::parameter($1, zero, $3);
+    }
   ;
 
 abstract_declarator
@@ -963,16 +987,30 @@ member_declaration
       delete $1;
       using namespace cxx_compiler::parse;
       identifier::mode = identifier::look;
+      context_t::clear();
     }
-  | decl_specifier_seq                        ';'
+  | decl_specifier_seq ';'
     {
       delete $1;
       using namespace cxx_compiler::parse;
       identifier::mode = identifier::look;
+      context_t::clear();
     }
   | member_declarator_list ';'
+    {
+      using namespace cxx_compiler::parse;
+      context_t::clear();
+    }
   | function_definition ';'
+    {
+      using namespace cxx_compiler::parse;
+      context_t::clear();
+    }
   | function_definition
+    {
+      using namespace cxx_compiler::parse;
+      context_t::clear();
+    }
   | COLONCOLON_MK move_to_root nested_name_specifier TEMPLATE_KW
     unqualified_id ';'
    { cxx_compiler::error::not_implemented(); }
