@@ -50,6 +50,7 @@ SRCS =	cxx_l.cpp \
 	main.cpp \
 	optimize.cpp \
 	parse.cpp \
+	record_type.cpp \
 	scope.cpp \
 	statements.cpp \
 	type.cpp \

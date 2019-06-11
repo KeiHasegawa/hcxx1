@@ -375,13 +375,20 @@ cxx_compiler::call_impl::common(const func_type* ft,
   const vector<const type*>& param = ft->param();
   int n = arg ? arg->size() : 0;
   pair<int,int> m = call_impl::num_of_range(param);
-  if ( n < m.first ){
-    if ( trial )
-      return 0;
-    using namespace error::expressions::postfix::call;
-    num_of_arg(parse::position,func,n,m.first);
+  if (n < m.first) {
+    assert(n < param.size());
+    typedef vector<const type*>::const_iterator IT;
+    IT beg = begin(param) + n;
+    IT p = find_if(beg, end(param),
+		   [](const type* T){ return T->m_id != type::DEFAULT_ARG; });
+    if (p != end(param)) {
+      if ( trial )
+	return 0;
+      using namespace error::expressions::postfix::call;
+      num_of_arg(parse::position,func,n,m.first);
+    }
   }
-  else if ( m.second < n ){
+  else if (m.second < n) {
     if ( trial )
       return 0;
     using namespace error::expressions::postfix::call;
@@ -389,7 +396,7 @@ cxx_compiler::call_impl::common(const func_type* ft,
     n = m.second;
   }
   vector<var*> conved;
-  if ( arg ){
+  if (arg) {
     const vector<var*>& v = *arg;
     transform(v.begin(),v.begin()+n,back_inserter(conved),
               call_impl::convert(param,func,trial));
@@ -435,7 +442,20 @@ cxx_compiler::call_impl::common(const func_type* ft,
   }
   transform(conved.begin(),conved.end(),back_inserter(code),
             call_impl::gen_param);
-  
+  if (n < m.first) {
+    assert(n < param.size());
+    typedef vector<const type*>::const_iterator IT;
+    IT beg = begin(param) + n;
+    for_each(beg, end(param), [](const type* T)
+	     {
+	       if (T->m_id == type::DEFAULT_ARG) {
+		 typedef const default_argument_type DAT;
+		 DAT* dat = static_cast<DAT*>(T);
+		 var* v =  dat->default_argument();
+		 code.push_back(new param3ac(v));
+	       }
+	     });
+  }
   const type* T = ft->return_type();
   if (T)
     T = T->complete_type();

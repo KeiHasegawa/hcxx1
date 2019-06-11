@@ -463,6 +463,8 @@ namespace type_impl {
   extern void update(int (*)(int id));
 } // end of namespace type_impl
 
+extern bool temporary(const tag*);
+
 extern int calc_offset(const record_type* drec,
 		       const record_type* brec,
 		       const std::vector<route_t>& route,

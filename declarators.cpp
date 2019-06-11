@@ -89,6 +89,18 @@ function::action(const type* T,
   }
 }
 
+namespace cxx_compiler {
+  const type* handle_default_type(const type* T, expressions::base* expr)
+  {
+    if (expr) {
+      var* v = expr->gen();
+      return default_argument_type::create(T, v);
+    }
+    else 
+      return T;
+  }
+} // end of namespace cxx_compiler
+
 const cxx_compiler::type* cxx_compiler::declarations::declarators::
 function::parameter(specifier_seq::info_t* p, var* v,
 		    expressions::base* expr)
@@ -102,8 +114,6 @@ function::parameter(specifier_seq::info_t* p, var* v,
         cxx_compiler::declarations::specifier_seq::info_t::clear();
     }
   } sweeper2;
-  if (expr)
-    error::not_implemented();
   auto_ptr<specifier_seq::info_t> sweepr(p);
   parse::context_t::clear();
   usr::flag_t mask =
@@ -125,7 +135,7 @@ function::parameter(specifier_seq::info_t* p, var* v,
       T = u->m_type = pt;
       u->m_flag = usr::flag_t(u->m_flag & ~(usr::FUNCTION | usr::VL));
     }
-    return T;
+    return handle_default_type(T, expr);
   }
   else {
     if ( !p->m_type || !p->m_tmp.empty() )
@@ -139,7 +149,7 @@ function::parameter(specifier_seq::info_t* p, var* v,
     const type* T = p->m_type;
     if (PT* pt = T->ptr_gen())
       T = pt;
-    return T;
+    return handle_default_type(T, expr);
   }
 }
 
@@ -178,7 +188,7 @@ function::parameter(specifier_seq::info_t* p, const type* T,
     T = u->m_type = pt;
     u->m_flag = usr::flag_t(u->m_flag & ~(usr::FUNCTION | usr::VL));
   }
-  return T;
+  return handle_default_type(T, expr);
 }
 
 namespace cxx_compiler {
