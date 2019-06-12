@@ -359,6 +359,39 @@ namespace cxx_compiler {
     tac* gen_param(var*);
     var* ref_vftbl(usr* vf, var* vp);
     var* ref_vftbl(var* vp, var* vftbl_off, const func_type* ft);
+    inline bool common_default_arg(var* func, int n, int m, bool just_query)
+    {
+      using namespace declarations::declarators::function;
+      usr* u = func->usr_cast();
+      if (!u)
+	return false;
+      usr::flag_t flag = u->m_flag;
+      if (!(flag & usr::HAS_DEFAULT_ARG))
+	return false;
+
+      typedef map<usr*, vector<var*> >::const_iterator ITx;
+      ITx p = default_arg_table.find(u);
+      assert(p != default_arg_table.end());
+      const vector<var*>& v = p->second;
+      typedef vector<var*>::const_iterator ITy;
+      ITy beg = begin(v) + n;
+      ITy end = begin(v) + m;
+      ITy q = find(beg, end, (var*)0);
+      if (just_query)
+	return q == end;
+
+      if (q == end)
+	for_each(beg, end, [](var* v){ code.push_back(new param3ac(v)); }); 
+      return q == end;
+    }
+    inline bool has_default_arg(var* func, int n, int m)
+    {
+      return common_default_arg(func, n, m, true);
+    }
+    inline void gen_default_arg(var* func, int n, int m)
+    {
+      common_default_arg(func, n, m, false);
+    }
   } // end of namespace call_impl
 } // end of namespace cxx_compiler
 
@@ -376,12 +409,7 @@ cxx_compiler::call_impl::common(const func_type* ft,
   int n = arg ? arg->size() : 0;
   pair<int,int> m = call_impl::num_of_range(param);
   if (n < m.first) {
-    assert(n < param.size());
-    typedef vector<const type*>::const_iterator IT;
-    IT beg = begin(param) + n;
-    IT p = find_if(beg, end(param),
-		   [](const type* T){ return T->m_id != type::DEFAULT_ARG; });
-    if (p != end(param)) {
+    if (!has_default_arg(func, n, m.first)) {
       if ( trial )
 	return 0;
       using namespace error::expressions::postfix::call;
@@ -442,20 +470,8 @@ cxx_compiler::call_impl::common(const func_type* ft,
   }
   transform(conved.begin(),conved.end(),back_inserter(code),
             call_impl::gen_param);
-  if (n < m.first) {
-    assert(n < param.size());
-    typedef vector<const type*>::const_iterator IT;
-    IT beg = begin(param) + n;
-    for_each(beg, end(param), [](const type* T)
-	     {
-	       if (T->m_id == type::DEFAULT_ARG) {
-		 typedef const default_argument_type DAT;
-		 DAT* dat = static_cast<DAT*>(T);
-		 var* v =  dat->default_argument();
-		 code.push_back(new param3ac(v));
-	       }
-	     });
-  }
+  if (n < m.first)
+    gen_default_arg(func, n, m.first);
   const type* T = ft->return_type();
   if (T)
     T = T->complete_type();

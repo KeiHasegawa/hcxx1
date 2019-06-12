@@ -2,6 +2,13 @@
 #include "cxx_core.h"
 #include "cxx_impl.h"
 
+cxx_compiler::usr::~usr()
+{
+  using namespace declarations::declarators::function;
+  if (m_flag & usr::HAS_DEFAULT_ARG)
+    default_arg_table.erase(this);
+}
+
 cxx_compiler::addrof::addrof(const type* T, var* ref, int offset)
   : var(T), m_ref(ref), m_offset(offset) {}
 

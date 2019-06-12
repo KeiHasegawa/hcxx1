@@ -25,12 +25,12 @@ namespace cxx_compiler { namespace parameter {
 cxx_compiler::scope::~scope()
 {
   using namespace std;
-  using namespace parameter;
 
   for (const auto& p : m_usrs) {
     for (auto q : p.second)
       delete q;
   }
+
   for (auto p : m_children) {
     scope::id_t id = p->m_id;
     switch (id) {

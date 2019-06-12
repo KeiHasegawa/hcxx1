@@ -108,6 +108,8 @@ namespace cxx_compiler {
   cxx_compiler::base* m_base_specifier;
   cxx_compiler::name_space* m_name_space;
   std::pair<cxx_compiler::var*, cxx_compiler::tag*>* m_pvt;
+  std::pair<const cxx_compiler::type*, cxx_compiler::expressions::base*>* m_param;
+  std::vector<std::pair<const cxx_compiler::type*, cxx_compiler::expressions::base*>*>* m_params;
 }
 
 %type<m_var> IDENTIFIER_LEX unqualified_id id_expression declarator_id direct_declarator declarator enumerator
@@ -117,13 +119,12 @@ namespace cxx_compiler {
 %type<m_usr> boolean_literal
 %type<m_usrs> block_declaration simple_declaration init_declarator_list
 %type<m_usrs> asm_definition
-%type<m_type> ptr_operator parameter_declaration abstract_declarator direct_abstract_declarator class_specifier
+%type<m_type> ptr_operator abstract_declarator direct_abstract_declarator class_specifier
 %type<m_type> elaborated_type_specifier type_id enum_specifier
 %type<m_type_specifier> simple_type_specifier type_specifier type_name
 %type<m_type_specifier_seq> type_specifier_seq
 %type<m_specifier> decl_specifier
 %type<m_specifier_seq> decl_specifier_seq
-%type<m_types> parameter_declaration_clause parameter_declaration_list
 %type<m_expression> primary_expression postfix_expression unary_expression cast_expression
 %type<m_expression> pm_expression multiplicative_expression additive_expression shift_expression
 %type<m_expression> relational_expression equality_expression and_expression exclusive_or_expression
@@ -151,6 +152,8 @@ namespace cxx_compiler {
 %type<m_name_space> ORIGINAL_NAMESPACE_NAME_LEX NAMESPACE_ALIAS_LEX namespace_name
 %type<m_type> new_type_id
 %type<m_initializer> initializer
+%type<m_param> parameter_declaration
+%type<m_params> parameter_declaration_clause parameter_declaration_list
 
 %%
 
@@ -557,40 +560,51 @@ declarator
 
 direct_declarator
   : declarator_id
-  | direct_declarator '(' enter_parameter parameter_declaration_clause leave_parameter ')' cvr_qualifier_seq exception_specification
+  | direct_declarator '(' enter_parameter parameter_declaration_clause
+    leave_parameter ')' cvr_qualifier_seq exception_specification
     {
+      using namespace cxx_compiler::declarations::declarators;
       $$ = $1;
-      $$->m_type = cxx_compiler::declarations::declarators::function::action($1->m_type,$4,$1,$7);
+      $$->m_type = function::action($1->m_type,$4,$1,$7);
     }
-  | direct_declarator '(' enter_parameter parameter_declaration_clause leave_parameter ')'                   exception_specification
+  | direct_declarator '(' enter_parameter parameter_declaration_clause
+    leave_parameter ')' exception_specification
     {
+      using namespace cxx_compiler::declarations::declarators;
       $$ = $1;
-      $$->m_type = cxx_compiler::declarations::declarators::function::action($1->m_type,$4,$1,0);
+      $$->m_type = function::action($1->m_type,$4,$1,0);
     }
-  | direct_declarator '(' enter_parameter parameter_declaration_clause leave_parameter ')' cvr_qualifier_seq
+  | direct_declarator '(' enter_parameter parameter_declaration_clause
+    leave_parameter ')' cvr_qualifier_seq
     {
+      using namespace cxx_compiler::declarations::declarators;
       $$ = $1;
-      $$->m_type = cxx_compiler::declarations::declarators::function::action($1->m_type,$4,$1,$7);
+      $$->m_type = function::action($1->m_type,$4,$1,$7);
     }
-  | direct_declarator '(' enter_parameter parameter_declaration_clause leave_parameter ')'
+  | direct_declarator '(' enter_parameter parameter_declaration_clause
+    leave_parameter ')'
     {
+      using namespace cxx_compiler::declarations::declarators;
       $$ = $1;
-      $$->m_type = cxx_compiler::declarations::declarators::function::action($1->m_type,$4,$1,0);
+      $$->m_type = function::action($1->m_type,$4,$1,0);
     }
   | direct_declarator begin_array assignment_expression end_array
     {
+      using namespace cxx_compiler::declarations::declarators;
       $$ = $1;
-      $$->m_type = cxx_compiler::declarations::declarators::array::action($1->m_type,$3,false,$1);
+      $$->m_type = array::action($1->m_type,$3,false,$1);
     }
   | direct_declarator begin_array end_array
     {
+      using namespace cxx_compiler::declarations::declarators;
       $$ = $1;
-      $$->m_type = cxx_compiler::declarations::declarators::array::action($1->m_type,0,false,$1);
+      $$->m_type = array::action($1->m_type,0,false,$1);
     }
   | direct_declarator begin_array '*' end_array
     {
+      using namespace cxx_compiler::declarations::declarators;
       $$ = $1;
-      $$->m_type = cxx_compiler::declarations::declarators::array::action($1->m_type,0,true,$1);
+      $$->m_type = array::action($1->m_type,0,true,$1);
     }
   | '(' declarator ')'
     {
@@ -671,11 +685,21 @@ declarator_id
 
 parameter_declaration_clause
   : parameter_declaration_list DOTS_MK
-    { $$ = $1; $$->push_back(cxx_compiler::ellipsis_type::create()); }
+    {
+      using namespace cxx_compiler;
+      $$ = $1;
+      typedef const type T;
+      typedef expressions::base B;
+      $$->push_back(new pair<T*, B*>(ellipsis_type::create(), (B*)0));
+    }
   | DOTS_MK
     {
-      $$ = new std::vector<const cxx_compiler::type*>;
-      $$->push_back(cxx_compiler::ellipsis_type::create());
+      using namespace std;
+      using namespace cxx_compiler;
+      typedef const type T;
+      typedef expressions::base B;
+      $$ = new vector<pair<T*, B*>*>;
+      $$->push_back(new pair<T*, B*>(ellipsis_type::create(), (B*)0));
     }
   | parameter_declaration_list
   |
@@ -685,15 +709,24 @@ parameter_declaration_clause
     }
   | parameter_declaration_list ',' DOTS_MK
     {
+      using namespace cxx_compiler;
+      typedef const type T;
+      typedef expressions::base B;
       $$ = $1;
-      $$->push_back(cxx_compiler::ellipsis_type::create());
+      $$->push_back(new pair<T*, B*>(ellipsis_type::create(), (B*)0));
       cxx_compiler::declarations::specifier_seq::info_t::s_stack.pop();
     }
   ;
 
 parameter_declaration_list
   : parameter_declaration
-    { $$ = new std::vector<const cxx_compiler::type*>; $$->push_back($1); }
+    {
+      using namespace std;
+      using namespace cxx_compiler;
+      typedef const type T;
+      typedef expressions::base B;
+      $$ = new vector<pair<T*, B*>*>; $$->push_back($1);
+    }
   | parameter_declaration_list ',' parameter_declaration
     { $$ = $1; $$->push_back($3); }
   ;
@@ -701,38 +734,57 @@ parameter_declaration_list
 parameter_declaration
   : decl_specifier_seq declarator
     {
-      cxx_compiler::expressions::base* zero = 0;
-      using namespace cxx_compiler::declarations::declarators;
-      $$ = function::parameter($1, $2, zero);
+      using namespace std;
+      using namespace cxx_compiler;
+      typedef const type T;
+      typedef expressions::base B;
+      T* tmp = declarations::declarators::function::parameter($1, $2);
+      $$ = new pair<T*, B*>(tmp, (B*)0);
     }
   | decl_specifier_seq declarator '=' assignment_expression
     {
-      using namespace cxx_compiler::declarations::declarators;
-      $$ = function::parameter($1, $2, $4);
+      using namespace std;
+      using namespace cxx_compiler;
+      typedef const type T;
+      typedef expressions::base B;
+      T* tmp = declarations::declarators::function::parameter($1, $2);
+      $$ = new pair<T*, B*>(tmp, $4);
     }
   | decl_specifier_seq abstract_declarator
     {
-      cxx_compiler::expressions::base* zero = 0;
-      using namespace cxx_compiler::declarations::declarators;
-      $$ = function::parameter($1, $2, zero);
+      using namespace std;
+      using namespace cxx_compiler;
+      typedef const type T;
+      typedef expressions::base B;
+      T* tmp = declarations::declarators::function::parameter($1, $2);
+      $$ = new pair<T*, B*>(tmp, (B*)0);
     }
   | decl_specifier_seq
     {
-      cxx_compiler::usr* zero = 0;
-      cxx_compiler::expressions::base* bzero = 0;
-      using namespace cxx_compiler::declarations::declarators;
-      $$ = function::parameter($1, zero, bzero);
+      using namespace std;
+      using namespace cxx_compiler;
+      typedef const type T;
+      typedef expressions::base B;
+      T* tmp = declarations::declarators::function::parameter($1, (usr*)0);
+      $$ = new pair<T*, B*>(tmp, (B*)0);
     }
   | decl_specifier_seq abstract_declarator '=' assignment_expression
     {
-      using namespace cxx_compiler::declarations::declarators;
-      $$ = function::parameter($1, $2, $4);
+      using namespace std;
+      using namespace cxx_compiler;
+      typedef const type T;
+      typedef expressions::base B;
+      T* tmp = declarations::declarators::function::parameter($1, $2);
+      $$ = new pair<T*, B*>(tmp, $4);
     }
   | decl_specifier_seq '=' assignment_expression
     {
-      cxx_compiler::usr* zero = 0;
-      using namespace cxx_compiler::declarations::declarators;
-      $$ = function::parameter($1, zero, $3);
+      using namespace std;
+      using namespace cxx_compiler;
+      typedef const type T;
+      typedef expressions::base B;
+      T* tmp = declarations::declarators::function::parameter($1, (usr*)0);
+      $$ = new pair<T*, B*>(tmp, $3);
     }
   ;
 

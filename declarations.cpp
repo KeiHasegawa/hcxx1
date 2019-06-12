@@ -539,7 +539,7 @@ cxx_compiler::declarations::action1(var* v, bool ini)
     if (installed)
       check_installed(u, p);
     else {
-      u->m_flag = flag = p->m_flag;
+      u->m_flag = flag = usr::flag_t(flag | p->m_flag);
       u->m_type = T = T->patch(p->m_type,u);
     }
   }

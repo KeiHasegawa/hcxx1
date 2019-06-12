@@ -312,6 +312,7 @@ struct usr : var {
     NEW_ARRAY   = 1 << 27,
     DELETE_SCALAR = 1 << 28,
     DELETE_ARRAY  = 1 << 29,
+    HAS_DEFAULT_ARG = 1 << 30,
   };
   flag_t m_flag;
   file_t m_file;
@@ -324,6 +325,7 @@ struct usr : var {
   virtual void initialize();
   usr(std::string name, const type* T, flag_t flag, const file_t& file)
     : var(T), m_name(name), m_flag(flag), m_file(file) {}
+  ~usr();
 };
 
 // For V = bool, char, signed char, unsigned char, wchar_t, short int
@@ -1067,7 +1069,7 @@ struct type {
     CONST, VOLATILE, RESTRICT,
     POINTER, REFERENCE, ARRAY, FUNC, RECORD, ENUM, BIT_FIELD, ELLIPSIS,
     INCOMPLETE_TAGGED, VARRAY,
-    POINTER_MEMBER, DEFAULT_ARG,
+    POINTER_MEMBER,
   };
   id_t m_id;
   type(id_t id) : m_id(id) {}
@@ -1737,67 +1739,6 @@ public:
   const tag* ctag() const { return m_tag; }
   const type* referenced_type() const { return m_T; }
   static const pointer_member_type* create(const tag*, const type*);
-  static void destroy_tmp();
-  static void collect_tmp(std::vector<const type*>&);
-};
-
-class default_argument_type : public type {
-  const type* m_T;
-  var* m_default_argument;
-  default_argument_type(const type* T, var* v)
-    : type(DEFAULT_ARG), m_T(T), m_default_argument(v) {}
-  struct table_t;
-  static table_t table;
-public:
-  void decl(std::ostream& os, std::string name) const { m_T->decl(os, name); }
-  void encode(std::ostream& os) const { m_T->encode(os); }
-  const type* prev() const { return m_T->prev(); }
-  void post(std::ostream& os) const { m_T->post(os); }
-  bool compatible(const type* T) const { return m_T->compatible(T); }
-  const type* composite(const type* T) const { return m_T->composite(T); }
-  int size() const { return m_T->size(); }
-  int align() const { return m_T->align(); }
-  bool scalar() const { return m_T->scalar(); }
-  bool real() const { return m_T->real(); }
-  bool integer() const { return m_T->integer(); }
-  bool modifiable() const { return m_T->modifiable(); }
-  const type* promotion() const
-  {
-    return create(m_T->promotion(), m_default_argument);
-  }
-  const type* varg() const
-  {
-    return create(m_T->varg(), m_default_argument);
-  }
-  bool _signed() const { return m_T->_signed(); }
-  tag* get_tag() const { return m_T->get_tag(); }
-  const type* complete_type() const
-  { 
-    return create(m_T->complete_type(), m_default_argument);
-  }
-  const pointer_type* ptr_gen() const { return m_T->ptr_gen(); }
-  const type* patch(const type* T, usr* u) const
-  {
-    return create(m_T->patch(T, u), m_default_argument);
-  }
-  bool backpatch() const { return m_T->backpatch(); }
-  const type* qualified(int cvr) const { return m_T->qualified(cvr); }
-  std::pair<int, const type*> current(int n) const { return m_T->current(n); }
-  const type* unqualified(int* cvr) const
-  {
-    return create(m_T->unqualified(cvr), m_default_argument);
-  }
-  bool aggregate() const { return m_T->aggregate(); }
-  bool tmp() const;
-  bool variably_modified() const { return m_T->variably_modified(); }
-  const type* vla2a() const
-  {
-    return create(m_T->vla2a(), m_default_argument);
-  }
-  void decide_dim() const { m_T->decide_dim(); }
-  var* vsize() const { return m_T->vsize(); }
-  var* default_argument() const { return m_default_argument; }
-  static const default_argument_type* create(const type* T, var* v);
   static void destroy_tmp();
   static void collect_tmp(std::vector<const type*>&);
 };

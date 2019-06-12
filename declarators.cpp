@@ -52,14 +52,14 @@ const cxx_compiler::type* cxx_compiler::declarations::declarators::reference::ac
 
 const cxx_compiler::type* cxx_compiler::declarations::declarators::
 function::action(const type* T,
-                 std::vector<const type*>* pdc,
+                 std::vector<std::pair<const type*, expressions::base*>*>* pdc,
                  var* v,
                  std::vector<int>* cvr)
 {
   using namespace std;
   if (pdc)
     parse::context_t::clear();  
-  auto_ptr<vector<const type*> > sweeper1(pdc);
+  auto_ptr<vector<pair<const type*, expressions::base*>*> > sweeper1(pdc);
   auto_ptr<vector<int> > sweeper2(cvr);
   usr* u = v ? v->usr_cast() : 0;
   if (u) {
@@ -68,7 +68,7 @@ function::action(const type* T,
       return T;
   }
 
-  if ( !u && v ){
+  if (!u && v) {
     /*
      Definition like
      struct S { void f(); };
@@ -80,8 +80,34 @@ function::action(const type* T,
     u = v->usr_cast();
     return u->m_type;
   }
-  if ( pdc )
-    return T->patch(func_type::create(backpatch_type::create(),*pdc),u);
+  if (pdc) {
+    vector<const type*> param;
+    transform(begin(*pdc), end(*pdc), back_inserter(param),
+	      [](pair<const type*, expressions::base*>* p)
+	      { return p->first; });
+    const type* ret =
+      T->patch(func_type::create(backpatch_type::create(),param),u);
+    vector<var*> default_arg;
+    transform(begin(*pdc), end(*pdc), back_inserter(default_arg),
+	      [](pair<const type*, expressions::base*>* p)
+	      {
+		expressions::base* bp = p->second;
+		auto_ptr<expressions::base> sweeper(bp);
+		return bp ? bp->gen() : 0;
+	      });
+    typedef vector<var*>::const_iterator IT;
+    IT p = find_if(begin(default_arg), end(default_arg),
+		   [](var* v){ return v; });
+    if (p != end(default_arg)) {
+      if (u) {
+	u->m_flag = usr::flag_t(u->m_flag | usr::HAS_DEFAULT_ARG);
+	default_arg_table[u] = default_arg;
+      }
+      else
+	error::not_implemented();
+    }
+    return ret;
+  }
   else {
     vector<const type*> param;
     param.push_back(void_type::create());
@@ -90,20 +116,18 @@ function::action(const type* T,
 }
 
 namespace cxx_compiler {
-  const type* handle_default_type(const type* T, expressions::base* expr)
-  {
-    if (expr) {
-      var* v = expr->gen();
-      return default_argument_type::create(T, v);
-    }
-    else 
-      return T;
-  }
+  namespace declarations {
+    namespace declarators {
+      namespace function {
+	using namespace std;
+	map<usr*, vector<var*> > default_arg_table;
+      } // end of namespace function
+    } // end of namespace declarators
+  } // end of namespace declarations
 } // end of namespace cxx_compiler
 
 const cxx_compiler::type* cxx_compiler::declarations::declarators::
-function::parameter(specifier_seq::info_t* p, var* v,
-		    expressions::base* expr)
+function::parameter(specifier_seq::info_t* p, var* v)
 {
   using namespace std;
   usr* u = static_cast<usr*>(v);
@@ -135,7 +159,7 @@ function::parameter(specifier_seq::info_t* p, var* v,
       T = u->m_type = pt;
       u->m_flag = usr::flag_t(u->m_flag & ~(usr::FUNCTION | usr::VL));
     }
-    return handle_default_type(T, expr);
+    return T;
   }
   else {
     if ( !p->m_type || !p->m_tmp.empty() )
@@ -149,13 +173,12 @@ function::parameter(specifier_seq::info_t* p, var* v,
     const type* T = p->m_type;
     if (PT* pt = T->ptr_gen())
       T = pt;
-    return handle_default_type(T, expr);
+    return T;
   }
 }
 
 const cxx_compiler::type* cxx_compiler::declarations::declarators::
-function::parameter(specifier_seq::info_t* p, const type* T,
-		    expressions::base* expr)
+function::parameter(specifier_seq::info_t* p, const type* T)
 {
   using namespace std;
   struct sweeper2 {
@@ -165,8 +188,6 @@ function::parameter(specifier_seq::info_t* p, const type* T,
         cxx_compiler::declarations::specifier_seq::info_t::clear();
     }
   } sweeper2;
-  if (expr)
-    error::not_implemented();
   auto_ptr<specifier_seq::info_t> sweeper(p);
   parse::context_t::clear();
   string name = new_name(".param");
@@ -188,7 +209,7 @@ function::parameter(specifier_seq::info_t* p, const type* T,
     T = u->m_type = pt;
     u->m_flag = usr::flag_t(u->m_flag & ~(usr::FUNCTION | usr::VL));
   }
-  return handle_default_type(T, expr);
+  return T;
 }
 
 namespace cxx_compiler {

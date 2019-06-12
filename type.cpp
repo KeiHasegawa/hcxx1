@@ -760,7 +760,8 @@ bool cxx_compiler::func_type::compatible(const type* T) const
   return mismatch(u.begin(),u.end(),v.begin(),cxx_compiler::compatible) == make_pair(u.end(),v.end());
 }
 
-const cxx_compiler::type* cxx_compiler::func_type::composite(const type* T) const
+const cxx_compiler::type*
+cxx_compiler::func_type::composite(const type* T) const
 {
   using namespace std;
   if ( this == T )
@@ -806,10 +807,8 @@ const cxx_compiler::type* cxx_compiler::func_type::patch(const type* T, usr* u) 
     else
       T = int_type::create();
   }
-  if ( u ){
-    usr::flag_t& flag = u->m_flag;
-    flag = usr::flag_t(flag | usr::FUNCTION);
-  }
+  if (u)
+    u->m_flag = usr::flag_t(u->m_flag | usr::FUNCTION);
   return create(T,m_param);
 }
 
@@ -1463,8 +1462,7 @@ const cxx_compiler::type* cxx_compiler::bit_field_type::patch(const type* T, usr
     not_integer_type(u);
     T = int_type::create();
   }
-  usr::flag_t& flag = u->m_flag;
-  flag = usr::flag_t(flag | usr::BIT_FIELD);
+  u->m_flag = usr::flag_t(u->m_flag | usr::BIT_FIELD);
   int n = T->size();
   n <<= 3;
   int bit = m_bit;
@@ -1591,10 +1589,8 @@ const cxx_compiler::type* cxx_compiler::varray_type::patch(const type* T, usr* u
     T = backpatch_type::create();
   }
   T = T->complete_type();
-  if (u) {
-    usr::flag_t& flag = u->m_flag;
-    flag = usr::flag_t(flag | usr::VL);
-  }
+  if (u)
+    u->m_flag = usr::flag_t(u->m_flag | usr::VL);
   return create(T,m_dim);
 }
 
@@ -1774,32 +1770,3 @@ cxx_compiler::pointer_member_type::collect_tmp(std::vector<const type*>& vt)
     vt.push_back(p.second);
   tmp_tbl.clear();
 }
-
-namespace cxx_compiler {
-  struct default_argument_type::table_t : vector<default_argument_type*> {};
-  default_argument_type::table_t default_argument_type::table;
-
-  bool default_argument_type::tmp() const
-  {
-    return !is_external_declaration(m_default_argument);
-  }
-  const default_argument_type*
-  default_argument_type::create(const type* T, var* v)
-  {
-    default_argument_type* ret = new default_argument_type(T, v);
-    if (!is_external_declaration(v))
-      table.push_back(ret);
-    return ret;
-  }
-  void default_argument_type::destroy_tmp()
-  {
-    for (auto p : table)
-      delete p;
-    table.clear();
-  }
-  void default_argument_type::collect_tmp(vector<const type*>& v)
-  {
-    copy(begin(table), end(table), back_inserter(v));
-    table.clear();
-  }
-} // end of namespace cxx_compiler
