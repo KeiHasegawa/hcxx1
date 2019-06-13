@@ -478,6 +478,8 @@ extern void check_abstract_func(usr* );
 
 extern void handle_copy_ctor(tag*);
 
+extern bool canbe_copy_ctor(usr*, tag*);
+
 namespace record_impl {
   extern int base_vb(int n, const base* bp);
 } // end of namespace record_impl

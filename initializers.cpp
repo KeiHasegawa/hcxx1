@@ -237,6 +237,64 @@ void cxx_compiler::declarations::initializers::gencode(usr* u)
   if (Tx->m_id == type::REFERENCE && Ty->m_id != type::REFERENCE)
     return reference_case(u, v);
 
+  if (Tx->m_id == type::RECORD) {
+    assert(compatible(Tx, Ty));
+    tag* ptr = Tx->get_tag();
+    string tgn = ptr->m_name;
+    const map<string, vector<usr*> >& usrs = ptr->m_usrs;
+    typedef map<string, vector<usr*> >::const_iterator IT;
+    IT p = usrs.find(tgn);
+    if (p != usrs.end()) {
+      const vector<usr*>& vu = p->second;
+      typedef vector<usr*>::const_iterator IT;
+      IT q = find_if(begin(vu), end(vu),
+		     bind2nd(ptr_fun(canbe_copy_ctor), ptr));
+      if (q != end(vu)) {
+	usr* copy_ctor = *q;
+	const type* T = pointer_type::create(Tx);
+	var* t0 = new var(T);
+	var* t1 = new var(T);
+	if (scope::current->m_id == scope::BLOCK) {
+	  block* b = static_cast<block*>(scope::current);
+	  b->m_vars.push_back(t0);
+	  b->m_vars.push_back(t1);
+	}
+	else {
+	  garbage.push_back(t0);
+	  garbage.push_back(t1);
+	}
+	code.push_back(new addr3ac(t0, u));
+	code.push_back(new addr3ac(t1, v));
+	code.push_back(new param3ac(t0));
+	code.push_back(new param3ac(t1));
+	usr::flag_t flag = copy_ctor->m_flag;	
+	if (flag & usr::HAS_DEFAULT_ARG) {
+	  using namespace declarations::declarators::function;
+	  typedef map<usr*, vector<var*> >::const_iterator IT;
+	  IT p = default_arg_table.find(copy_ctor);
+	  assert(p != default_arg_table.end());
+	  const vector<var*>& v = p->second;
+	  assert(!v.empty());
+	  for_each(begin(v)+1, end(v), [](var* v)
+		   {
+		     if (v)
+		       code.push_back(new param3ac(v));
+		   });
+	}
+	code.push_back(new call3ac(0, copy_ctor));
+	if (!error::counter && !cmdline::no_inline_sub) {
+	  if (flag & usr::INLINE) {
+	    using namespace declarations::declarators::function;
+	    using namespace definition::static_inline;
+	    skip::table_t::const_iterator p = skip::stbl.find(copy_ctor);
+	    if (p != skip::stbl.end())
+	      substitute(code, code.size()-1, p->second);
+	  }
+	}
+	return;
+      }
+    }
+  }
   code.push_back(new assign3ac(u,v));
 }
 

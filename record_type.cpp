@@ -1014,6 +1014,11 @@ namespace cxx_compiler {
       usr* ovl = new overload(prev, ctor);
       usrs[tgn].push_back(ovl);
 
+      using namespace declarations::declarators::function::definition;
+      const vector<const type*>& parameter = ft->param();
+      KEY key(make_pair(tgn, ptr), &parameter);
+      dtbl[key] = ctor;
+
       using namespace class_or_namespace_name;
       scope* param = new scope(scope::PARAM);
       assert(before.back() == param);
@@ -1518,6 +1523,58 @@ namespace cxx_compiler {
       }
     };
   }  // end of namespace record_impl
+  inline bool canbe_default_ctor(usr* u)
+  {
+    using namespace record_impl;
+    const type* T = u->m_type;
+    if (!T)
+      return false;
+    const type* dct = default_ctor_type();
+    if (compatible(T, dct))
+      return true;
+    return false;
+  }
+  bool canbe_copy_ctor(usr* u, tag* ptr)
+  {
+    using namespace record_impl;
+    using namespace declarations::declarators::function;
+    const type* T = u->m_type;
+    if (!T)
+      return false;
+    const type* cct = copy_ctor_type(ptr, true);
+    if (compatible(T, cct))
+      return true;
+    cct = copy_ctor_type(ptr, false);
+    if (compatible(T, cct))
+      return true;
+    usr::flag_t flag = u->m_flag;
+    if (flag & usr::HAS_DEFAULT_ARG) {
+      typedef map<usr*, vector<var*> >::const_iterator ITx;
+      ITx p = default_arg_table.find(u);
+      assert(p != default_arg_table.end());
+      const vector<var*>& v = p->second;
+      assert(!v.empty());
+      typedef vector<var*>::const_iterator ITy;
+      ITy beg = begin(v) + 1;
+      ITy q = find(beg, end(v), (var*)0);
+      if (q != end(v))
+	return false;
+      assert(T->m_id == type::FUNC);
+      typedef const func_type FT;
+      FT* ft = static_cast<FT*>(T);
+      const vector<const type*>& param = ft->param();
+      assert(!param.empty());
+      T = param[0];
+      if (T->m_id != type::REFERENCE)
+	return false;
+      typedef const reference_type RT;
+      RT* rt = static_cast<RT*>(T);
+      T = rt->referenced_type();
+      return T->get_tag() == ptr;
+    }
+    return false;
+  }
+
 }  // end of namespace cxx_compiler
 
 int
@@ -1657,19 +1714,10 @@ void cxx_compiler::handle_copy_ctor(tag* ptr)
     return;
   const vector<usr*>& v = p->second;
   typedef vector<usr*>::const_iterator IT;
-  const func_type* dct = default_ctor_type();
-  IT q = find_if(begin(v), end(v), [dct](usr* u)
-		 { return dct->compatible(u->m_type); });
+  IT q = find_if(begin(v), end(v), canbe_default_ctor);
   if (q == end(v))
     return;
-  const func_type* cct = copy_ctor_type(ptr, true);
-  IT r = find_if(begin(v), end(v), [cct](usr* u)
-		 { return cct->compatible(u->m_type); });
-  if (r != end(v))
-    return;
-  cct = copy_ctor_type(ptr, false);
-  r = find_if(begin(v), end(v), [cct](usr* u)
-	      { return cct->compatible(u->m_type); });
+  IT r = find_if(begin(v), end(v), bind2nd(ptr_fun(canbe_copy_ctor), ptr));
   if (r != end(v))
     return;
   add_copy_ctor(ptr);
