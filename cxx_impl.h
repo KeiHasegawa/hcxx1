@@ -480,6 +480,22 @@ extern void handle_copy_ctor(tag*);
 
 extern bool canbe_copy_ctor(usr*, tag*);
 
+void ctor_dtor_common(var* v, const array_type* at, void (*pf)(var*),
+		      bool ctor);
+
+inline bool array_of_rec(const array_type* at)
+{
+  const type* T = at->element_type();
+  if (T->m_id == type::RECORD)
+    return true;
+  if (T->m_id == type::ARRAY) {
+    typedef const array_type AT;
+    AT* at = static_cast<AT*>(T);
+    return array_of_rec(at);
+  }
+  return false;
+}
+
 namespace record_impl {
   extern int base_vb(int n, const base* bp);
 } // end of namespace record_impl

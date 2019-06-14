@@ -216,7 +216,7 @@ int cxx_compiler::statements::expression::info_t::gen()
 }
 
 namespace cxx_compiler { namespace statements { namespace compound {
-  extern void gen_dtor(usr*);
+  extern void gen_dtor(var*);
 } } } // end of namespace compund, statements and cxx_compiler
 
 int cxx_compiler::statements::compound::info_t::gen()
@@ -230,17 +230,31 @@ int cxx_compiler::statements::compound::info_t::gen()
   }
   block* b = static_cast<block*>(scope::current);
   const vector<usr*>& order = scope::current->m_order;
-  for_each(order.rbegin(),order.rend(),gen_dtor);
+  for_each(order.rbegin(),order.rend(),[](usr* u)
+	   {
+	     usr::flag_t flag = u->m_flag;
+	     if (!(flag & usr::TYPEDEF))
+	       gen_dtor(u);
+	   });
   scope::current = org;
   return 0;
 }
 
-void cxx_compiler::statements::compound::gen_dtor(usr* u)
+void cxx_compiler::statements::compound::gen_dtor(var* v)
 {
   using namespace std;
-  const type* T = u->m_type;
+  const type* T = v->result_type();
   if (!T) {
+    assert(v->usr_cast());
+    usr* u = static_cast<usr*>(v);
     assert(u->m_flag & usr::OVERLOAD);
+    return;
+  }
+  if (T->m_id == type::ARRAY) {
+    typedef const array_type AT;
+    AT* at = static_cast<AT*>(T);
+    if (array_of_rec(at))
+      ctor_dtor_common(v, at, gen_dtor, false);
     return;
   }
   T = T->unqualified();
@@ -255,14 +269,14 @@ void cxx_compiler::statements::compound::gen_dtor(usr* u)
   map<string, vector<usr*> >::const_iterator p = usrs.find(name);
   if ( p == usrs.end() )
     return;
-  const vector<usr*>& v = p->second;
-  usr* dtor = v.back();
+  const vector<usr*>& vu = p->second;
+  usr* dtor = vu.back();
   vector<var*> arg;
   T = dtor->m_type;
   assert(T->m_id == type::FUNC);
   typedef const func_type FT;
   FT* ft = static_cast<FT*>(T);
-  call_impl::common(ft,dtor,&arg,false,u,false,0);
+  call_impl::common(ft,dtor,&arg,false,v,false,0);
   usr::flag_t flag = dtor->m_flag;
   if (!error::counter && !cmdline::no_inline_sub) {
     if (flag & usr::INLINE) {
@@ -1103,7 +1117,12 @@ int cxx_compiler::statements::return_stmt::info_t::gen()
       invalid(m_file,void_type::create(),T);
     }
   }
-  for_each(m_usrs.begin(),m_usrs.end(),compound::gen_dtor);
+  for_each(m_usrs.begin(),m_usrs.end(),[](usr* u)
+	   {
+	     usr::flag_t flag = u->m_flag;
+	     if (!(flag & usr::TYPEDEF))
+	       compound::gen_dtor(u);
+	   });
   code.push_back(new return3ac(expr));
   return 0;
 }

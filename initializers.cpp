@@ -101,6 +101,43 @@ void cxx_compiler::usr::initialize()
   variable_length::allocate(this);
 }
 
+void
+cxx_compiler::ctor_dtor_common(var* v, const array_type* at, void (*pf)(var*),
+			       bool ctor)
+{
+  const type* T = at->element_type();
+  int size = T->size();
+  if (!size)
+    return;
+  int dim = at->dim();
+  for (int i = 0 ; i != dim ; ++i) {
+    const pointer_type* pt = pointer_type::create(T);
+    int offset = ctor ? (size * i) : (dim - i - 1) * size;
+    var* t0 = new ref(pt);
+    if (scope::current->m_id == scope::BLOCK) {
+      block* b = static_cast<block*>(scope::current);
+      b->m_vars.push_back(t0);
+    }
+    else
+      garbage.push_back(t0);
+    code.push_back(new addr3ac(t0, v));
+    if (offset) {
+      using namespace expressions::primary::literal;
+      var* off = integer::create(offset);
+      var* t1 = new ref(pt);
+      if (scope::current->m_id == scope::BLOCK) {
+	block* b = static_cast<block*>(scope::current);
+	b->m_vars.push_back(t1);
+      }
+      else
+	garbage.push_back(t1);
+      code.push_back(new add3ac(t1, t0, off));
+      t0 = t1;
+    }
+    pf(t0);
+  }
+}
+
 namespace cxx_compiler {
   namespace declarations {
     namespace initializers {
@@ -116,9 +153,16 @@ namespace cxx_compiler {
         T = param[0];
         return T->m_id == type::VOID;
       }
-      inline void call_default_ctor(usr* u)
+      void call_default_ctor(var* v)
       {
-        const type* T = u->m_type;
+        const type* T = v->result_type();
+	if (T->m_id == type::ARRAY) {
+	  typedef const array_type AT;
+	  AT* at = static_cast<AT*>(T);
+	  if (array_of_rec(at))
+	    ctor_dtor_common(v, at, call_default_ctor, true);
+	  return;
+	}
         T = T->unqualified();
         if (T->m_id != type::RECORD )
           return;
@@ -140,7 +184,7 @@ namespace cxx_compiler {
         typedef const func_type FT;
         FT* ft = static_cast<FT*>(ctor->m_type);
         vector<var*> empty;
-        call_impl::common(ft,ctor,&empty,false,u,false,0);
+        call_impl::common(ft,ctor,&empty,false,v,false,0);
         usr::flag_t flag = ctor->m_flag;
         if (!error::counter && !cmdline::no_inline_sub) {
           if (flag & usr::INLINE) {
@@ -204,6 +248,10 @@ void cxx_compiler::declarations::initializers::gencode(usr* u)
   using namespace std;
   using namespace declarations::declarators::function::definition;
   using namespace static_inline;
+  usr::flag_t flag = u->m_flag;
+  if (flag & usr::TYPEDEF)
+    return;
+
   typedef map<usr*, gendata>::iterator IT;
   IT p = table.find(u);
   if (p == table.end())
