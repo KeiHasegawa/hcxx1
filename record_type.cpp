@@ -608,16 +608,21 @@ namespace cxx_compiler {
       tmp.push_back(void_type::create());
       return func_type::create(0, tmp);
     }
-    struct call_ctor {
+    struct call_ctor_dtor {
       const map<base*, int>& m_base_offset;
       usr* m_this;
       block* m_block;
-      call_ctor(const map<base*, int>& base_offset, usr* this_ptr, block* b)
-        : m_base_offset(base_offset), m_this(this_ptr), m_block(b) {}
+      bool m_is_dtor;
+      call_ctor_dtor(const map<base*, int>& base_offset, usr* this_ptr,
+		     block* b, bool is_dtor)
+        : m_base_offset(base_offset), m_this(this_ptr),
+	  m_block(b), m_is_dtor(is_dtor) {}
       void operator()(base* pb)
       {
         tag* ptr = pb->m_tag;
         string tgn = ptr->m_name;
+	if (m_is_dtor)
+	  tgn = '~' + tgn;
         map<string, vector<usr*> >& usrs = ptr->m_usrs;
         map<string, vector<usr*> >::const_iterator p = usrs.find(tgn);
         if (p == usrs.end())
@@ -625,10 +630,12 @@ namespace cxx_compiler {
         const vector<usr*>& v = p->second;
 	const func_type* ft = default_ctor_type();
 	vector<usr*>::const_iterator r =
-	  find_if(begin(v), end(v), [ft](usr* u)
-		  { return ft->compatible(u->m_type); });
+	  find_if(begin(v), end(v), [ft](usr* u){
+	      const type* T = u->m_type;
+	      return T ? compatible(T, ft) : false;
+	    });
         if (r == end(v))
-          error::not_implemented();
+          return;
         usr* ctor = *r;
         const type* T = ptr->m_types.second;
         assert(T->m_id == type::RECORD);
@@ -848,7 +855,7 @@ namespace cxx_compiler {
         scope* org = scope::current;
         scope::current = pb;
         for_each(begin(bases), end(bases),
-                 call_ctor(base_offset, this_ptr, pb));
+                 call_ctor_dtor(base_offset, this_ptr, pb, false));
         scope::current = org;
         if (usr* vbtbl = get_vbtbl(ptr)) {
           const type* T = vbtbl->m_type;
@@ -1813,4 +1820,71 @@ void cxx_compiler::check_abstract_func(usr* func)
   const vector<const type*>& param = ft->param();
   for (int i = 0 ; i != param.size() ; ++i)
     check_abstract_impl::param(i, param[i], func);
+}
+
+namespace cxx_compiler {
+  namespace call_base_impl {
+    inline void common(base* bp, bool is_dtor)
+    {
+      using namespace record_impl;
+      assert(scope::current->m_id == scope::TAG);
+      tag* ptr = static_cast<tag*>(scope::current);
+      const type* T = ptr->m_types.second;
+      assert(T->m_id == type::RECORD);
+      typedef const record_type REC;
+      REC* rec = static_cast<REC*>(T);
+      const map<base*, int>& base_offset = rec->base_offset();
+
+      vector<scope*>& c = scope::current->m_children;
+      assert(!c.empty());
+      scope* param = c.back();
+      assert(param->m_id == scope::PARAM);
+      const vector<usr*>& order = param->m_order;
+      assert(!order.empty());
+      usr* this_ptr = order[0];
+      assert(this_ptr->m_name == "this");
+
+      vector<scope*>& c2 = param->m_children;
+      assert(!c2.empty());
+      scope* tmp = c2.back();
+      assert(tmp->m_id == scope::BLOCK);
+      block* b = static_cast<block*>(tmp);
+
+      call_ctor_dtor op(base_offset, this_ptr, b, is_dtor);
+      scope* org = scope::current;
+      scope::current = b;
+      op(bp);
+      scope::current = org;
+    }
+    inline void ctor(base* bp)
+    {
+      common(bp, false);
+    }
+    inline void dtor(base* bp)
+    {
+      common(bp, true);
+    }
+  } // end of namespace call_base_impl
+  inline void call_base_common(usr* u, bool ctor)
+  {
+    scope* p = u->m_scope;
+    assert(p->m_id == scope::TAG);
+    tag* ptr = static_cast<tag*>(p);
+    if (const vector<base*>* v = ptr->m_bases) {
+      if (ctor)
+	for_each(begin(*v), end(*v), call_base_impl::ctor);
+      else
+	for_each(rbegin(*v), rend(*v), call_base_impl::dtor);
+    }
+  }
+} // end of namespace cxx_compiler
+
+void cxx_compiler::call_base_ctor(usr* u)
+{
+  call_base_common(u, true);
+}
+
+void cxx_compiler::call_base_dtor(usr* u)
+{
+  call_base_common(u, false);
 }

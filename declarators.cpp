@@ -559,14 +559,18 @@ action(statements::base* stmt)
       mtbl.erase(p);
     }
     file_t org = parse::position;
+    usr::flag_t flag = u->m_flag;
+    if (flag & usr::CTOR)
+      call_base_ctor(u);
     stmt->gen();
+    if (flag & usr::DTOR)
+      call_base_dtor(u);
     parse::position = org;
     statements::label::check();
     statements::label::clear();
     action(fundef::current, code);
     if ( scope::current->m_id == scope::TAG ){
       scope::current = scope::current->m_parent;
-      usr::flag_t flag = u->m_flag;
       if (!(flag & usr::INLINE))
         destroy();
     }
@@ -584,12 +588,13 @@ function::definition::action(fundef* fdef, std::vector<tac*>& vc)
   using namespace static_inline;
   if (!error::counter && cmdline::optimize_level >= 1)
     optimize::action(fdef, vc);
-  usr::flag_t flag = fdef->m_usr->m_flag;
+  usr* u = fdef->m_usr;
+  usr::flag_t flag = u->m_flag;
   usr::flag_t mask = usr::flag_t(usr::VIRTUAL | usr::OVERRIDE);
   if ((flag & usr::INLINE) && !(flag & mask))
     return skip::add(fdef, vc, true);
   if (flag & usr::STATIC) {
-    if (fdef->m_usr->m_scope->m_id != scope::TAG)
+    if (u->m_scope->m_id != scope::TAG)
       return skip::add(fdef, vc, true);
   }
 
@@ -601,7 +606,6 @@ function::definition::action(fundef* fdef, std::vector<tac*>& vc)
   if ( cmdline::output_medium ){
     if ( cmdline::output_optinfo )
       cout << '\n' << "After optimization" << '\n';
-    usr* u = fdef->m_usr;
     scope* org = scope::current;
     scope::current = &scope::root;
     cout << dump::names::ref(u) << ":\n";
@@ -628,7 +632,7 @@ function::definition::action(fundef* fdef, std::vector<tac*>& vc)
     else
       delete_erase(fdef->m_param, vc);
   }
-  fdef->m_usr->m_type = fdef->m_usr->m_type->vla2a();
+  u->m_type = u->m_type->vla2a();
 }
 
 namespace cxx_compiler { namespace declarations { namespace declarators { namespace function { namespace definition { namespace static_inline {

@@ -496,6 +496,10 @@ inline bool array_of_rec(const array_type* at)
   return false;
 }
 
+extern void call_base_ctor(usr*);
+
+extern void call_base_dtor(usr*);
+
 namespace record_impl {
   extern int base_vb(int n, const base* bp);
 } // end of namespace record_impl

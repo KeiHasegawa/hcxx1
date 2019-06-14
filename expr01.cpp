@@ -841,7 +841,7 @@ namespace cxx_compiler {
                           bind2nd(ptr_fun(new_block),ret));
                 return ret;
               }
-              block* create(const scope* param)
+              block* create(scope* param)
               {
                 symtab.clear();
                 block* ret = new block;
