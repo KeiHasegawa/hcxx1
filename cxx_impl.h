@@ -887,14 +887,18 @@ namespace expressions {
       ~size_of(){ delete m_expr; }
     };
     struct new_expr : base {
+      vector<base*>* m_place;
       const type* m_T;
       vector<base*>* m_exprs;
       file_t m_file;
       const file_t& file() const { return m_file; }
       new_expr(const type* T, const file_t& file)
-        : m_T(T), m_exprs(0), m_file(file) {}
+        : m_place(0), m_T(T), m_exprs(0), m_file(file) {}
       new_expr(const type* T, vector<base*>* exprs, const file_t& file)
-        : m_T(T), m_exprs(exprs), m_file(file) {}
+        : m_place(0), m_T(T), m_exprs(exprs), m_file(file) {}
+      new_expr(vector<base*>* place, const type* T, vector<base*>* exprs,
+	       const file_t& file)
+        : m_place(place), m_T(T), m_exprs(exprs), m_file(file) {}
       var* gen();
     };
     struct delete_expr : base {
@@ -1373,6 +1377,7 @@ namespace class_or_namespace_name {
 namespace unqualified_id {
   extern var* from_nonmember(var*);
   extern var* dtor(tag*);
+  extern var* operator_function_id(int);
 } // end of namespace unqualifed_id
 
 namespace qualified_id {

@@ -1397,6 +1397,60 @@ cxx_compiler::unqualified_id::from_nonmember(var* v)
   return ret;
 }
 
+cxx_compiler::var*
+cxx_compiler::unqualified_id::operator_function_id(int op)
+{
+  switch (op) {
+  case NEW_KW:
+    {
+      const type* T = backpatch_type::create();
+      return new usr("new",T,usr::NONE,parse::position);
+    }
+  case DELETE_KW:
+  case NEW_ARRAY_LEX:
+  case DELETE_ARRAY_LEX:
+  case '+':
+  case '-':
+  case '*':
+  case '/':
+  case '%':
+  case '^':
+  case '&':
+  case '|':
+  case '~':
+  case '!':
+  case '=':
+  case '<':
+  case '>':
+  case ADD_ASSIGN_MK:
+  case SUB_ASSIGN_MK:
+  case MUL_ASSIGN_MK:
+  case DIV_ASSIGN_MK:
+  case MOD_ASSIGN_MK:
+  case XOR_ASSIGN_MK:
+  case AND_ASSIGN_MK:
+  case OR_ASSIGN_MK:
+  case LSH_MK:
+  case RSH_MK:
+  case LSH_ASSIGN_MK:
+  case RSH_ASSIGN_MK:
+  case EQUAL_MK:
+  case NOTEQ_MK:
+  case LESSEQ_MK:
+  case GREATEREQ_MK:
+  case ANDAND_MK:
+  case OROR_MK:
+  case PLUSPLUS_MK:
+  case MINUSMINUS_MK:
+  case ',':
+  case ARROWASTER_MK:
+  case ARROW_MK:
+  case '(':
+  case '[':
+    error::not_implemented();
+  }
+}
+
 cxx_compiler::var* cxx_compiler::qualified_id::action(var* v)
 {
   genaddr* ga = v->genaddr_cast();

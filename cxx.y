@@ -22,8 +22,10 @@ namespace cxx_compiler {
 } // end of namespace cxx_compiler
 %}
 
-%token ORIGINAL_NAMESPACE_NAME_LEX NAMESPACE_ALIAS_LEX IDENTIFIER_LEX PEEKED_NAME_LEX
-%token INTEGER_LITERAL_LEX CHARACTER_LITERAL_LEX FLOATING_LITERAL_LEX STRING_LITERAL_LEX
+%token ORIGINAL_NAMESPACE_NAME_LEX NAMESPACE_ALIAS_LEX IDENTIFIER_LEX
+%token PEEKED_NAME_LEX
+%token INTEGER_LITERAL_LEX CHARACTER_LITERAL_LEX FLOATING_LITERAL_LEX
+%token STRING_LITERAL_LEX
 %token TYPEDEF_KW AUTO_KW REGISTER_KW STATIC_KW EXTERN_KW MUTABLE_KW
 %token INLINE_KW VIRTUAL_KW EXPLICIT_KW FRIEND_KW
 
@@ -78,6 +80,7 @@ namespace cxx_compiler {
 
 %token FALSE_KW TRUE_KW
 %token BUILTIN_VA_ARG BUILTIN_VA_START BUILTIN_VA_END
+%token NEW_ARRAY_LEX DELETE_ARRAY_LEX
 
 %union {
   int m_ival;
@@ -112,34 +115,40 @@ namespace cxx_compiler {
   std::vector<std::pair<const cxx_compiler::type*, cxx_compiler::expressions::base*>*>* m_params;
 }
 
-%type<m_var> IDENTIFIER_LEX unqualified_id id_expression declarator_id direct_declarator declarator enumerator
-%type<m_var> qualified_id
+%type<m_var> IDENTIFIER_LEX unqualified_id id_expression declarator_id
+%type<m_var> direct_declarator declarator enumerator qualified_id
 %type<m_pvt> mem_initializer_id
-%type<m_usr> INTEGER_LITERAL_LEX CHARACTER_LITERAL_LEX FLOATING_LITERAL_LEX TYPEDEF_NAME_LEX init_declarator
-%type<m_usr> boolean_literal
+%type<m_usr> INTEGER_LITERAL_LEX CHARACTER_LITERAL_LEX FLOATING_LITERAL_LEX
+%type<m_usr> TYPEDEF_NAME_LEX init_declarator boolean_literal
 %type<m_usrs> block_declaration simple_declaration init_declarator_list
 %type<m_usrs> asm_definition
-%type<m_type> ptr_operator abstract_declarator direct_abstract_declarator class_specifier
-%type<m_type> elaborated_type_specifier type_id enum_specifier
+%type<m_type> ptr_operator abstract_declarator direct_abstract_declarator
+%type<m_type> class_specifier elaborated_type_specifier type_id enum_specifier
 %type<m_type_specifier> simple_type_specifier type_specifier type_name
 %type<m_type_specifier_seq> type_specifier_seq
 %type<m_specifier> decl_specifier
 %type<m_specifier_seq> decl_specifier_seq
-%type<m_expression> primary_expression postfix_expression unary_expression cast_expression
-%type<m_expression> pm_expression multiplicative_expression additive_expression shift_expression
-%type<m_expression> relational_expression equality_expression and_expression exclusive_or_expression
-%type<m_expression> inclusive_or_expression logical_and_expression logical_or_expression conditional_expression
-%type<m_expression> assignment_expression expression constant_expression constant_initializer
-%type<m_expression> condition new_expression delete_expression
+%type<m_expression> primary_expression postfix_expression unary_expression
+%type<m_expression> cast_expression pm_expression multiplicative_expression
+%type<m_expression> additive_expression shift_expression relational_expression
+%type<m_expression> equality_expression and_expression exclusive_or_expression
+%type<m_expression> inclusive_or_expression logical_and_expression
+%type<m_expression> logical_or_expression conditional_expression
+%type<m_expression> assignment_expression expression constant_expression
+%type<m_expression> constant_initializer condition
+%type<m_expression> new_expression delete_expression
 %type<m_member> member_access_begin
-%type<m_statement> labeled_statement expression_statement compound_statement selection_statement iteration_statement
-%type<m_statement> jump_statement declaration_statement try_block function_body statement for_init_statement
-%type<m_ival> cvr_qualifier storage_class_specifier function_specifier class_key enum_key unary_operator
+%type<m_statement> labeled_statement expression_statement compound_statement
+%type<m_statement> selection_statement iteration_statement jump_statement
+%type<m_statement> declaration_statement try_block function_body statement
+%type<m_statement> for_init_statement
+%type<m_ival> cvr_qualifier storage_class_specifier function_specifier
+%type<m_ival> class_key enum_key unary_operator
 %type<m_ival> assignment_operator access_specifier
 %type<m_vi> cvr_qualifier_seq
 %type<m_statements> statement_seq
 %type<m_var> literal string_literal STRING_LITERAL_LEX
-%type<m_expressions> expression_list new_initializer
+%type<m_expressions> expression_list new_initializer new_placement
 %type<m_scope> enter_block
 %type<m_clause> initializer_clause
 %type<m_list> initializer_list
@@ -154,6 +163,7 @@ namespace cxx_compiler {
 %type<m_initializer> initializer
 %type<m_param> parameter_declaration
 %type<m_params> parameter_declaration_clause parameter_declaration_list
+%type<m_ival> operator_function_id operator
 
 %%
 
@@ -874,8 +884,10 @@ type_id_list
   ;
 
 initializer
-  : '=' initializer_clause   { $$ = new cxx_compiler::declarations::initializers::info_t($2); }
-  | '(' expression_list ')'  { $$ = new cxx_compiler::declarations::initializers::info_t($2); }
+  : '=' initializer_clause
+    { $$ = new cxx_compiler::declarations::initializers::info_t($2); }
+  | '(' expression_list ')'
+    { $$ = new cxx_compiler::declarations::initializers::info_t($2); }
   ;
 
 initializer_clause
@@ -1339,53 +1351,56 @@ conversion_declarator
 
 operator_function_id
   : OPERATOR_KW operator
+    { $$ = $2; }
   | OPERATOR_KW operator '<' template_argument_list '>'
+    { cxx_compiler::error::not_implemented(); }
   | OPERATOR_KW operator '<'                        '>'
+    { cxx_compiler::error::not_implemented(); }
   ;
 
 operator
-  : NEW_KW
-  | DELETE_KW
-  | NEW_KW '[' ']'
-  | DELETE_KW '[' ']'
-  | '+'
-  | '-'
-  | '*'
-  | '/'
-  | '%'
-  | '^'
-  | '&'
-  | '|'
-  | '~'
-  | '!'
-  | '='
-  | '<'
-  | '>'
-  | ADD_ASSIGN_MK
-  | SUB_ASSIGN_MK
-  | MUL_ASSIGN_MK
-  | DIV_ASSIGN_MK
-  | MOD_ASSIGN_MK
-  | XOR_ASSIGN_MK
-  | AND_ASSIGN_MK
-  | OR_ASSIGN_MK
-  | LSH_MK
-  | RSH_MK
-  | LSH_ASSIGN_MK
-  | RSH_ASSIGN_MK
-  | EQUAL_MK
-  | NOTEQ_MK
-  | LESSEQ_MK
-  | GREATEREQ_MK
-  | ANDAND_MK
-  | OROR_MK
-  | PLUSPLUS_MK
-  | MINUSMINUS_MK
-  | ','
-  | ARROWASTER_MK
-  | ARROW_MK
-  | '(' ')'
-  | '[' ']'
+  : NEW_KW { $$ = NEW_KW; }
+  | DELETE_KW { $$ = DELETE_KW; }
+  | NEW_KW '[' ']' { $$ = NEW_ARRAY_LEX; }
+  | DELETE_KW '[' ']' { $$ = DELETE_ARRAY_LEX; }
+  | '+' { $$ = '+'; }
+  | '-' { $$ = '-'; }
+  | '*' { $$ = '*'; }
+  | '/' { $$ = '/'; }
+  | '%' { $$ = '%'; }
+  | '^' { $$ = '^'; }
+  | '&' { $$ = '&'; }
+  | '|' { $$ = '|'; }
+  | '~' { $$ = '~'; }
+  | '!' { $$ = '!'; }
+  | '=' { $$ = '='; }
+  | '<' { $$ = '<'; }
+  | '>' { $$ = '>'; }
+  | ADD_ASSIGN_MK { $$ = ADD_ASSIGN_MK; }
+  | SUB_ASSIGN_MK { $$ = SUB_ASSIGN_MK; }
+  | MUL_ASSIGN_MK { $$ = MUL_ASSIGN_MK; }
+  | DIV_ASSIGN_MK { $$ = DIV_ASSIGN_MK; }
+  | MOD_ASSIGN_MK { $$ = MOD_ASSIGN_MK; }
+  | XOR_ASSIGN_MK { $$ = XOR_ASSIGN_MK; }
+  | AND_ASSIGN_MK { $$ = AND_ASSIGN_MK; }
+  | OR_ASSIGN_MK { $$ = OR_ASSIGN_MK; }
+  | LSH_MK { $$ = LSH_MK; }
+  | RSH_MK { $$ = RSH_MK; }
+  | LSH_ASSIGN_MK { $$ = LSH_ASSIGN_MK; }
+  | RSH_ASSIGN_MK { $$ = RSH_ASSIGN_MK; }
+  | EQUAL_MK { $$ = EQUAL_MK; }
+  | NOTEQ_MK { $$ = NOTEQ_MK; }
+  | LESSEQ_MK { $$ = LESSEQ_MK; }
+  | GREATEREQ_MK { $$ = GREATEREQ_MK; }
+  | ANDAND_MK { $$ = ANDAND_MK; }
+  | OROR_MK { $$ = OROR_MK; }
+  | PLUSPLUS_MK { $$ = PLUSPLUS_MK; }
+  | MINUSMINUS_MK { $$ = MINUSMINUS_MK; }
+  | ',' { $$ = ','; }
+  | ARROWASTER_MK { $$ = ARROWASTER_MK; }
+  | ARROW_MK { $$ = ARROW_MK; }
+  | '(' ')' { $$ = '('; }
+  | '[' ']' { $$ = '['; }
   ;
 
 template_declaration
@@ -1503,7 +1518,7 @@ unqualified_id
   : IDENTIFIER_LEX
     { $$ = cxx_compiler::unqualified_id::from_nonmember($1); }
   | operator_function_id
-    { cxx_compiler::error::not_implemented(); }
+    { $$ = cxx_compiler::unqualified_id::operator_function_id($1); }
   | conversion_function_id
     { cxx_compiler::error::not_implemented(); }
   | '~' class_name
@@ -1551,9 +1566,12 @@ class_or_namespace_name
 
 postfix_expression
   : primary_expression
-  | postfix_expression '[' expression ']' { $$ = new cxx_compiler::expressions::binary::info_t($1,'[',$3); }
-  | postfix_expression '(' expression_list ')' { $$ = new cxx_compiler::expressions::postfix::call($1,$3); }
-  | postfix_expression '('                 ')' { $$ = new cxx_compiler::expressions::postfix::call($1,0); }
+  | postfix_expression '[' expression ']'
+    { $$ = new cxx_compiler::expressions::binary::info_t($1,'[',$3); }
+  | postfix_expression '(' expression_list ')'
+    { $$ = new cxx_compiler::expressions::postfix::call($1,$3); }
+  | postfix_expression '(' ')'
+    { $$ = new cxx_compiler::expressions::postfix::call($1,0); }
   | simple_type_specifier '(' fcast_prev  expression_list ')'
     {
       $$ = new cxx_compiler::expressions::postfix::fcast($1, $4);
@@ -1562,35 +1580,47 @@ postfix_expression
     {
       $$ = new cxx_compiler::expressions::postfix::fcast($1, 0);
     }
-  | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier IDENTIFIER_LEX '(' expression_list ')'
+  | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier
+    IDENTIFIER_LEX '(' expression_list ')'
     { cxx_compiler::error::not_implemented(); }
-  | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier IDENTIFIER_LEX '('                 ')'
+  | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier
+    IDENTIFIER_LEX '(' ')'
     { cxx_compiler::error::not_implemented(); }
-  | TYPENAME_KW               nested_name_specifier IDENTIFIER_LEX '(' expression_list ')'
+  | TYPENAME_KW nested_name_specifier IDENTIFIER_LEX '(' expression_list ')'
     { cxx_compiler::error::not_implemented(); }
-  | TYPENAME_KW               nested_name_specifier IDENTIFIER_LEX '('                 ')'
+  | TYPENAME_KW nested_name_specifier IDENTIFIER_LEX '(' ')'
     { cxx_compiler::error::not_implemented(); }
-  | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier TEMPLATE_KW template_id '(' expression_list ')'
+  | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier
+    TEMPLATE_KW template_id '(' expression_list ')'
     { cxx_compiler::error::not_implemented(); }
-  | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier TEMPLATE_KW template_id '('                 ')'
+  | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier
+    TEMPLATE_KW template_id '(' ')'
     { cxx_compiler::error::not_implemented(); }
-  | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier             template_id '(' expression_list ')'
+  | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier
+    template_id '(' expression_list ')'
     { cxx_compiler::error::not_implemented(); }
-  | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier             template_id '('                 ')'
+  | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier 
+    template_id '(' ')'
     { cxx_compiler::error::not_implemented(); }
-  | TYPENAME_KW               nested_name_specifier TEMPLATE_KW template_id '(' expression_list ')'
+  | TYPENAME_KW nested_name_specifier TEMPLATE_KW template_id
+    '(' expression_list ')'
     { cxx_compiler::error::not_implemented(); }
-  | TYPENAME_KW               nested_name_specifier TEMPLATE_KW template_id '('                 ')'
+  | TYPENAME_KW nested_name_specifier TEMPLATE_KW template_id '(' ')'
     { cxx_compiler::error::not_implemented(); }
-  | TYPENAME_KW               nested_name_specifier             template_id '(' expression_list ')'
+  | TYPENAME_KW nested_name_specifier template_id '(' expression_list ')'
     { cxx_compiler::error::not_implemented(); }
-  | TYPENAME_KW               nested_name_specifier             template_id '('                 ')'
+  | TYPENAME_KW nested_name_specifier template_id '(' ')'
     { cxx_compiler::error::not_implemented(); }
-  | member_access_begin TEMPLATE_KW id_expression  { $$ = cxx_compiler::expressions::postfix::member::end($1,$3); }
-  | member_access_begin             id_expression  { $$ = cxx_compiler::expressions::postfix::member::end($1,$2); }
-  | member_access_begin pseudo_destructor_name     { $$ = cxx_compiler::expressions::postfix::member::end($1,0); }
-  | postfix_expression PLUSPLUS_MK    { $$ = new cxx_compiler::expressions::postfix::ppmm($1,true); }
-  | postfix_expression MINUSMINUS_MK  { $$ = new cxx_compiler::expressions::postfix::ppmm($1,false); }
+  | member_access_begin TEMPLATE_KW id_expression
+    { $$ = cxx_compiler::expressions::postfix::member::end($1,$3); }
+  | member_access_begin id_expression
+    { $$ = cxx_compiler::expressions::postfix::member::end($1,$2); }
+  | member_access_begin pseudo_destructor_name
+    { $$ = cxx_compiler::expressions::postfix::member::end($1,0); }
+  | postfix_expression PLUSPLUS_MK
+    { $$ = new cxx_compiler::expressions::postfix::ppmm($1,true); }
+  | postfix_expression MINUSMINUS_MK
+    { $$ = new cxx_compiler::expressions::postfix::ppmm($1,false); }
   | DYNAMIC_CAST_KW     '<' type_id '>' '(' expression ')'
     { cxx_compiler::error::not_implemented(); }
   | STATIC_CAST_KW      '<' type_id '>' '(' expression ')'
@@ -1679,8 +1709,13 @@ new_expression
     { cxx_compiler::error::not_implemented(); }
   | COLONCOLON_MK move_to_root NEW_KW               new_type_id
     { cxx_compiler::error::not_implemented(); }
-  |                            NEW_KW new_placement new_type_id new_initializer
-    { cxx_compiler::error::not_implemented(); }
+  | NEW_KW new_placement new_type_id new_initializer
+    {
+      using namespace cxx_compiler::expressions::unary;
+      $$ = new new_expr($2, $3, $4, cxx_compiler::parse::position);
+      using namespace cxx_compiler::parse;
+      identifier::mode = identifier::look;
+    }
   |                            NEW_KW new_placement new_type_id
     { cxx_compiler::error::not_implemented(); }
   | NEW_KW new_type_id new_initializer
@@ -1705,18 +1740,22 @@ new_expression
     { cxx_compiler::error::not_implemented(); }
   | COLONCOLON_MK move_to_root NEW_KW               '(' type_id ')'
     { cxx_compiler::error::not_implemented(); }
-  |                            NEW_KW new_placement '(' type_id ')' new_initializer
+  | NEW_KW new_placement '(' type_id ')' new_initializer
+    {
+      cxx_compiler::error::not_implemented();
+    }
+  | NEW_KW new_placement '(' type_id ')'
+    {
+      cxx_compiler::error::not_implemented();
+    }
+  | NEW_KW '(' type_id ')' new_initializer
     { cxx_compiler::error::not_implemented(); }
-  |                            NEW_KW new_placement '(' type_id ')'
-    { cxx_compiler::error::not_implemented(); }
-  |                            NEW_KW '(' type_id ')' new_initializer
-    { cxx_compiler::error::not_implemented(); }
-  |                            NEW_KW '(' type_id ')'
+  | NEW_KW '(' type_id ')'
     { cxx_compiler::error::not_implemented(); }
   ;
 
 new_placement
-  : '(' expression_list ')'
+  : '(' expression_list ')' { $$ = $2; }
   ;
 
 new_initializer

@@ -9,7 +9,8 @@ cxx_compiler::var* cxx_compiler::expressions::unary::ppmm::gen()
   return expr->ppmm(m_plus,false);
 }
 
-const cxx_compiler::file_t& cxx_compiler::expressions::unary::ppmm::file() const
+const cxx_compiler::file_t&
+cxx_compiler::expressions::unary::ppmm::file() const
 {
   return m_expr->file();
 }
@@ -103,40 +104,82 @@ cxx_compiler::expressions::unary::ope::file() const
   return m_expr->file();
 }
 
+namespace cxx_compiler {
+  inline const type* sizeof_type()
+  {
+    switch (generator::sizeof_type) {
+    case type::UINT:
+      return uint_type::create();
+    case type::ULONG:
+      return ulong_type::create();
+    default:
+      return ulong_long_type::create();
+    }
+  }
+  inline void install_new()
+  {
+    vector<const type*> param;
+    param.push_back(sizeof_type());
+    const type* T = void_type::create();
+    const pointer_type* vp = pointer_type::create(T);
+    const func_type* ft = func_type::create(vp,param);
+    usr::flag_t flag = usr::flag_t(usr::FUNCTION | usr::NEW_SCALAR);
+    string name = "new";
+    usr* new_entry = new usr(name,ft,flag,file_t());
+    new_entry->m_scope = &scope::root;
+    map<string, vector<usr*> >& usrs = scope::root.m_usrs;
+    typedef map<string, vector<usr*> >::const_iterator IT;
+    IT p = usrs.find(name);
+    if (p == usrs.end()) {
+      usrs[name].push_back(new_entry);
+      return;
+    }
+    const vector<usr*>& v = p->second;
+    usr* prev = v.back();
+    usrs[name].push_back(new_entry);
+    usr* ovl = new overload(prev, new_entry);
+    usrs[name].push_back(ovl);
+  }
+  inline var* call_new(usr* new_entry, vector<var*>& arg)
+  {
+    usr::flag_t flag = new_entry->m_flag;
+    if (flag & usr::OVERLOAD)
+      return new_entry->call(&arg);
+    const type* T = new_entry->m_type;
+    assert(T->m_id == type::FUNC);
+    typedef const func_type FT;
+    FT* ft = static_cast<FT*>(T);
+    var* ret = call_impl::common(ft, new_entry, &arg, false, 0, false, 0);
+    return ret;
+  }
+} // end of namespace cxx_compiler
+
 cxx_compiler::var* cxx_compiler::expressions::unary::new_expr::gen()
 {
   using namespace std;
+  vector<var*> new_arg;
   int n = m_T->size();
   var* sz = sizeof_impl::common(n);
-  code.push_back(new param3ac(sz));
-  string name = "new";
-  map<string, vector<usr*> >& usrs = scope::root.m_usrs;
-  map<string, vector<usr*> >::const_iterator it = usrs.find(name);
-  const type* vp = pointer_type::create(void_type::create());
-  usr* new_entry = 0;
-  if (it != usrs.end()) {
-    const vector<usr*>& v = it->second;
-    if (v.size() != 1)
-      error::not_implemented();
-    new_entry = v.back();
+  new_arg.push_back(sz);
+  if (m_place) {
+    transform(begin(*m_place), end(*m_place), back_inserter(new_arg),
+	      mem_fun(&base::gen));
   }
   else {
-    vector<const type*> param;
-    param.push_back(uint_type::create());
-    const func_type* ft = func_type::create(vp,param);
-    usr::flag_t flag = usr::flag_t(usr::FUNCTION | usr::NEW_SCALAR);
-    new_entry = new usr(name,ft,flag,file_t());
-    new_entry->m_scope = &scope::root;
-    usrs[name].push_back(new_entry);
-  }
-  var* ret = new var(pointer_type::create(m_T));
-  if ( scope::current->m_id == scope::BLOCK ){
-    block* b = static_cast<block*>(scope::current);
-    b->m_vars.push_back(ret);
-  }
-  else
-    garbage.push_back(ret);
-  code.push_back(new call3ac(ret,new_entry));
+    static bool done;
+    if (!done) {
+      install_new();
+      done = true;
+    }
+  } 
+  string name = "new";
+  const map<string, vector<usr*> >& usrs = scope::root.m_usrs;
+  map<string, vector<usr*> >::const_iterator it = usrs.find(name);
+  if (it == usrs.end())
+    error::not_implemented();
+  const vector<usr*>& vu = it->second;
+  usr* new_entry = vu.back();
+  var* ret = call_new(new_entry, new_arg);
   const type* U = m_T->unqualified();
   if (U->m_id != type::RECORD)
     return ret;
