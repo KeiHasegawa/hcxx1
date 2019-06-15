@@ -75,7 +75,7 @@ PATCHS = patch.00.p patch.01.p patch.02.p patch.03.p patch.04.p \
 	 patch.05.p patch.05.2.p patch.06.p patch.07.p patch.08.p \
 	 patch.09.p patch.10.p patch.10.p2 patch.11.p
 
-PATCHS_HEADER = patch.03.q patch.04.q
+PATCHS_HEADER = patch.03.q patch.04.q patch.10.q
 
 parse.o : $(PATCHS_HEADER)
 expr01.o : $(PATCHS_HEADER)

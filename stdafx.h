@@ -17,6 +17,7 @@
 #include <numeric>
 #include <memory>
 #include <typeinfo>
+#include <limits>
 #include <limits.h>
 #include <cassert>
 #include <cstdio>

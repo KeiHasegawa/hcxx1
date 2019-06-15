@@ -140,7 +140,7 @@ cxx_compiler::var* cxx_compiler::var::call(std::vector<var*>* arg)
   }
   typedef const func_type FT;
   FT* ft = static_cast<FT*>(T);
-  return call_impl::common(ft, func, arg, false, 0, false, 0);
+  return call_impl::common(ft, func, arg, 0, 0, false, 0);
 }
 
 cxx_compiler::var*
@@ -179,7 +179,7 @@ cxx_compiler::genaddr::call(std::vector<var*>* arg)
       }
     }
   }
-  var* ret = call_impl::common(ft, u, arg, false, this_ptr,
+  var* ret = call_impl::common(ft, u, arg, 0, this_ptr,
                                m_qualified_func, 0);
   if (!error::counter && !cmdline::no_inline_sub) {
     if (flag & usr::INLINE) {
@@ -207,7 +207,7 @@ cxx_compiler::member_function::call(std::vector<var*>* arg)
   assert(T->m_id == type::FUNC); 
   typedef const func_type FT;
   FT* ft = static_cast<FT*>(T);
-  var* ret = call_impl::common(ft, m_fun, arg, false, m_obj,
+  var* ret = call_impl::common(ft, m_fun, arg, 0, m_obj,
                                m_qualified_func, m_vftbl_off);
   if (usr* u = m_fun->usr_cast()) {
     usr::flag_t flag = u->m_flag;
@@ -286,14 +286,21 @@ cxx_compiler::member_function::rvalue()
 namespace cxx_compiler {
   namespace overload_impl {
     using namespace std;
-    var* do_trial(usr* u, vector<var*>* arg, var* obj)
+    var* do_trial(usr* u, vector<var*>* arg, var* obj,
+		  vector<vector<tac*> >& tmp, vector<int>& cost)
     {
       using namespace std;
       const type* T = u->m_type;
       assert(T->m_id == type::FUNC);
       typedef const func_type FT;
       FT* ft = static_cast<FT*>(T);
-      return call_impl::common(ft, u, arg, true, obj, false, 0);
+      int n = code.size();
+      cost.resize(cost.size()+1);
+      var* ret = call_impl::common(ft, u, arg, &cost.back(), obj, false, 0);
+      tmp.resize(tmp.size()+1);
+      copy(begin(code)+n, end(code), back_inserter(tmp.back()));
+      code.resize(n);
+      return ret;
     }
   } // end of namespace overload_impl
 } // end of namespace cxx_compiler
@@ -305,8 +312,20 @@ cxx_compiler::var* cxx_compiler::overload::call(std::vector<var*>* arg)
   const vector<usr*>& cand = m_candidacy;
   var* obj = m_obj;
   vector<var*> res;
+  vector<vector<tac*> > tmp;
+  struct sweeper {
+    vector<vector<tac*> >& m_code;
+    sweeper(vector<vector<tac*> >& v) : m_code(v) {}
+    ~sweeper()
+    {
+      for (auto &v : m_code)
+	for (auto p : v)
+	  delete p;
+    }
+  } sweeper(tmp);
+  vector<int> cost;
   transform(begin(cand), end(cand), back_inserter(res),
-            [arg, obj](usr* u){ return do_trial(u, arg, obj); });
+  [arg, obj, &tmp, &cost](usr* u){ return do_trial(u, arg, obj, tmp, cost); });
   auto ok = [](var* v){ return v; };
   int n = count_if(begin(res), end(res), ok);
   if (!n) {
@@ -321,26 +340,38 @@ cxx_compiler::var* cxx_compiler::overload::call(std::vector<var*>* arg)
       garbage.push_back(ret);
     return ret;
   }
-  if (n == 1) {
-    typedef vector<var*>::const_iterator IT;
-    IT p = find_if(begin(res), end(res), ok);
-    assert(p != end(res));
-    int m = p - begin(res);
-    var* ret = res[m];
-    usr* u = cand[m];
-    usr::flag_t flag = u->m_flag;
-    if (!error::counter && !cmdline::no_inline_sub) {
-      if (flag & usr::INLINE) {
-	using namespace declarations::declarators::function;
-	using namespace definition::static_inline::skip;
-	table_t::const_iterator p = stbl.find(u);
-	if (p != stbl.end())
-	  substitute(code, code.size()-1, p->second);
-      }
-    }
-    return ret;
+  if (n != 1) {
+    vector<int>::const_iterator p = min_element(begin(cost), end(cost));
+    assert(p != end(cost));
+    int min_cost = *p;
+    n = count_if(begin(cost), end(cost),
+		 [min_cost](int c){ return c == min_cost; });
   }
-  error::not_implemented();
+  if (n != 1)
+    error::not_implemented();
+
+  typedef vector<var*>::const_iterator IT;
+  IT p = find_if(begin(res), end(res), ok);
+  assert(p != end(res));
+  assert(*p);
+  int m = p - begin(res);
+  var* ret = res[m];
+  assert(ret);
+  vector<tac*>& v = tmp[m];
+  copy(begin(v), end(v), back_inserter(code));
+  v.clear();
+  usr* u = cand[m];
+  usr::flag_t flag = u->m_flag;
+  if (!error::counter && !cmdline::no_inline_sub) {
+    if (flag & usr::INLINE) {
+      using namespace declarations::declarators::function;
+      using namespace definition::static_inline::skip;
+      table_t::const_iterator p = stbl.find(u);
+      if (p != stbl.end())
+	substitute(code, code.size()-1, p->second);
+    }
+  }
+  return ret;
 }
 
 namespace cxx_compiler {
@@ -350,10 +381,10 @@ namespace cxx_compiler {
     struct convert {
       const vector<const type*>& m_param;
       var* m_func;
-      bool m_trial;
+      int* m_trial_cost;
       int m_counter;
-      convert(const vector<const type*>& param, var* func, bool trial)
-        : m_param(param), m_func(func), m_counter(-1), m_trial(trial) {}
+      convert(const vector<const type*>& param, var* func, int* tc)
+        : m_param(param), m_func(func), m_counter(-1), m_trial_cost(tc) {}
       var* operator()(var*);
     };
     tac* gen_param(var*);
@@ -399,7 +430,7 @@ cxx_compiler::var*
 cxx_compiler::call_impl::common(const func_type* ft,
                                 var* func,
                                 std::vector<var*>* arg,
-                                bool trial,
+                                int* trial_cost,
                                 var* obj,
                                 bool qualified_func,
                                 var* vftbl_off)
@@ -410,15 +441,19 @@ cxx_compiler::call_impl::common(const func_type* ft,
   pair<int,int> m = call_impl::num_of_range(param);
   if (n < m.first) {
     if (!has_default_arg(func, n, m.first)) {
-      if ( trial )
+      if (trial_cost) {
+	*trial_cost = numeric_limits<int>::max();
 	return 0;
+      }
       using namespace error::expressions::postfix::call;
       num_of_arg(parse::position,func,n,m.first);
     }
   }
   else if (m.second < n) {
-    if ( trial )
+    if (trial_cost) {
+      *trial_cost = numeric_limits<int>::max();
       return 0;
+    }
     using namespace error::expressions::postfix::call;
     num_of_arg(parse::position,func,n,m.second);
     n = m.second;
@@ -427,9 +462,12 @@ cxx_compiler::call_impl::common(const func_type* ft,
   if (arg) {
     const vector<var*>& v = *arg;
     transform(v.begin(),v.begin()+n,back_inserter(conved),
-              call_impl::convert(param,func,trial));
-    if ( trial && find(conved.begin(),conved.end(),(var*)0) != conved.end() )
+              call_impl::convert(param,func,trial_cost));
+    if (trial_cost
+	&& find(begin(conved),end(conved),(var*)0) != end(conved)) {
+      *trial_cost = numeric_limits<int>::max();
       return 0;
+    }
   }
   if (obj) {
     const type* T = obj->m_type;
@@ -563,14 +601,20 @@ cxx_compiler::var* cxx_compiler::call_impl::convert::operator()(var* arg)
   bool discard = false;
   T = expressions::assignment::valid(T,arg,&discard);
   if (!T) {
-    if ( m_trial )
+    if (m_trial_cost) {
+      *m_trial_cost = numeric_limits<int>::max();
       return 0;
+    }
     using namespace error::expressions::postfix::call;
     mismatch_argument(parse::position,m_counter,discard,m_func);
     return arg;
   }
-  if (T->scalar() && arg->m_type->scalar())
+  if (T->scalar() && arg->m_type->scalar()) {
+    var* org = arg;
     arg = arg->cast(T);
+    if (org != arg && m_trial_cost)
+      ++*m_trial_cost;
+  }
   if (U->m_id == type::REFERENCE) {
     typedef const reference_type RT;
     RT* rt = static_cast<RT*>(U);
@@ -1819,7 +1863,7 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::fcast::gen()
 {
   using namespace std;
   vector<var*> arg;
-  if ( m_list ) {
+  if (m_list) {
     transform(m_list->begin(),m_list->end(),back_inserter(arg),
               mem_fun(&base::gen));
   }
@@ -1855,6 +1899,42 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::fcast::gen()
   }
   else
     garbage.push_back(ret);
+
+  assert(m_type->m_id == type::RECORD);
+  typedef const record_type REC;
+  REC* rec = static_cast<REC*>(m_type);
+  tag* ptr = rec->get_tag();
+  string tgn = ptr->m_name;
+  const map<string, vector<usr*> >& usrs = ptr->m_usrs;
+  typedef map<string, vector<usr*> >::const_iterator IT;
+  IT p = usrs.find(tgn);
+  if (p == usrs.end())
+    return ret;
+
+  const vector<usr*>& v = p->second;
+  usr* ctor = v.back();
+  usr::flag_t flag = ctor->m_flag;
+  if (flag & usr::OVERLOAD) {
+    overload* ovl = static_cast<overload*>(ctor);
+    ovl->m_obj = ret;
+    ctor->call(&arg);
+  }
+  else {
+    const type* T = ctor->m_type;
+    assert(T->m_id == type::FUNC);
+    typedef const func_type FT;
+    FT* ft = static_cast<FT*>(T);
+    call_impl::common(ft, ctor, &arg, 0, ret, false, 0);
+  }
+  if (!error::counter && !cmdline::no_inline_sub) {
+    if (flag & usr::INLINE) {
+      using namespace declarations::declarators::function;
+      using namespace definition::static_inline::skip;
+      table_t::const_iterator p = stbl.find(ctor);
+      if (p != stbl.end())
+	substitute(code, code.size()-1, p->second);
+    }
+  }
   return ret;
 }
 

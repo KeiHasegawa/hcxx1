@@ -5,6 +5,7 @@
 #include "yy.h"
 #include "patch.03.q"
 #include "patch.04.q"
+#include "patch.10.q"
 
 namespace cxx_compiler {
   namespace parse {
@@ -517,6 +518,8 @@ namespace cxx_compiler {
         assert(!lval.empty());
         cxx_compiler_lval.m_var = static_cast<var*>(lval.front());
         lval.pop_front();
+	if (context_t::retry[DECLARATOR_ID_CONFLICT_STATE])
+	  cxx_compiler_lval.m_var->m_scope = scope::current;
         return n;
       case CLASS_NAME_LEX:
       case ENUM_NAME_LEX:

@@ -184,7 +184,7 @@ namespace cxx_compiler {
         typedef const func_type FT;
         FT* ft = static_cast<FT*>(ctor->m_type);
         vector<var*> empty;
-        call_impl::common(ft,ctor,&empty,false,v,false,0);
+        call_impl::common(ft, ctor, &empty, 0, v, false, 0);
         usr::flag_t flag = ctor->m_flag;
         if (!error::counter && !cmdline::no_inline_sub) {
           if (flag & usr::INLINE) {
@@ -363,34 +363,15 @@ gencode(info_t* c, argument* arg)
   return c->m_expr ? assign(c->m_expr->gen(),arg) : lsting(c->m_list,arg);
 }
 
-namespace cxx_compiler {
-  namespace declarations {
-    namespace initializers {
-      bool match(usr* ctor, vector<var*>* arg)
-      {
-        assert(ctor->m_type->m_id == type::FUNC);
-        typedef const func_type FT;
-        FT* ft = static_cast<FT*>(ctor->m_type);
-        int n = code.size();
-        var* r = call_impl::common(ft,ctor,arg,true,argument::dst,false,0);
-        vector<tac*>& c = table[argument::dst].m_code;
-        copy(begin(code)+n, end(code), back_inserter(c));
-        code.resize(n);
-        return r;
-      }
-    } // end of namespace initializers
-  } // end of namespace declarations
-} // end of namespace cxx_compiler
-
 int cxx_compiler::declarations::initializers::
-expr_list(std::vector<expressions::base*>* v, argument* arg)
+expr_list(std::vector<expressions::base*>* exprs, argument* arg)
 {
   using namespace std;
-  assert(!v->empty());
+  assert(!exprs->empty());
   const type* T = arg->T;
   if (T->scalar()) {
-    if (v->size() == 1) {
-      expressions::base* expr = (*v)[0];
+    if (exprs->size() == 1) {
+      expressions::base* expr = (*exprs)[0];
       return clause::assign(expr->gen(),arg);
     }
     using namespace error::declarations::initializers;
@@ -417,16 +398,33 @@ expr_list(std::vector<expressions::base*>* v, argument* arg)
   }
 
   vector<var*> res;
-  transform(begin(*v), end(*v), back_inserter(res),
+  transform(begin(*exprs), end(*exprs), back_inserter(res),
             mem_fun(&expressions::base::gen));
 
-  const vector<usr*>& ctors = p->second;
-  typedef vector<usr*>::const_iterator CIT;
-  CIT q = find_if(begin(ctors), end(ctors), bind2nd(ptr_fun(match), &res));
-  if (q == end(ctors)) {
-    error::not_implemented();
+  const vector<usr*>& v = p->second;
+  usr* ctor = v.back();
+  usr::flag_t flag = ctor->m_flag;
+  if (flag & usr::OVERLOAD) {
+    overload* ovl = static_cast<overload*>(ctor);
+    ovl->m_obj = argument::dst;
+    int n = code.size();
+    ovl->call(&res);
+    vector<tac*>& c = table[argument::dst].m_code;
+    copy(begin(code)+n, end(code), back_inserter(c));
+    code.resize(n);
     return 0;
   }
+
+
+  const type* T2 = ctor->m_type;
+  assert(T2->m_id == type::FUNC);
+  typedef const func_type FT;
+  FT* ft = static_cast<FT*>(T2);
+  int n = code.size();
+  call_impl::common(ft, ctor, &res, 0, argument::dst, false, 0);
+  vector<tac*>& c = table[argument::dst].m_code;
+  copy(begin(code)+n, end(code), back_inserter(c));
+  code.resize(n);
 
   return 0;
 }

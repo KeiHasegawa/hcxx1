@@ -1187,19 +1187,16 @@ extern vector<var*> garbage;
 extern string new_name(string);
 
 struct generated : virtual var {
+  bool m_code_copied;
   const type* m_org;
   vector<tac*> m_code;
   generated(const pointer_type* G, const type* T)
-    : var(G), m_org(T) {}
+    : var(G), m_code_copied(false), m_org(T) {}
   generated* generated_cast(){ return this; }
   var* ppmm(bool, bool);
   var* size();
   var* assign(var*);
-  ~generated()
-  {
-    for (auto p : m_code)
-      delete p;
-  }
+  ~generated();
 };
 
 namespace cast_impl {
@@ -1388,7 +1385,7 @@ namespace call_impl {
   var* common(const func_type* ft,
               var* func,
               vector<var*>* arg,
-              bool trial,
+              int* trial_cost,
               var* this_ptr,
               bool qualified_func,
               var* vftbl_off);

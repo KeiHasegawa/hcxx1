@@ -652,7 +652,7 @@ namespace cxx_compiler {
           code.push_back(new add3ac(tmp, tmp, off));
         }
         vector<var*> arg;
-        call_impl::common(ft, ctor, &arg, false, tmp, false, 0);
+        call_impl::common(ft, ctor, &arg, 0, tmp, false, 0);
         usr::flag_t flag = ctor->m_flag;
         if (!error::counter && !cmdline::no_inline_sub) {
           if (flag & usr::INLINE) {

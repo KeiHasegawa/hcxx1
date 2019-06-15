@@ -149,7 +149,7 @@ namespace cxx_compiler {
     assert(T->m_id == type::FUNC);
     typedef const func_type FT;
     FT* ft = static_cast<FT*>(T);
-    var* ret = call_impl::common(ft, new_entry, &arg, false, 0, false, 0);
+    var* ret = call_impl::common(ft, new_entry, &arg, 0, 0, false, 0);
     return ret;
   }
 } // end of namespace cxx_compiler
@@ -217,7 +217,7 @@ cxx_compiler::var* cxx_compiler::expressions::unary::new_expr::gen()
     transform(begin(*m_exprs), end(*m_exprs), back_inserter(arg),
 	      mem_fun(&base::gen));
   }
-  call_impl::common(ft, ctor, &arg, false, ret, false, 0);
+  call_impl::common(ft, ctor, &arg, 0, ret, false, 0);
   if (!error::counter && !cmdline::no_inline_sub) {
     if (flag & usr::INLINE) {
       using namespace declarations::declarators::function;

@@ -103,7 +103,7 @@ EOF
     ;
 exit;
 
-label_headr;
+label_header:
 print <<EOF_header
 const int DECLARATOR_ID_CONFLICT_STATE = $xxx ;
 EOF_header

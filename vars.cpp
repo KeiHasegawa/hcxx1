@@ -57,21 +57,39 @@ cxx_compiler::var* cxx_compiler::with_initial::rvalue()
 cxx_compiler::var* cxx_compiler::genaddr::rvalue()
 {
   using namespace std;
-  block* b = m_scope->m_id == scope::BLOCK ? static_cast<block*>(m_scope) : 0;
-  if ( b && !expressions::constant_flag ){
-    if ( !m_code.empty() ){
+  block* b = 0;
+  if (m_scope->m_id == scope::BLOCK)
+    b = static_cast<block*>(m_scope);
+  if (b && !expressions::constant_flag) {
+    if (!m_code.empty()) {
       vector<var*>& v = garbage;
       vector<var*>::reverse_iterator p = find(v.rbegin(),v.rend(),this);
-      assert(p != v.rend());
-      v.erase(p.base()-1);
-      b->m_vars.push_back(this);
+      if (p != v.rend()) {
+	v.erase(p.base()-1);
+	b->m_vars.push_back(this);
+      }
+      else
+	assert(m_code_copied);
     }
   }
-  if ( !expressions::constant_flag ){
-    copy(m_code.begin(),m_code.end(),back_inserter(code));
-    m_code.clear();
+  if (!expressions::constant_flag) {
+    if (!m_code_copied) {
+      copy(m_code.begin(),m_code.end(),back_inserter(code));
+      m_code_copied = true;
+    }
+    else {
+      transform(m_code.begin(),m_code.end(),back_inserter(code),
+		[](tac* p){ return p->new3ac(); });
+    }
   }
   return this;
+}
+
+cxx_compiler::generated::~generated()
+{
+  if (!m_code_copied)
+    for (auto p : m_code)
+      delete p;
 }
 
 cxx_compiler::ref::ref(const pointer_type* pt)
