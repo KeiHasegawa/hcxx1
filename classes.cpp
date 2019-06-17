@@ -15,7 +15,8 @@ cxx_compiler::tag::kind_t cxx_compiler::classes::specifier::get(int keyword)
 }
 
 void
-cxx_compiler::classes::specifier::begin(int keyword, var* v, std::vector<base*>* bases)
+cxx_compiler::classes::specifier::begin(int keyword, var* v,
+					std::vector<base*>* bases)
 {
   using namespace std;
   usr* u = static_cast<usr*>(v);
@@ -33,7 +34,7 @@ cxx_compiler::classes::specifier::begin(int keyword, var* v, std::vector<base*>*
       name = new_name(".tag");
     }
     pair<const type*, const type*> types = prev->m_types;
-    if ( types.second ){
+    if (types.second) {
       using namespace error::classes;
       redeclaration(parse::position,prev->m_file.back(),name);
       name = new_name(".tag");
@@ -255,7 +256,7 @@ namespace cxx_compiler {
               const type* Ty = y->result_type();
               var tmp(Ty);
               bool discard = false;
-              const type* T = assignment::valid(Tx, &tmp, &discard);
+              const type* T = assignment::valid(Tx, &tmp, &discard, true);
               if (!T)
                 error::not_implemented();
               code.push_back(new invladdr3ac(x,y));

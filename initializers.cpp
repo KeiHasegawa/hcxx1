@@ -495,7 +495,7 @@ assign(var* y, argument* arg)
     }
   }
   bool discard = false;
-  T = expressions::assignment::valid(T,y,&discard);
+  T = expressions::assignment::valid(T, y, &discard, true);
   if (!T) {
     using namespace error::declarations::initializers;
     invalid_assign(parse::position,argument::dst,discard);

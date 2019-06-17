@@ -55,7 +55,8 @@ namespace cxx_compiler {
     assert(Tx->m_id == type::RECORD);
     typedef const record_type REC;
     REC* xrec = static_cast<REC*>(Tx);
-    assert(Ty->m_id == type::RECORD);
+    if (Ty->m_id != type::RECORD)
+      return expressions::assignment::ctor_conv_common(xrec, y, false);
     REC* yrec = static_cast<REC*>(Ty);
     vector<route_t> dummy;
     bool ambiguous = false;
@@ -90,7 +91,7 @@ cxx_compiler::var* cxx_compiler::usr::assign(var* op)
   var* y = op->rvalue();
   y->m_type = y->m_type->complete_type();
   bool discard = false;
-  T = expressions::assignment::valid(T,y,&discard);
+  T = expressions::assignment::valid(T, y, &discard, true);
   if (!T) {
     invalid(parse::position,this,discard);
     T = int_type::create();
@@ -131,7 +132,7 @@ cxx_compiler::var* cxx_compiler::ref::assign(var* op)
   }
   bool discard = false;
   var* y = op->rvalue();
-  T = expressions::assignment::valid(T,y,&discard);
+  T = expressions::assignment::valid(T, y, &discard, true);
   if (!T) {
     using namespace error::expressions::assignment;
     invalid(parse::position,0,discard);
@@ -168,7 +169,7 @@ cxx_compiler::var* cxx_compiler::refaddr::assign(var* op)
   }
   bool discard = false;
   var* z = op->rvalue();
-  T = expressions::assignment::valid(T,z,&discard);
+  T = expressions::assignment::valid(T, z, &discard, true);
   if ( !T ){
     using namespace error::expressions::assignment;
     invalid(parse::position,0,discard);
@@ -270,7 +271,7 @@ cxx_compiler::var* cxx_compiler::refsomewhere::assign(var* op)
   op = op->rvalue();
   const type* T = m_result;
   bool discard = false;
-  T = expressions::assignment::valid(T,op,&discard);
+  T = expressions::assignment::valid(T, op, &discard, true);
   if ( !T ){
     using namespace error::expressions::assignment;
     invalid(parse::position,0,discard);

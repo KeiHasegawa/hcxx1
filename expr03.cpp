@@ -38,7 +38,7 @@ const cxx_compiler::file_t& cxx_compiler::expressions::cast::info_t::file() cons
 
 const cxx_compiler::type* cxx_compiler::expressions::cast::valid(const type* T, var* y)
 {
-  if (assignment::valid(T,y,0))
+  if (assignment::valid(T, y, 0, true))
     return T;
   const type* Tx = T->unqualified();
   const type* Ty = y->m_type->unqualified();

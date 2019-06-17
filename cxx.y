@@ -1063,6 +1063,7 @@ member_declaration
   | member_declarator_list ';'
     {
       using namespace cxx_compiler::parse;
+      identifier::mode = identifier::look;
       context_t::clear();
     }
   | function_definition ';'

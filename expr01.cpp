@@ -599,7 +599,7 @@ cxx_compiler::var* cxx_compiler::call_impl::convert::operator()(var* arg)
   }
   T = T->unqualified();
   bool discard = false;
-  T = expressions::assignment::valid(T,arg,&discard);
+  T = expressions::assignment::valid(T, arg, &discard, !m_trial_cost);
   if (!T) {
     if (m_trial_cost) {
       *m_trial_cost = numeric_limits<int>::max();
@@ -609,12 +609,16 @@ cxx_compiler::var* cxx_compiler::call_impl::convert::operator()(var* arg)
     mismatch_argument(parse::position,m_counter,discard,m_func);
     return arg;
   }
-  if (T->scalar() && arg->m_type->scalar()) {
-    var* org = arg;
-    arg = arg->cast(T);
-    if (org != arg && m_trial_cost)
-      ++*m_trial_cost;
+  if (T->scalar()) {
+    if (arg->m_type->scalar()) {
+      var* org = arg;
+      arg = arg->cast(T);
+      if (org != arg && m_trial_cost)
+	++*m_trial_cost;
+    }
   }
+  else
+    arg = aggregate_conv(T, arg);
   if (U->m_id == type::REFERENCE) {
     typedef const reference_type RT;
     RT* rt = static_cast<RT*>(U);
@@ -1549,13 +1553,64 @@ namespace cxx_compiler {
       {
         return table.find(make_pair(x, y)) != table.end();
       }
+      var* ctor_conv_common(const record_type* xx, var* src, bool trial)
+      {
+	tag* ptr = xx->get_tag();
+	string tgn = ptr->m_name;
+	const map<string, vector<usr*> >& usrs = ptr->m_usrs;
+	typedef map<string, vector<usr*> >::const_iterator IT;
+	IT p = usrs.find(tgn);
+	if (p == usrs.end()) {
+	  assert(trial);
+	  return 0;
+	}
+
+	const vector<usr*>& v= p->second;
+	usr* ctor = v.back();
+	usr::flag_t flag = ctor->m_flag;
+	var* obj = new var(xx);
+	if (scope::current->m_id == scope::BLOCK) {
+	  block* b = static_cast<block*>(scope::current);
+	  b->m_vars.push_back(obj);
+	}
+	else
+	  garbage.push_back(obj);
+	vector<var*> arg;
+	arg.push_back(src);
+	if (flag & usr::OVERLOAD) {
+	  overload* ovl = static_cast<overload*>(ctor);
+	  ovl->m_obj = obj;
+	  int n = code.size();
+	  var* res = ovl->call(&arg);
+	  if (trial) {
+	    for_each(begin(code)+n, end(code), [](tac* p){ delete p; });
+	    code.resize(n);
+	  }
+	  assert(trial || res);
+	  return res ? obj : 0;
+	}
+	const type* T = ctor->m_type;
+	assert(T->m_id == type::FUNC);
+	typedef const func_type FT;
+	FT* ft = static_cast<FT*>(T);
+	int trial_cost = 0;
+	int* pi = trial ? &trial_cost : 0;
+	int n = code.size();
+	var* res = call_impl::common(ft, ctor, &arg, pi, obj, false, 0);
+	if (trial) {
+	  for_each(begin(code)+n, end(code), [](tac* p){ delete p; });
+	  code.resize(n);
+	}
+	assert(trial || res);
+	return res ? obj : 0;
+      }
     } // end of namespace assignment
   } // end of namespace expressions
 } // end of namespace cxx_compiler
 
 const cxx_compiler::type*
 cxx_compiler::expressions::
-assignment::valid(const type* T, var* src, bool* discard)
+assignment::valid(const type* T, var* src, bool* discard, bool ctor_conv)
 {
   const type* xx = T;
   const type* yy = src->result_type();
@@ -1567,19 +1622,20 @@ assignment::valid(const type* T, var* src, bool* discard)
   if (xx->m_id == type::RECORD) {
     if (compatible(xx, yy))
       return xx;
-    if (yy->m_id == type::RECORD) {
-      typedef const record_type REC;
-      REC* xrec = static_cast<REC*>(xx);
-      REC* yrec = static_cast<REC*>(yy);
-      vector<route_t> dummy;
-      bool ambiguous = false;
-      int offset = calc_offset(yrec, xrec, dummy, &ambiguous);
-      if (ambiguous)
-	error::not_implemented();
-      if (offset >= 0)
-	return xx;
+    typedef const record_type REC;
+    REC* xrec = static_cast<REC*>(xx);
+    if (yy->m_id != type::RECORD) {
+      if (ctor_conv)
+	return ctor_conv_common(xrec, src, true) ? xx : 0;
+      return 0;
     }
-    return 0;
+    REC* yrec = static_cast<REC*>(yy);
+    vector<route_t> dummy;
+    bool ambiguous = false;
+    int offset = calc_offset(yrec, xrec, dummy, &ambiguous);
+    if (ambiguous)
+      error::not_implemented();
+    return (offset >= 0) ? xx : 0;
   }
 
   typedef const pointer_type PT;
@@ -1654,12 +1710,12 @@ assignment::valid(const type* T, var* src, bool* discard)
     if (T == X)
       return T;
     if (!T->modifiable() || !X->modifiable())
-      return valid(T,src,discard);
+      return valid(T, src, discard, ctor_conv);
     if (T->m_id == type::RECORD && X->m_id == type::RECORD) {
       T = pointer_type::create(T);
       X = pointer_type::create(X);
       var tmp(X);
-      if (valid(T, &tmp, discard))
+      if (valid(T, &tmp, discard, ctor_conv))
         return xx;
     }
     return 0;

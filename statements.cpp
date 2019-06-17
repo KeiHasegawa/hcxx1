@@ -1101,7 +1101,7 @@ int cxx_compiler::statements::return_stmt::info_t::gen()
     expr = expr->rvalue();
   if (expr) {
     bool discard = false;
-    T = cxx_compiler::expressions::assignment::valid(T,expr,&discard);
+    T = cxx_compiler::expressions::assignment::valid(T, expr, &discard, true);
     if (!T) {
       using namespace error::statements::return_stmt;
       const type* from = expr->m_type;

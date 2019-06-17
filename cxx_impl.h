@@ -985,8 +985,9 @@ namespace expressions {
     };
   } // end of namespace conditional
   namespace assignment {
-    extern const type* valid(const type*, var*, bool*);
+    extern const type* valid(const type*, var*, bool*, bool);
     extern bool include(int cvr_x, int cvr_y);
+    extern var* ctor_conv_common(const record_type*, var*, bool);
   } // end of namespace assignment
   extern bool constant_flag;
 } // end of namespace expressions
