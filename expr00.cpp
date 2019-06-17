@@ -1397,58 +1397,62 @@ cxx_compiler::unqualified_id::from_nonmember(var* v)
   return ret;
 }
 
+namespace cxx_compiler {
+  string operator_name(int op)
+  {
+    switch (op) {
+    case NEW_KW: return "new";
+    case DELETE_KW: return "delete";
+    case NEW_ARRAY_LEX: return "new []";
+    case DELETE_ARRAY_LEX: return "delete []";
+    case '+': return "+";
+    case '-': return "-";
+    case '*': return "*";
+    case '/': return "/";
+    case '%': return "%";
+    case '^': return "^";
+    case '&': return "&";
+    case '|': return "|";
+    case '~': return "~";
+    case '!': return "!";
+    case '=': return "=";
+    case '<': return "<";
+    case '>': return ">";
+    case ADD_ASSIGN_MK: return "+=";
+    case SUB_ASSIGN_MK: return "-=";
+    case MUL_ASSIGN_MK: return "*=";
+    case DIV_ASSIGN_MK: return "/=";
+    case MOD_ASSIGN_MK: return "%=";
+    case XOR_ASSIGN_MK: return "^=";
+    case AND_ASSIGN_MK: return "&=";
+    case OR_ASSIGN_MK: return "|=";
+    case LSH_MK: return "<<";
+    case RSH_MK: return ">>";
+    case LSH_ASSIGN_MK: return "<<=";
+    case RSH_ASSIGN_MK: return ">>=";
+    case EQUAL_MK: return "==";
+    case NOTEQ_MK: return "!=";
+    case LESSEQ_MK: return "<=";
+    case GREATEREQ_MK: return ">=";
+    case ANDAND_MK: return "&&";
+    case OROR_MK: return "||";
+    case PLUSPLUS_MK: return "++";
+    case MINUSMINUS_MK: return "--";
+    case ',': return ",";
+    case ARROWASTER_MK: return "->*";
+    case ARROW_MK: return "->";
+    case '(': return "()";
+    default : assert(op == '['); return "[]";
+    }
+  }
+} // end of namespace cxx_compiler
+
 cxx_compiler::var*
 cxx_compiler::unqualified_id::operator_function_id(int op)
 {
-  switch (op) {
-  case NEW_KW:
-    {
-      const type* T = backpatch_type::create();
-      return new usr("new",T,usr::NONE,parse::position);
-    }
-  case DELETE_KW:
-  case NEW_ARRAY_LEX:
-  case DELETE_ARRAY_LEX:
-  case '+':
-  case '-':
-  case '*':
-  case '/':
-  case '%':
-  case '^':
-  case '&':
-  case '|':
-  case '~':
-  case '!':
-  case '=':
-  case '<':
-  case '>':
-  case ADD_ASSIGN_MK:
-  case SUB_ASSIGN_MK:
-  case MUL_ASSIGN_MK:
-  case DIV_ASSIGN_MK:
-  case MOD_ASSIGN_MK:
-  case XOR_ASSIGN_MK:
-  case AND_ASSIGN_MK:
-  case OR_ASSIGN_MK:
-  case LSH_MK:
-  case RSH_MK:
-  case LSH_ASSIGN_MK:
-  case RSH_ASSIGN_MK:
-  case EQUAL_MK:
-  case NOTEQ_MK:
-  case LESSEQ_MK:
-  case GREATEREQ_MK:
-  case ANDAND_MK:
-  case OROR_MK:
-  case PLUSPLUS_MK:
-  case MINUSMINUS_MK:
-  case ',':
-  case ARROWASTER_MK:
-  case ARROW_MK:
-  case '(':
-  case '[':
-    error::not_implemented();
-  }
+  const type* T = backpatch_type::create();
+  string name = operator_name(op);
+  return new usr(name,T,usr::NONE,parse::position);
 }
 
 cxx_compiler::var* cxx_compiler::qualified_id::action(var* v)

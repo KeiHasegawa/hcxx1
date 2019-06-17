@@ -23,6 +23,24 @@ cxx_compiler::opposite_t::opposite_t()
 
 cxx_compiler::opposite_t cxx_compiler::opposite;
 
+namespace cxx_compiler {
+  namespace expressions {
+    namespace cmp_impl {
+      inline int conv(goto3ac::op op)
+      {
+	switch (op) {
+	case goto3ac::EQ : return EQUAL_MK;
+	case goto3ac::NE : return NOTEQ_MK;
+	case goto3ac::LE : return LESSEQ_MK;
+	case goto3ac::GE : return GREATEREQ_MK;
+	case goto3ac::LT : return '<';
+	default: assert(op == goto3ac::GT); return '>';
+	}
+      }
+    } // end of namespace cmp_impl
+  } // end of namespace expressions
+} // end of namespace cxx_compiler
+
 cxx_compiler::var*
 cxx_compiler::expressions::cmp_impl::gen(goto3ac::op op, var* y, var* z)
 {
@@ -30,8 +48,14 @@ cxx_compiler::expressions::cmp_impl::gen(goto3ac::op op, var* y, var* z)
   const type* Tz = z->m_type;
   if ( !Ty->arithmetic() || !Tz->arithmetic() ) {
     if ( !cmp_impl::valid_pointer(op,y,z) ){
+      if (var* ret = var_impl::operator_code(conv(op), y, z))
+	return ret;
       using namespace error::expressions::binary;
-      switch ( op ){
+#if 1
+      int tmp = conv(op);
+      invalid(parse::position,tmp,Ty,Tz);
+#else
+      switch (op) {
       case goto3ac::LT: invalid(parse::position,'<',Ty,Tz); break;
       case goto3ac::GT: invalid(parse::position,'>',Ty,Tz); break;
       case goto3ac::LE: invalid(parse::position,LESSEQ_MK,Ty,Tz); break;
@@ -39,6 +63,7 @@ cxx_compiler::expressions::cmp_impl::gen(goto3ac::op op, var* y, var* z)
       case goto3ac::EQ: invalid(parse::position,EQUAL_MK,Ty,Tz); break;
       case goto3ac::NE: invalid(parse::position,NOTEQ_MK,Ty,Tz); break;
       }
+#endif
     }
   }
   usr* zero = primary::literal::integer::create(0);

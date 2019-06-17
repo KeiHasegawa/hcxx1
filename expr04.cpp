@@ -5,6 +5,25 @@
 #include "yy.h"
 #include "cxx_y.h"
 
+namespace cxx_compiler {
+  usr* operator_function(const type* T, int op)
+  {
+    T = T->unqualified();
+    if (T->m_id != type::RECORD)
+      return 0;
+    typedef const record_type REC;
+    REC* rec = static_cast<REC*>(T);
+    tag* ptr = rec->get_tag();
+    map<string, vector<usr*> >& usrs = ptr->m_usrs;
+    string name = operator_name(op);
+    map<string, vector<usr*> >::const_iterator p = usrs.find(name);
+    if (p == usrs.end())
+      return 0;
+    const vector<usr*>& v = p->second;
+    return v.back();
+  }
+} // end of namespace cxx_compiler
+
 cxx_compiler::var* cxx_compiler::expressions::binary::info_t::gen()
 {
   var* left = m_left->gen();
@@ -44,18 +63,21 @@ cxx_compiler::var* cxx_compiler::expressions::binary::info_t::gen()
   case ADD_ASSIGN_MK: case SUB_ASSIGN_MK:
   case AND_ASSIGN_MK: case XOR_ASSIGN_MK: case OR_ASSIGN_MK:
     if (!conversion::arithmetic::gen(&leftc, &rightc)) {
-      switch (m_op) {
-      case '*': case '/': case '%': case '&': case '^': case '|':
-      case MUL_ASSIGN_MK: case DIV_ASSIGN_MK: case MOD_ASSIGN_MK:
-      case AND_ASSIGN_MK: case XOR_ASSIGN_MK: case OR_ASSIGN_MK:
-        using namespace error::expressions::binary;
-        invalid(file(), m_op, leftc->m_type, rightc->m_type);
+      if (!operator_function(leftc->m_type, m_op) &&
+	  !operator_function(rightc->m_type, m_op)) {
+	switch (m_op) {
+	case '*': case '/': case '%': case '&': case '^': case '|':
+	case MUL_ASSIGN_MK: case DIV_ASSIGN_MK: case MOD_ASSIGN_MK:
+	case AND_ASSIGN_MK: case XOR_ASSIGN_MK: case OR_ASSIGN_MK:
+	  using namespace error::expressions::binary;
+	  invalid(file(), m_op, leftc->m_type, rightc->m_type);
+	}
       }
     }
     break;
   }
 
-  switch ( m_op ){
+  switch (m_op) {
   case DOTASTER_MK :   return leftc->ptr_member(rightc, true);
   case ARROWASTER_MK : return leftc->ptr_member(rightc,false);
   case '*' :           return leftc->mul(rightc);

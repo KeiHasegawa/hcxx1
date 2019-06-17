@@ -140,7 +140,8 @@ cxx_compiler::var* cxx_compiler::var::call(std::vector<var*>* arg)
   }
   typedef const func_type FT;
   FT* ft = static_cast<FT*>(T);
-  return call_impl::common(ft, func, arg, 0, 0, false, 0);
+  var* ret = call_impl::common(ft, func, arg, 0, 0, false, 0);
+  return ret;
 }
 
 cxx_compiler::var*
@@ -1600,6 +1601,17 @@ namespace cxx_compiler {
 	if (trial) {
 	  for_each(begin(code)+n, end(code), [](tac* p){ delete p; });
 	  code.resize(n);
+	}
+	else {
+	  if (!error::counter && !cmdline::no_inline_sub) {
+	    if (flag & usr::INLINE) {
+	      using namespace declarations::declarators::function;
+	      using namespace definition::static_inline;
+	      skip::table_t::const_iterator p = skip::stbl.find(ctor);
+	      if (p != skip::stbl.end())
+		substitute(code, code.size()-1, p->second);
+	    }
+	  }
 	}
 	assert(trial || res);
 	return res ? obj : 0;

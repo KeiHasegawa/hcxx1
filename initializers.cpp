@@ -415,13 +415,22 @@ expr_list(std::vector<expressions::base*>* exprs, argument* arg)
     return 0;
   }
 
-
   const type* T2 = ctor->m_type;
   assert(T2->m_id == type::FUNC);
   typedef const func_type FT;
   FT* ft = static_cast<FT*>(T2);
   int n = code.size();
   call_impl::common(ft, ctor, &res, 0, argument::dst, false, 0);
+  if (!error::counter && !cmdline::no_inline_sub) {
+    if (flag & usr::INLINE) {
+      using namespace declarations::declarators::function;
+      using namespace definition::static_inline;
+      skip::table_t::const_iterator p = skip::stbl.find(ctor);
+      if (p != skip::stbl.end())
+	substitute(code, code.size()-1, p->second);
+    }
+  }
+
   vector<tac*>& c = table[argument::dst].m_code;
   copy(begin(code)+n, end(code), back_inserter(c));
   code.resize(n);

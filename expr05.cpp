@@ -8,6 +8,43 @@
 namespace cxx_compiler { namespace var_impl {
   var* mul(var*, var*);
   var* opt_mul(var*, var*);
+
+  var* operator_code(int op, var* y, var* z)
+  {
+    const type* Ty = y->m_type;
+    const type* Tz = z->m_type;
+    usr* op_fun = operator_function(Ty, op);
+    if (!op_fun) {
+      op_fun = operator_function(Tz, op);
+      if (!op_fun)
+	return 0;
+      y = aggregate_conv(Tz, y);
+    }
+    usr::flag_t flag = op_fun->m_flag;
+    vector<var*> arg;
+    arg.push_back(z);
+    if (flag & usr::OVERLOAD) {
+      overload* ovl = static_cast<overload*>(op_fun);
+      ovl->m_obj = y;
+      return ovl->call(&arg);
+    }
+
+    const type* T = op_fun->m_type;
+    assert(T->m_id == type::FUNC);
+    typedef const func_type FT;
+    FT* ft = static_cast<FT*>(T);
+    var* ret = call_impl::common(ft, op_fun, &arg, 0, y, false, 0);
+    if (!error::counter && !cmdline::no_inline_sub) {
+      if (flag & usr::INLINE) {
+	using namespace declarations::declarators::function;
+	using namespace definition::static_inline::skip;
+	table_t::const_iterator p = stbl.find(op_fun);
+	if (p != stbl.end())
+	  substitute(code, code.size()-1, p->second);
+      }
+    }
+    return ret;
+  }
 } } // end of namespace var_impl and cxx_compiler
 
 cxx_compiler::var* cxx_compiler::var_impl::mul(var* y, var* z)
@@ -15,8 +52,11 @@ cxx_compiler::var* cxx_compiler::var_impl::mul(var* y, var* z)
   const type* Ty = y->m_type;
   const type* Tz = z->m_type;
   const type* Tx = Ty->unqualified();
-  if (!Ty->arithmetic() || !Tz->arithmetic())
+  if (!Ty->arithmetic() || !Tz->arithmetic()) {
+    if (var* ret = operator_code('*', y, z))
+      return ret;
     Tx = int_type::create();
+  }
   if ( var* x = opt_mul(y,z) )
     return x;
   if ( var* x = opt_mul(z,y) )
@@ -180,8 +220,11 @@ cxx_compiler::var* cxx_compiler::var_impl::div(var* y, var* z)
   const type* Ty = y->m_type;
   const type* Tz = z->m_type;
   const type* Tx = Ty->unqualified();
-  if (!Ty->arithmetic() || !Tz->arithmetic())
+  if (!Ty->arithmetic() || !Tz->arithmetic()) {
+    if (var* ret = operator_code('/', y, z))
+      return ret;
     Tx = int_type::create();
+  }
   if ( var* x = opt_div(y,z) )
     return x;
 
@@ -315,8 +358,11 @@ cxx_compiler::var* cxx_compiler::var_impl::mod(var* y, var* z)
       Tx = int_type::create();
     }
   }
-  else
+  else {
+    if (var* ret = operator_code('%', y, z))
+      return ret;
     Tx = int_type::create();
+  }
 
   if ( var* x = opt_mod(y,z) )
     return x;
@@ -426,6 +472,8 @@ cxx_compiler::var* cxx_compiler::var_impl::add(var* y, var* z)
   const type* Tz = z->m_type;
   const type* Tx = Ty->unqualified();
   if (!Ty->arithmetic() || !Tz->arithmetic()) {
+    if (var* ret = operator_code('+', y, z))
+      return ret;
     using namespace error::expressions::binary;
     invalid(parse::position,'+', Ty, Tz);
     Tx = int_type::create();
@@ -712,6 +760,8 @@ cxx_compiler::var* cxx_compiler::var_impl::sub(var* y, var* z)
   const type* Tz = z->m_type;
   const type* Tx = Ty->unqualified();
   if (!Ty->arithmetic() || !Tz->arithmetic()) {
+    if (var* ret = operator_code('-', y, z))
+      return ret;
     using namespace error::expressions::binary;
     invalid(parse::position,'-', Ty, Tz);
     Tx = int_type::create();

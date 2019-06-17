@@ -150,6 +150,15 @@ namespace cxx_compiler {
     typedef const func_type FT;
     FT* ft = static_cast<FT*>(T);
     var* ret = call_impl::common(ft, new_entry, &arg, 0, 0, false, 0);
+    if (!error::counter && !cmdline::no_inline_sub) {
+      if (flag & usr::INLINE) {
+	using namespace declarations::declarators::function;
+	using namespace definition::static_inline;
+	skip::table_t::const_iterator p = skip::stbl.find(new_entry);
+	if (p != skip::stbl.end())
+	  substitute(code, code.size()-1, p->second);
+      }
+    }
     return ret;
   }
 } // end of namespace cxx_compiler

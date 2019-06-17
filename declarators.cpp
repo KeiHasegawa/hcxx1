@@ -93,7 +93,11 @@ function::action(const type* T,
 	      {
 		expressions::base* bp = p->second;
 		auto_ptr<expressions::base> sweeper(bp);
-		return bp ? bp->gen() : 0;
+		if (!bp)
+		  return (var*)0;
+		var* v = bp->gen();
+		const type* T = p->first;
+		return v->cast(T);
 	      });
     typedef vector<var*>::const_iterator IT;
     IT p = find_if(begin(default_arg), end(default_arg),
@@ -377,6 +381,14 @@ namespace cxx_compiler {
 		       { return compatible(T, u->m_type); });
 	    return ret == make_pair(end(param), end(order));
 	  }
+	  inline bool check_now(usr* fun)
+	  {
+	    scope* p = fun->m_scope;
+	    if (p->m_id != scope::TAG)
+	      return true;
+	    tag* ptr = static_cast<tag*>(p);
+	    return ptr->m_types.second;
+	  }
 	} // end of namespace definition
       } // end of namespace function
     } // end of namespace declarators
@@ -417,7 +429,8 @@ function::definition::begin(declarations::specifier_seq::info_t* p, var* v)
   }
   scope* param = children.back();
   const vector<usr*>& order = param->m_order;
-  for_each(order.begin(),order.end(),check_object);
+  if (check_now(u))
+    for_each(order.begin(),order.end(),check_object);
   usr::flag_t flag = u->m_flag;
   if (flag & usr::OVERLOAD) {
     overload* ovl = static_cast<overload*>(u);

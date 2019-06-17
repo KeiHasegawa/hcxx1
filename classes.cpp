@@ -108,6 +108,7 @@ namespace cxx_compiler {
       member_function_definition(pair<usr* const,
                                       parse::member_function_body::save_t>& E)
       {
+	using namespace declarations;
         usr* u = E.first;
         u->m_type = u->m_type->complete_type();
         scope::current = u->m_scope;
@@ -115,6 +116,8 @@ namespace cxx_compiler {
         scope* param = E.second.m_param;
         children.push_back(param);
         fundef::current = new fundef(u,param);
+	const vector<usr*>& order = param->m_order;
+	for_each(order.begin(),order.end(),check_object);
         parse::member_function_body::saved = &E.second;
         file_t org = parse::position;
         cxx_compiler_parse();
@@ -351,18 +354,32 @@ namespace cxx_compiler {
 		this_ptr = tmp;
 	      }
 	      const vector<usr*>& v = p->second;
-	      if (v.size() != 1)
-		error::not_implemented();
 	      usr* ctor = v.back();
-	      const type* T = ctor->m_type;
-	      assert(T->m_id == type::FUNC);
-	      typedef const func_type FT;
-	      FT* ft = static_cast<FT*>(T);
+	      usr::flag_t flag = ctor->m_flag;
 	      vector<var*> arg;
 	      if (exprs)
 		transform(begin(*exprs), end(*exprs), back_inserter(arg),
 			  mem_fun(&expressions::base::gen));
+	      if (flag & usr::OVERLOAD) {
+		overload* ovl = static_cast<overload*>(ctor);
+		ovl->m_obj = this_ptr;
+		ovl->call(&arg);
+		return;
+	      }
+	      const type* T = ctor->m_type;
+	      assert(T->m_id == type::FUNC);
+	      typedef const func_type FT;
+	      FT* ft = static_cast<FT*>(T);
 	      call_impl::common(ft, ctor, &arg, 0, this_ptr, false, 0);
+	      if (!error::counter && !cmdline::no_inline_sub) {
+		if (flag & usr::INLINE) {
+		  using namespace declarations::declarators::function;
+		  using namespace definition::static_inline;
+		  skip::table_t::const_iterator p = skip::stbl.find(ctor);
+		  if (p != skip::stbl.end())
+		    substitute(code, code.size()-1, p->second);
+		}
+	      }
 	    }
 	    void tag_action(tag* btag, EXPRS* exprs, usr* ctor)
 	    {

@@ -698,11 +698,11 @@ cxx_compiler::declarations::action1(var* v, bool ini)
 void cxx_compiler::declarations::check_object(usr* u)
 {
   const type* T = u->m_type;
+  u->m_type = T = T->complete_type();
   int size = T->size();
   if (!size) {
     using namespace error::declarations;
     not_object(u,T);
-    size = int_type::create()->size();
     u->m_type = int_type::create();
   }
   check_abstract_obj(u);

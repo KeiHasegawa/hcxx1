@@ -500,6 +500,14 @@ extern void call_base_ctor(usr*);
 
 extern void call_base_dtor(usr*);
 
+extern string operator_name(int op);
+
+extern usr* operator_function(const type* T, int op);
+
+namespace var_impl {
+  extern var* operator_code(int op, var* y, var* z);
+} // end of namespace var_impl
+
 namespace record_impl {
   extern int base_vb(int n, const base* bp);
 } // end of namespace record_impl
