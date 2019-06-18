@@ -497,6 +497,15 @@ cxx_compiler::declarations::declarators::function::definition::valid(const type*
 }
 
 namespace cxx_compiler {
+  namespace class_or_namespace_name {
+    inline void pop(scope* param)
+    {
+      if (!before.empty()) {
+	if (before.back() == param)
+	  before.pop_back();
+      }
+    }
+  } // end of namespace class_or_namespace_name
   namespace declarations {
     namespace declarators {
       namespace function {
@@ -511,11 +520,7 @@ namespace cxx_compiler {
             vector<scope*>::iterator q = p.base() - 1;
             delete param;
             children.erase(q);
-	    if (!class_or_namespace_name::before.empty()) {
-	      if (class_or_namespace_name::before.back() == param)
-		class_or_namespace_name::before.pop_back();
-	    }
-
+	    class_or_namespace_name::pop(param);
             for (tac* p : vc)
               delete p;
             vc.clear();
@@ -640,6 +645,7 @@ function::definition::action(fundef* fdef, std::vector<tac*>& vc)
     }
     else if (generator::last) {
       remember(fdef, vc);
+      class_or_namespace_name::pop(fundef::current->m_param);
       fundef::current = 0;
     }
     else

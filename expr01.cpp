@@ -1561,10 +1561,8 @@ namespace cxx_compiler {
 	const map<string, vector<usr*> >& usrs = ptr->m_usrs;
 	typedef map<string, vector<usr*> >::const_iterator IT;
 	IT p = usrs.find(tgn);
-	if (p == usrs.end()) {
-	  assert(trial);
+	if (p == usrs.end())
 	  return 0;
-	}
 
 	const vector<usr*>& v= p->second;
 	usr* ctor = v.back();
@@ -1755,6 +1753,11 @@ assignment::valid(const type* T, var* src, bool* discard, bool ctor_conv)
       }
     }
     return 0;
+  }
+  if (yy->m_id == type::RECORD) {
+    typedef const record_type REC;
+    REC* rec = static_cast<REC*>(yy);
+    return cast_impl::conversion_function(rec, xx) ? xx : 0;
   }
   return 0;
 }

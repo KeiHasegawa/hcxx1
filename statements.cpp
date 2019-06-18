@@ -1109,7 +1109,7 @@ int cxx_compiler::statements::return_stmt::info_t::gen()
       invalid(m_file,from,to);
       return 0;
     }
-    expr = expr->cast(T);
+    expr = T->aggregate() ? aggregate_conv(T, expr) : expr->cast(T);
   }
   else {
     if (T->m_id != type::VOID) {

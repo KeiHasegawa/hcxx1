@@ -99,7 +99,7 @@ cxx_compiler::var* cxx_compiler::usr::assign(var* op)
   if (m_type->m_id == type::REFERENCE)
     code.push_back(new invladdr3ac(this,y));
   else {
-    y = T->scalar() ? y->cast(T) : aggregate_conv(T, y);
+    y = T->aggregate() ? aggregate_conv(T, y) : y->cast(T);
     code.push_back(new assign3ac(this,y));
   }
   if ( !y->isconstant() )
@@ -138,7 +138,7 @@ cxx_compiler::var* cxx_compiler::ref::assign(var* op)
     invalid(parse::position,0,discard);
     T = int_type::create();
   }
-  y = y->cast(T);
+  y = T->aggregate() ? aggregate_conv(T, y) : y->cast(T);
   code.push_back(new invladdr3ac(this,y));
   if ( !y->isconstant() )
     return y;
@@ -175,7 +175,7 @@ cxx_compiler::var* cxx_compiler::refaddr::assign(var* op)
     invalid(parse::position,0,discard);
     T = int_type::create();
   }
-  z = z->cast(T);
+  z = T->aggregate() ? aggregate_conv(T, z) : z->cast(T);
   using namespace expressions::primary::literal;
   int offset = m_addrof.m_offset;
   var* y = integer::create(offset);
@@ -277,7 +277,7 @@ cxx_compiler::var* cxx_compiler::refsomewhere::assign(var* op)
     invalid(parse::position,0,discard);
     T = int_type::create();
   }
-  op = op->cast(T);
+  op = T->aggregate() ? aggregate_conv(T, op) : op->cast(T);
   vector<route_t> dummy;
   var* x = expressions::primary::action(m_ref, dummy);
   if (x != m_ref) {

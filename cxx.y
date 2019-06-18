@@ -124,6 +124,7 @@ namespace cxx_compiler {
 %type<m_usrs> asm_definition
 %type<m_type> ptr_operator abstract_declarator direct_abstract_declarator
 %type<m_type> class_specifier elaborated_type_specifier type_id enum_specifier
+%type<m_type> conversion_type_id conversion_function_id
 %type<m_type_specifier> simple_type_specifier type_specifier type_name
 %type<m_type_specifier_seq> type_specifier_seq
 %type<m_specifier> decl_specifier
@@ -955,14 +956,14 @@ type_id
   : type_specifier_seq abstract_declarator
     {
       using namespace cxx_compiler;
-      $$ = cxx_compiler::declarations::declarators::type_id::action($2);
+      $$ = declarations::declarators::type_id::action($2);
       parse::identifier::mode = parse::identifier::look;
       delete $1;
     }
   | type_specifier_seq
     {
       using namespace cxx_compiler;
-      $$ = cxx_compiler::declarations::declarators::type_id::action(0);
+      $$ = declarations::declarators::type_id::action(0);
       parse::identifier::mode = parse::identifier::look;
       delete $1;
     }
@@ -1337,12 +1338,24 @@ mem_initializer_id
   ;
 
 conversion_function_id
-  : OPERATOR_KW conversion_type_id
+  : OPERATOR_KW conversion_type_id { $$ = $2; }
   ;
 
 conversion_type_id
   : type_specifier_seq conversion_declarator
+    {
+      using namespace cxx_compiler;
+      $$ = declarations::declarators::type_id::action(0);
+      parse::identifier::mode = parse::identifier::look;
+      delete $1;
+    }
   | type_specifier_seq
+    {
+      using namespace cxx_compiler;
+      $$ = declarations::declarators::type_id::action(0);
+      parse::identifier::mode = parse::identifier::look;
+      delete $1;
+    }
   ;
 
 conversion_declarator
@@ -1521,7 +1534,7 @@ unqualified_id
   | operator_function_id
     { $$ = cxx_compiler::unqualified_id::operator_function_id($1); }
   | conversion_function_id
-    { cxx_compiler::error::not_implemented(); }
+    { $$ = cxx_compiler::unqualified_id::conversion_function_id($1); }
   | '~' class_name
     { $$ = cxx_compiler::unqualified_id::dtor($2); }
   | template_id

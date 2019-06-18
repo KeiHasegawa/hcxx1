@@ -1455,6 +1455,29 @@ cxx_compiler::unqualified_id::operator_function_id(int op)
   return new usr(name,T,usr::NONE,parse::position);
 }
 
+namespace cxx_compiler {
+  string conversion_name(const type* T)
+  {
+    using namespace std;
+    ostringstream os;
+    T->decl(os, "");
+    return os.str();
+  }
+} // end of namespace cxx_compiler
+
+cxx_compiler::var*
+cxx_compiler::unqualified_id::conversion_function_id(const type* X)
+{
+  using namespace declarations;
+  type_specifier* ts = new type_specifier(X);
+  specifier* spec = new specifier(ts);
+  new specifier_seq::info_t(0, spec);
+
+  const type* T = backpatch_type::create();
+  string name = conversion_name(X);
+  return new usr(name,T,usr::NONE,parse::position);
+}
+
 cxx_compiler::var* cxx_compiler::qualified_id::action(var* v)
 {
   genaddr* ga = v->genaddr_cast();

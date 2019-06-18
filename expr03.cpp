@@ -28,25 +28,12 @@ cxx_compiler::var* cxx_compiler::expressions::cast::info_t::gen()
     invalid(parse::position);
     T = int_type::create();
   }
-  return expr->cast(T);
+  return T->aggregate() ? aggregate_conv(T, expr) : expr->cast(T);
 }
 
 const cxx_compiler::file_t& cxx_compiler::expressions::cast::info_t::file() const
 {
   return m_expr->file();
-}
-
-const cxx_compiler::type* cxx_compiler::expressions::cast::valid(const type* T, var* y)
-{
-  if (assignment::valid(T, y, 0, true))
-    return T;
-  const type* Tx = T->unqualified();
-  const type* Ty = y->m_type->unqualified();
-  if ( Tx->m_id == type::POINTER )
-    return Ty->real() ? 0 : T;
-  if ( Ty->m_id == type::POINTER )
-    return Tx->real() ? 0 : T;
-  return 0;
 }
 
 namespace cxx_compiler {
@@ -203,11 +190,86 @@ namespace cxx_compiler {
       }
       return x;
     }
+    usr* conversion_function(const record_type* rec, const type* T)
+    {
+      tag* ptr = rec->get_tag();
+      const map<string, vector<usr*> >& usrs = ptr->m_usrs;
+      ostringstream os;
+      T->decl(os, "");
+      string name = os.str();
+      typedef map<string, vector<usr*> >::const_iterator IT;
+      IT p = usrs.find(name);
+      if (p == usrs.end())
+	return 0;
+      const vector<usr*>& v = p->second;
+      assert(v.size() == 1);
+      usr* op = v.back();
+      return op;
+    }
+    inline var* conversion(const record_type* rec, var* src, const type* T)
+    {
+      usr* op = conversion_function(rec, T);
+      if (!op) {
+	// already handled error
+	var* ret = new var(T);
+	if (scope::current->m_id == scope::BLOCK) {
+	  block* b = static_cast<block*>(scope::current);
+	  b->m_vars.push_back(ret);
+	}
+	else
+	  garbage.push_back(ret);
+	code.push_back(new cast3ac(ret, src, T));
+	return ret;
+      }
+      const type* Top = op->m_type;
+      assert(Top->m_id == type::FUNC);
+      typedef const func_type FT;
+      FT* ft = static_cast<FT*>(Top);
+      vector<var*> arg;
+      var* ret = call_impl::common(ft, op, &arg, 0, src, false, 0);
+      usr::flag_t flag = op->m_flag;
+      if (!error::counter && !cmdline::no_inline_sub) {
+	if (flag & usr::INLINE) {
+	  using namespace declarations::declarators::function;
+	  using namespace definition::static_inline;
+	  skip::table_t::const_iterator p = skip::stbl.find(op);
+	  if (p != skip::stbl.end())
+	    substitute(code, code.size()-1, p->second);
+	}
+      }
+      return ret;
+    }
   }  // end of namespace cast_impl
 }  // end of namespace cxx_compiler
 
+const cxx_compiler::type*
+cxx_compiler::expressions::cast::valid(const type* T, var* y)
+{
+  if (assignment::valid(T, y, 0, true))
+    return T;
+  const type* Tx = T->unqualified();
+  const type* Ty = y->m_type->unqualified();
+  if ( Tx->m_id == type::POINTER )
+    return Ty->real() ? 0 : T;
+  if ( Ty->m_id == type::POINTER )
+    return Tx->real() ? 0 : T;
+  if (Ty->m_id == type::RECORD) {
+    typedef const record_type REC;
+    REC* rec = static_cast<REC*>(Ty);
+    return cast_impl::conversion_function(rec, T) ? T : 0;
+  }
+  return 0;
+}
+
 cxx_compiler::var* cxx_compiler::var::cast(const type* T)
 {
+  const type* U = m_type->unqualified();
+  if (U->m_id == type::RECORD) {
+    typedef const record_type REC;
+    REC* rec = static_cast<REC*>(U);
+    return cast_impl::conversion(rec, this, T);
+  }
+
   vector<route_t> dummy;
   return cast_impl::with_route(T, this, dummy);
 }
@@ -305,7 +367,7 @@ namespace cxx_compiler { namespace constant_impl {
         return cast(et->get_integer(),y);
       }
     default:
-      return y->var::cast(Tx);
+      return Tx->aggregate() ? aggregate_conv(Tx, y) : y->var::cast(Tx);
     }
   }
   template<class T> var* fcast(const type* Tx, constant<T>* y)
@@ -361,7 +423,7 @@ namespace cxx_compiler { namespace constant_impl {
         return fcast(et->get_integer(),y);
       }
     default:
-      return y->var::cast(Tx);
+      return Tx->aggregate() ? aggregate_conv(Tx, y) : y->var::cast(Tx);
     }
   }
   template<class T> var* pcast(const type* Tx, constant<T>* y)
@@ -543,7 +605,7 @@ cxx_compiler::var* cxx_compiler::constant<long double>::cast(const type* T)
     else {
       double d = (*generator::long_double->to_double)(b);
       usr* tmp = floating::create(d);
-      return tmp->cast(T);
+      return T->aggregate() ? aggregate_conv(T, tmp) : tmp->cast(T);
     }
   }
   else

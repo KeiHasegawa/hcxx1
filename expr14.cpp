@@ -390,14 +390,16 @@ cxx_compiler::var* cxx_compiler::var_impl::cond(var* expr1, int y, var* expr2, i
     T = int_type::create();
   }
   var* ret = new var(T);
-  block* b = scope::current->m_id == scope::BLOCK ? static_cast<block*>(scope::current) : 0;
+  block* b = 0;
+  if (scope::current->m_id == scope::BLOCK)
+    b = static_cast<block*>(scope::current);
   if (b && T->m_id != type::VOID)
     b->m_vars.push_back(ret);
   else
     garbage.push_back(ret);
-  if ( T->scalar() )
+  if (T->scalar())
     expr2 = expr2->cast(T);
-  if ( T->m_id != type::VOID )
+  if (T->m_id != type::VOID)
     code.push_back(new assign3ac(ret,expr2));
   goto3ac* goto2 = new goto3ac;
   code.push_back(goto2);

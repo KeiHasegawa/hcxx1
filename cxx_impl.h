@@ -1210,6 +1210,7 @@ struct generated : virtual var {
 
 namespace cast_impl {
   extern var* with_route(const type* Tx, var* src, const vector<route_t>&);
+  extern usr* conversion_function(const record_type* rec, const type* T);
 } // end of namespace cast_impl
 
 struct genaddr : generated, addrof {
@@ -1384,6 +1385,7 @@ namespace unqualified_id {
   extern var* from_nonmember(var*);
   extern var* dtor(tag*);
   extern var* operator_function_id(int);
+  extern var* conversion_function_id(const type*);
 } // end of namespace unqualifed_id
 
 namespace qualified_id {
