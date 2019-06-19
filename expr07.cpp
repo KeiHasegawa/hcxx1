@@ -17,6 +17,8 @@ cxx_compiler::var* cxx_compiler::var_impl::lsh(var* y, var* z)
   if ( !Ty->integer() || !Tz->integer() ){
     if (var* ret = operator_code(LSH_MK, y, z))
       return ret;
+    if (var* ret = conversion_code(LSH_MK, y, z, var_impl::lsh))
+      return ret;
     using namespace error::expressions::binary;
     invalid(parse::position,LSH_MK, Ty, Tz);
     Tx = int_type::create();
@@ -151,6 +153,8 @@ cxx_compiler::var* cxx_compiler::var_impl::rsh(var* y, var* z)
   const type* Tx = Ty->unqualified();
   if ( !Ty->integer() || !Tz->integer()) {
     if (var* ret = operator_code(RSH_MK, y, z))
+      return ret;
+    if (var* ret = conversion_code(RSH_MK, y, z, var_impl::rsh))
       return ret;
     using namespace error::expressions::binary;
     invalid(parse::position,RSH_MK, Ty, Tz);

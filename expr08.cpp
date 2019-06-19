@@ -37,6 +37,24 @@ namespace cxx_compiler {
 	default: assert(op == goto3ac::GT); return '>';
 	}
       }
+      typedef var* PF(var*, var*);
+      var* equal(var* y, var* z){ return gen(goto3ac::EQ, y, z); }
+      var* not_equal(var* y, var* z){ return gen(goto3ac::NE, y, z); }
+      var* less_equal(var* y, var* z){ return gen(goto3ac::LE, y, z); }
+      var* greater_equal(var* y, var* z){ return gen(goto3ac::GE, y, z); }
+      var* less_than(var* y, var* z){ return gen(goto3ac::LT, y, z); }
+      var* greater_than(var* y, var* z){ return gen(goto3ac::GT, y, z); }
+      inline PF* conv_pf(goto3ac::op op)
+      {
+	switch (op) {
+	case goto3ac::EQ : return equal;
+	case goto3ac::NE : return not_equal;
+	case goto3ac::LE : return less_equal;
+	case goto3ac::GE : return greater_equal;
+	case goto3ac::LT : return less_than;
+	default: assert(op == goto3ac::GT); return greater_than;
+	}
+      }
     } // end of namespace cmp_impl
   } // end of namespace expressions
 } // end of namespace cxx_compiler
@@ -50,20 +68,12 @@ cxx_compiler::expressions::cmp_impl::gen(goto3ac::op op, var* y, var* z)
     if ( !cmp_impl::valid_pointer(op,y,z) ){
       if (var* ret = var_impl::operator_code(conv(op), y, z))
 	return ret;
+      var* (*pf)(var*, var*) = conv_pf(op);
+      if (var* ret = var_impl::conversion_code(conv(op), y, z, pf))
+	return ret;
       using namespace error::expressions::binary;
-#if 1
       int tmp = conv(op);
       invalid(parse::position,tmp,Ty,Tz);
-#else
-      switch (op) {
-      case goto3ac::LT: invalid(parse::position,'<',Ty,Tz); break;
-      case goto3ac::GT: invalid(parse::position,'>',Ty,Tz); break;
-      case goto3ac::LE: invalid(parse::position,LESSEQ_MK,Ty,Tz); break;
-      case goto3ac::GE: invalid(parse::position,GREATEREQ_MK,Ty,Tz); break;
-      case goto3ac::EQ: invalid(parse::position,EQUAL_MK,Ty,Tz); break;
-      case goto3ac::NE: invalid(parse::position,NOTEQ_MK,Ty,Tz); break;
-      }
-#endif
     }
   }
   usr* zero = primary::literal::integer::create(0);

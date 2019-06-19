@@ -504,8 +504,11 @@ extern string operator_name(int op);
 
 extern usr* operator_function(const type* T, int op);
 
+extern usr* conversion_function(const type* T);
+
 namespace var_impl {
   extern var* operator_code(int op, var* y, var* z);
+  extern var* conversion_code(int op, var* y, var* z, var* (*)(var*, var*));
 } // end of namespace var_impl
 
 namespace record_impl {
@@ -1400,6 +1403,7 @@ namespace call_impl {
               var* this_ptr,
               bool qualified_func,
               var* vftbl_off);
+  var* wrapper(usr* func, vector<var*>* arg, var* this_ptr);
 } // end of namespace call_impl
 
 void original_namespace_definition(var*);

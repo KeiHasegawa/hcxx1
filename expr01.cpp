@@ -424,6 +424,25 @@ namespace cxx_compiler {
     {
       common_default_arg(func, n, m, false);
     }
+    var* wrapper(usr* fun, vector<var*>* arg, var* this_ptr)
+    {
+      const type* T = fun->m_type;
+      assert(T->m_id == type::FUNC);
+      typedef const func_type FT;
+      FT* ft = static_cast<FT*>(T);
+      var* ret = call_impl::common(ft, fun, arg, 0, this_ptr, false, 0);
+      usr::flag_t flag = fun->m_flag;
+      if (!error::counter && !cmdline::no_inline_sub) {
+	if (flag & usr::INLINE) {
+	  using namespace declarations::declarators::function;
+	  using namespace definition::static_inline;
+	  skip::table_t::const_iterator p = skip::stbl.find(fun);
+	  if (p != skip::stbl.end())
+	    substitute(code, code.size()-1, p->second);
+	}
+      }
+      return ret;
+    }
   } // end of namespace call_impl
 } // end of namespace cxx_compiler
 
@@ -448,7 +467,7 @@ cxx_compiler::call_impl::common(const func_type* ft,
       }
       using namespace error::expressions::postfix::call;
       num_of_arg(parse::position,func,n,m.first);
-    }
+    }      typedef const func_type FT;
   }
   else if (m.second < n) {
     if (trial_cost) {
@@ -1989,23 +2008,10 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::fcast::gen()
     overload* ovl = static_cast<overload*>(ctor);
     ovl->m_obj = ret;
     ctor->call(&arg);
+    return ret;
   }
-  else {
-    const type* T = ctor->m_type;
-    assert(T->m_id == type::FUNC);
-    typedef const func_type FT;
-    FT* ft = static_cast<FT*>(T);
-    call_impl::common(ft, ctor, &arg, 0, ret, false, 0);
-  }
-  if (!error::counter && !cmdline::no_inline_sub) {
-    if (flag & usr::INLINE) {
-      using namespace declarations::declarators::function;
-      using namespace definition::static_inline::skip;
-      table_t::const_iterator p = stbl.find(ctor);
-      if (p != stbl.end())
-	substitute(code, code.size()-1, p->second);
-    }
-  }
+
+  call_impl::wrapper(ctor, &arg, ret);
   return ret;
 }
 

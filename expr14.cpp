@@ -16,6 +16,10 @@ cxx_compiler::var* cxx_compiler::var::logic1(bool ANDAND, int n, var* expr)
   var* y = rvalue();
   y = y->promotion();
   const type* Ty = y->m_type;
+  if (usr* conv = conversion_function(Ty)) {
+    y = call_impl::wrapper(conv, 0, y);
+    Ty = y->m_type;
+  }
   usr* zero = expressions::primary::literal::integer::create(0);
   usr* one = expressions::primary::literal::integer::create(1);
   goto3ac::op op = ANDAND ? goto3ac::EQ : goto3ac::NE;
@@ -26,6 +30,10 @@ cxx_compiler::var* cxx_compiler::var::logic1(bool ANDAND, int n, var* expr)
   var* z = expr->rvalue();
   z = z->promotion();
   const type* Tz = z->m_type;
+  if (usr* conv = conversion_function(Tz)) {
+    z = call_impl::wrapper(conv, 0, z);
+    Tz = z->m_type;
+  }
   if ( !Ty->scalar() || !Tz->scalar() ){
     using namespace error::expressions::binary;
     invalid(parse::position,ANDAND ? ANDAND_MK : OROR_MK,Ty,Tz);
@@ -359,13 +367,21 @@ cxx_compiler::var* cxx_compiler::var_impl::cond(var* expr1, int y, var* expr2, i
   copy(code.begin()+y,code.end(),back_inserter(code2));
   code.resize(y);
   expr1 = expr1->rvalue();
-  if ( !expr1->m_type->scalar() ){
-    using namespace error::expressions::conditional;
-    not_scalar(parse::position);
-    expr1->m_type = int_type::create();
+  const type* T1 = expr1->m_type;
+  if (!T1->scalar()) {
+    if (usr* conv = conversion_function(T1)) {
+      expr1 = call_impl::wrapper(conv, 0, expr1);
+      T1 = expr1->m_type;
+      assert(T1->scalar());
+    }
+    else {
+      using namespace error::expressions::conditional;
+      not_scalar(parse::position);
+      expr1->m_type = T1 = int_type::create();
+    }
   }
   var* zero = expressions::primary::literal::integer::create(0);
-  zero = zero->cast(expr1->m_type);
+  zero = zero->cast(T1);
   goto3ac* goto1 = new goto3ac(goto3ac::EQ,expr1,zero);
   code.push_back(goto1);
   copy(code2.begin(),code2.end(),back_inserter(code));

@@ -651,18 +651,7 @@ namespace cxx_compiler {
           var* off = integer::create(offset);
           code.push_back(new add3ac(tmp, tmp, off));
         }
-        vector<var*> arg;
-        call_impl::common(ft, ctor, &arg, 0, tmp, false, 0);
-        usr::flag_t flag = ctor->m_flag;
-        if (!error::counter && !cmdline::no_inline_sub) {
-          if (flag & usr::INLINE) {
-            using namespace declarations::declarators::function::definition;
-            using namespace static_inline;
-            skip::table_t::const_iterator p = skip::stbl.find(ctor);
-            if (p != skip::stbl.end())
-              substitute(code, code.size()-1, p->second);
-          }
-        }
+	call_impl::wrapper(ctor, 0, tmp);
       }
     };
     inline bool has_ctor(base* bp)

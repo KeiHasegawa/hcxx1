@@ -9,6 +9,28 @@ namespace cxx_compiler { namespace var_impl {
   var* mul(var*, var*);
   var* opt_mul(var*, var*);
 
+  namespace conversion_function_impl {
+    struct table_t : vector<string> {
+      table_t()
+      {
+	push_back("int");
+      }
+    } table;
+  } // end of namespace conversion_function_impl
+
+  var* conversion_code(int op, var* y, var* z, var* (*pf)(var*, var*))
+  {
+    const type* Ty = y->m_type;
+    const type* Tz = z->m_type;
+    usr* conv_fy = conversion_function(Ty);
+    var* yy = conv_fy ? call_impl::wrapper(conv_fy, 0, y) : y;
+    usr* conv_fz = conversion_function(Tz);
+    var* zz = conv_fz ? call_impl::wrapper(conv_fz, 0, z) : z;
+    if (y == yy && z == zz)
+      return 0;
+    return pf(yy, zz);
+  }
+
   var* operator_code(int op, var* y, var* z)
   {
     const type* Ty = y->m_type;
@@ -29,23 +51,38 @@ namespace cxx_compiler { namespace var_impl {
       return ovl->call(&arg);
     }
 
-    const type* T = op_fun->m_type;
-    assert(T->m_id == type::FUNC);
-    typedef const func_type FT;
-    FT* ft = static_cast<FT*>(T);
-    var* ret = call_impl::common(ft, op_fun, &arg, 0, y, false, 0);
-    if (!error::counter && !cmdline::no_inline_sub) {
-      if (flag & usr::INLINE) {
-	using namespace declarations::declarators::function;
-	using namespace definition::static_inline::skip;
-	table_t::const_iterator p = stbl.find(op_fun);
-	if (p != stbl.end())
-	  substitute(code, code.size()-1, p->second);
-      }
-    }
-    return ret;
+    return call_impl::wrapper(op_fun, &arg, y);
   }
 } } // end of namespace var_impl and cxx_compiler
+
+cxx_compiler::usr* cxx_compiler::conversion_function(const type* T)
+{
+  T = T->unqualified();
+  T = T->complete_type();
+  if (T->m_id != type::RECORD)
+    return 0;
+  typedef const record_type REC;
+  REC* rec = static_cast<REC*>(T);
+  tag* ptr = rec->get_tag();
+  const map<string, vector<usr*> >& usrs = ptr->m_usrs;
+  using namespace var_impl;
+  using namespace conversion_function_impl;
+  typedef vector<string>::const_iterator IT;
+  usr* res = 0;
+  IT p = find_if(begin(table), end(table), [&usrs, &res](string name){
+      map<string, vector<usr*> >::const_iterator q = usrs.find(name);
+      if (q == usrs.end())
+	return false;
+      const vector<usr*>& v = q->second;
+      assert(v.size() == 1);
+      res = v.back();
+      return true;
+    });
+  if (p == end(table))
+    return 0;
+  assert(res);
+  return res;
+}
 
 cxx_compiler::var* cxx_compiler::var_impl::mul(var* y, var* z)
 {
@@ -54,6 +91,8 @@ cxx_compiler::var* cxx_compiler::var_impl::mul(var* y, var* z)
   const type* Tx = Ty->unqualified();
   if (!Ty->arithmetic() || !Tz->arithmetic()) {
     if (var* ret = operator_code('*', y, z))
+      return ret;
+    if (var* ret = conversion_code('*', y, z, var_impl::mul))
       return ret;
     Tx = int_type::create();
   }
@@ -223,6 +262,8 @@ cxx_compiler::var* cxx_compiler::var_impl::div(var* y, var* z)
   if (!Ty->arithmetic() || !Tz->arithmetic()) {
     if (var* ret = operator_code('/', y, z))
       return ret;
+    if (var* ret = conversion_code('/', y, z, var_impl::div))
+      return ret;
     Tx = int_type::create();
   }
   if ( var* x = opt_div(y,z) )
@@ -361,6 +402,8 @@ cxx_compiler::var* cxx_compiler::var_impl::mod(var* y, var* z)
   else {
     if (var* ret = operator_code('%', y, z))
       return ret;
+    if (var* ret = conversion_code('%', y, z, var_impl::mod))
+      return ret;
     Tx = int_type::create();
   }
 
@@ -473,6 +516,8 @@ cxx_compiler::var* cxx_compiler::var_impl::add(var* y, var* z)
   const type* Tx = Ty->unqualified();
   if (!Ty->arithmetic() || !Tz->arithmetic()) {
     if (var* ret = operator_code('+', y, z))
+      return ret;
+    if (var* ret = conversion_code('+', y, z, var_impl::add))
       return ret;
     using namespace error::expressions::binary;
     invalid(parse::position,'+', Ty, Tz);
@@ -761,6 +806,8 @@ cxx_compiler::var* cxx_compiler::var_impl::sub(var* y, var* z)
   const type* Tx = Ty->unqualified();
   if (!Ty->arithmetic() || !Tz->arithmetic()) {
     if (var* ret = operator_code('-', y, z))
+      return ret;
+    if (var* ret = conversion_code('-', y, z, var_impl::sub))
       return ret;
     using namespace error::expressions::binary;
     invalid(parse::position,'-', Ty, Tz);

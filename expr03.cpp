@@ -221,23 +221,7 @@ namespace cxx_compiler {
 	code.push_back(new cast3ac(ret, src, T));
 	return ret;
       }
-      const type* Top = op->m_type;
-      assert(Top->m_id == type::FUNC);
-      typedef const func_type FT;
-      FT* ft = static_cast<FT*>(Top);
-      vector<var*> arg;
-      var* ret = call_impl::common(ft, op, &arg, 0, src, false, 0);
-      usr::flag_t flag = op->m_flag;
-      if (!error::counter && !cmdline::no_inline_sub) {
-	if (flag & usr::INLINE) {
-	  using namespace declarations::declarators::function;
-	  using namespace definition::static_inline;
-	  skip::table_t::const_iterator p = skip::stbl.find(op);
-	  if (p != skip::stbl.end())
-	    substitute(code, code.size()-1, p->second);
-	}
-      }
-      return ret;
+      return call_impl::wrapper(op, 0, src);
     }
   }  // end of namespace cast_impl
 }  // end of namespace cxx_compiler

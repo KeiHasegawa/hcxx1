@@ -145,21 +145,7 @@ namespace cxx_compiler {
     usr::flag_t flag = new_entry->m_flag;
     if (flag & usr::OVERLOAD)
       return new_entry->call(&arg);
-    const type* T = new_entry->m_type;
-    assert(T->m_id == type::FUNC);
-    typedef const func_type FT;
-    FT* ft = static_cast<FT*>(T);
-    var* ret = call_impl::common(ft, new_entry, &arg, 0, 0, false, 0);
-    if (!error::counter && !cmdline::no_inline_sub) {
-      if (flag & usr::INLINE) {
-	using namespace declarations::declarators::function;
-	using namespace definition::static_inline;
-	skip::table_t::const_iterator p = skip::stbl.find(new_entry);
-	if (p != skip::stbl.end())
-	  substitute(code, code.size()-1, p->second);
-      }
-    }
-    return ret;
+    return call_impl::wrapper(new_entry, &arg, 0);
   }
 } // end of namespace cxx_compiler
 
@@ -217,25 +203,12 @@ cxx_compiler::var* cxx_compiler::expressions::unary::new_expr::gen()
     ovl->call(&arg);
     return ret;
   }
-  const type* T = ctor->m_type;
-  assert(T->m_id == type::FUNC);
-  typedef const func_type FT;
-  FT* ft = static_cast<FT*>(T);
   vector<var*> arg;
   if (m_exprs) {
     transform(begin(*m_exprs), end(*m_exprs), back_inserter(arg),
 	      mem_fun(&base::gen));
   }
-  call_impl::common(ft, ctor, &arg, 0, ret, false, 0);
-  if (!error::counter && !cmdline::no_inline_sub) {
-    if (flag & usr::INLINE) {
-      using namespace declarations::declarators::function;
-      using namespace definition::static_inline::skip;
-      table_t::const_iterator p = stbl.find(ctor);
-      if (p != stbl.end())
-	substitute(code, code.size()-1, p->second);
-    }
-  }
+  call_impl::wrapper(ctor, &arg, ret);
   return ret;
 }
 
