@@ -103,9 +103,9 @@ cxx_compiler::base::base(int access, bool virt, tag* ptr)
   : m_flag(usr::NONE), m_tag(ptr)
 {
   switch (access) {
-  PRIVATE_KEY: m_access = PRIVATE; break;
-  PROTECTED_KEY: m_access = PROTECTED; break;
-  PUBLIC_KEY: m_access = PUBLIC; break;
+  PRIVATE_KEY: m_access = usr::PRIVATE; break;
+  PROTECTED_KEY: m_access = usr::PROTECTED; break;
+  PUBLIC_KEY: m_access = usr::PUBLIC; break;
   }
   m_flag = virt ? usr::VIRTUAL : usr::NONE;
 }

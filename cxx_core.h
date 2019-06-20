@@ -313,8 +313,18 @@ struct usr : var {
     DELETE_SCALAR = 1 << 28,
     DELETE_ARRAY  = 1 << 29,
     HAS_DEFAULT_ARG = 1 << 30,
+    // 1 << 31 : Reserved for debug convention
   };
   flag_t m_flag;
+  enum flag2_t {
+    NONE2 = 0,
+    PRIVATE = 1 << 0,
+    PROTECTED = 1 << 1,
+    PUBLIC = 1 << 2,
+    CONV_OPE = 1 << 3,
+    OPERATOR = 1 << 4,
+  };
+  flag2_t m_flag2;
   file_t m_file;
   bool lvalue() const { return true; }
   var* rvalue();
@@ -323,8 +333,9 @@ struct usr : var {
   static std::string keyword(flag_t);
   usr* usr_cast(){ return this; }
   virtual void initialize();
-  usr(std::string name, const type* T, flag_t flag, const file_t& file)
-    : var(T), m_name(name), m_flag(flag), m_file(file) {}
+  usr(std::string name, const type* T, flag_t flag, const file_t& file,
+      flag2_t flag2)
+    : var(T), m_name(name), m_flag(flag), m_file(file), m_flag2(flag2) {}
   ~usr();
 };
 
@@ -349,7 +360,7 @@ template<class V> struct constant : usr {
   void for_code(statements::for_stmt::info_t*, to3ac*);
   void do_code(statements::do_stmt::info_t*, to3ac*);
   constant(std::string name, const type* T, flag_t flag, const file_t& file)
-    : usr(name, T, flag, file), m_value(0) {}
+    : usr(name, T, flag, file, usr::NONE2), m_value(0) {}
 };
 
 template<> struct constant<int> : usr {
@@ -424,7 +435,7 @@ template<> struct constant<int> : usr {
   void for_code(statements::for_stmt::info_t*, to3ac*);
   void do_code(statements::do_stmt::info_t*, to3ac*);
   constant(std::string name, const type* T, flag_t flag, const file_t& file)
-    : usr(name, T, flag, file), m_value(0) {}
+    : usr(name, T, flag, file, NONE2), m_value(0) {}
 };
 
 template<> struct constant<unsigned int> : usr {
@@ -499,7 +510,7 @@ template<> struct constant<unsigned int> : usr {
   void for_code(statements::for_stmt::info_t*, to3ac*);
   void do_code(statements::do_stmt::info_t*, to3ac*);
   constant(std::string name, const type* T, flag_t flag, const file_t& file)
-    : usr(name, T, flag, file), m_value(0) {}
+    : usr(name, T, flag, file, NONE2), m_value(0) {}
 };
 
 template<> struct constant<long int> : usr {
@@ -574,7 +585,7 @@ template<> struct constant<long int> : usr {
   void for_code(statements::for_stmt::info_t*, to3ac*);
   void do_code(statements::do_stmt::info_t*, to3ac*);
   constant(std::string name, const type* T, flag_t flag, const file_t& file)
-    : usr(name, T, flag, file), m_value(0) {}
+    : usr(name, T, flag, file, NONE2), m_value(0) {}
 };
 
 template<> struct constant<unsigned long int> : usr {
@@ -649,7 +660,7 @@ template<> struct constant<unsigned long int> : usr {
   void for_code(statements::for_stmt::info_t*, to3ac*);
   void do_code(statements::do_stmt::info_t*, to3ac*);
   constant(std::string name, const type* T, flag_t flag, const file_t& file)
-    : usr(name, T, flag, file), m_value(0) {}
+    : usr(name, T, flag, file, NONE2), m_value(0) {}
 };
 
 template<> struct constant<__int64> : usr {
@@ -742,7 +753,7 @@ template<> struct constant<__int64> : usr {
   void for_code(statements::for_stmt::info_t*, to3ac*);
   void do_code(statements::do_stmt::info_t*, to3ac*);
   constant(std::string name, const type* T, flag_t flag, const file_t& file)
-    : usr(name, T, flag, file), m_value(0) {}
+    : usr(name, T, flag, file, NONE2), m_value(0) {}
 };
 
 template<> struct constant<unsigned __int64> : usr {
@@ -817,7 +828,7 @@ template<> struct constant<unsigned __int64> : usr {
   void for_code(statements::for_stmt::info_t*, to3ac*);
   void do_code(statements::do_stmt::info_t*, to3ac*);
   constant(std::string name, const type* T, flag_t flag, const file_t& file)
-    : usr(name, T, flag, file), m_value(0) {}
+    : usr(name, T, flag, file, NONE2), m_value(0) {}
 };
 
 template<> struct constant<float> : usr {
@@ -859,7 +870,7 @@ template<> struct constant<float> : usr {
   void for_code(statements::for_stmt::info_t*, to3ac*);
   void do_code(statements::do_stmt::info_t*, to3ac*);
   constant(std::string name, const type* T, flag_t flag, const file_t& file)
-    : usr(name, T, flag, file), m_value(0) {}
+    : usr(name, T, flag, file, NONE2), m_value(0) {}
 };
 
 template<> struct constant<double> : usr {
@@ -901,7 +912,7 @@ template<> struct constant<double> : usr {
   void for_code(statements::for_stmt::info_t*, to3ac*);
   void do_code(statements::do_stmt::info_t*, to3ac*);
   constant(std::string name, const type* T, flag_t flag, const file_t& file)
-    : usr(name, T, flag, file), m_value(0) {}
+    : usr(name, T, flag, file, NONE2), m_value(0) {}
 };
 
 template<> struct constant<long double> : usr {
@@ -944,7 +955,7 @@ template<> struct constant<long double> : usr {
   void for_code(statements::for_stmt::info_t*, to3ac*);
   void do_code(statements::do_stmt::info_t*, to3ac*);
   constant(std::string name, const type* T, flag_t flag, const file_t& file)
-    : usr(name, T, flag, file), m_value(0), b(0) {}
+    : usr(name, T, flag, file, NONE2), m_value(0), b(0) {}
 };
 
 template<> struct constant<void*> : usr {
@@ -999,7 +1010,7 @@ template<> struct constant<void*> : usr {
   void for_code(statements::for_stmt::info_t*, to3ac*);
   void do_code(statements::do_stmt::info_t*, to3ac*);
   constant(std::string name, const type* T, flag_t flag, const file_t& file)
-    : usr(name, T, flag, file), m_value(0) {}
+    : usr(name, T, flag, file, NONE2), m_value(0) {}
 };
 
 struct with_initial : usr {
@@ -1009,7 +1020,7 @@ struct with_initial : usr {
     : usr(u) { m_flag = flag_t(m_flag|usr::WITH_INI); }
 
   with_initial(std::string name, const type* T, const file_t& file)
-    : usr(name,T,flag_t(usr::STATIC|usr::WITH_INI),file) {}
+    : usr(name,T,flag_t(usr::STATIC|usr::WITH_INI),file,NONE2) {}
 
   var* rvalue();
   var* indirection();
@@ -1022,7 +1033,7 @@ struct type_def : usr {
  
 struct name_space : scope, usr {
   name_space(std::string name, const file_t& file)
-    : scope(scope::NAMESPACE), usr(name,0,usr::NAMESPACE,file) {}
+    : scope(scope::NAMESPACE), usr(name,0,usr::NAMESPACE,file,NONE2) {}
 };
 
 class pointer_type;

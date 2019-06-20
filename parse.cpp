@@ -93,7 +93,8 @@ int cxx_compiler::parse::identifier::judge(std::string name)
 
 int cxx_compiler::parse::identifier::create(std::string name, const type* T)
 {
-  cxx_compiler_lval.m_usr = new usr(name,T,usr::NONE,parse::position);
+  cxx_compiler_lval.m_usr =
+    new usr(name,T,usr::NONE,parse::position,usr::NONE2);
   return IDENTIFIER_LEX;
 }
 
@@ -781,7 +782,7 @@ void cxx_compiler::parse::block::enter()
 	if (usrs.find("this") == usrs.end()) {
 	  T = pointer_type::create(T);
 	  string name = "this";
-	  usr* u = new usr(name,T,usr::NONE,file_t());
+	  usr* u = new usr(name,T,usr::NONE,file_t(),usr::NONE2);
 	  usrs[name].push_back(u);
 	  vector<usr*>& order = scope::current->m_order;
 	  vector<usr*> tmp = order;

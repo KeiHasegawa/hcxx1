@@ -10,7 +10,7 @@ namespace cxx_compiler {
       struct literal : usr {
         literal(string name, const type* T, usr::flag_t flag,
                 const file_t& file)
-          : usr(name,T,flag,file) {}
+          : usr(name,T,flag,file,usr::NONE2) {}
       };
     }  // end of namespace compound
   }  // end of namespace expressions

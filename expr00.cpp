@@ -518,7 +518,8 @@ void cxx_compiler::expressions::primary::literal::character::simple_escape::help
   (*this)[x] = a;
   const type* v = wchar_type::create();
   v = const_type::create(v);
-  constant<wchar_typedef>* b = new constant<wchar_typedef>(y,v,usr::NONE,file_t());
+  constant<wchar_typedef>* b
+    = new constant<wchar_typedef>(y,v,usr::NONE,file_t());
   (*this)[y] = b;
   a->m_value = b->m_value = z;
 }
@@ -1322,7 +1323,7 @@ cxx_compiler::var* cxx_compiler::unqualified_id::dtor(tag* ptr)
   using namespace std;
   string name = "~" + ptr->m_name;
   const type* T = backpatch_type::create();
-  return new usr(name, T, usr::DTOR, parse::position);
+  return new usr(name, T, usr::DTOR, parse::position, usr::NONE2);
 }
 
 namespace cxx_compiler {
@@ -1452,7 +1453,7 @@ cxx_compiler::unqualified_id::operator_function_id(int op)
 {
   const type* T = backpatch_type::create();
   string name = operator_name(op);
-  return new usr(name,T,usr::NONE,parse::position);
+  return new usr(name,T,usr::NONE,parse::position,usr::OPERATOR);
 }
 
 namespace cxx_compiler {
@@ -1471,11 +1472,18 @@ cxx_compiler::unqualified_id::conversion_function_id(const type* X)
   using namespace declarations;
   type_specifier* ts = new type_specifier(X);
   specifier* spec = new specifier(ts);
-  new specifier_seq::info_t(0, spec);
-
+  if (specifier_seq::info_t::s_stack.empty())
+    new specifier_seq::info_t(0, spec);
+  else {
+    assert(specifier_seq::info_t::s_stack.size() == 1);
+    specifier_seq::info_t* prev = specifier_seq::info_t::s_stack.top();
+    new specifier_seq::info_t(prev, spec);
+    assert(specifier_seq::info_t::s_stack.size() == 1);
+    specifier_seq::info_t::rare_case = true;
+  }
   const type* T = backpatch_type::create();
   string name = conversion_name(X);
-  return new usr(name,T,usr::NONE,parse::position);
+  return new usr(name,T,usr::NONE,parse::position,usr::CONV_OPE);
 }
 
 cxx_compiler::var* cxx_compiler::qualified_id::action(var* v)

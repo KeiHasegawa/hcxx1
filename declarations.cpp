@@ -153,6 +153,13 @@ info_t::info_t(info_t* prev, specifier* spec)
     s_stack.top() = this;
 }
 
+cxx_compiler::declarations::specifier_seq::info_t::~info_t()
+{
+  assert(!s_stack.empty());
+  assert(s_stack.top() == this);
+  s_stack.pop();
+}
+
 void cxx_compiler::declarations::specifier_seq::info_t::clear()
 {
   parse::identifier::mode = parse::identifier::look;
@@ -489,6 +496,9 @@ void cxx_compiler::declarations::specifier_seq::info_t::update()
 
 std::stack<cxx_compiler::declarations::specifier_seq::info_t*>
 cxx_compiler::declarations::specifier_seq::info_t::s_stack;
+
+bool
+cxx_compiler::declarations::specifier_seq::info_t::rare_case;
 
 namespace cxx_compiler { namespace declarations {
   void check_installed(usr*, specifier_seq::info_t*);
@@ -911,7 +921,7 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
 
 namespace cxx_compiler {
   overload::overload(usr* prev, usr* curr)
-    : usr(curr->m_name, 0, usr::OVERLOAD, curr->m_file), m_obj(0)
+    : usr(curr->m_name, 0, usr::OVERLOAD, curr->m_file, usr::NONE2), m_obj(0)
   { 
     usr::flag_t flag = prev->m_flag;
     if (!(flag & usr::OVERLOAD)) {
@@ -1224,7 +1234,8 @@ void cxx_compiler::declarations::specifier_seq::func_spec::check(var* v)
   }
 }
 
-cxx_compiler::declarations::asm_definition::info_t::info_t(var* v) : usr("",0,usr::NONE,parse::position)
+cxx_compiler::declarations::asm_definition::info_t::info_t(var* v)
+ : usr("",0,usr::NONE,parse::position,usr::NONE2)
 {
   genaddr* p = v->genaddr_cast();
   usr* u = p->m_ref->usr_cast();

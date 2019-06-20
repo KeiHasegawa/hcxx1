@@ -124,7 +124,7 @@ namespace cxx_compiler {
 %type<m_usrs> asm_definition
 %type<m_type> ptr_operator abstract_declarator direct_abstract_declarator
 %type<m_type> class_specifier elaborated_type_specifier type_id enum_specifier
-%type<m_type> conversion_type_id conversion_function_id
+%type<m_type> conversion_type_id conversion_function_id conversion_declarator
 %type<m_type_specifier> simple_type_specifier type_specifier type_name
 %type<m_type_specifier_seq> type_specifier_seq
 %type<m_specifier> decl_specifier
@@ -1049,7 +1049,13 @@ member_specification
 member_declaration
   : decl_specifier_seq member_declarator_list ';'
     {
-      delete $1;
+      using namespace cxx_compiler::declarations;
+      if (specifier_seq::info_t::rare_case) {
+	delete specifier_seq::info_t::s_stack.top();
+        specifier_seq::info_t::rare_case = false;
+      }
+      else
+        delete $1;
       using namespace cxx_compiler::parse;
       identifier::mode = identifier::look;
       context_t::clear();
@@ -1345,7 +1351,7 @@ conversion_type_id
   : type_specifier_seq conversion_declarator
     {
       using namespace cxx_compiler;
-      $$ = declarations::declarators::type_id::action(0);
+      $$ = declarations::declarators::type_id::action($2);
       parse::identifier::mode = parse::identifier::look;
       delete $1;
     }
@@ -1360,6 +1366,7 @@ conversion_type_id
 
 conversion_declarator
   : ptr_operator conversion_declarator
+    { cxx_compiler::error::not_implemented(); }
   | ptr_operator
   ;
 
@@ -1786,9 +1793,9 @@ new_type_id
 
 new_declarator
   : ptr_operator new_declarator
-   
+    { cxx_compiler::error::not_implemented(); }
   | ptr_operator
-   
+    { cxx_compiler::error::not_implemented(); }
   | direct_new_declarator
   ;
 
@@ -1799,20 +1806,27 @@ direct_new_declarator
 
 
 delete_expression
-  : COLONCOLON_MK move_to_root DELETE_KW         cast_expression
+  : COLONCOLON_MK move_to_root DELETE_KW cast_expression
     { cxx_compiler::error::not_implemented(); }
-  |                            DELETE_KW         cast_expression
+  | DELETE_KW cast_expression
     { $$ = new cxx_compiler::expressions::unary::delete_expr($2); }
   | COLONCOLON_MK move_to_root DELETE_KW '[' ']' cast_expression
     { cxx_compiler::error::not_implemented(); }
-  |                            DELETE_KW '[' ']' cast_expression
+  | DELETE_KW '[' ']' cast_expression
     { cxx_compiler::error::not_implemented(); }
   ;
 
 cast_expression
   : unary_expression
-  | '(' type_id ')' { cxx_compiler::parse::identifier::mode = cxx_compiler::parse::identifier::look; }
-    cast_expression { $$ = new cxx_compiler::expressions::cast::info_t($2,$5); }
+  | '(' type_id ')'
+    {
+      using namespace cxx_compiler::parse;
+      identifier::mode = identifier::look;
+    }
+    cast_expression
+    {
+      $$ = new cxx_compiler::expressions::cast::info_t($2,$5);
+    }
   | BUILTIN_VA_START '(' cast_expression ',' cast_expression ')'
     { $$ = new cxx_compiler::expressions::_va_start::info_t($3,$5); }
   | BUILTIN_VA_ARG '(' cast_expression ',' type_id ')'

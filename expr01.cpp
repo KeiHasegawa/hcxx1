@@ -389,7 +389,6 @@ namespace cxx_compiler {
       var* operator()(var*);
     };
     tac* gen_param(var*);
-    var* ref_vftbl(usr* vf, var* vp);
     var* ref_vftbl(var* vp, var* vftbl_off, const func_type* ft);
     inline bool common_default_arg(var* func, int n, int m, bool just_query)
     {
@@ -1726,7 +1725,6 @@ assignment::valid(const type* T, var* src, bool* discard, bool ctor_conv)
     }
     if (yy->integer() && src->zero())
       return xx;
-    return 0;
   }
 
   if (xx->m_id == type::REFERENCE) {

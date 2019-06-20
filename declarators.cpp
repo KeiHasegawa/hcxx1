@@ -195,7 +195,7 @@ function::parameter(specifier_seq::info_t* p, const type* T)
   auto_ptr<specifier_seq::info_t> sweeper(p);
   parse::context_t::clear();
   string name = new_name(".param");
-  usr* u = new usr(name,T,usr::NONE,parse::position);
+  usr* u = new usr(name,T,usr::NONE,parse::position,usr::NONE2);
   typedef const pointer_type PT;
   if ( PT* pt = T->ptr_gen() )
     u->m_type = pt;
@@ -411,6 +411,10 @@ function::definition::begin(declarations::specifier_seq::info_t* p, var* v)
     genaddr* ga = v->genaddr_cast();
     var* ref = ga->m_ref;
     u = ref->usr_cast();
+  }
+  if (declarations::specifier_seq::info_t::rare_case) {
+    p = declarations::specifier_seq::info_t::s_stack.top();
+    declarations::specifier_seq::info_t::rare_case = false;
   }
   auto_ptr<declarations::specifier_seq::info_t> sweeper(p);
   parse::identifier::mode = parse::identifier::look;
@@ -1015,7 +1019,7 @@ namespace cxx_compiler {
         tag* ptr = itt->get_tag();
         string name = ptr->m_name;
         T = backpatch_type::create();
-        return new usr(name, T, usr::CTOR, parse::position);
+        return new usr(name, T, usr::CTOR, parse::position, usr::NONE2);
       }
       usr* ctor(type_specifier* spec)
       {
@@ -1029,7 +1033,7 @@ namespace cxx_compiler {
         tag* ptr = rec->get_tag();
         string name = ptr->m_name;
         T = backpatch_type::create();
-        return new usr(name, T, usr::CTOR, parse::position);
+        return new usr(name, T, usr::CTOR, parse::position, usr::NONE2);
       }
     } // end of namespace declarators
   } // end of namespace declarations

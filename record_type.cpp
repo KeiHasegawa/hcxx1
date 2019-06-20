@@ -934,7 +934,7 @@ namespace cxx_compiler {
       const func_type* ft = default_ctor_type();
       usr::flag_t flag =
 	usr::flag_t(usr::CTOR | usr::FUNCTION | usr::INLINE);
-      usr* ctor = new usr(tgn, ft, flag, file_t());
+      usr* ctor = new usr(tgn, ft, flag, file_t(),usr::NONE2);
       ptr->m_usrs[tgn].push_back(ctor);
       using namespace declarations::declarators::function::definition;
       const vector<const type*>& parameter = ft->param();
@@ -951,7 +951,7 @@ namespace cxx_compiler {
       string name = "this";
       const type* T = ptr->m_types.first;
       T = pointer_type::create(T);
-      usr* this_ptr = new usr(name,T,usr::NONE,file_t());
+      usr* this_ptr = new usr(name,T,usr::NONE,file_t(),usr::NONE2);
       this_ptr->m_scope = param;
       param->m_order.push_back(this_ptr);
       param->m_usrs[name].push_back(this_ptr);
@@ -999,7 +999,7 @@ namespace cxx_compiler {
       const func_type* ft = copy_ctor_type(ptr, true);
       usr::flag_t flag =
 	usr::flag_t(usr::CTOR | usr::FUNCTION | usr::INLINE);
-      usr* ctor = new usr(tgn, ft, flag, file_t());
+      usr* ctor = new usr(tgn, ft, flag, file_t(),usr::NONE2);
       map<string, vector<usr*> >& usrs = ptr->m_usrs;
       map<string, vector<usr*> >::iterator p = usrs.find(tgn);
       assert(p != usrs.end());
@@ -1025,14 +1025,14 @@ namespace cxx_compiler {
       const type* T = ptr->m_types.second;
       assert(T);
       const type* pt = pointer_type::create(T);
-      usr* this_ptr = new usr(name,pt,usr::NONE,file_t());
+      usr* this_ptr = new usr(name,pt,usr::NONE,file_t(),usr::NONE2);
       this_ptr->m_scope = param;
       param->m_order.push_back(this_ptr);
       param->m_usrs[name].push_back(this_ptr);
 
       string aname = new_name(".param");
       const reference_type* rt = copy_ctor_arg_type(ptr, true);
-      usr* arg = new usr(aname, rt, usr::NONE, file_t());
+      usr* arg = new usr(aname, rt, usr::NONE, file_t(),usr::NONE2);
       arg->m_scope = param;
       param->m_order.push_back(arg);
       param->m_usrs[name].push_back(arg);
@@ -1084,7 +1084,7 @@ cxx_compiler::record_type::record_type(tag* ptr)
       usrs[vbtbl_name].push_back(vbtbl);
       if (nvb) {
         T = pointer_type::create(T);
-        usr* vbptr = new usr(vbptr_name,T,usr::NONE,file_t());
+        usr* vbptr = new usr(vbptr_name,T,usr::NONE,file_t(),usr::NONE2);
         usrs[vbptr_name].push_back(vbptr);
         m_member.push_back(vbptr);
         m_layout[vbptr_name] = make_pair(m_size, vbptr);
@@ -1140,7 +1140,7 @@ cxx_compiler::record_type::record_type(tag* ptr)
     m_tag->m_usrs[vftbl_name].push_back(vftbl);
     if (nvf) {
       T = pointer_type::create(T);
-      usr* vfptr = new usr(vfptr_name,T,usr::NONE,file_t());
+      usr* vfptr = new usr(vfptr_name,T,usr::NONE,file_t(),usr::NONE2);
       m_tag->m_usrs[vfptr_name].push_back(vfptr);
       m_member.push_back(vfptr);
       m_layout[vfptr_name] = make_pair(vfptr_offset, vfptr);
@@ -1169,7 +1169,8 @@ cxx_compiler::record_type::record_type(tag* ptr)
           });
   if (!bases && m_member.empty()) {
     string name = ".dummy";
-    usr* u = new usr(name, char_type::create(),usr::NONE,file_t());
+    const type* T = char_type::create();
+    usr* u = new usr(name, T, usr::NONE, file_t(), usr::NONE2);
     m_member.push_back(u);
     m_tag->m_usrs[name].push_back(u);
   }

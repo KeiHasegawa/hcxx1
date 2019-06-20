@@ -5,13 +5,9 @@ union YYSTYPE;
 
 namespace cxx_compiler {
 
-enum access_t {
-  PRIVATE, PROTECTED, PUBLIC
-};
-
 struct base {
   usr::flag_t m_flag;
-  access_t m_access;
+  usr::flag2_t m_access;
   tag* m_tag;
   base(int access, bool virt, tag* ptr);
 };
@@ -548,13 +544,9 @@ namespace declarations {
       void update();
       static stack<info_t*> s_stack;
       static void clear();
+      static bool rare_case;
       info_t(info_t*, specifier*);
-      ~info_t()
-      {
-	assert(!s_stack.empty());
-	assert(s_stack.top() == this);
-	s_stack.pop();
-      }
+      ~info_t();
     };
     namespace func_spec {
       extern void check(var*);
@@ -1404,6 +1396,7 @@ namespace call_impl {
               bool qualified_func,
               var* vftbl_off);
   var* wrapper(usr* func, vector<var*>* arg, var* this_ptr);
+  var* ref_vftbl(usr* vf, var* vp);
 } // end of namespace call_impl
 
 void original_namespace_definition(var*);

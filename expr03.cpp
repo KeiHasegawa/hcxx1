@@ -227,6 +227,24 @@ namespace cxx_compiler {
 	code.push_back(new cast3ac(ret, src, T));
 	return ret;
       }
+      usr::flag_t flag = op->m_flag;
+      if (flag & usr::VIRTUAL) {
+	const pointer_type* pt = pointer_type::create(rec);
+	var* ptr = new var(pt);
+	if (scope::current->m_id == scope::BLOCK) {
+	  block* b = static_cast<block*>(scope::current);
+	  b->m_vars.push_back(ptr);
+	}
+	else
+	  garbage.push_back(ptr);
+	code.push_back(new addr3ac(ptr, src));
+	var* func = call_impl::ref_vftbl(op, ptr);
+	const type* T = op->m_type;
+	assert(T->m_id == type::FUNC);
+	typedef const func_type FT;
+	FT* ft = static_cast<FT*>(T);
+	return call_impl::common(ft, func, 0, 0, src, false, 0);
+      }
       return call_impl::wrapper(op, 0, src);
     }
   }  // end of namespace cast_impl

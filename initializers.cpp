@@ -1192,7 +1192,7 @@ void cxx_compiler::declarations::initializers::initialize_code(with_initial* x)
   vector<const type*> dummy;
   const func_type* ft = func_type::create(void_type::create(),dummy);
   usr::flag_t flag = usr::flag_t(usr::FUNCTION | usr::INITIALIZE_FUNCTION);
-  usr* func = new usr(name,ft,flag,file_t());
+  usr* func = new usr(name,ft,flag,file_t(),usr::NONE2);
   scope* param = new scope(scope::PARAM);
   using namespace class_or_namespace_name;
   assert(!before.empty());

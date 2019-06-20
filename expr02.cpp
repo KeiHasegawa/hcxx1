@@ -125,7 +125,7 @@ namespace cxx_compiler {
     const func_type* ft = func_type::create(vp,param);
     usr::flag_t flag = usr::flag_t(usr::FUNCTION | usr::NEW_SCALAR);
     string name = "new";
-    usr* new_entry = new usr(name,ft,flag,file_t());
+    usr* new_entry = new usr(name,ft,flag,file_t(),usr::NONE2);
     new_entry->m_scope = &scope::root;
     map<string, vector<usr*> >& usrs = scope::root.m_usrs;
     typedef map<string, vector<usr*> >::const_iterator IT;
@@ -231,7 +231,7 @@ cxx_compiler::var* cxx_compiler::expressions::unary::delete_expr::gen()
     param.push_back(vp);
     const func_type* ft = func_type::create(vp,param);
     usr::flag_t flag = usr::flag_t(usr::FUNCTION | usr::DELETE_SCALAR);
-    delete_entry = new usr(name,ft,flag,file_t());
+    delete_entry = new usr(name,ft,flag,file_t(),usr::NONE2);
     delete_entry->m_scope = &scope::root;
     usrs[name].push_back(delete_entry);
   }

@@ -59,7 +59,7 @@ cxx_compiler::classes::specifier::begin2(int keyword, tag* ptr)
 {
   using namespace std;
   string name = ptr->m_name;
-  usr* tmp = new usr(name,0,usr::NONE,file_t());
+  usr* tmp = new usr(name,0,usr::NONE,file_t(),usr::NONE2);
   begin(keyword,tmp,0);
 }
 
@@ -211,11 +211,12 @@ void cxx_compiler::classes::members::bit_field(var* v, expressions::base* expr)
     bit = 1;
   }
   if ( !u )
-    u = new usr("",backpatch_type::create(),usr::NONE,parse::position); 
+    u = new usr("",backpatch_type::create(),usr::NONE,parse::position,
+		usr::NONE2); 
   const type* T = u->m_type;
   if ( !T->backpatch() ){
     T = backpatch_type::create();
-    u = new usr(u->m_name,T,usr::NONE,parse::position); 
+    u = new usr(u->m_name,T,usr::NONE,parse::position,usr::NONE2); 
   }
   u->m_type = T->patch(bit_field_type::create(bit,backpatch_type::create()),0);
   declarations::action1(u,false);
@@ -301,7 +302,7 @@ namespace cxx_compiler {
 	      string name = "this";
 	      const type* T = ptr->m_types.second;
 	      T = pointer_type::create(T);
-	      usr* this_ptr = new usr(name,T,usr::NONE,file_t());
+	      usr* this_ptr = new usr(name,T,usr::NONE,file_t(),usr::NONE2);
 	      this_ptr->m_scope = param;
 	      param->m_order.push_back(this_ptr);
 	      param->m_usrs[name].push_back(this_ptr);
