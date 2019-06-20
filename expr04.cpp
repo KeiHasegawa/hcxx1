@@ -14,13 +14,20 @@ namespace cxx_compiler {
     typedef const record_type REC;
     REC* rec = static_cast<REC*>(T);
     tag* ptr = rec->get_tag();
-    map<string, vector<usr*> >& usrs = ptr->m_usrs;
     string name = operator_name(op);
-    map<string, vector<usr*> >::const_iterator p = usrs.find(name);
-    if (p == usrs.end())
+    parse::identifier::mode_t org = parse::identifier::mode;
+    parse::identifier::mode = parse::identifier::no_err;
+    int r = parse::identifier::lookup(name, ptr);
+    parse::identifier::mode = org;
+    if (!r)
       return 0;
-    const vector<usr*>& v = p->second;
-    return v.back();
+    var* v = cxx_compiler_lval.m_var;
+    genaddr* ga = v->genaddr_cast();
+    assert(ga);
+    v = ga->m_ref;
+    assert(v->usr_cast());
+    usr* op_fun = static_cast<usr*>(v);
+    return op_fun;
   }
 } // end of namespace cxx_compiler
 

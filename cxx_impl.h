@@ -80,7 +80,7 @@ namespace parse {
   namespace identifier {
     extern int lookup(std::string, scope*);
     extern int judge(string);
-    enum mode_t { look, new_obj, member, peeking };
+    enum mode_t { look, new_obj, member, peeking, no_err};
     extern mode_t mode;
     namespace base_lookup {
       extern vector<route_t> route;
@@ -504,8 +504,11 @@ extern string operator_name(int op);
 
 extern usr* operator_function(const type* T, int op);
 
+extern usr* conversion_function(const type* T);
+
 namespace var_impl {
   extern var* operator_code(int op, var* y, var* z);
+  extern var* conversion_code(int op, var* y, var* z, var* (*)(var*, var*));
 } // end of namespace var_impl
 
 namespace record_impl {
@@ -1400,6 +1403,7 @@ namespace call_impl {
               var* this_ptr,
               bool qualified_func,
               var* vftbl_off);
+  var* wrapper(usr* func, vector<var*>* arg, var* this_ptr);
 } // end of namespace call_impl
 
 void original_namespace_definition(var*);

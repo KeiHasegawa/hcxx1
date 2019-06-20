@@ -180,21 +180,7 @@ namespace cxx_compiler {
         if (q == end(ctors))
           return;
         usr* ctor = *q;
-        assert(ctor->m_type->m_id == type::FUNC);
-        typedef const func_type FT;
-        FT* ft = static_cast<FT*>(ctor->m_type);
-        vector<var*> empty;
-        call_impl::common(ft, ctor, &empty, 0, v, false, 0);
-        usr::flag_t flag = ctor->m_flag;
-        if (!error::counter && !cmdline::no_inline_sub) {
-          if (flag & usr::INLINE) {
-            using namespace declarations::declarators::function::definition;
-            using namespace static_inline;
-            skip::table_t::const_iterator p = skip::stbl.find(ctor);
-            if (p != skip::stbl.end())
-              substitute(code, code.size()-1, p->second);
-          }
-        }
+	call_impl::wrapper(ctor, 0, v);
       }
       namespace reference_impl {
         void constant_case(usr* u, var* v)
@@ -420,17 +406,7 @@ expr_list(std::vector<expressions::base*>* exprs, argument* arg)
   typedef const func_type FT;
   FT* ft = static_cast<FT*>(T2);
   int n = code.size();
-  call_impl::common(ft, ctor, &res, 0, argument::dst, false, 0);
-  if (!error::counter && !cmdline::no_inline_sub) {
-    if (flag & usr::INLINE) {
-      using namespace declarations::declarators::function;
-      using namespace definition::static_inline;
-      skip::table_t::const_iterator p = skip::stbl.find(ctor);
-      if (p != skip::stbl.end())
-	substitute(code, code.size()-1, p->second);
-    }
-  }
-
+  call_impl::wrapper(ctor, &res, argument::dst);
   vector<tac*>& c = table[argument::dst].m_code;
   copy(begin(code)+n, end(code), back_inserter(c));
   code.resize(n);

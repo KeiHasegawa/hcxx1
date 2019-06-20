@@ -366,20 +366,7 @@ namespace cxx_compiler {
 		ovl->call(&arg);
 		return;
 	      }
-	      const type* T = ctor->m_type;
-	      assert(T->m_id == type::FUNC);
-	      typedef const func_type FT;
-	      FT* ft = static_cast<FT*>(T);
-	      call_impl::common(ft, ctor, &arg, 0, this_ptr, false, 0);
-	      if (!error::counter && !cmdline::no_inline_sub) {
-		if (flag & usr::INLINE) {
-		  using namespace declarations::declarators::function;
-		  using namespace definition::static_inline;
-		  skip::table_t::const_iterator p = skip::stbl.find(ctor);
-		  if (p != skip::stbl.end())
-		    substitute(code, code.size()-1, p->second);
-		}
-	      }
+	      call_impl::wrapper(ctor, &arg, this_ptr);
 	    }
 	    void tag_action(tag* btag, EXPRS* exprs, usr* ctor)
 	    {

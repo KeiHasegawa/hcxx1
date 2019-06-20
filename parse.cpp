@@ -328,7 +328,8 @@ namespace cxx_compiler {
   }  // end of namespace parse
 }  // end of namespace cxx_compiler
 
-int cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
+int
+cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
 {
   using namespace std;
   const map<string, vector<usr*> >& usrs = ptr->m_usrs;
@@ -381,30 +382,31 @@ int cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
     scope::current->m_usrs[name].push_back(u);
     return r;
   }
-  else {
-    if (ptr->m_id == scope::TAG) {
-      tag* ptag = static_cast<tag*>(ptr);
-      if (int n = base_lookup::action(name, ptag))
-        return n;
-    }
-    if ( ptr->m_parent )
-      return lookup(name,ptr->m_parent);
-    else {
-      if ( name == "__func__" )
-        return underscore_func::action();
-      if (last_token == '(' && scope::current->m_id == scope::PARAM)
-        return 0;
-      if ( peek() == ':' ) // for labeled-statement
-        return create(name);
-      if (last_token == NAMESPACE_KW)
-        return create(name);
-      error::undeclared(parse::position,name);
-      int r = create(name,int_type::create());
-      usr* u = cxx_compiler_lval.m_usr;
-      scope::current->m_usrs[name].push_back(u);
-      return r;
-    }
+
+  if (ptr->m_id == scope::TAG) {
+    tag* ptag = static_cast<tag*>(ptr);
+    if (int n = base_lookup::action(name, ptag))
+      return n;
   }
+  if (ptr->m_parent)
+    return lookup(name,ptr->m_parent);
+
+  if (mode == no_err)
+    return 0;
+
+  if ( name == "__func__" )
+    return underscore_func::action();
+  if (last_token == '(' && scope::current->m_id == scope::PARAM)
+    return 0;
+  if ( peek() == ':' ) // for labeled-statement
+    return create(name);
+  if (last_token == NAMESPACE_KW)
+    return create(name);
+  error::undeclared(parse::position,name);
+  int r = create(name,int_type::create());
+  usr* u = cxx_compiler_lval.m_usr;
+  scope::current->m_usrs[name].push_back(u);
+  return r;
 }
 
 cxx_compiler::parse::read_t cxx_compiler::parse::g_read;

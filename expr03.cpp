@@ -2,6 +2,7 @@
 #include "stdafx.h"
 #include "cxx_core.h"
 #include "cxx_impl.h"
+#include "cxx_y.h"
 
 namespace cxx_compiler { namespace expressions { namespace cast {
   const type* valid(const type*, var*);
@@ -192,18 +193,23 @@ namespace cxx_compiler {
     }
     usr* conversion_function(const record_type* rec, const type* T)
     {
-      tag* ptr = rec->get_tag();
-      const map<string, vector<usr*> >& usrs = ptr->m_usrs;
       ostringstream os;
       T->decl(os, "");
       string name = os.str();
-      typedef map<string, vector<usr*> >::const_iterator IT;
-      IT p = usrs.find(name);
-      if (p == usrs.end())
+      tag* ptr = rec->get_tag();
+      parse::identifier::mode_t org = parse::identifier::mode;
+      parse::identifier::mode = parse::identifier::no_err;
+      int r = parse::identifier::lookup(name, ptr);
+      parse::identifier::mode = org;
+      if (!r)
 	return 0;
-      const vector<usr*>& v = p->second;
-      assert(v.size() == 1);
-      usr* op = v.back();
+      assert(r == IDENTIFIER_LEX);
+      var* v = cxx_compiler_lval.m_var;
+      genaddr* ga = v->genaddr_cast();
+      assert(ga);
+      v = ga->m_ref;
+      assert(v->usr_cast());
+      usr* op = static_cast<usr*>(v);
       return op;
     }
     inline var* conversion(const record_type* rec, var* src, const type* T)
@@ -221,23 +227,7 @@ namespace cxx_compiler {
 	code.push_back(new cast3ac(ret, src, T));
 	return ret;
       }
-      const type* Top = op->m_type;
-      assert(Top->m_id == type::FUNC);
-      typedef const func_type FT;
-      FT* ft = static_cast<FT*>(Top);
-      vector<var*> arg;
-      var* ret = call_impl::common(ft, op, &arg, 0, src, false, 0);
-      usr::flag_t flag = op->m_flag;
-      if (!error::counter && !cmdline::no_inline_sub) {
-	if (flag & usr::INLINE) {
-	  using namespace declarations::declarators::function;
-	  using namespace definition::static_inline;
-	  skip::table_t::const_iterator p = skip::stbl.find(op);
-	  if (p != skip::stbl.end())
-	    substitute(code, code.size()-1, p->second);
-	}
-      }
-      return ret;
+      return call_impl::wrapper(op, 0, src);
     }
   }  // end of namespace cast_impl
 }  // end of namespace cxx_compiler

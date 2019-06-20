@@ -271,22 +271,7 @@ void cxx_compiler::statements::compound::gen_dtor(var* v)
     return;
   const vector<usr*>& vu = p->second;
   usr* dtor = vu.back();
-  vector<var*> arg;
-  T = dtor->m_type;
-  assert(T->m_id == type::FUNC);
-  typedef const func_type FT;
-  FT* ft = static_cast<FT*>(T);
-  call_impl::common(ft, dtor, &arg, 0, v, false, 0);
-  usr::flag_t flag = dtor->m_flag;
-  if (!error::counter && !cmdline::no_inline_sub) {
-    if (flag & usr::INLINE) {
-      using namespace declarations::declarators::function;
-      using namespace definition::static_inline::skip;
-      table_t::const_iterator p = stbl.find(dtor);
-      if (p != stbl.end())
-        substitute(code, code.size()-1, p->second);
-    }
-  }
+  call_impl::wrapper(dtor, 0, v);
 }
 
 cxx_compiler::statements::compound::info_t::~info_t()
@@ -313,10 +298,17 @@ void cxx_compiler::var::if_code(statements::if_stmt::info_t* info)
 {
   var* expr = rvalue();
   const type* T = expr->m_type;
-  if ( !T->scalar() ){
-    using namespace error::statements::if_stmt;
-    not_scalar(parse::position,expr);
-    T = int_type::create();
+  if (!T->scalar()) {
+    if (usr* conv = conversion_function(T)) {
+      expr = call_impl::wrapper(conv, 0, expr);
+      T = expr->m_type;
+      assert(T->scalar());
+    }
+    else {
+      using namespace error::statements::if_stmt;
+      not_scalar(parse::position,expr);
+      T = int_type::create();
+    }
   }
   T = T->promotion();
   expr = expr->cast(T);
