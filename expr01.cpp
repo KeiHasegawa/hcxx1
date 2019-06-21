@@ -1947,6 +1947,59 @@ fcast::fcast(declarations::type_specifier* ptr, std::vector<base*>* list)
   m_type = info.m_type;
 }
 
+namespace cxx_compiler {
+  namespace expressions {
+    namespace postfix {
+      namespace fcast_impl {
+	var* try_call(usr* fun, vector<var*>* arg, var* this_ptr)
+	{
+	  const type* T = fun->m_type;
+	  assert(T->m_id == type::FUNC);
+	  typedef const func_type FT;
+	  FT* ft = static_cast<FT*>(T);
+	  int trial_cost = 0;
+	  int* pi = (arg->size() == 1) ? &trial_cost : 0;
+	  var* ret = call_impl::common(ft, fun, arg, pi, this_ptr,
+				       false, 0);
+	  if (!ret)
+	    return 0;
+	  usr::flag_t flag = fun->m_flag;
+	  if (!error::counter && !cmdline::no_inline_sub) {
+	    if (flag & usr::INLINE) {
+	      using namespace declarations::declarators::function;
+	      using namespace definition::static_inline;
+	      skip::table_t::const_iterator p = skip::stbl.find(fun);
+	      if (p != skip::stbl.end())
+		substitute(code, code.size()-1, p->second);
+	    }
+	  }
+	  return ret;
+	}
+	var* operator_code(const record_type* recx, var* y)
+	{
+	  const type* Ty = y->m_type;
+	  Ty = Ty->unqualified();
+	  if (Ty->m_id != type::RECORD)
+	    error::not_implemented();
+	  typedef const record_type REC;
+	  REC* recy = static_cast<REC*>(Ty);
+	  tag* ptr = recy->get_tag();
+	  const map<string, vector<usr*> >& usrs = ptr->m_usrs;
+	  string name = conversion_name(recx);
+	  typedef map<string, vector<usr*> >::const_iterator IT;
+	  IT p = usrs.find(name);
+	  if (p == usrs.end())
+	    error::not_implemented();
+	  const vector<usr*>& v = p->second;
+	  assert(v.size() == 1);
+	  usr* op_fun = v.back();
+	  return call_impl::wrapper(op_fun, 0, y);
+	}
+      } // end of namespace fcast_impl
+    } // end of namespace postfix
+  } // end of namespace expressions
+} // end of namespace cxx_compiler
+
 cxx_compiler::var* cxx_compiler::expressions::postfix::fcast::gen()
 {
   using namespace std;
@@ -2009,8 +2062,14 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::fcast::gen()
     return ret;
   }
 
-  call_impl::wrapper(ctor, &arg, ret);
-  return ret;
+  if (fcast_impl::try_call(ctor, &arg, ret))
+    return ret;
+
+  if (arg.size() != 1)
+    return ret;  // already error handled. just return.
+
+  var* y = arg.back();
+  return fcast_impl::operator_code(rec, y);
 }
 
 namespace cxx_compiler {

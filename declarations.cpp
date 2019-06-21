@@ -535,7 +535,7 @@ cxx_compiler::declarations::action1(var* v, bool ini)
       u->m_type = T = int_type::create();
     }
   }
-  else if ( specifier_seq::info_t* p = specifier_seq::info_t::s_stack.top() ){
+  else if (specifier_seq::info_t* p = specifier_seq::info_t::s_stack.top()) {
     usr::flag_t mask = usr::flag_t(usr::CTOR | usr::DTOR);
     assert(!(flag & mask));
     if ( !p->m_type || !p->m_tmp.empty() ){

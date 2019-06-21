@@ -5,9 +5,9 @@
 
 namespace cxx_compiler {
   using namespace std;
-  struct pure_virt : constant<void*> {
+  struct pure_virt_value : constant<void*> {
     usr* m_usr;
-    pure_virt(usr* u, constant<void*>* c)
+    pure_virt_value(usr* u, constant<void*>* c)
       : m_usr(u), constant<void*>(*c) {}
   };
   struct ambiguous_override : usr {
@@ -21,7 +21,7 @@ namespace cxx_compiler {
       assert(v->usr_cast());
       return static_cast<usr*>(v);
     }
-    if (pure_virt* pv = dynamic_cast<pure_virt*>(v))
+    if (pure_virt_value* pv = dynamic_cast<pure_virt_value*>(v))
       return pv->m_usr;
     assert(dynamic_cast<ambiguous_override*>(v));
     return static_cast<usr*>(v);
@@ -469,7 +469,7 @@ namespace cxx_compiler {
         if (flag & usr::PURE_VIRT) {
           var* tmp = integer::create(0)->cast(T);
           constant<void*>* c = static_cast<constant<void*>*>(tmp);
-          m_value[offset] = new pure_virt(u, c);
+          m_value[offset] = new pure_virt_value(u, c);
         }
         else
           m_value[offset] = new addrof(T, u, 0);
@@ -1770,7 +1770,8 @@ namespace cxx_compiler {
       map<int, var*>& value = wi->m_value;
       for_each(begin(value), end(value), [&vf](const pair<int, var*>& p)
 	       {
-		 if (pure_virt* pv = dynamic_cast<pure_virt*>(p.second))
+		 if (pure_virt_value* pv =
+		     dynamic_cast<pure_virt_value*>(p.second))
 		   vf.push_back(pv->m_usr);
 	       });
       return ptr->m_name;

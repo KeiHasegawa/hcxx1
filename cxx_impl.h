@@ -498,6 +498,8 @@ extern void call_base_dtor(usr*);
 
 extern string operator_name(int op);
 
+extern string conversion_name(const type*);
+
 extern usr* operator_function(const type* T, int op);
 
 extern usr* conversion_function(const type* T);

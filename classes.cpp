@@ -142,6 +142,12 @@ void cxx_compiler::classes::members::action(var* v, expressions::base* expr)
   assert(v->usr_cast());
   usr* u = static_cast<usr*>(v);
   u = declarations::action1(u, false);
+  if (u->m_flag2 & usr::CONV_OPE) {
+    using namespace declarations::specifier_seq;
+    assert(!info_t::s_stack.empty());
+    delete info_t::s_stack.top();
+  }
+
   if (cons) {
     usr::flag_t flag = u->m_flag;
     usr::flag_t mask = usr::flag_t(usr::STATIC | usr::VIRTUAL);

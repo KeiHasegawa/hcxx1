@@ -242,8 +242,10 @@ decl_specifier
   ;
 
 decl_specifier_seq
-  : decl_specifier_seq decl_specifier { $$ = new cxx_compiler::declarations::specifier_seq::info_t($1,$2); }
-  |                    decl_specifier { $$ = new cxx_compiler::declarations::specifier_seq::info_t( 0,$1); }
+  : decl_specifier_seq decl_specifier
+    { $$ = new cxx_compiler::declarations::specifier_seq::info_t($1,$2); }
+  | decl_specifier
+    { $$ = new cxx_compiler::declarations::specifier_seq::info_t( 0,$1); }
   ;
 
 storage_class_specifier

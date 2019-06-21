@@ -416,6 +416,8 @@ function::definition::begin(declarations::specifier_seq::info_t* p, var* v)
     p = declarations::specifier_seq::info_t::s_stack.top();
     declarations::specifier_seq::info_t::rare_case = false;
   }
+  if (u->m_flag2 & usr::CONV_OPE)
+    p = declarations::specifier_seq::info_t::s_stack.top();
   auto_ptr<declarations::specifier_seq::info_t> sweeper(p);
   parse::identifier::mode = parse::identifier::look;
   u = declarations::action1(u,false);
