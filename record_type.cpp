@@ -608,67 +608,106 @@ namespace cxx_compiler {
       tmp.push_back(void_type::create());
       return func_type::create(0, tmp);
     }
-    struct call_ctor_dtor {
+    inline void common_ctor_dtor(tag* ptr, usr* this_ptr, block* pb,
+				 bool is_dtor, int offset)
+    {
+      string tgn = ptr->m_name;
+      if (is_dtor)
+	tgn = '~' + tgn;
+      map<string, vector<usr*> >& usrs = ptr->m_usrs;
+      map<string, vector<usr*> >::const_iterator p = usrs.find(tgn);
+      if (p == usrs.end())
+	return;
+      const vector<usr*>& v = p->second;
+      const func_type* ft = default_ctor_type();
+      vector<usr*>::const_iterator r =
+	find_if(begin(v), end(v), [ft](usr* u){
+	    const type* T = u->m_type;
+	    return T ? compatible(T, ft) : false;
+	  });
+      if (r == end(v))
+	return;
+      usr* ctor = *r;
+      const type* T = ptr->m_types.second;
+      assert(T->m_id == type::RECORD);
+      T = pointer_type::create(T);
+      var* tmp = new var(T);
+      pb->m_vars.push_back(tmp);
+      code.push_back(new cast3ac(tmp, this_ptr, T));
+      if (offset) {
+	using namespace expressions::primary::literal;
+	var* off = integer::create(offset);
+	code.push_back(new add3ac(tmp, tmp, off));
+      }
+      call_impl::wrapper(ctor, 0, tmp);
+    }
+    struct base_ctor_dtor {
       const map<base*, int>& m_base_offset;
       usr* m_this;
       block* m_block;
       bool m_is_dtor;
-      call_ctor_dtor(const map<base*, int>& base_offset, usr* this_ptr,
+      base_ctor_dtor(const map<base*, int>& base_offset, usr* this_ptr,
 		     block* b, bool is_dtor)
         : m_base_offset(base_offset), m_this(this_ptr),
 	  m_block(b), m_is_dtor(is_dtor) {}
       void operator()(base* pb)
       {
         tag* ptr = pb->m_tag;
-        string tgn = ptr->m_name;
-	if (m_is_dtor)
-	  tgn = '~' + tgn;
-        map<string, vector<usr*> >& usrs = ptr->m_usrs;
-        map<string, vector<usr*> >::const_iterator p = usrs.find(tgn);
-        if (p == usrs.end())
-          return;
-        const vector<usr*>& v = p->second;
-	const func_type* ft = default_ctor_type();
-	vector<usr*>::const_iterator r =
-	  find_if(begin(v), end(v), [ft](usr* u){
-	      const type* T = u->m_type;
-	      return T ? compatible(T, ft) : false;
-	    });
-        if (r == end(v))
-          return;
-        usr* ctor = *r;
-        const type* T = ptr->m_types.second;
-        assert(T->m_id == type::RECORD);
-        T = pointer_type::create(T);
-        var* tmp = new var(T);
-        m_block->m_vars.push_back(tmp);
-        code.push_back(new cast3ac(tmp, m_this, T));
-        typedef map<base*, int>::const_iterator IT;
-        IT q = m_base_offset.find(pb);
-        assert(q != m_base_offset.end());
-        if (int offset = q->second) {
-          using namespace expressions::primary::literal;
-          var* off = integer::create(offset);
-          code.push_back(new add3ac(tmp, tmp, off));
-        }
-	call_impl::wrapper(ctor, 0, tmp);
+	typedef map<base*, int>::const_iterator IT;
+	IT q = m_base_offset.find(pb);
+	assert(q != m_base_offset.end());
+	int offset = q->second;
+	common_ctor_dtor(ptr, m_this, m_block, m_is_dtor, offset);
       }
     };
-    inline bool has_ctor(base* bp)
+    struct member_ctor_dtor {
+      const map<string, pair<int, usr*> >& m_layout;
+      usr* m_this;
+      block* m_block;
+      bool m_is_dtor;
+      member_ctor_dtor(const map<string, pair<int, usr*> >& layout,
+		       usr* this_ptr, block* b, bool is_dtor)
+	: m_layout(layout), m_this(this_ptr), m_block(b), m_is_dtor(is_dtor)
+      {}
+      void operator()(usr* u)
+      {
+	const type* T = u->m_type;
+	T = T->unqualified();
+	if (T->m_id != type::RECORD)
+	  return;
+	typedef const record_type REC;
+	REC* rec = static_cast<REC*>(T);
+	tag* ptr = rec->get_tag();
+	string name = u->m_name;
+	typedef map<string, pair<int, usr*> >::const_iterator IT;
+	IT p = m_layout.find(name);
+	assert(p != m_layout.end());
+	pair<int, usr*> off = p->second;
+	int offset = off.first;
+	common_ctor_dtor(ptr, m_this, m_block, m_is_dtor, offset);
+      }
+    };
+    inline bool has_ctor_dtor(tag* ptr, bool is_dtor)
     {
-      tag* ptr = bp->m_tag;
       string tgn = ptr->m_name;
+      if (is_dtor)
+	tgn = '~' + tgn;
       const map<string, vector<usr*> >& usrs = ptr->m_usrs;
       return usrs.find(tgn) != usrs.end();
     }
-    inline bool bases_have_ctor(tag* ptr)
+    inline bool bases_have_ctor_dtor(tag* ptr, bool is_dtor)
     {
       if (!ptr->m_bases)
         return false;
       vector<base*>& bases = *ptr->m_bases;
       typedef vector<base*>::const_iterator IT;
-      IT p = find_if(begin(bases), end(bases), has_ctor);
+      IT p = find_if(begin(bases), end(bases), [is_dtor](base* bp)
+		     { return has_ctor_dtor(bp->m_tag, is_dtor); });
       return p != end(bases);
+    }
+    inline bool bases_have_ctor(tag* ptr)
+    {
+      return bases_have_ctor_dtor(ptr, false);
     }
     struct update_vptr {
       const map<base*, int>& m_base_offset;
@@ -832,8 +871,11 @@ namespace cxx_compiler {
 		       const map<base*, int>& vbtbl_offset,
 		       const map<base*, int>& vftbl_offset,
 		       const set<const record_type*>& common,
-		       const map<const record_type*, int>& virt_common_offset,
-		       const map<const record_type*, int>& common_vftbl_offset,
+		       const map<const record_type*, int>&
+		       virt_common_offset,
+		       const map<const record_type*, int>&
+		       common_vftbl_offset,
+		       const vector<usr*>& member,
 		       block* pb,
 		       usr* this_ptr,
 		       usr* ctor,
@@ -844,7 +886,7 @@ namespace cxx_compiler {
         scope* org = scope::current;
         scope::current = pb;
         for_each(begin(bases), end(bases),
-                 call_ctor_dtor(base_offset, this_ptr, pb, false));
+                 base_ctor_dtor(base_offset, this_ptr, pb, false));
         scope::current = org;
         if (usr* vbtbl = get_vbtbl(ptr)) {
           const type* T = vbtbl->m_type;
@@ -864,7 +906,8 @@ namespace cxx_compiler {
           code.push_back(new addr3ac(vftbl_addr, vftbl));
           for_each(begin(bases), end(bases),
                    update_vptr(base_offset, vftbl_offset, this_ptr, pb,
-                               vftbl_addr, vfptr_name, &common_vftbl_offset));
+                               vftbl_addr, vfptr_name,
+			       &common_vftbl_offset));
           for_each(begin(common), end(common),
                    update_common_vfptr(this_ptr, pb, vftbl_addr,
                                        virt_common_offset,
@@ -913,6 +956,73 @@ namespace cxx_compiler {
         }
         code.push_back(new invladdr3ac(t1, t0));
       }
+      for_each(begin(member), end(member),
+	       member_ctor_dtor(layout, this_ptr, pb, false));
+    }
+    
+    inline bool member_have_ctor_dtor(const vector<usr*>& member,
+				      bool is_dtor)
+    {
+      typedef vector<usr*>::const_iterator IT;
+      IT p = find_if(begin(member), end(member), [is_dtor](usr* u)
+		     {
+		       const type* T = u->m_type;
+		       T = T->unqualified();
+		       if (T->m_id != type::RECORD)
+			 return false;
+		       typedef const record_type REC;
+		       REC* rec = static_cast<REC*>(T);
+		       tag* ptr = rec->get_tag();
+		       return has_ctor_dtor(ptr, is_dtor);
+		     });
+      return p != end(member);
+    }
+    inline bool member_have_ctor(const vector<usr*>& member)
+    {
+      return member_have_ctor_dtor(member, false);
+    }
+    inline usr* add_ctor_dtor_common(tag* ptr, scope** param, usr** this_ptr,
+				     block** pb, bool is_dtor)
+    {
+      string tgn = ptr->m_name;
+      if (is_dtor)
+	tgn = '~' + tgn;
+      map<string, vector<usr*> >& usrs = ptr->m_usrs;
+      map<string, vector<usr*> >::const_iterator p = usrs.find(tgn);
+      if (p != usrs.end())
+	return 0;
+      const func_type* ft = default_ctor_type();
+      usr::flag_t flag = is_dtor ? usr::DTOR : usr::CTOR;
+      flag = usr::flag_t(flag | usr::FUNCTION | usr::INLINE);
+      usr* tor = new usr(tgn, ft, flag, file_t(),usr::NONE2);
+      ptr->m_usrs[tgn].push_back(tor);
+      using namespace declarations::declarators::function::definition;
+      const vector<const type*>& parameter = ft->param();
+      KEY key(make_pair(tgn, ptr), &parameter);
+      dtbl[key] = tor;
+
+      *param = new scope(scope::PARAM);
+      using namespace class_or_namespace_name;
+      assert(!before.empty());
+      assert(before.back() == *param);
+      before.pop_back();
+      (*param)->m_parent = ptr;
+      ptr->m_children.push_back(*param);
+      string name = "this";
+      const type* T = ptr->m_types.first;
+      T = pointer_type::create(T);
+      *this_ptr = new usr(name,T,usr::NONE,file_t(),usr::NONE2);
+      (*this_ptr)->m_scope = *param;
+      (*param)->m_order.push_back(*this_ptr);
+      (*param)->m_usrs[name].push_back(*this_ptr);
+
+      *pb = new block;
+      assert(!before.empty());
+      assert(before.back() == *pb);
+      before.pop_back();
+      (*pb)->m_parent = *param;
+      (*param)->m_children.push_back(*pb);
+      return tor;
     }
     void add_ctor(tag* ptr,
                   const map<string, pair<int, usr*> >& layout,
@@ -921,53 +1031,67 @@ namespace cxx_compiler {
                   const map<base*, int>& vftbl_offset,
                   const set<const record_type*>& common,
                   const map<const record_type*, int>& virt_common_offset,
-                  const map<const record_type*, int>& common_vftbl_offset)
+                  const map<const record_type*, int>& common_vftbl_offset,
+		  const vector<usr*>& member)
     {
-      if (!bases_have_ctor(ptr) && !get_vbptr(ptr) && !get_vfptr(ptr))
+      if (!bases_have_ctor(ptr) && !get_vbptr(ptr) && !get_vfptr(ptr) &&
+	  !member_have_ctor(member))
         return;
 
-      string tgn = ptr->m_name;
-      map<string, vector<usr*> >& usrs = ptr->m_usrs;
-      map<string, vector<usr*> >::const_iterator p = usrs.find(tgn);
-      if (p != usrs.end())
+      block* pb; usr* this_ptr; scope* param;
+      usr* ctor = add_ctor_dtor_common(ptr, &param, &this_ptr, &pb, false);
+      if (!ctor)
 	return;
-      const func_type* ft = default_ctor_type();
-      usr::flag_t flag =
-	usr::flag_t(usr::CTOR | usr::FUNCTION | usr::INLINE);
-      usr* ctor = new usr(tgn, ft, flag, file_t(),usr::NONE2);
-      ptr->m_usrs[tgn].push_back(ctor);
-      using namespace declarations::declarators::function::definition;
-      const vector<const type*>& parameter = ft->param();
-      KEY key(make_pair(tgn, ptr), &parameter);
-      dtbl[key] = ctor;
-
-      scope* param = new scope(scope::PARAM);
-      using namespace class_or_namespace_name;
-      assert(!before.empty());
-      assert(before.back() == param);
-      before.pop_back();
-      param->m_parent = ptr;
-      ptr->m_children.push_back(param);
-      string name = "this";
-      const type* T = ptr->m_types.first;
-      T = pointer_type::create(T);
-      usr* this_ptr = new usr(name,T,usr::NONE,file_t(),usr::NONE2);
-      this_ptr->m_scope = param;
-      param->m_order.push_back(this_ptr);
-      param->m_usrs[name].push_back(this_ptr);
-
-      block* pb = new block;
-      assert(!before.empty());
-      assert(before.back() == pb);
-      before.pop_back();
-      pb->m_parent = param;
-      param->m_children.push_back(pb);
 
       assert(code.empty());
       add_ctor_code(ptr, layout, base_offset, vbtbl_offset, vftbl_offset,
 		    common, virt_common_offset, common_vftbl_offset,
-		    pb, this_ptr, ctor, param);
+		    member, pb, this_ptr, ctor, param);
       fundef* fdef = new fundef(ctor, param);
+      declarations::declarators::function::definition::action(fdef, code);
+    }
+    inline bool member_have_dtor(const vector<usr*>& member)
+    {
+      return member_have_ctor_dtor(member, true);
+    }
+    inline bool bases_have_dtor(tag* ptr)
+    {
+      return bases_have_ctor_dtor(ptr, true);
+    }
+    void add_dtor_code(tag* ptr,
+		       const map<string, pair<int, usr*> >& layout,
+		       const vector<usr*>& member,
+		       const map<base*, int>& base_offset,
+		       block* pb,
+		       usr* this_ptr)
+    {
+      for_each(rbegin(member), rend(member), 
+	       member_ctor_dtor(layout, this_ptr, pb, true));
+      if (ptr->m_bases) {
+	const vector<base*>& bases = *ptr->m_bases;
+	for_each(rbegin(bases), rend(bases),
+                 base_ctor_dtor(base_offset, this_ptr, pb, true));
+      }
+    }
+    void add_dtor(tag* ptr,
+                  const map<string, pair<int, usr*> >& layout,
+		  const vector<usr*>& member,
+                  const map<base*, int>& base_offset)
+    {
+      if (!member_have_dtor(member) && !bases_have_dtor(ptr))
+        return;
+      
+      block* pb; usr* this_ptr; scope* param;
+      usr* dtor = add_ctor_dtor_common(ptr, &param, &this_ptr, &pb, true);
+      if (!dtor)
+	return;
+
+      assert(code.empty());
+      scope* org = scope::current;
+      scope::current = pb;
+      add_dtor_code(ptr, layout, member, base_offset, pb, this_ptr);
+      scope::current = org;
+      fundef* fdef = new fundef(dtor, param);
       declarations::declarators::function::definition::action(fdef, code);
     }
     const usr::flag_t vtbl_flag
@@ -1273,7 +1397,10 @@ cxx_compiler::record_type::record_type(tag* ptr)
     m_size += al - n;
   }
   add_ctor(m_tag, m_layout, m_base_offset, m_vbtbl_offset, m_vftbl_offset,
-           m_common, m_virt_common_offset, m_common_vftbl_offset);
+           m_common, m_virt_common_offset, m_common_vftbl_offset,
+	   m_member);
+
+  add_dtor(m_tag, m_layout, m_member, m_base_offset);
 }
 
 int cxx_compiler::record_impl::layouter::operator()(int offset, usr* member)
@@ -1740,7 +1867,7 @@ void cxx_compiler::record_type::ctor_code(usr* ctor, scope* param,
   using namespace record_impl;
   add_ctor_code(m_tag, m_layout, m_base_offset, m_vbtbl_offset,
 		m_vftbl_offset, m_common, m_virt_common_offset,
-		m_common_vftbl_offset, pb, this_ptr, ctor, param);
+		m_common_vftbl_offset, m_member, pb, this_ptr, ctor, param);
 }
 
 namespace cxx_compiler {
@@ -1841,7 +1968,7 @@ namespace cxx_compiler {
       assert(tmp->m_id == scope::BLOCK);
       block* b = static_cast<block*>(tmp);
 
-      call_ctor_dtor op(base_offset, this_ptr, b, is_dtor);
+      base_ctor_dtor op(base_offset, this_ptr, b, is_dtor);
       scope* org = scope::current;
       scope::current = b;
       op(bp);
