@@ -61,31 +61,33 @@ cxx_compiler::block::~block()
     delete p;
 }
 
-std::string cxx_compiler::usr::keyword(flag_t f)
+std::string cxx_compiler::usr::keyword(flag_t flag)
 {
   using namespace std;
   ostringstream os;
-  if ( f & TYPEDEF )
+  if (flag & TYPEDEF)
     os << "typedef";
-  else if ( f & EXTERN ){
+  if (flag & EXTERN)
     os << "extern";
-    if ( f & INLINE )
-      os << " inline";
-  }
-  else if ( f & STATIC ){
+  if (flag & STATIC)
     os << "static";
-    if ( f & INLINE )
-      os << " inline";
-  }
-  else if ( f & AUTO )
+  if (flag & AUTO)
     os << "auto";
-  else if ( f & REGISTER )
+  if (flag & REGISTER)
     os << "register";
-  else if ( f & INLINE )
+  if (flag & INLINE) {
+    string s = os.str();
+    if (!s.empty())
+      os << ' ';
     os << "inline";
-  else if ( f & VIRTUAL )
+  }
+  if (flag & VIRTUAL) {
+    string s = os.str();
+    if (!s.empty())
+      os << ' ';
     os << "virtual";
-  else if ( f & NAMESPACE )
+  }
+  if (flag & NAMESPACE)
     os << "namespace";
   return os.str();
 }

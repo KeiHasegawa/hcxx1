@@ -149,6 +149,43 @@ namespace cxx_compiler {
   }
 } // end of namespace cxx_compiler
 
+namespace cxx_compiler {
+  namespace expressions {
+    namespace unary {
+      inline usr* ctor_dtor_entry(const type* T, bool is_dtor)
+      {
+	const type* U = T->unqualified();
+	if (U->m_id != type::RECORD)
+	  return 0;
+
+	typedef const record_type REC;
+	REC* rec = static_cast<REC*>(U);
+	tag* ptr = rec->get_tag();
+	map<string, vector<usr*> >& tusrs = ptr->m_usrs;
+	string tgn = ptr->m_name;
+	if (is_dtor)
+	  tgn = '~' + tgn;
+	map<string, vector<usr*> >::const_iterator p = tusrs.find(tgn);
+	if (p == tusrs.end())
+	  return 0;
+
+	const vector<usr*>& v = p->second;
+	assert(!v.empty());
+	usr* tor = v.back();
+	return tor;
+      }
+      inline usr* ctor_entry(const type* T)
+      {
+	return ctor_dtor_entry(T, false);
+      }
+      inline usr* dtor_entry(const type* T)
+      {
+	return ctor_dtor_entry(T, true);
+      }
+    } // end of namespace unary
+  } // end of namespace expressions
+} // end of namespace cxx_compiler
+
 cxx_compiler::var* cxx_compiler::expressions::unary::new_expr::gen()
 {
   using namespace std;
@@ -175,22 +212,10 @@ cxx_compiler::var* cxx_compiler::expressions::unary::new_expr::gen()
   const vector<usr*>& vu = it->second;
   usr* new_entry = vu.back();
   var* ret = call_new(new_entry, new_arg);
-  const type* U = m_T->unqualified();
-  if (U->m_id != type::RECORD)
-    return ret;
 
-  typedef const record_type REC;
-  REC* rec = static_cast<REC*>(U);
-  tag* ptr = rec->get_tag();
-  map<string, vector<usr*> >& tusrs = ptr->m_usrs;
-  string tgn = ptr->m_name;
-  map<string, vector<usr*> >::const_iterator p = tusrs.find(tgn);
-  if (p == tusrs.end())
+  usr* ctor = ctor_entry(m_T);
+  if (!ctor)
     return ret;
-
-  const vector<usr*>& v = p->second;
-  assert(!v.empty());
-  usr* ctor = v.back();
   usr::flag_t flag = ctor->m_flag;
   if (flag & usr::OVERLOAD) {
     overload* ovl = static_cast<overload*>(ctor);
@@ -236,11 +261,18 @@ cxx_compiler::var* cxx_compiler::expressions::unary::delete_expr::gen()
     usrs[name].push_back(delete_entry);
   }
   var* v = m_expr->gen();
-  code.push_back(new param3ac(v));
-  var* ret = new var(void_type::create());
-  garbage.push_back(ret);
-  code.push_back(new call3ac(ret, delete_entry));
-  return ret;
+  const type* T = v->m_type;
+  T = T->unqualified();
+  if (T->m_id != type::POINTER)
+    error::not_implemented();
+  typedef const pointer_type PT;
+  PT* pt = static_cast<PT*>(T);
+  T = pt->referenced_type();
+  if (usr* dtor = dtor_entry(T))
+    call_impl::wrapper(dtor, 0, v);
+  vector<var*> arg;
+  arg.push_back(v);
+  return call_impl::wrapper(delete_entry, &arg, 0);
 }
 
 const cxx_compiler::file_t&

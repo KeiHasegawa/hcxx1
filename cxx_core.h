@@ -317,12 +317,14 @@ struct usr : var {
   };
   flag_t m_flag;
   enum flag2_t {
-    NONE2 = 0,
-    PRIVATE = 1 << 0,
-    PROTECTED = 1 << 1,
-    PUBLIC = 1 << 2,
-    CONV_OPE = 1 << 3,
-    OPERATOR = 1 << 4,
+    NONE2              = 0,
+    PRIVATE            = 1 << 0,
+    PROTECTED          = 1 << 1,
+    PUBLIC             = 1 << 2,
+    CONV_OPE           = 1 << 3,
+    OPERATOR           = 1 << 4,
+    PURE_VIRT_VALUE    = 1 << 5,
+    AMBIGUOUS_OVERRIDE = 1 << 6,
   };
   flag2_t m_flag2;
   file_t m_file;
@@ -1474,10 +1476,10 @@ public:
   const type* composite(const type*) const;
   int size() const { return 0; }
   bool scalar() const { return false; }
-  const type* prev() const { return m_T->prev(); }
+  const type* prev() const { return !m_T ? 0 : m_T->prev(); }
   void post(std::ostream&) const;
   const type* patch(const type*, usr*) const;
-  bool backpatch() const { return m_T->backpatch(); }
+  bool backpatch() const { assert(m_T); return m_T->backpatch(); }
   const type* qualified(int) const;
   const type* complete_type() const;
   const pointer_type* ptr_gen() const;

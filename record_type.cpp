@@ -8,11 +8,17 @@ namespace cxx_compiler {
   struct pure_virt_value : constant<void*> {
     usr* m_usr;
     pure_virt_value(usr* u, constant<void*>* c)
-      : m_usr(u), constant<void*>(*c) {}
+      : m_usr(u), constant<void*>(*c)
+    {
+      m_flag2 = usr::PURE_VIRT_VALUE;
+    }
   };
   struct ambiguous_override : usr {
     usr* m_org;
-    ambiguous_override(usr* x, usr* y) : usr(*y), m_org(x) {}
+    ambiguous_override(usr* x, usr* y) : usr(*y), m_org(x)
+    {
+      m_flag2 = usr::AMBIGUOUS_OVERRIDE;
+    }
   };
   inline usr* get_vf(var* v)
   {
@@ -21,16 +27,23 @@ namespace cxx_compiler {
       assert(v->usr_cast());
       return static_cast<usr*>(v);
     }
-    if (pure_virt_value* pv = dynamic_cast<pure_virt_value*>(v))
+    assert(v->usr_cast());
+    usr* u = static_cast<usr*>(v);
+    usr::flag2_t flag2 = u->m_flag2;
+    if (flag2 & usr::PURE_VIRT_VALUE) {
+      pure_virt_value* pv = static_cast<pure_virt_value*>(u);
       return pv->m_usr;
-    assert(dynamic_cast<ambiguous_override*>(v));
-    return static_cast<usr*>(v);
+    }
+    assert(flag2 & usr::AMBIGUOUS_OVERRIDE);
+    return u;
   }
   bool match_vf(pair<int, var*> p, usr* y)
   {
     var* v = p.second;
     usr* x = get_vf(v);
-    if (x->m_name != y->m_name)
+    string xn = x->m_name;
+    string yn = y->m_name;
+    if (xn != yn && xn[0] != '~' && yn[0] != '~')
       return false;
     const type* Tx = x->m_type;
     assert(Tx->m_id == type::FUNC);
@@ -49,6 +62,11 @@ namespace cxx_compiler {
     }
     Tx = Fx->return_type();
     Ty = Fy->return_type();
+    if (!Tx || !Ty) {
+      assert(x->m_flag & usr::DTOR);
+      assert(y->m_flag & usr::DTOR);
+      return Tx == Ty;
+    }
     if (compatible(Tx, Ty))
       return true;
     if (Tx->m_id != type::POINTER) {
@@ -627,7 +645,7 @@ namespace cxx_compiler {
 	  });
       if (r == end(v))
 	return;
-      usr* ctor = *r;
+      usr* tor = *r;
       const type* T = ptr->m_types.second;
       assert(T->m_id == type::RECORD);
       T = pointer_type::create(T);
@@ -639,7 +657,10 @@ namespace cxx_compiler {
 	var* off = integer::create(offset);
 	code.push_back(new add3ac(tmp, tmp, off));
       }
-      call_impl::wrapper(ctor, 0, tmp);
+      usr::flag_t org = tor->m_flag;
+      tor->m_flag = usr::flag_t(tor->m_flag & ~usr::VIRTUAL);
+      call_impl::wrapper(tor, 0, tmp);
+      tor->m_flag = org;
     }
     struct base_ctor_dtor {
       const map<base*, int>& m_base_offset;

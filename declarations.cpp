@@ -536,13 +536,16 @@ cxx_compiler::declarations::action1(var* v, bool ini)
     }
   }
   else if (specifier_seq::info_t* p = specifier_seq::info_t::s_stack.top()) {
-    usr::flag_t mask = usr::flag_t(usr::CTOR | usr::DTOR);
-    assert(!(flag & mask));
-    if ( !p->m_type || !p->m_tmp.empty() ){
+    assert(!(flag & usr::CTOR));
+    if (flag & usr::DTOR) {
+      assert(!p->m_type);
+      assert(p->m_tmp.empty());
+    }
+    if (!p->m_type || !p->m_tmp.empty()) {
       declarations::specifier_seq::type::g_usr = u;
       p->update();
     }
-    if ( !p->m_type ){
+    if (!p->m_type && !(flag & usr::DTOR)) {
       implicit_int(u);
       p->m_type = int_type::create();
     }
