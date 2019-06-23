@@ -307,7 +307,7 @@ struct usr : var {
     DTOR                = 1 << 22,
     STATIC_DEF          = 1 << 23,
     NAMESPACE           = 1 << 24,
-    INITIALIZE_FUNCTION = 1 << 25,
+
     NEW_SCALAR          = 1 << 26,
     NEW_ARRAY           = 1 << 27,
     DELETE_SCALAR       = 1 << 28,
@@ -317,14 +317,16 @@ struct usr : var {
   };
   flag_t m_flag;
   enum flag2_t {
-    NONE2              = 0,
-    PRIVATE            = 1 << 0,
-    PROTECTED          = 1 << 1,
-    PUBLIC             = 1 << 2,
-    CONV_OPE           = 1 << 3,
-    OPERATOR           = 1 << 4,
-    PURE_VIRT_VALUE    = 1 << 5,
-    AMBIGUOUS_OVERRIDE = 1 << 6,
+    NONE2               = 0,
+    PRIVATE             = 1 << 0,
+    PROTECTED           = 1 << 1,
+    PUBLIC              = 1 << 2,
+    CONV_OPE            = 1 << 3,
+    OPERATOR            = 1 << 4,
+    PURE_VIRT_VALUE     = 1 << 5,
+    AMBIGUOUS_OVERRIDE  = 1 << 6,
+    INITIALIZE_FUNCTION = 1 << 7,
+    TERMINATE_FUNCTION  = 1 << 8,
   };
   flag2_t m_flag2;
   file_t m_file;

@@ -607,8 +607,8 @@ cxx_compiler::declarations::action1(var* v, bool ini)
     }
   }
   else if (flag & usr::EXTERN) {
-    if ( ini ){
-      if ( scope::current == &scope::root ){
+    if (ini) {
+      if (scope::current == &scope::root) {
         using namespace warning::declarations::initializers;
         with_extern(u);
       }
@@ -640,7 +640,8 @@ cxx_compiler::declarations::action1(var* v, bool ini)
       if (fundef::current->m_usr->m_flag & usr::INLINE) {
         using namespace error::declarations::specifier_seq::function;
         func_spec::static_storage(u);
-        fundef::current->m_usr->m_flag = usr::flag_t(fundef::current->m_usr->m_flag & ~usr::INLINE);
+        fundef::current->m_usr->m_flag =
+	  usr::flag_t(fundef::current->m_usr->m_flag & ~usr::INLINE);
       }
     }
   }
@@ -705,7 +706,21 @@ cxx_compiler::declarations::action1(var* v, bool ini)
     u = tmp;
   }
 
-  return installed ? u : action2(u);
+  if (!installed)
+    u = action2(u);
+
+  if (!ini) {
+    usr::flag_t mask = 
+      usr::flag_t(usr::TYPEDEF |usr::FUNCTION | usr::OVERLOAD);
+    if (!(flag & mask) && is_external_declaration(u)) {
+      if (must_call_default_ctor(u))
+	initialize_ctor_code(u);
+      if (must_call_dtor(u))
+	terminate_dtor_code(u);
+    }
+  }
+
+  return u;
 }
 
 void cxx_compiler::declarations::check_object(usr* u)
@@ -755,7 +770,7 @@ cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr)
   }
   map<string, vector<usr*> >& usrs = curr->m_scope->m_usrs;
   map<string, vector<usr*> >::const_iterator p = usrs.find(name);
-  if ( p != usrs.end() ){
+  if (p != usrs.end()) {
     const vector<usr*>& v = p->second;
     usr* prev = v.back();
     assert(prev != curr);

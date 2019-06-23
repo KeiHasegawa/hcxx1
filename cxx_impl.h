@@ -476,21 +476,10 @@ extern void handle_copy_ctor(tag*);
 
 extern bool canbe_copy_ctor(usr*, tag*);
 
-void ctor_dtor_common(var* v, const array_type* at, void (*pf)(var*),
-		      bool ctor);
+extern bool array_of_tor(const array_type* at, bool ctor);
 
-inline bool array_of_rec(const array_type* at)
-{
-  const type* T = at->element_type();
-  if (T->m_id == type::RECORD)
-    return true;
-  if (T->m_id == type::ARRAY) {
-    typedef const array_type AT;
-    AT* at = static_cast<AT*>(T);
-    return array_of_rec(at);
-  }
-  return false;
-}
+extern void ctor_dtor_common(var* v, const array_type* at, void (*pf)(var*),
+			     bool ctor);
 
 extern void call_base_ctor(usr*);
 
@@ -503,6 +492,18 @@ extern string conversion_name(const type*);
 extern usr* operator_function(const type* T, int op);
 
 extern usr* conversion_function(const type* T);
+
+extern void call_default_ctor(var*);
+
+extern void call_dtor(var*);
+
+extern bool must_call_default_ctor(usr*);
+
+extern void initialize_ctor_code(usr*);
+
+extern bool must_call_dtor(usr*);
+
+extern void terminate_dtor_code(usr*);
 
 namespace var_impl {
   extern var* operator_code(int op, var* y, var* z);

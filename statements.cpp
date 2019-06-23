@@ -215,10 +215,6 @@ int cxx_compiler::statements::expression::info_t::gen()
   return 0;
 }
 
-namespace cxx_compiler { namespace statements { namespace compound {
-  extern void gen_dtor(var*);
-} } } // end of namespace compund, statements and cxx_compiler
-
 int cxx_compiler::statements::compound::info_t::gen()
 {
   using namespace std;
@@ -234,13 +230,13 @@ int cxx_compiler::statements::compound::info_t::gen()
 	   {
 	     usr::flag_t flag = u->m_flag;
 	     if (!(flag & usr::TYPEDEF))
-	       gen_dtor(u);
+	       call_dtor(u);
 	   });
   scope::current = org;
   return 0;
 }
 
-void cxx_compiler::statements::compound::gen_dtor(var* v)
+void cxx_compiler::call_dtor(var* v)
 {
   using namespace std;
   const type* T = v->result_type();
@@ -253,8 +249,8 @@ void cxx_compiler::statements::compound::gen_dtor(var* v)
   if (T->m_id == type::ARRAY) {
     typedef const array_type AT;
     AT* at = static_cast<AT*>(T);
-    if (array_of_rec(at))
-      ctor_dtor_common(v, at, gen_dtor, false);
+    if (array_of_tor(at, false))
+      ctor_dtor_common(v, at, call_dtor, false);
     return;
   }
   T = T->unqualified();
@@ -1065,12 +1061,16 @@ cxx_compiler::statements::return_stmt::info_t::info_t(expressions::base* b) : m_
   gather(scope::current,m_usrs);
 }
 
-void cxx_compiler::statements::return_stmt::gather(scope* ptr, std::vector<usr*>& res)
+void cxx_compiler::statements::
+return_stmt::gather(scope* ptr, std::vector<usr*>& res)
 {
   using namespace std;
+  scope::id_t id = ptr->m_id;
+  if (id != scope::BLOCK && id != scope::PARAM)
+    return;
   vector<usr*>& order = ptr->m_order;
   copy(order.rbegin(),order.rend(),back_inserter(res));
-  if ( ptr->m_parent )
+  if (ptr->m_parent)
     gather(ptr->m_parent,res);
 }
 
@@ -1112,8 +1112,10 @@ int cxx_compiler::statements::return_stmt::info_t::gen()
   for_each(m_usrs.begin(),m_usrs.end(),[](usr* u)
 	   {
 	     usr::flag_t flag = u->m_flag;
-	     if (!(flag & usr::TYPEDEF))
-	       compound::gen_dtor(u);
+	     usr::flag_t mask =
+	       usr::flag_t(usr::TYPEDEF | usr::EXTERN | usr::FUNCTION);
+	     if (!(flag & mask))
+	       call_dtor(u);
 	   });
   code.push_back(new return3ac(expr));
   return 0;

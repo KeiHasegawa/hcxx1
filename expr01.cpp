@@ -917,6 +917,7 @@ namespace cxx_compiler {
                   assert(before.back() == ret);
                   before.pop_back();
                 }
+		assert(scope::current->m_id == scope::BLOCK);
                 ret->m_parent = scope::current;
                 scope::current->m_children.push_back(ret);
                 const vector<usr*>& o = param->m_order;

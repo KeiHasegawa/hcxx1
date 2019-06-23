@@ -2027,3 +2027,77 @@ void cxx_compiler::call_base_dtor(usr* u)
 {
   call_base_common(u, false);
 }
+
+void cxx_compiler::call_default_ctor(var* v)
+{
+  const type* T = v->result_type();
+  if (T->m_id == type::ARRAY) {
+    typedef const array_type AT;
+    AT* at = static_cast<AT*>(T);
+    if (array_of_tor(at, true))
+      ctor_dtor_common(v, at, call_default_ctor, true);
+    return;
+  }
+  T = T->unqualified();
+  if (T->m_id != type::RECORD )
+    return;
+  typedef const record_type REC;
+  REC* rec = static_cast<REC*>(T);
+  tag* ptr = rec->get_tag();
+  string name = ptr->m_name;
+  const map<string, vector<usr*> >& usrs = ptr->m_usrs;
+  map<string, vector<usr*> >::const_iterator p = usrs.find(name);
+  if (p == usrs.end())
+    return;
+  const vector<usr*>& ctors = p->second;
+  typedef vector<usr*>::const_iterator IT;
+  IT q = find_if(begin(ctors), end(ctors), canbe_default_ctor);
+  if (q == end(ctors))
+    return;
+  usr* ctor = *q;
+  call_impl::wrapper(ctor, 0, v);
+}
+
+namespace cxx_compiler {
+  bool must_call_ctor_dtor_common(usr* u, bool ctor)
+  {
+    const type* T = u->m_type;
+    if (T->m_id == type::ARRAY) {
+      typedef const array_type AT;
+      AT* at = static_cast<AT*>(T);
+      return array_of_tor(at, ctor);
+    }
+
+    T = T->unqualified();
+    if (T->m_id != type::RECORD )
+      return false;
+    typedef const record_type REC;
+    REC* rec = static_cast<REC*>(T);
+    tag* ptr = rec->get_tag();
+    string name = ptr->m_name;
+    if (!ctor)
+      name = '~' + name;
+    const map<string, vector<usr*> >& usrs = ptr->m_usrs;
+    map<string, vector<usr*> >::const_iterator p = usrs.find(name);
+    if (p == usrs.end())
+      return false;
+    const vector<usr*>& tors = p->second;
+    if (ctor) {
+      typedef vector<usr*>::const_iterator IT;
+      IT q = find_if(begin(tors), end(tors), canbe_default_ctor);
+      return q != end(tors);
+    }
+    assert(tors.size() == 1);
+    return true;
+  }
+} // end of namesapce cxx_compiler
+
+bool cxx_compiler::must_call_default_ctor(usr* u)
+{
+  return must_call_ctor_dtor_common(u, true);
+}
+
+bool cxx_compiler::must_call_dtor(usr* u)
+{
+  return must_call_ctor_dtor_common(u, false);
+}

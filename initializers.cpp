@@ -61,16 +61,16 @@ void cxx_compiler::declarations::initializers::action(var* v, info_t* i)
   if ( T->m_id == type::ARRAY ){
     typedef const array_type ARRAY;
     ARRAY* array = static_cast<ARRAY*>(T);
-    if ( !array->dim() ){
+    if (!array->dim()) {
       T = array->element_type();
       int n = arg.off_max;
       int m = T->size();
-          if ( m )
+      if (m)
         u->m_type = array_type::create(T,(n + m - 1)/ m);
     }
   }
-  if ( p ){
-    if ( arg.not_constant )
+  if (p) {
+    if (arg.not_constant)
       initialize_code(p);
   }
   parse::identifier::mode = parse::identifier::new_obj;
@@ -99,6 +99,26 @@ void cxx_compiler::usr::initialize()
   }
   using namespace declarations::declarators::array;
   variable_length::allocate(this);
+}
+
+bool cxx_compiler::array_of_tor(const array_type* at, bool ctor)
+{
+  const type* T = at->element_type();
+  if (T->m_id == type::ARRAY) {
+    typedef const array_type AT;
+    AT* at = static_cast<AT*>(T);
+    return array_of_tor(at, ctor);
+  }
+  if (T->m_id != type::RECORD)
+    return false;
+  typedef const record_type REC;
+  REC* rec = static_cast<REC*>(T);
+  tag* ptr = rec->get_tag();
+  string name = ptr->m_name;
+  if (!ctor)
+    name = '~' + name;
+  const map<string, vector<usr*> >& usrs = ptr->m_usrs;
+  return usrs.find(name) != usrs.end();
 }
 
 void
@@ -141,47 +161,6 @@ cxx_compiler::ctor_dtor_common(var* v, const array_type* at, void (*pf)(var*),
 namespace cxx_compiler {
   namespace declarations {
     namespace initializers {
-      inline bool param_void(usr* u)
-      {
-        const type* T = u->m_type;
-        assert(T->m_id == type::FUNC);
-        typedef const func_type FT;
-        FT* ft = static_cast<FT*>(T);
-        const vector<const type*> & param = ft->param();
-        if (param.size() != 1)
-          return false;
-        T = param[0];
-        return T->m_id == type::VOID;
-      }
-      void call_default_ctor(var* v)
-      {
-        const type* T = v->result_type();
-	if (T->m_id == type::ARRAY) {
-	  typedef const array_type AT;
-	  AT* at = static_cast<AT*>(T);
-	  if (array_of_rec(at))
-	    ctor_dtor_common(v, at, call_default_ctor, true);
-	  return;
-	}
-        T = T->unqualified();
-        if (T->m_id != type::RECORD )
-          return;
-        typedef const record_type REC;
-        REC* rec = static_cast<REC*>(T);
-        tag* ptr = rec->get_tag();
-        string name = ptr->m_name;
-        const map<string, vector<usr*> >& usrs = ptr->m_usrs;
-        map<string, vector<usr*> >::const_iterator p = usrs.find(name);
-        if (p == usrs.end())
-          return;
-        const vector<usr*>& ctors = p->second;
-        typedef vector<usr*>::const_iterator IT;
-        IT q = find_if(begin(ctors), end(ctors), param_void);
-        if (q == end(ctors))
-          return;
-        usr* ctor = *q;
-	call_impl::wrapper(ctor, 0, v);
-      }
       namespace reference_impl {
         void constant_case(usr* u, var* v)
         {
@@ -1180,19 +1159,53 @@ namespace cxx_compiler {
       void change_scope1(tac*, block*);
       void scalar(std::map<int, var*>::iterator, var*, block*);
       void aggregate(std::map<int, var*>::iterator, var*, block*);
+      inline void for_with_initial(with_initial* x, block* body)
+      {
+	map<int, var*>& value = x->m_value;
+	typedef map<int, var*>::iterator IT;
+	if ( x->m_type->scalar() ){
+	  if ( value.size() == 1 ){  // This holds if program is correct.
+	    IT it = value.find(0);
+	    assert(it != value.end());
+	    scalar(it,x,body);
+	  }
+	}
+	else {
+	  for ( IT it = value.begin() ; it != value.end() ; ++it )
+	    aggregate(it,x,body);
+	}
+      }
+      void common(usr*, bool);
     }  // end of namespace initializers
   }  // end of namespace declarations
 }  // end of namespace cxx_compiler
 
 void cxx_compiler::declarations::initializers::initialize_code(with_initial* x)
 {
+  common(x, true);
+}
+
+void cxx_compiler::initialize_ctor_code(usr* u)
+{
+  declarations::initializers::common(u, true);
+}
+
+void cxx_compiler::terminate_dtor_code(usr* u)
+{
+  declarations::initializers::common(u, false);
+}
+
+void cxx_compiler::declarations::initializers::common(usr* u, bool ini)
+{
   using namespace std;
   assert(scope::current == &scope::root);
-  string name = "initialize." + x->m_name;
+  string name = ini ? "initialize." : "terminate.";
+  name += u->m_name;
   vector<const type*> dummy;
   const func_type* ft = func_type::create(void_type::create(),dummy);
-  usr::flag_t flag = usr::flag_t(usr::FUNCTION | usr::INITIALIZE_FUNCTION);
-  usr* func = new usr(name,ft,flag,file_t(),usr::NONE2);
+  usr::flag2_t flag2 =
+    ini ? usr::INITIALIZE_FUNCTION : usr::TERMINATE_FUNCTION;
+  usr* func = new usr(name,ft,usr::FUNCTION,file_t(),flag2);
   scope* param = new scope(scope::PARAM);
   using namespace class_or_namespace_name;
   assert(!before.empty());
@@ -1208,20 +1221,19 @@ void cxx_compiler::declarations::initializers::initialize_code(with_initial* x)
   param->m_children.push_back(body);
   fundef::current = new fundef(func,param);
 
-  for_each(code.begin(),code.end(),bind2nd(ptr_fun(change_scope1),body));
-
-  map<int, var*>& value = x->m_value;
-  typedef map<int, var*>::iterator IT;
-  if ( x->m_type->scalar() ){
-    if ( value.size() == 1 ){  // This holds if program is correct.
-      IT it = value.find(0);
-      assert(it != value.end());
-      scalar(it,x,body);
-    }
+  if (u->m_flag & usr::WITH_INI) {
+    for_each(code.begin(),code.end(),bind2nd(ptr_fun(change_scope1),body));
+    with_initial* p = static_cast<with_initial*>(u);
+    for_with_initial(p, body);
   }
   else {
-    for ( IT it = value.begin() ; it != value.end() ; ++it )
-      aggregate(it,x,body);
+    assert(code.empty());
+    assert(is_external_declaration(u));
+    ini ? assert(must_call_default_ctor(u)) : assert(must_call_dtor(u));
+    scope* org = scope::current;
+    scope::current = body;
+    ini ? call_default_ctor(u) : call_dtor(u);
+    scope::current = org;
   }
 
   if ( !error::counter )
