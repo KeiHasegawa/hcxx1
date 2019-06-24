@@ -1236,32 +1236,8 @@ void cxx_compiler::declarations::initializers::common(usr* u, bool ini)
     scope::current = org;
   }
 
-  if ( !error::counter )
-    optimize::action(fundef::current, code);
-
-  if ( cmdline::output_medium ){
-    usr* u = fundef::current->m_usr;
-    scope* org = scope::current;
-    scope::current = &scope::root;
-    cout << dump::names::ref(u) << ":\n";
-    scope::current = org;
-    typedef vector<tac*>::const_iterator IT;
-    for ( IT p = code.begin() ; p != code.end() ; ++p )
-      cout << '\t', dump::tacx(cout,*p), cout << '\n';
-    cout << '\n';
-    dump::scopex();
-  }
-  if ( !error::counter ){
-    if ( generator::generate ){
-      generator::interface_t tmp = {
-        &scope::root,
-        fundef::current,
-        &code
-      };
-      generator::generate(&tmp);
-    }
-  }
-  delete func;
+  using namespace declarations::declarators;
+  function::definition::action(fundef::current, code);
   delete fundef::current;
   fundef::current = 0;
   destroy();

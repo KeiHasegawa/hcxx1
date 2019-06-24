@@ -651,7 +651,7 @@ function::definition::action(fundef* fdef, std::vector<tac*>& vc)
     }
     else if (generator::last) {
       remember(fdef, vc);
-      class_or_namespace_name::pop(fundef::current->m_param);
+      class_or_namespace_name::pop(fdef->m_param);
       fundef::current = 0;
     }
     else
