@@ -618,8 +618,13 @@ function::definition::action(fundef* fdef, std::vector<tac*>& vc)
   if ((flag & usr::INLINE) && !(flag & mask))
     return skip::add(fdef, vc, true);
   if (flag & usr::STATIC) {
-    if (u->m_scope->m_id != scope::TAG)
-      return skip::add(fdef, vc, true);
+    usr::flag2_t flag2 = u->m_flag2;
+    usr::flag2_t mask2 =
+      usr::flag2_t(usr::INITIALIZE_FUNCTION | usr::TERMINATE_FUNCTION);
+    if (!(flag2 & mask2)) {
+      if (u->m_scope->m_id != scope::TAG)
+	return skip::add(fdef, vc, true);
+    }
   }
 
   skip::chk_t arg(fdef);

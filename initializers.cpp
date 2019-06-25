@@ -1203,9 +1203,10 @@ void cxx_compiler::declarations::initializers::common(usr* u, bool ini)
   name += u->m_name;
   vector<const type*> dummy;
   const func_type* ft = func_type::create(void_type::create(),dummy);
+  usr::flag_t flag = usr::flag_t(usr::FUNCTION | usr::STATIC);
   usr::flag2_t flag2 =
     ini ? usr::INITIALIZE_FUNCTION : usr::TERMINATE_FUNCTION;
-  usr* func = new usr(name,ft,usr::FUNCTION,file_t(),flag2);
+  usr* func = new usr(name,ft,flag,file_t(),flag2);
   scope* param = new scope(scope::PARAM);
   using namespace class_or_namespace_name;
   assert(!before.empty());
