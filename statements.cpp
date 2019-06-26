@@ -206,11 +206,14 @@ int cxx_compiler::statements::expression::info_t::gen()
   var* expr = m_expr->gen();
   expr->rvalue();
   const type* T = expr->m_type;
-  if ( tag* tag = T->get_tag() ){
-    if ( !tag->m_types.second ){
-      using namespace error::statements::expression;
-      incomplete_type(parse::position);
-    }
+  if (!T)
+    return 0;
+  tag* ptr = T->get_tag();
+  if (!ptr)
+    return 0;
+  if (!ptr->m_types.second) {
+    using namespace error::statements::expression;
+    incomplete_type(parse::position);
   }
   return 0;
 }

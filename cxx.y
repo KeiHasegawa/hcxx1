@@ -165,6 +165,7 @@ namespace cxx_compiler {
 %type<m_param> parameter_declaration
 %type<m_params> parameter_declaration_clause parameter_declaration_list
 %type<m_ival> operator_function_id operator
+%type<m_type_specifier> pseudo_destructor_name
 
 %%
 
@@ -1639,7 +1640,7 @@ postfix_expression
   | member_access_begin id_expression
     { $$ = cxx_compiler::expressions::postfix::member::end($1,$2); }
   | member_access_begin pseudo_destructor_name
-    { $$ = cxx_compiler::expressions::postfix::member::end($1,0); }
+    { $$ = cxx_compiler::expressions::postfix::member::end($1,$2); }
   | postfix_expression PLUSPLUS_MK
     { $$ = new cxx_compiler::expressions::postfix::ppmm($1,true); }
   | postfix_expression MINUSMINUS_MK
@@ -1681,17 +1682,28 @@ expression_list
   ;
 
 pseudo_destructor_name
-  : COLONCOLON_MK move_to_root nested_name_specifier type_name COLONCOLON_MK '~' type_name
-  | COLONCOLON_MK move_to_root                       type_name COLONCOLON_MK '~' type_name
-  |               nested_name_specifier type_name COLONCOLON_MK '~' type_name
-  |                                     type_name COLONCOLON_MK '~' type_name
-   
-  | COLONCOLON_MK move_to_root nested_name_specifier TEMPLATE_KW template_id COLONCOLON_MK '.' type_name
-  |               nested_name_specifier TEMPLATE_KW template_id COLONCOLON_MK '.' type_name
+  : COLONCOLON_MK move_to_root nested_name_specifier type_name
+    COLONCOLON_MK '~' type_name
+    { delete $4; $$ = $7; }
+  | COLONCOLON_MK move_to_root type_name COLONCOLON_MK '~' type_name
+    { delete $3; $$ = $6; }
+  | nested_name_specifier type_name COLONCOLON_MK '~' type_name
+    { delete $2; $$ = $5; }
+  | type_name COLONCOLON_MK '~' type_name
+    { delete $1; $$ = $4; }
+  | COLONCOLON_MK move_to_root nested_name_specifier TEMPLATE_KW
+    template_id COLONCOLON_MK '.' type_name
+    { $$ = $8; }
+  | nested_name_specifier TEMPLATE_KW template_id COLONCOLON_MK '.' type_name
+    { $$ = $6; }
   | COLONCOLON_MK move_to_root nested_name_specifier '~' type_name
-  | COLONCOLON_MK                       '~' type_name
-  |               nested_name_specifier '~' type_name
-  |                                     '~' type_name
+    { $$ = $5; }
+  | COLONCOLON_MK '~' type_name
+    { $$ = $3; }
+  | nested_name_specifier '~' type_name
+    { $$ = $3; }
+  | '~' type_name
+    { $$ = $2; }
   ;
 
 unary_expression

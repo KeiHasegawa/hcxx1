@@ -134,6 +134,7 @@ const cxx_compiler::type* cxx_compiler::declarations::declarators::
 function::parameter(specifier_seq::info_t* p, var* v)
 {
   using namespace std;
+  assert(!v || v->usr_cast());
   usr* u = static_cast<usr*>(v);
   struct sweeper2 {
     ~sweeper2()
@@ -177,6 +178,12 @@ function::parameter(specifier_seq::info_t* p, var* v)
     const type* T = p->m_type;
     if (PT* pt = T->ptr_gen())
       T = pt;
+    if (T->size()) {
+      string name = new_name(".param");
+      usr* u = new usr(name, T, flag, file_t(), usr::NONE2);
+      scope::current->m_usrs[name].push_back(u);
+      scope::current->m_order.push_back(u);
+    }
     return T;
   }
 }

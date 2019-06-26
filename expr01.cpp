@@ -1156,10 +1156,34 @@ cxx_compiler::expressions::postfix::member::end(info_t* info, var* member)
   return info;
 }
 
+cxx_compiler::expressions::base*
+cxx_compiler::expressions::postfix::
+member::end(info_t* info, declarations::type_specifier* spec)
+{
+  auto_ptr<declarations::type_specifier> sweeper(spec);
+  const type* T = spec->m_type;
+  assert(T->m_id == type::RECORD);
+  typedef const record_type REC;
+  REC* rec = static_cast<REC*>(T);
+  tag* ptr = rec->get_tag();
+  const map<string, vector<usr*> >& usrs = ptr->m_usrs;
+  string name = ptr->m_name;
+  name = '~' + name;
+  typedef map<string, vector<usr*> >::const_iterator IT;
+  IT p = usrs.find(name);
+  assert(p != usrs.end());
+  const vector<usr*>& v = p->second;
+  assert(v.size() == 1);
+  usr* dtor = v.back();
+  const type* DT = dtor->m_type;
+  const pointer_type* pt = pointer_type::create(DT);
+  genaddr* ga = new genaddr(pt, DT, dtor, 0);
+  return end(info, ga);
+}
+
 cxx_compiler::var* cxx_compiler::expressions::postfix::member::info_t::gen()
 {
   using namespace std;
-  using namespace declarations::declarators::function::definition::static_inline;
   copy(m_code.begin(),m_code.end(),back_inserter(code));
   return m_expr->member(m_member,m_dot,m_route);
 }
