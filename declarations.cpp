@@ -739,13 +739,23 @@ void cxx_compiler::declarations::check_object(usr* u)
 namespace cxx_compiler { namespace declarations {
   bool conflict(usr*, usr*);
   usr* combine(usr*, usr*);
+  inline bool new_or_delete(string name)
+  {
+    if (name == operator_name(NEW_KW))
+      return true;
+    if (name == operator_name(DELETE_KW))
+      return true;
+    if (name == operator_name(NEW_ARRAY_LEX))
+      return true;
+    return name == operator_name(DELETE_ARRAY_LEX);
+  }
 } } // end of namespace declarations and cxx_compiler
 
 cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr)
 {
   using namespace std;
-  string name = curr->m_name;
   curr->m_scope = scope::current;
+  string name = curr->m_name;
   if ( name == "__func__" ){
     using namespace error::expressions::primary::underscore_func;
     declared(parse::position);
@@ -768,6 +778,12 @@ cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr)
       }
     }
   }
+
+  if (new_or_delete(name)) {
+    if (scope::current->m_id == scope::TAG)
+      curr->m_flag = usr::flag_t(curr->m_flag | usr::STATIC);
+  }
+
   map<string, vector<usr*> >& usrs = curr->m_scope->m_usrs;
   map<string, vector<usr*> >::const_iterator p = usrs.find(name);
   if (p != usrs.end()) {

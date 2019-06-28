@@ -1781,40 +1781,50 @@ new_expression
     { cxx_compiler::error::not_implemented(); }
   | COLONCOLON_MK move_to_root NEW_KW new_placement new_type_id
     { cxx_compiler::error::not_implemented(); }
-  | COLONCOLON_MK move_to_root NEW_KW               new_type_id new_initializer
+  | COLONCOLON_MK move_to_root NEW_KW new_type_id new_initializer
     { cxx_compiler::error::not_implemented(); }
-  | COLONCOLON_MK move_to_root NEW_KW               new_type_id
+  | COLONCOLON_MK move_to_root NEW_KW new_type_id
     { cxx_compiler::error::not_implemented(); }
   | NEW_KW new_placement new_type_id new_initializer
     {
+      using namespace cxx_compiler;
       using namespace cxx_compiler::expressions::unary;
-      $$ = new new_expr($2, $3, $4, cxx_compiler::parse::position);
+      $$ = new new_expr($2, $3, $4, parse::position);
       using namespace cxx_compiler::parse;
       identifier::mode = identifier::look;
     }
-  |                            NEW_KW new_placement new_type_id
-    { cxx_compiler::error::not_implemented(); }
+  | NEW_KW new_placement new_type_id
+    {
+      using namespace cxx_compiler;
+      using namespace cxx_compiler::expressions::unary;
+      $$ = new new_expr($2, $3, 0, parse::position);
+      using namespace cxx_compiler::parse;
+      identifier::mode = identifier::look;
+    }
   | NEW_KW new_type_id new_initializer
     {
+      using namespace cxx_compiler;
       using namespace cxx_compiler::expressions::unary;
-      $$ = new new_expr($2, $3, cxx_compiler::parse::position);
+      $$ = new new_expr($2, $3, parse::position);
       using namespace cxx_compiler::parse;
       identifier::mode = identifier::look;
     }
   | NEW_KW new_type_id
     {
-      using namespace cxx_compiler::expressions::unary;
-      $$ = new new_expr($2, cxx_compiler::parse::position);
+      using namespace cxx_compiler;
+      using namespace expressions::unary;
+      $$ = new new_expr($2, parse::position);
       using namespace cxx_compiler::parse;
       identifier::mode = identifier::look;
     }
-  | COLONCOLON_MK move_to_root NEW_KW new_placement '(' type_id ')' new_initializer
+  | COLONCOLON_MK move_to_root NEW_KW new_placement '(' type_id ')'
+    new_initializer
     { cxx_compiler::error::not_implemented(); }
   | COLONCOLON_MK move_to_root NEW_KW new_placement '(' type_id ')'
     { cxx_compiler::error::not_implemented(); }
-  | COLONCOLON_MK move_to_root NEW_KW               '(' type_id ')' new_initializer
+  | COLONCOLON_MK move_to_root NEW_KW  '(' type_id ')' new_initializer
     { cxx_compiler::error::not_implemented(); }
-  | COLONCOLON_MK move_to_root NEW_KW               '(' type_id ')'
+  | COLONCOLON_MK move_to_root NEW_KW '(' type_id ')'
     { cxx_compiler::error::not_implemented(); }
   | NEW_KW new_placement '(' type_id ')' new_initializer
     {

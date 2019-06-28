@@ -125,27 +125,27 @@ namespace cxx_compiler {
     const func_type* ft = func_type::create(vp,param);
     usr::flag_t flag = usr::flag_t(usr::FUNCTION | usr::NEW_SCALAR);
     string name = "new";
-    usr* new_entry = new usr(name,ft,flag,file_t(),usr::NONE2);
-    new_entry->m_scope = &scope::root;
+    usr* new_func = new usr(name,ft,flag,file_t(),usr::NONE2);
+    new_func->m_scope = &scope::root;
     map<string, vector<usr*> >& usrs = scope::root.m_usrs;
     typedef map<string, vector<usr*> >::const_iterator IT;
     IT p = usrs.find(name);
     if (p == usrs.end()) {
-      usrs[name].push_back(new_entry);
+      usrs[name].push_back(new_func);
       return;
     }
     const vector<usr*>& v = p->second;
     usr* prev = v.back();
-    usrs[name].push_back(new_entry);
-    usr* ovl = new overload(prev, new_entry);
+    usrs[name].push_back(new_func);
+    usr* ovl = new overload(prev, new_func);
     usrs[name].push_back(ovl);
   }
-  inline var* call_new(usr* new_entry, vector<var*>& arg)
+  inline var* call_new(usr* new_func, vector<var*>& arg)
   {
-    usr::flag_t flag = new_entry->m_flag;
+    usr::flag_t flag = new_func->m_flag;
     if (flag & usr::OVERLOAD)
-      return new_entry->call(&arg);
-    return call_impl::wrapper(new_entry, &arg, 0);
+      return new_func->call(&arg);
+    return call_impl::wrapper(new_func, &arg, 0);
   }
 } // end of namespace cxx_compiler
 
@@ -182,6 +182,29 @@ namespace cxx_compiler {
       {
 	return ctor_dtor_entry(T, true);
       }
+      inline usr* new_delete_entry(const type* T, string name)
+      {
+	if (T->m_id != type::RECORD)
+	  return 0;
+	typedef const record_type REC;
+	REC* rec = static_cast<REC*>(T);
+	tag* ptr = rec->get_tag();
+	const map<string, vector<usr*> >& usrs = ptr->m_usrs;
+	typedef map<string, vector<usr*> >::const_iterator IT;
+	IT p = usrs.find(name);
+	if (p == usrs.end())
+	  return 0;
+	const vector<usr*>& v = p->second;
+	return v.back();
+      }
+      inline usr* new_entry(const type* T)
+      {
+	return new_delete_entry(T, "new");
+      }
+      inline usr* delete_entry(const type* T)
+      {
+	return new_delete_entry(T, "delete");
+      }
     } // end of namespace unary
   } // end of namespace expressions
 } // end of namespace cxx_compiler
@@ -193,25 +216,29 @@ cxx_compiler::var* cxx_compiler::expressions::unary::new_expr::gen()
   int n = m_T->size();
   var* sz = sizeof_impl::common(n);
   new_arg.push_back(sz);
+  usr* new_func = new_entry(m_T);
   if (m_place) {
     transform(begin(*m_place), end(*m_place), back_inserter(new_arg),
 	      mem_fun(&base::gen));
   }
-  else {
+  else if (!new_func) {
     static bool done;
     if (!done) {
       install_new();
       done = true;
     }
   } 
-  string name = "new";
-  const map<string, vector<usr*> >& usrs = scope::root.m_usrs;
-  map<string, vector<usr*> >::const_iterator it = usrs.find(name);
-  if (it == usrs.end())
-    error::not_implemented();
-  const vector<usr*>& vu = it->second;
-  usr* new_entry = vu.back();
-  var* ret = call_new(new_entry, new_arg);
+
+  if (!new_func) {
+    string name = "new";
+    const map<string, vector<usr*> >& usrs = scope::root.m_usrs;
+    map<string, vector<usr*> >::const_iterator it = usrs.find(name);
+    if (it == usrs.end())
+      error::not_implemented();
+    const vector<usr*>& vu = it->second;
+    new_func = vu.back();
+  }
+  var* ret = call_new(new_func, new_arg);
 
   usr* ctor = ctor_entry(m_T);
   if (!ctor)
@@ -240,26 +267,6 @@ cxx_compiler::var* cxx_compiler::expressions::unary::new_expr::gen()
 cxx_compiler::var* cxx_compiler::expressions::unary::delete_expr::gen()
 {
   using namespace std;
-  string name = "delete";
-  map<string, vector<usr*> >& usrs = scope::root.m_usrs;
-  map<string, vector<usr*> >::const_iterator it = usrs.find(name);
-  usr* delete_entry = 0;
-  if ( it != usrs.end() ){
-    const vector<usr*>& v = it->second;
-    if (v.size() != 1)
-      error::not_implemented();
-    delete_entry = v.back();
-  }
-  else {
-    vector<const type*> param;
-    const type* vp = pointer_type::create(void_type::create());
-    param.push_back(vp);
-    const func_type* ft = func_type::create(vp,param);
-    usr::flag_t flag = usr::flag_t(usr::FUNCTION | usr::DELETE_SCALAR);
-    delete_entry = new usr(name,ft,flag,file_t(),usr::NONE2);
-    delete_entry->m_scope = &scope::root;
-    usrs[name].push_back(delete_entry);
-  }
   var* v = m_expr->gen();
   const type* T = v->m_type;
   T = T->unqualified();
@@ -272,7 +279,29 @@ cxx_compiler::var* cxx_compiler::expressions::unary::delete_expr::gen()
     call_impl::wrapper(dtor, 0, v);
   vector<var*> arg;
   arg.push_back(v);
-  return call_impl::wrapper(delete_entry, &arg, 0);
+  usr* delete_func = delete_entry(T);
+  if (!delete_func) {
+    string name = "delete";
+    map<string, vector<usr*> >& usrs = scope::root.m_usrs;
+    map<string, vector<usr*> >::const_iterator it = usrs.find(name);
+    if ( it != usrs.end() ){
+      const vector<usr*>& v = it->second;
+      if (v.size() != 1)
+	error::not_implemented();
+      delete_func = v.back();
+    }
+    else {
+      vector<const type*> param;
+      const type* vp = pointer_type::create(void_type::create());
+      param.push_back(vp);
+      const func_type* ft = func_type::create(vp,param);
+      usr::flag_t flag = usr::flag_t(usr::FUNCTION | usr::DELETE_SCALAR);
+      delete_func = new usr(name,ft,flag,file_t(),usr::NONE2);
+      delete_func->m_scope = &scope::root;
+      usrs[name].push_back(delete_func);
+    }
+  }
+  return call_impl::wrapper(delete_func, &arg, 0);
 }
 
 const cxx_compiler::file_t&
