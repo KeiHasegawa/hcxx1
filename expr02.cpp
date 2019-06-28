@@ -301,6 +301,19 @@ cxx_compiler::var* cxx_compiler::expressions::unary::delete_expr::gen()
       usrs[name].push_back(delete_func);
     }
   }
+  const type* D = delete_func->m_type;
+  assert(D->m_id == type::FUNC);
+  typedef const func_type FT;
+  FT* ft = static_cast<FT*>(D);
+  const vector<const type*>& param = ft->param();
+  if (param.size() != 1) {
+    assert(param.size() == 2);
+    const type* P = param[1];
+    int n = T->size();
+    var* sz = sizeof_impl::common(n);
+    sz = sz->cast(P);
+    arg.push_back(sz);
+  }
   return call_impl::wrapper(delete_func, &arg, 0);
 }
 
