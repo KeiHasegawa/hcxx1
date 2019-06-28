@@ -375,6 +375,10 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
   if (mode == member) {
     assert(scope::current->m_id == scope::TAG);
     tag* ptag = static_cast<tag*>(scope::current);
+    if (ptag->m_name == name) {
+      cxx_compiler_lval.m_tag = ptag;
+      return CLASS_NAME_LEX;
+    }
     if (int r = base_lookup::action(name, ptag))
       return r;
     error::undeclared(parse::position,name);

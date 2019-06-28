@@ -834,11 +834,14 @@ namespace expressions {
         scope* m_scope;
         file_t m_file;
         var* m_member;
+	const type* m_type;
         vector<route_t> m_route;
         var* gen();
         const file_t& file() const { return m_file; }
-        info_t(const vector<tac*>& c, var* expr, bool dot, scope* s, const file_t& file)
-          : m_code(c), m_expr(expr), m_dot(dot), m_scope(s), m_file(file), m_member(0) {}
+        info_t(const vector<tac*>& c, var* expr, bool dot, scope* s,
+	       const file_t& file)
+          : m_code(c), m_expr(expr), m_dot(dot), m_scope(s), m_file(file),
+	  m_member(0), m_type(0) {}
       };
       extern stack<info_t*> handling;
       extern info_t* begin(base*, bool);

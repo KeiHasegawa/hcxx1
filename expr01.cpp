@@ -1135,10 +1135,6 @@ cxx_compiler::expressions::postfix::member::begin(base* expr, bool dot)
     scope::current = ptr;
     parse::identifier::mode = parse::identifier::member;
   }
-  else {
-    using namespace error::expressions::postfix::member;
-    not_record(parse::position,v);
-  }
   handling.push(ret);
   return ret;
 }
@@ -1163,32 +1159,70 @@ member::end(info_t* info, pair<declarations::type_specifier*, bool>* x)
   auto_ptr<pair<declarations::type_specifier*, bool> > sweeper(x);
   declarations::type_specifier* spec = x->first;
   auto_ptr<declarations::type_specifier> sweeper2(spec);
-  const type* T = spec->m_type;
-  assert(T->m_id == type::RECORD);
-  typedef const record_type REC;
-  REC* rec = static_cast<REC*>(T);
-  tag* ptr = rec->get_tag();
-  const map<string, vector<usr*> >& usrs = ptr->m_usrs;
-  string name = ptr->m_name;
-  name = '~' + name;
-  typedef map<string, vector<usr*> >::const_iterator IT;
-  IT p = usrs.find(name);
-  assert(p != usrs.end());
-  const vector<usr*>& v = p->second;
-  assert(v.size() == 1);
-  usr* dtor = v.back();
-  const type* DT = dtor->m_type;
-  const pointer_type* pt = pointer_type::create(DT);
-  genaddr* ga = new genaddr(pt, DT, dtor, 0);
-  ga->m_qualified_func = x->second;
-  return end(info, ga);
+  if (const type* T = spec->m_type) {
+    assert(T->m_id == type::RECORD);
+    typedef const record_type REC;
+    REC* rec = static_cast<REC*>(T);
+    tag* ptr = rec->get_tag();
+    const map<string, vector<usr*> >& usrs = ptr->m_usrs;
+    string name = ptr->m_name;
+    name = '~' + name;
+    typedef map<string, vector<usr*> >::const_iterator IT;
+    IT p = usrs.find(name);
+    if (p == usrs.end()) {
+      info->m_type = rec;
+      return end(info, (var*)0);
+    }
+    const vector<usr*>& v = p->second;
+    assert(v.size() == 1);
+    usr* dtor = v.back();
+    const type* DT = dtor->m_type;
+    const pointer_type* pt = pointer_type::create(DT);
+    genaddr* ga = new genaddr(pt, DT, dtor, 0);
+    ga->m_qualified_func = x->second;
+    return end(info, ga);
+  }
+  usr* u = spec->m_usr;
+  assert(u);
+  usr::flag_t flag = u->m_flag;
+  assert(flag & usr::TYPEDEF);
+  info->m_type = u->m_type;
+  return end(info, (var*)0);
 }
+
+namespace cxx_compiler {
+  struct pseudo_destructor : var {
+    pseudo_destructor(const type* T) : var(T) {}
+    var* call(vector<var*>* arg)
+    {
+      if (!arg->empty())
+	error::not_implemented();
+      var* ret = new var(void_type::create());
+      garbage.push_back(ret);
+      return ret;
+    }
+  };
+} // end of namespace cxx_compiler
 
 cxx_compiler::var* cxx_compiler::expressions::postfix::member::info_t::gen()
 {
   using namespace std;
   copy(m_code.begin(),m_code.end(),back_inserter(code));
-  return m_expr->member(m_member,m_dot,m_route);
+  if (m_member)
+    return m_expr->member(m_member,m_dot,m_route);
+  assert(m_type);
+  var* v = m_expr->rvalue();
+  const type* T = v->m_type;
+  T = T->unqualified();
+  if (!m_dot) {
+    assert(T->m_id == type::POINTER);
+    typedef const pointer_type PT;
+    PT* pt = static_cast<PT*>(T);
+    T = pt->referenced_type();
+  }
+  if (!compatible(T, m_type))
+    error::not_implemented();
+  return new pseudo_destructor(m_type);
 }
 
 cxx_compiler::var*
@@ -1220,8 +1254,11 @@ cxx_compiler::var::member(var* expr, bool dot,
     T = T->unqualified(&cvr);
   }
   T = T->complete_type();
-  if (T->m_id != type::RECORD)
+  if (T->m_id != type::RECORD) {
+    using namespace error::expressions::postfix::member;
+    not_record(parse::position, this);
     return this;
+  }
   typedef const record_type REC;
   REC* rec = static_cast<REC*>(T);
   usr* member = expr->usr_cast();
