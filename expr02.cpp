@@ -287,7 +287,9 @@ cxx_compiler::var* cxx_compiler::var::indirection()
   var* y = rvalue();
   const type* T = y->m_type;
   T = T->unqualified();
-  if ( T->m_id != type::POINTER ){
+  if (T->m_id != type::POINTER) {
+    if (usr* func = operator_function(T, '*'))
+      return call_impl::wrapper(func, 0, y);
     using namespace error::expressions::unary::indirection;
     not_pointer(parse::position);
     T = pointer_type::create(T);
@@ -356,6 +358,10 @@ cxx_compiler::var* cxx_compiler::with_initial::indirection()
 
 cxx_compiler::var* cxx_compiler::var::address()
 {
+  var* expr = rvalue();
+  const type* T = expr->m_type;
+  if (usr* func = operator_function(T, '&'))
+    return call_impl::wrapper(func, 0, expr);
   using namespace error::expressions::unary::address;
   not_lvalue(parse::position);
   return this;
@@ -363,14 +369,18 @@ cxx_compiler::var* cxx_compiler::var::address()
 
 cxx_compiler::var* cxx_compiler::usr::address()
 {
-  if ( !lvalue() ){
+  if (usr* func = operator_function(m_type, '&'))
+    return call_impl::wrapper(func, 0, this);
+  if (!lvalue()) {
     using namespace error::expressions::unary::address;
     not_lvalue(parse::position);
   }
   typedef const pointer_type PT;
   PT* pt = pointer_type::create(m_type);
-  block* b = scope::current->m_id == scope::BLOCK ? static_cast<block*>(scope::current) : 0;
-  if ( b && !expressions::constant_flag ){
+  block* b = 0;
+  if (scope::current->m_id == scope::BLOCK)
+    b = static_cast<block*>(scope::current);
+  if (b && !expressions::constant_flag) {
     var* x = new var(pt);
     b->m_vars.push_back(x);
     code.push_back(new addr3ac(x,this));
@@ -507,7 +517,9 @@ cxx_compiler::var* cxx_compiler::var::plus()
 {
   var* expr = rvalue();
   const type* T = expr->m_type;
-  if ( !T->arithmetic() ){
+  if (!T->arithmetic()) {
+    if (usr* func = operator_function(T, '+'))
+      return call_impl::wrapper(func, 0, expr);
     using namespace error::expressions::unary;
     invalid(parse::position,'+',T);
   }
@@ -528,7 +540,9 @@ cxx_compiler::var* cxx_compiler::var::minus()
 {
   var* expr = rvalue();
   const type* T = expr->m_type;
-  if ( !T->arithmetic() ){
+  if (!T->arithmetic()) {
+    if (usr* func = operator_function(T, '-'))
+      return call_impl::wrapper(func, 0, expr);
     using namespace error::expressions::unary;
     invalid(parse::position,'-',T);
   }
@@ -680,7 +694,9 @@ cxx_compiler::var* cxx_compiler::var::_not()
   using namespace std;
   var* expr = rvalue();
   const type* T = expr->m_type;
-  if ( !T->scalar() ){
+  if (!T->scalar()) {
+    if (usr* func = operator_function(T, '!'))
+      return call_impl::wrapper(func, 0, expr);
     using namespace error::expressions::unary;
     invalid(parse::position,'!',T);
   }
@@ -769,7 +785,9 @@ cxx_compiler::var* cxx_compiler::var::tilde()
 {
   var* expr = rvalue();
   const type* T = expr->m_type;
-  if ( !T->arithmetic() || !T->integer() ){
+  if (!T->arithmetic() || !T->integer()) {
+    if (usr* func = operator_function(T, '~'))
+      return call_impl::wrapper(func, 0, expr);
     using namespace error::expressions::unary;
     invalid(parse::position,'~',T);
   }

@@ -1882,13 +1882,17 @@ void cxx_compiler::record_type::collect_tmp(std::vector<const type*>& vt)
   tmp_tbl.clear();
 }
 
-void cxx_compiler::record_type::ctor_code(usr* ctor, scope* param,
-					  usr* this_ptr, block* pb) const
+void cxx_compiler::
+record_type::tor_code(usr* tor, scope* param, usr* this_ptr, block* pb,
+		      bool is_ctor) const
 {
   using namespace record_impl;
-  add_ctor_code(m_tag, m_layout, m_base_offset, m_vbtbl_offset,
-		m_vftbl_offset, m_common, m_virt_common_offset,
-		m_common_vftbl_offset, m_member, pb, this_ptr, ctor, param);
+  if (is_ctor)
+    add_ctor_code(m_tag, m_layout, m_base_offset, m_vbtbl_offset,
+		  m_vftbl_offset, m_common, m_virt_common_offset,
+		  m_common_vftbl_offset, m_member, pb, this_ptr, tor, param);
+  else
+    add_dtor_code(m_tag, m_layout, m_member, m_base_offset, pb, this_ptr);
 }
 
 namespace cxx_compiler {
@@ -1959,73 +1963,6 @@ void cxx_compiler::check_abstract_func(usr* func)
   const vector<const type*>& param = ft->param();
   for (int i = 0 ; i != param.size() ; ++i)
     check_abstract_impl::param(i, param[i], func);
-}
-
-namespace cxx_compiler {
-  namespace call_base_impl {
-    inline void common(base* bp, bool is_dtor)
-    {
-      using namespace record_impl;
-      assert(scope::current->m_id == scope::TAG);
-      tag* ptr = static_cast<tag*>(scope::current);
-      const type* T = ptr->m_types.second;
-      assert(T->m_id == type::RECORD);
-      typedef const record_type REC;
-      REC* rec = static_cast<REC*>(T);
-      const map<base*, int>& base_offset = rec->base_offset();
-
-      vector<scope*>& c = scope::current->m_children;
-      assert(!c.empty());
-      scope* param = c.back();
-      assert(param->m_id == scope::PARAM);
-      const vector<usr*>& order = param->m_order;
-      assert(!order.empty());
-      usr* this_ptr = order[0];
-      assert(this_ptr->m_name == "this");
-
-      vector<scope*>& c2 = param->m_children;
-      assert(!c2.empty());
-      scope* tmp = c2.back();
-      assert(tmp->m_id == scope::BLOCK);
-      block* b = static_cast<block*>(tmp);
-
-      base_ctor_dtor op(base_offset, this_ptr, b, is_dtor);
-      scope* org = scope::current;
-      scope::current = b;
-      op(bp);
-      scope::current = org;
-    }
-    inline void ctor(base* bp)
-    {
-      common(bp, false);
-    }
-    inline void dtor(base* bp)
-    {
-      common(bp, true);
-    }
-  } // end of namespace call_base_impl
-  inline void call_base_common(usr* u, bool ctor)
-  {
-    scope* p = u->m_scope;
-    assert(p->m_id == scope::TAG);
-    tag* ptr = static_cast<tag*>(p);
-    if (const vector<base*>* v = ptr->m_bases) {
-      if (ctor)
-	for_each(begin(*v), end(*v), call_base_impl::ctor);
-      else
-	for_each(rbegin(*v), rend(*v), call_base_impl::dtor);
-    }
-  }
-} // end of namespace cxx_compiler
-
-void cxx_compiler::call_base_ctor(usr* u)
-{
-  call_base_common(u, true);
-}
-
-void cxx_compiler::call_base_dtor(usr* u)
-{
-  call_base_common(u, false);
 }
 
 void cxx_compiler::call_default_ctor(var* v)

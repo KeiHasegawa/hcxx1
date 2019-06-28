@@ -1657,7 +1657,8 @@ public:
   static const record_type* create(tag*);
   static void destroy_tmp();
   static void collect_tmp(std::vector<const type*>&);
-  void ctor_code(usr* ctor, scope* param, usr* this_ptr, block* pb) const;
+  void tor_code(usr* ctor, scope* param, usr* this_ptr, block* pb,
+		bool is_ctor) const;
 };
 
 class enum_type : public type {

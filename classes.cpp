@@ -118,6 +118,7 @@ namespace cxx_compiler {
         fundef::current = new fundef(u,param);
 	const vector<usr*>& order = param->m_order;
 	for_each(order.begin(),order.end(),check_object);
+	usr::flag_t flag = u->m_flag;
         parse::member_function_body::saved = &E.second;
         file_t org = parse::position;
         cxx_compiler_parse();
@@ -334,7 +335,7 @@ namespace cxx_compiler {
 	      REC* rec = static_cast<REC*>(T);
 	      scope* param = fundef::current->m_param;
 	      usr* this_ptr = *param->m_order.begin();
-	      rec->ctor_code(ctor, param, this_ptr, b);
+	      rec->tor_code(ctor, param, this_ptr, b, true);
               scope* org = scope::current;
               scope::current = b;
               vector<route_t> dummy;

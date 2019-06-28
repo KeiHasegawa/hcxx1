@@ -3,6 +3,8 @@
 #  AAA simple_type_specifier: nested_name_specifier type_name .
 #  BBB declarator_id: nested_name_specifier type_name .
 #
+#  Example:
+#
 #  struct outer {
 #    struct inner {
 #    };

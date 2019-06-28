@@ -558,6 +558,40 @@ namespace cxx_compiler {
   std::vector<FUNCS_ELEMENT_TYPE> funcs;
 } // end of namespace cxx_compiler
 
+namespace cxx_compiler {
+  inline usr* get_this(scope* param, const record_type* rec)
+  {
+    string name = "this";
+    map<string, vector<usr*> >& usrs = param->m_usrs;
+    typedef map<string, vector<usr*> >::const_iterator IT;
+    IT p = usrs.find(name);
+    assert(p != usrs.end());
+    const vector<usr*>& v = p->second;
+    assert(v.size() == 1);
+    return v.back();
+  }
+  inline void add_tor_code(usr* u, scope* param, bool is_ctor)
+  {
+    scope* p = u->m_scope;
+    assert(p->m_id == scope::TAG);
+    tag* ptr = static_cast<tag*>(p);
+    const type* T = ptr->m_types.second;
+    assert(T->m_id == type::RECORD);
+    typedef const record_type REC;
+    REC* rec = static_cast<REC*>(T); 
+    usr* this_ptr = get_this(param, rec);
+    const vector<scope*>& c = param->m_children;
+    assert(c.size() == 1);
+    scope* q = c.back();
+    assert(q->m_id == scope::BLOCK);
+    block* b = static_cast<block*>(q);
+    scope* org = scope::current;
+    scope::current = b;
+    rec->tor_code(u, param, this_ptr, b, is_ctor);
+    scope::current = org;
+  }
+} // end of namespace cxx_compiler
+
 void cxx_compiler::declarations::declarators::function::definition::
 action(statements::base* stmt)
 {
@@ -592,10 +626,10 @@ action(statements::base* stmt)
     file_t org = parse::position;
     usr::flag_t flag = u->m_flag;
     if (flag & usr::CTOR)
-      call_base_ctor(u);
+      add_tor_code(u, fundef::current->m_param, true);
     stmt->gen();
     if (flag & usr::DTOR)
-      call_base_dtor(u);
+      add_tor_code(u, fundef::current->m_param, false);
     parse::position = org;
     statements::label::check();
     statements::label::clear();

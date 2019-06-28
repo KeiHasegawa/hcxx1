@@ -481,10 +481,6 @@ extern bool array_of_tor(const array_type* at, bool ctor);
 extern void ctor_dtor_common(var* v, const array_type* at, void (*pf)(var*),
 			     bool ctor);
 
-extern void call_base_ctor(usr*);
-
-extern void call_base_dtor(usr*);
-
 extern string operator_name(int op);
 
 extern string conversion_name(const type*);

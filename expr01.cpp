@@ -1965,7 +1965,6 @@ fcast::fcast(declarations::type_specifier* ptr, std::vector<base*>* list)
     }
   }
 
-  assert(!context_t::retry[DECL_FCAST_CONFLICT_STATE]);
   specifier* spec = new specifier(ptr);
   specifier_seq::info_t info(0, spec);
   info.update();
