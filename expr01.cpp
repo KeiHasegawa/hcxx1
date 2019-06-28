@@ -1158,9 +1158,11 @@ cxx_compiler::expressions::postfix::member::end(info_t* info, var* member)
 
 cxx_compiler::expressions::base*
 cxx_compiler::expressions::postfix::
-member::end(info_t* info, declarations::type_specifier* spec)
+member::end(info_t* info, pair<declarations::type_specifier*, bool>* x)
 {
-  auto_ptr<declarations::type_specifier> sweeper(spec);
+  auto_ptr<pair<declarations::type_specifier*, bool> > sweeper(x);
+  declarations::type_specifier* spec = x->first;
+  auto_ptr<declarations::type_specifier> sweeper2(spec);
   const type* T = spec->m_type;
   assert(T->m_id == type::RECORD);
   typedef const record_type REC;
@@ -1178,6 +1180,7 @@ member::end(info_t* info, declarations::type_specifier* spec)
   const type* DT = dtor->m_type;
   const pointer_type* pt = pointer_type::create(DT);
   genaddr* ga = new genaddr(pt, DT, dtor, 0);
+  ga->m_qualified_func = x->second;
   return end(info, ga);
 }
 

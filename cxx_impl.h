@@ -843,7 +843,7 @@ namespace expressions {
       extern stack<info_t*> handling;
       extern info_t* begin(base*, bool);
       extern base* end(info_t*, var*);
-      extern base* end(info_t*, declarations::type_specifier*);
+      extern base* end(info_t*, pair<declarations::type_specifier*, bool>*);
     } // end of namespace member
     struct ppmm : base {
       base* m_expr;

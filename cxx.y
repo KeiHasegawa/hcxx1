@@ -113,6 +113,7 @@ namespace cxx_compiler {
   std::pair<cxx_compiler::var*, cxx_compiler::tag*>* m_pvt;
   std::pair<const cxx_compiler::type*, cxx_compiler::expressions::base*>* m_param;
   std::vector<std::pair<const cxx_compiler::type*, cxx_compiler::expressions::base*>*>* m_params;
+  std::pair<cxx_compiler::declarations::type_specifier*, bool>* m_pseudo_dest;
 }
 
 %type<m_var> IDENTIFIER_LEX unqualified_id id_expression declarator_id
@@ -165,7 +166,7 @@ namespace cxx_compiler {
 %type<m_param> parameter_declaration
 %type<m_params> parameter_declaration_clause parameter_declaration_list
 %type<m_ival> operator_function_id operator
-%type<m_type_specifier> pseudo_destructor_name
+%type<m_pseudo_dest> pseudo_destructor_name
 
 %%
 
@@ -1684,26 +1685,66 @@ expression_list
 pseudo_destructor_name
   : COLONCOLON_MK move_to_root nested_name_specifier type_name
     COLONCOLON_MK '~' type_name
-    { delete $4; $$ = $7; }
+    {
+      using namespace std;
+      using namespace cxx_compiler::declarations;
+      delete $4; $$ = new pair<type_specifier*, bool>($7, true);
+    }
   | COLONCOLON_MK move_to_root type_name COLONCOLON_MK '~' type_name
-    { delete $3; $$ = $6; }
+    {
+      using namespace std;
+      using namespace cxx_compiler::declarations;
+      delete $3; $$ = new pair<type_specifier*, bool>($6, true);
+    }
   | nested_name_specifier type_name COLONCOLON_MK '~' type_name
-    { delete $2; $$ = $5; }
+    {
+      using namespace std;
+      using namespace cxx_compiler::declarations;
+      delete $2; $$ = new pair<type_specifier*, bool>($5, true);
+    }
   | type_name COLONCOLON_MK '~' type_name
-    { delete $1; $$ = $4; }
+    {
+      using namespace std;
+      using namespace cxx_compiler::declarations;
+      delete $1; $$ = new pair<type_specifier*, bool>($4, true);
+    }
   | COLONCOLON_MK move_to_root nested_name_specifier TEMPLATE_KW
     template_id COLONCOLON_MK '.' type_name
-    { $$ = $8; }
+    {
+      using namespace std;
+      using namespace cxx_compiler::declarations;
+      $$ = new pair<type_specifier*, bool>($8, true);
+    }
   | nested_name_specifier TEMPLATE_KW template_id COLONCOLON_MK '.' type_name
-    { $$ = $6; }
+    {
+      using namespace std;
+      using namespace cxx_compiler::declarations;
+      $$ = new pair<type_specifier*, bool>($6, true);
+    }
   | COLONCOLON_MK move_to_root nested_name_specifier '~' type_name
-    { $$ = $5; }
+    {
+      using namespace std;
+      using namespace cxx_compiler::declarations;
+      $$ = new pair<type_specifier*, bool>($5, true);
+    }
   | COLONCOLON_MK '~' type_name
-    { $$ = $3; }
+    {
+      using namespace std;
+      using namespace cxx_compiler::declarations;
+      $$ = new pair<type_specifier*, bool>($3, true);
+    }
   | nested_name_specifier '~' type_name
-    { $$ = $3; }
+    {
+      using namespace std;
+      using namespace cxx_compiler::declarations;
+      $$ = new pair<type_specifier*, bool>($3, true);
+    }
   | '~' type_name
-    { $$ = $2; }
+    {
+      using namespace std;
+      using namespace cxx_compiler::declarations;
+      $$ = new pair<type_specifier*, bool>($2, false);
+    }
   ;
 
 unary_expression
