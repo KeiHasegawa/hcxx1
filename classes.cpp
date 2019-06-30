@@ -275,6 +275,7 @@ namespace cxx_compiler {
               const type* T = assignment::valid(Tx, &tmp, &discard, true);
               if (!T)
                 error::not_implemented();
+	      y = y->cast(Tx);
               code.push_back(new invladdr3ac(x,y));
             }
             void for_aggregate(var* dst, vector<expressions::base*>* p)
