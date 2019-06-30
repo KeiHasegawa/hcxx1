@@ -18,18 +18,20 @@ cxx_compiler::var* cxx_compiler::expressions::cast::info_t::gen()
     garbage.push_back(ret);
     return ret;
   }
-  if (!T->scalar()) {
-    using namespace error::expressions::cast;
-    not_scalar(parse::position);
-    T = int_type::create();
+  const type* res = valid(T, expr);
+  if (!res) {
+    if (!T->scalar()) {
+      using namespace error::expressions::cast;
+      not_scalar(parse::position);
+      res = int_type::create();
+    }
+    else {
+      using namespace error::expressions::cast;
+      invalid(parse::position);
+      res = int_type::create();
+    }
   }
-  T = valid(T, expr);
-  if (!T) {
-    using namespace error::expressions::cast;
-    invalid(parse::position);
-    T = int_type::create();
-  }
-  return T->aggregate() ? aggregate_conv(T, expr) : expr->cast(T);
+  return res->aggregate() ? aggregate_conv(res, expr) : expr->cast(res);
 }
 
 const cxx_compiler::file_t& cxx_compiler::expressions::cast::info_t::file() const
