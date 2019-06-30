@@ -635,9 +635,24 @@ cxx_compiler::var* cxx_compiler::call_impl::convert::operator()(var* arg)
       if (org != arg && m_trial_cost)
 	++*m_trial_cost;
     }
+    else {
+      const type* Ty = arg->m_type;
+      Ty = Ty->unqualified();
+      assert(Ty->m_id == type::RECORD);
+      typedef const record_type REC;
+      REC* rec = static_cast<REC*>(Ty);
+      if (usr* fun = cast_impl::conversion_function(rec, T)) {
+	arg = call_impl::wrapper(fun, 0, arg);
+	if (m_trial_cost)
+	  ++*m_trial_cost;
+      }
+    }
   }
-  else
+  else {
     arg = aggregate_conv(T, arg);
+    if (m_trial_cost)
+      ++*m_trial_cost;
+  }
   if (U->m_id == type::REFERENCE) {
     typedef const reference_type RT;
     RT* rt = static_cast<RT*>(U);
