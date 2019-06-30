@@ -63,21 +63,25 @@ namespace cxx_compiler {
     int offset = calc_offset(yrec, xrec, dummy, &ambiguous);
     if (ambiguous)
       error::not_implemented();
-    assert(offset >= 0);
-    var* x = new var(xrec);
-    if (scope::current->m_id == scope::BLOCK) {
-      block* b = static_cast<block*>(scope::current);
-      b->m_vars.push_back(x);
+    if (offset >= 0) {
+      var* x = new var(xrec);
+      if (scope::current->m_id == scope::BLOCK) {
+	block* b = static_cast<block*>(scope::current);
+	b->m_vars.push_back(x);
+      }
+      else
+	garbage.push_back(x);
+      var* off = integer::create(offset);
+      code.push_back(new roff3ac(x, y, off));
+      const vector<REC*>& va = xrec->virt_ancestor();
+      const map<REC*, int>& xvco = xrec->virt_common_offset();
+      const map<REC*, int>& yvco = yrec->virt_common_offset();
+      for_each(begin(va), end(va), set_va(x, y, xvco, yvco));
+      return x;
     }
-    else
-      garbage.push_back(x);
-    var* off = integer::create(offset);
-    code.push_back(new roff3ac(x, y, off));
-    const vector<REC*>& va = xrec->virt_ancestor();
-    const map<REC*, int>& xvco = xrec->virt_common_offset();
-    const map<REC*, int>& yvco = yrec->virt_common_offset();
-    for_each(begin(va), end(va), set_va(x, y, xvco, yvco));
-    return x;
+    usr* fun = cast_impl::conversion_function(yrec, xrec);
+    assert(fun);
+    return call_impl::wrapper(fun, 0, y);
   }
 } // end of namespace cxx_compiler
 

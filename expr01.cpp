@@ -1728,7 +1728,8 @@ assignment::valid(const type* T, var* src, bool* discard, bool ctor_conv)
     int offset = calc_offset(yrec, xrec, dummy, &ambiguous);
     if (ambiguous)
       error::not_implemented();
-    return (offset >= 0) ? xx : 0;
+    if (offset >= 0)
+      return xx;
   }
 
   typedef const pointer_type PT;
@@ -1810,7 +1811,6 @@ assignment::valid(const type* T, var* src, bool* discard, bool ctor_conv)
       if (valid(T, &tmp, discard, ctor_conv))
         return xx;
     }
-    return 0;
   }
 
   if (xx->m_id == type::POINTER_MEMBER) {
@@ -1839,6 +1839,12 @@ assignment::valid(const type* T, var* src, bool* discard, bool ctor_conv)
   if (yy->m_id == type::RECORD) {
     typedef const record_type REC;
     REC* rec = static_cast<REC*>(yy);
+    if (xx->m_id == type::REFERENCE) {
+      typedef const reference_type RT;
+      RT* rt = static_cast<RT*>(xx);
+      xx = rt->referenced_type();
+      xx = xx->unqualified();
+    }
     return cast_impl::conversion_function(rec, xx) ? xx : 0;
   }
   return 0;
