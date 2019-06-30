@@ -205,6 +205,21 @@ namespace cxx_compiler {
       {
 	return new_delete_entry(T, "delete");
       }
+      inline usr* vdel_entry(const type* T)
+      {
+	if (T->m_id != type::RECORD)
+	  return 0;
+	typedef const record_type REC;
+	REC* rec = static_cast<REC*>(T);
+	tag* ptr = rec->get_tag();
+	const vector<usr*>& order = ptr->m_order;
+	typedef vector<usr*>::const_iterator IT;
+	IT p = find_if(begin(order), end(order),[](usr* u)
+		       { return u->m_flag & usr::VDEL; });
+	if (p == end(order))
+	  return 0;
+	return *p;
+      }
     } // end of namespace unary
   } // end of namespace expressions
 } // end of namespace cxx_compiler
@@ -275,6 +290,8 @@ cxx_compiler::var* cxx_compiler::expressions::unary::delete_expr::gen()
   typedef const pointer_type PT;
   PT* pt = static_cast<PT*>(T);
   T = pt->referenced_type();
+  if (usr* vdel = vdel_entry(T))
+    return call_impl::wrapper(vdel, 0, v);
   if (usr* dtor = dtor_entry(T))
     call_impl::wrapper(dtor, 0, v);
   vector<var*> arg;

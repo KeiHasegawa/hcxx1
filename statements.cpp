@@ -1095,8 +1095,12 @@ int cxx_compiler::statements::return_stmt::info_t::gen()
   if (T->m_id != type::REFERENCE && expr)
     expr = expr->rvalue();
   if (expr) {
+    if (T->m_id == type::VOID) {
+      if (expr->m_type->m_id == type::VOID)
+	return 0;
+    }
     bool discard = false;
-    T = cxx_compiler::expressions::assignment::valid(T, expr, &discard, true);
+    T = expressions::assignment::valid(T, expr, &discard, true);
     if (!T) {
       using namespace error::statements::return_stmt;
       const type* from = expr->m_type;

@@ -82,18 +82,23 @@ const cxx_compiler::type* cxx_compiler::classes::specifier::action()
   const type* ret = record_type::create(ptr);
   ptr->m_types.second = ret;
   handle_copy_ctor(ptr);
-
+    
   map<usr*, parse::member_function_body::save_t>& tbl =
     parse::member_function_body::stbl;
   if (tbl.empty()) {
+    handle_vdel(ptr);
     assert(!before.empty());
     assert(scope::current == before.back());
     before.pop_back();
     scope::current = ptr->m_parent;
     return ret;
   }
+  scope* org = scope::current;
   for_each(tbl.begin(),tbl.end(),member_function_definition);
   tbl.clear();
+  scope::current = org;
+  handle_vdel(ptr);
+  scope::current = org->m_parent;
   assert(!before.empty());
   assert(ptr == before.back());
   before.pop_back();

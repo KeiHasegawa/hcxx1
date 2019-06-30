@@ -63,8 +63,8 @@ namespace cxx_compiler {
     Tx = Fx->return_type();
     Ty = Fy->return_type();
     if (!Tx || !Ty) {
-      assert(x->m_flag & usr::DTOR);
-      assert(y->m_flag & usr::DTOR);
+      assert(Tx || (x->m_flag & usr::DTOR));
+      assert(Ty || (y->m_flag & usr::DTOR));
       return Tx == Ty;
     }
     if (compatible(Tx, Ty))
@@ -708,13 +708,18 @@ namespace cxx_compiler {
 	common_ctor_dtor(ptr, m_this, m_block, m_is_dtor, offset);
       }
     };
-    inline bool has_ctor_dtor(tag* ptr, bool is_dtor)
+    inline usr* has_ctor_dtor(tag* ptr, bool is_dtor)
     {
       string tgn = ptr->m_name;
       if (is_dtor)
 	tgn = '~' + tgn;
       const map<string, vector<usr*> >& usrs = ptr->m_usrs;
-      return usrs.find(tgn) != usrs.end();
+      typedef map<string, vector<usr*> >::const_iterator IT;
+      IT p = usrs.find(tgn);
+      if (p == usrs.end())
+	return 0;
+      const vector<usr*>& v = p->second;
+      return v.back();
     }
     inline bool bases_have_ctor_dtor(tag* ptr, bool is_dtor)
     {
@@ -994,7 +999,7 @@ namespace cxx_compiler {
 		       typedef const record_type REC;
 		       REC* rec = static_cast<REC*>(T);
 		       tag* ptr = rec->get_tag();
-		       return has_ctor_dtor(ptr, is_dtor);
+		       return has_ctor_dtor(ptr, is_dtor) != 0;
 		     });
       return p != end(member);
     }
@@ -1097,7 +1102,8 @@ namespace cxx_compiler {
     void add_dtor(tag* ptr,
                   const map<string, pair<int, usr*> >& layout,
 		  const vector<usr*>& member,
-                  const map<base*, int>& base_offset)
+                  const map<base*, int>& base_offset,
+		  with_initial* vftbl)
     {
       if (!member_have_dtor(member) && !bases_have_dtor(ptr))
         return;
@@ -1106,6 +1112,12 @@ namespace cxx_compiler {
       usr* dtor = add_ctor_dtor_common(ptr, &param, &this_ptr, &pb, true);
       if (!dtor)
 	return;
+
+      if (vftbl) {
+	map<int, var*>& value = vftbl->m_value;
+	override_vf op(value);
+	op(dtor);
+      }
 
       assert(code.empty());
       scope* org = scope::current;
@@ -1195,6 +1207,71 @@ namespace cxx_compiler {
       fundef* fdef = new fundef(ctor, param);
       declarations::declarators::function::definition::action(fdef, code);
     }
+    inline usr* vdtor_entry(tag* ptr)
+    {
+      usr* dtor = has_ctor_dtor(ptr, true);
+      if (!dtor)
+	return 0;
+      usr::flag_t flag = dtor->m_flag;
+      return (flag & usr::VIRTUAL) ? dtor : 0;
+    }
+    inline usr* delete_entry(tag* ptr)
+    {
+      string name = operator_name(DELETE_KW);
+      const map<string, vector<usr*> >& usrs = ptr->m_usrs;
+      typedef map<string, vector<usr*> >::const_iterator IT;
+      IT p = usrs.find(name);
+      if (p == usrs.end())
+	return 0;
+      const vector<usr*>& v = p->second;
+      return v.back();
+    }
+    struct virtual_delete : usr {
+      usr* m_dtor;
+      usr* m_del;
+      virtual_delete(string name, const type* T, flag_t flag,
+		     const file_t& file, flag2_t flag2, usr* dtor, usr* del)
+	: usr(name, T, flag, file, flag2), m_dtor(dtor), m_del(del) {}
+    };
+    inline void add_vdel(tag* ptr, usr* dtor, usr* del)
+    {
+      string name = ptr->m_name + '.' + del->m_name;
+      const type* T = void_type::create();
+      vector<const type*> param;
+      param.push_back(T);
+      T = func_type::create(T, param);
+      usr::flag_t flag = usr::flag_t(usr::FUNCTION | usr::VIRTUAL | usr::VDEL);
+      virtual_delete* vdel =
+	new virtual_delete(name, T, flag, file_t(), usr::NONE2, dtor, del);
+      ptr->m_usrs[name].push_back(vdel);
+      ptr->m_order.push_back(vdel);
+    }
+    struct add_override_vdel {
+      usr* m_del;
+      tag* m_tag;
+      add_override_vdel(usr* del, tag* ptr) : m_del(del), m_tag(ptr) {}
+      void operator()(const pair<int, var*>& x)
+      {
+	var* v = x.second;
+	addrof* addr = v->addrof_cast();
+	assert(addr);
+	v = addr->m_ref;
+	usr* u = v->usr_cast();
+	if (!u)
+	  return;
+	if (!(u->m_flag & usr::VDEL))
+	  return;
+	virtual_delete* org = static_cast<virtual_delete*>(u);
+	string name = u->m_name;
+	const type* T = u->m_type;
+	usr::flag_t flag = usr::flag_t(usr::FUNCTION | usr::VDEL);
+	virtual_delete* vdel =
+	  new virtual_delete(name, T, flag, file_t(), usr::NONE2,
+			     org->m_dtor, m_del);
+	m_tag->m_usrs[name].push_back(vdel);
+	m_tag->m_order.push_back(vdel);
+      }
+    };
   } // end of namespace record_imp
 } // end of namespace cxx_compiler
 
@@ -1241,6 +1318,17 @@ cxx_compiler::record_type::record_type(tag* ptr)
   const vector<usr*>& order = m_tag->m_order;
   int nvf = count_if(begin(order),end(order),
                      [](usr* u){ return u->m_flag & usr::VIRTUAL; });
+  
+  if (usr* dtor = has_ctor_dtor(m_tag, true)) {
+    usr::flag_t flag = dtor->m_flag;
+    if (flag & usr::VIRTUAL) {
+      if (usr* del = delete_entry(m_tag)) {
+	add_vdel(m_tag, dtor, del);
+	++nvf;
+      }
+    }
+  }
+    
   int vfptr_offset = -1;
   if (nvf) {
     vfptr_offset = m_size;
@@ -1275,12 +1363,13 @@ cxx_compiler::record_type::record_type(tag* ptr)
     nbvf = accumulate(begin(m_common), end(m_common), nbvf, vbase_vf);
   }
 
+  with_initial* vftbl = 0;
   if (nbvf + nvf) {
     const type* T = void_type::create();
     T = pointer_type::create(T);
     T = const_type::create(T);
     T = array_type::create(T, nbvf + nvf);
-    with_initial* vftbl = new with_initial(vftbl_name, T, file_t());
+    vftbl = new with_initial(vftbl_name, T, file_t());
     vftbl->m_flag = vtbl_flag;
     m_tag->m_usrs[vftbl_name].push_back(vftbl);
     if (nvf) {
@@ -1298,6 +1387,8 @@ cxx_compiler::record_type::record_type(tag* ptr)
 			  copy_vbase_vf(value, m_common_vftbl_offset));
       offset = accumulate(begin(*bases), end(*bases), offset,
                           copy_base_vf(value, m_vftbl_offset));
+      if (usr* del = delete_entry(m_tag)) 
+	for_each(begin(value), end(value), add_override_vdel(del, m_tag));
       for_each(begin(order), end(order), override_vf(value));
       for_each(begin(value), end(value),
 	       bind2nd(ptr_fun(check_override), m_tag));
@@ -1421,7 +1512,7 @@ cxx_compiler::record_type::record_type(tag* ptr)
            m_common, m_virt_common_offset, m_common_vftbl_offset,
 	   m_member);
 
-  add_dtor(m_tag, m_layout, m_member, m_base_offset);
+  add_dtor(m_tag, m_layout, m_member, m_base_offset, vftbl);
 }
 
 int cxx_compiler::record_impl::layouter::operator()(int offset, usr* member)
@@ -1719,7 +1810,50 @@ namespace cxx_compiler {
     }
     return false;
   }
+  namespace record_impl {
+    inline void add_vdel_code(usr* vdtor, usr* del, usr* this_ptr)
+    {
+      call_impl::wrapper(vdtor, 0, this_ptr);
+      vector<var*> arg;
+      arg.push_back(this_ptr);
+      call_impl::wrapper(del, &arg, 0);
+    }
+    inline void handle_vdel1(usr* u, tag* ptr)
+    {
+      if (!(u->m_flag & usr::VDEL))
+	return;
+      virtual_delete* vdel = static_cast<virtual_delete*>(u);
+      assert(code.empty());
+      scope* param = new scope(scope::PARAM);
+      using namespace class_or_namespace_name;
+      assert(!before.empty());
+      assert(before.back() == param);
+      before.pop_back();
+      param->m_parent = scope::current;
+      scope::current->m_children.push_back(param);
+      const type* T = ptr->m_types.second;
+      T = pointer_type::create(T);
+      string name = "this";
+      usr* this_ptr = new usr(name, T, usr::NONE, file_t(), usr::NONE2);
+      param->m_usrs[name].push_back(this_ptr);
+      param->m_order.push_back(this_ptr);
 
+      block* bp = new block;
+      assert(!before.empty());
+      assert(before.back() == bp);
+      before.pop_back();
+      bp->m_parent = param;
+      param->m_children.push_back(bp);
+      scope* org = scope::current;
+      scope::current = bp;
+      add_vdel_code(vdel->m_dtor, vdel->m_del, this_ptr);
+      scope::current = org;
+
+      using namespace declarations::declarators;
+      fundef* fdef = new fundef(vdel, param);
+      function::definition::action(fdef, code);
+    }
+  } // end of namespace record_impl
 }  // end of namespace cxx_compiler
 
 int
@@ -1866,6 +2000,13 @@ void cxx_compiler::handle_copy_ctor(tag* ptr)
   if (r != end(v))
     return;
   add_copy_ctor(ptr);
+}
+
+void cxx_compiler::handle_vdel(tag* ptr)
+{
+  using namespace record_impl;
+  const vector<usr*>& order = ptr->m_order;
+  for_each(begin(order), end(order), bind2nd(ptr_fun(handle_vdel1), ptr));
 }
 
 void cxx_compiler::record_type::destroy_tmp()

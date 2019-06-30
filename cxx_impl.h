@@ -474,6 +474,8 @@ extern void check_abstract_func(usr* );
 
 extern void handle_copy_ctor(tag*);
 
+extern void handle_vdel(tag*);
+
 extern bool canbe_copy_ctor(usr*, tag*);
 
 extern bool array_of_tor(const array_type* at, bool ctor);

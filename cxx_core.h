@@ -307,11 +307,11 @@ struct usr : var {
     DTOR                = 1 << 22,
     STATIC_DEF          = 1 << 23,
     NAMESPACE           = 1 << 24,
-
-    NEW_SCALAR          = 1 << 26,
-    NEW_ARRAY           = 1 << 27,
-    DELETE_SCALAR       = 1 << 28,
-    DELETE_ARRAY        = 1 << 29,
+    NEW_SCALAR          = 1 << 25,
+    NEW_ARRAY           = 1 << 26,
+    DELETE_SCALAR       = 1 << 27,
+    DELETE_ARRAY        = 1 << 28,
+    VDEL                = 1 << 29,
     HAS_DEFAULT_ARG     = 1 << 30,
     // 1 << 31 : Reserved for debug convention
   };
