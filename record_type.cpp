@@ -1765,12 +1765,24 @@ namespace cxx_compiler {
   inline bool canbe_default_ctor(usr* u)
   {
     using namespace record_impl;
+    using namespace declarations::declarators::function;
     const type* T = u->m_type;
     if (!T)
       return false;
     const type* dct = default_ctor_type();
     if (compatible(T, dct))
       return true;
+    usr::flag_t flag = u->m_flag;
+    if (flag & usr::HAS_DEFAULT_ARG) {
+      typedef map<usr*, vector<var*> >::const_iterator ITx;
+      ITx p = default_arg_table.find(u);
+      assert(p != default_arg_table.end());
+      const vector<var*>& v = p->second;
+      assert(!v.empty());
+      typedef vector<var*>::const_iterator ITy;
+      ITy q = find(begin(v), end(v), (var*)0);
+      return q == end(v);
+    }
     return false;
   }
   bool canbe_copy_ctor(usr* u, tag* ptr)
