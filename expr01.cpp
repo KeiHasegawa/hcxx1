@@ -489,7 +489,7 @@ cxx_compiler::call_impl::common(const func_type* ft,
     }
   }
   if (obj) {
-    const type* T = obj->m_type;
+    const type* T = obj->result_type();
     if (T->scalar()) {
       type::id_t id = T->m_id;
       assert(id == type::POINTER || id == type::REFERENCE);
@@ -513,16 +513,22 @@ cxx_compiler::call_impl::common(const func_type* ft,
       code.push_back(new param3ac(obj));
     }
     else {
-      T = pointer_type::create(T);
-      var* tmp = new var(T);
-      if ( scope::current->m_id == scope::BLOCK ){
-        block* b = static_cast<block*>(scope::current);
-        b->m_vars.push_back(tmp);
+      if (obj->m_type != T) {
+	var* tmp = obj->address();
+	code.push_back(new param3ac(tmp));
       }
-      else
-        garbage.push_back(tmp);
-      code.push_back(new addr3ac(tmp,obj));
-      code.push_back(new param3ac(tmp));
+      else {
+	T = pointer_type::create(T);
+	var* tmp = new var(T);
+	if ( scope::current->m_id == scope::BLOCK ){
+	  block* b = static_cast<block*>(scope::current);
+	  b->m_vars.push_back(tmp);
+	}
+	else
+	  garbage.push_back(tmp);
+	code.push_back(new addr3ac(tmp,obj));
+	code.push_back(new param3ac(tmp));
+      }
     }
   }
   transform(conved.begin(),conved.end(),back_inserter(code),

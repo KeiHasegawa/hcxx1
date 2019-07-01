@@ -308,7 +308,15 @@ void cxx_compiler::declarations::initializers::gencode(usr* u)
       }
     }
   }
-  code.push_back(new assign3ac(u,v));
+
+  if (compatible(Tx, Ty)) {
+    code.push_back(new assign3ac(u,v));
+    return;
+  }
+
+  using namespace expressions::primary::literal;
+  var* zero = integer::create(0);
+  code.push_back(new loff3ac(u, zero, v));
 }
 
 namespace cxx_compiler {
@@ -439,8 +447,11 @@ assign(var* y, argument* arg)
       return arg->off;
     }
     T = ret.second;
-    if ( !T->scalar() && y->m_type->scalar() )
-      return assign_special(y,arg);
+    if (!T->scalar() && y->m_type->scalar()) {
+      bool discard = false;
+      if (!expressions::assignment::valid(T, y, &discard, true))
+	return assign_special(y,arg);
+    }
     arg->off_max = max(arg->off_max, arg->off = ret.first);
   }
 
