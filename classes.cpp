@@ -317,7 +317,11 @@ namespace cxx_compiler {
 	      T = pointer_type::create(T);
 	      usr* this_ptr = new usr(name,T,usr::NONE,file_t(),usr::NONE2);
 	      this_ptr->m_scope = param;
-	      param->m_order.push_back(this_ptr);
+	      vector<usr*>& order = param->m_order;
+	      vector<usr*> tmp = order;
+	      order.clear();
+	      order.push_back(this_ptr);
+	      copy(begin(tmp), end(tmp), back_inserter(order));
 	      param->m_usrs[name].push_back(this_ptr);
 	      return b;
 	    }
@@ -340,7 +344,10 @@ namespace cxx_compiler {
 	      typedef const record_type REC;
 	      REC* rec = static_cast<REC*>(T);
 	      scope* param = fundef::current->m_param;
-	      usr* this_ptr = *param->m_order.begin();
+	      const vector<usr*>& order = param->m_order;
+	      assert(!order.empty());
+	      usr* this_ptr = order[0];
+	      assert(this_ptr->m_name == "this");
 	      rec->tor_code(ctor, param, this_ptr, b, true);
               scope* org = scope::current;
               scope::current = b;
@@ -382,6 +389,35 @@ namespace cxx_compiler {
 	      }
 	      call_impl::wrapper(ctor, &arg, this_ptr);
 	    }
+	    inline usr* get_this(scope* param, const record_type* rec)
+	    {
+	      map<string, vector<usr*> >& usrs = param->m_usrs;
+	      typedef map<string, vector<usr*> >::const_iterator IT;
+	      string name = "this";
+	      IT p = usrs.find(name);
+	      if (p != usrs.end()) {
+		const vector<usr*>& v = p->second;
+		assert(v.size() == 1);
+		usr* this_ptr = v.back();
+		return this_ptr;
+	      }
+	      const type* T = pointer_type::create(rec);
+	      usr* this_ptr =
+		new usr(name, T, usr::NONE, file_t(), usr::NONE2);
+	      usrs[name].push_back(this_ptr);
+	      vector<usr*>& order = param->m_order;
+	      vector<usr*> tmp = order;
+	      order.clear();
+	      order.push_back(this_ptr);
+	      copy(begin(tmp), end(tmp), back_inserter(order));
+	      block* bp = new block;
+	      using namespace class_or_namespace_name;
+	      assert(before.back() == bp);
+	      before.pop_back();
+	      param->m_children.push_back(bp);
+	      bp->m_parent = param;
+	      return this_ptr;
+	    }
 	    void tag_action(tag* btag, EXPRS* exprs, usr* ctor)
 	    {
 	      scope* tmp = ctor->m_scope;
@@ -414,12 +450,7 @@ namespace cxx_compiler {
 	      assert(q != bo.end());
 	      int offset = q->second;
               scope* param = fundef::current->m_param;
-	      typedef map<string, vector<usr*> >::const_iterator IT2;
-	      IT2 r = param->m_usrs.find("this");
-	      assert(r != param->m_usrs.end());
-	      const vector<usr*>& v = r->second;
-	      assert(v.size() == 1);
-	      usr* this_ptr = v.back();
+	      usr* this_ptr = get_this(param, rec);
               vector<scope*>& c = param->m_children;
               assert(!c.empty());
               scope* ps = c.back();

@@ -659,7 +659,10 @@ namespace cxx_compiler {
       }
       usr::flag_t org = tor->m_flag;
       tor->m_flag = usr::flag_t(tor->m_flag & ~usr::VIRTUAL);
+      scope* org2 = scope::current;
+      scope::current = pb;
       call_impl::wrapper(tor, 0, tmp);
+      scope::current = org2;
       tor->m_flag = org;
     }
     struct base_ctor_dtor {
