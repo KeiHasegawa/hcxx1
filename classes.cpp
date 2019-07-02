@@ -298,7 +298,7 @@ namespace cxx_compiler {
               const type* T = dst->result_type();
               T->scalar() ? for_scalar(dst, p) : for_aggregate(dst, p);
             }
-            map<usr*, VALUE> mtbl;
+            map<usr*, VALUE> for_parse;
 	    inline block* get_block(tag* ptr)
 	    {
               scope* param = fundef::current->m_param;
@@ -325,7 +325,8 @@ namespace cxx_compiler {
 	      param->m_usrs[name].push_back(this_ptr);
 	      return b;
 	    }
-	    void id_action(var* v, EXPRS* exprs, usr* ctor)
+	    map<usr*, map<usr*, vector<tac*> > > mtbl;
+	    void id_action(usr* u, EXPRS* exprs, usr* ctor)
 	    {
               using namespace expressions::primary;
 	      scope* tmp = ctor->m_scope;
@@ -334,27 +335,19 @@ namespace cxx_compiler {
               const type* T = ptr->m_types.second;
               if (!T) {
                 assert(scope::current->m_id == scope::PARAM);
-                mtbl[ctor].push_back(make_pair(new PAIR(v,0),exprs));
+                for_parse[ctor].push_back(make_pair(new PAIR(u,0),exprs));
                 return;
               }
-              assert(v->usr_cast());
-              usr* u = static_cast<usr*>(v);
 	      block* b = get_block(ptr);
-	      assert(T->m_id == type::RECORD);
-	      typedef const record_type REC;
-	      REC* rec = static_cast<REC*>(T);
-	      scope* param = fundef::current->m_param;
-	      const vector<usr*>& order = param->m_order;
-	      assert(!order.empty());
-	      usr* this_ptr = order[0];
-	      assert(this_ptr->m_name == "this");
-	      rec->tor_code(ctor, param, this_ptr, b, true);
               scope* org = scope::current;
               scope::current = b;
+	      assert(code.empty());
               vector<route_t> dummy;
               var* dst = from_member(u, dummy);
               gen(dst, exprs);
               scope::current = org;
+	      mtbl[ctor][u] = code;
+	      code.clear();
 	    }
 	    void gen(tag* ptr, var* this_ptr, int offset, EXPRS* exprs)
 	    {
@@ -418,6 +411,7 @@ namespace cxx_compiler {
 	      bp->m_parent = param;
 	      return this_ptr;
 	    }
+	    map<usr*, map<tag*, vector<tac*> > > btbl;
 	    void tag_action(tag* btag, EXPRS* exprs, usr* ctor)
 	    {
 	      scope* tmp = ctor->m_scope;
@@ -430,7 +424,7 @@ namespace cxx_compiler {
 	      const type* T = ptr->m_types.second;
               if (!T) {
                 assert(scope::current->m_id == scope::PARAM);
-                mtbl[ctor].push_back(make_pair(new PAIR(0, btag),exprs));
+                for_parse[ctor].push_back(make_pair(new PAIR(0, btag),exprs));
                 return;
               }
 	      vector<base*>& bases = *ptr->m_bases;
@@ -458,12 +452,15 @@ namespace cxx_compiler {
               block* b = static_cast<block*>(ps);
               scope* org = scope::current;
               scope::current = b;
+	      assert(code.empty());
               gen(bp->m_tag, this_ptr, offset, exprs);
               scope::current = org;
+	      btbl[ctor][btag] = code;
+	      code.clear();
 	    }
-            void action(pair<var*, tag*>* x, EXPRS* exprs)
+            void action(pair<usr*, tag*>* x, EXPRS* exprs)
             {
-	      auto_ptr<pair<var*, tag*> > sweeper(x);
+	      auto_ptr<pair<usr*, tag*> > sweeper(x);
               assert(fundef::current);
               usr* ctor = fundef::current->m_usr;
               usr::flag_t flag = ctor->m_flag;
@@ -471,8 +468,9 @@ namespace cxx_compiler {
                 error::not_implemented();
                 return;
               }
-	      var* v = x->first;
-	      v ? id_action(v, exprs, ctor) : tag_action(x->second, exprs, ctor);
+	      usr* u = x->first;
+	      tag* ptr = x->second;
+	      u ? id_action(u, exprs, ctor) : tag_action(ptr, exprs, ctor);
             }
           } // end of namespace mem_initializer
         } // end of namespace definition

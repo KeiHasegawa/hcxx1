@@ -670,13 +670,34 @@ namespace cxx_compiler {
       usr* m_this;
       block* m_block;
       bool m_is_dtor;
+      usr* m_ctor;
       base_ctor_dtor(const map<base*, int>& base_offset, usr* this_ptr,
-		     block* b, bool is_dtor)
+		     block* b, bool is_dtor, usr* ctor)
         : m_base_offset(base_offset), m_this(this_ptr),
-	  m_block(b), m_is_dtor(is_dtor) {}
+	  m_block(b), m_is_dtor(is_dtor), m_ctor(ctor)
+      {
+	is_dtor ? assert(!m_ctor) : assert(m_ctor);
+      }
       void operator()(base* pb)
       {
+	using namespace declarations::declarators::function::definition;
+	using namespace mem_initializer;
         tag* ptr = pb->m_tag;
+	if (!m_is_dtor) {
+	  typedef map<usr*, BTBL_VALUE>::iterator ITx;
+	  ITx p = btbl.find(m_ctor);
+	  if (p != btbl.end()) {
+	    BTBL_VALUE& tbl = p->second;
+	    typedef BTBL_VALUE::iterator ITy;
+	    ITy q = tbl.find(ptr);
+	    if (q != tbl.end()) {
+	      const vector<tac*>& v = q->second;
+	      copy(begin(v), end(v), back_inserter(code));
+	      tbl.erase(q);
+	      return;
+	    }
+	  }
+	}
 	typedef map<base*, int>::const_iterator IT;
 	IT q = m_base_offset.find(pb);
 	assert(q != m_base_offset.end());
@@ -689,12 +710,36 @@ namespace cxx_compiler {
       usr* m_this;
       block* m_block;
       bool m_is_dtor;
+      usr* m_ctor;
       member_ctor_dtor(const map<string, pair<int, usr*> >& layout,
-		       usr* this_ptr, block* b, bool is_dtor)
-	: m_layout(layout), m_this(this_ptr), m_block(b), m_is_dtor(is_dtor)
-      {}
+		       usr* this_ptr, block* b, bool is_dtor, usr* ctor)
+	: m_layout(layout), m_this(this_ptr), m_block(b), m_is_dtor(is_dtor),
+	  m_ctor(ctor)
+      {
+	if (m_is_dtor)
+	  assert(!m_ctor);
+	else
+	  assert(m_ctor);
+      }
       void operator()(usr* u)
       {
+	using namespace declarations::declarators::function::definition;
+	using namespace mem_initializer;
+	if (!m_is_dtor) {
+	  typedef map<usr*, MTBL_VALUE>::iterator ITx;
+	  ITx p = mtbl.find(m_ctor);
+	  if (p != mtbl.end()) {
+	    MTBL_VALUE& tbl = p->second;
+	    typedef MTBL_VALUE::iterator ITy;
+	    ITy q = tbl.find(u);
+	    if (q != tbl.end()) {
+	      const vector<tac*>& v = q->second;
+	      copy(begin(v), end(v), back_inserter(code));
+	      tbl.erase(q);
+	      return;
+	    }
+	  }
+	}
 	const type* T = u->m_type;
 	T = T->unqualified();
 	if (T->m_id != type::RECORD)
@@ -915,7 +960,7 @@ namespace cxx_compiler {
         scope* org = scope::current;
         scope::current = pb;
         for_each(begin(bases), end(bases),
-                 base_ctor_dtor(base_offset, this_ptr, pb, false));
+                 base_ctor_dtor(base_offset, this_ptr, pb, false, ctor));
         scope::current = org;
         if (usr* vbtbl = get_vbtbl(ptr)) {
           const type* T = vbtbl->m_type;
@@ -986,7 +1031,7 @@ namespace cxx_compiler {
         code.push_back(new invladdr3ac(t1, t0));
       }
       for_each(begin(member), end(member),
-	       member_ctor_dtor(layout, this_ptr, pb, false));
+	       member_ctor_dtor(layout, this_ptr, pb, false, ctor));
     }
     
     inline bool member_have_ctor_dtor(const vector<usr*>& member,
@@ -1095,11 +1140,11 @@ namespace cxx_compiler {
 		       usr* this_ptr)
     {
       for_each(rbegin(member), rend(member), 
-	       member_ctor_dtor(layout, this_ptr, pb, true));
+	       member_ctor_dtor(layout, this_ptr, pb, true, 0));
       if (ptr->m_bases) {
 	const vector<base*>& bases = *ptr->m_bases;
 	for_each(rbegin(bases), rend(bases),
-                 base_ctor_dtor(base_offset, this_ptr, pb, true));
+                 base_ctor_dtor(base_offset, this_ptr, pb, true, 0));
       }
     }
     void add_dtor(tag* ptr,

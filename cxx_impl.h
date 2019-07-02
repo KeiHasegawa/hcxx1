@@ -632,11 +632,15 @@ namespace declarations {
           } // end of namespace defer
         } // end of namespace static_inline
         namespace mem_initializer {
-	  typedef pair<var*, tag*> PAIR;
+	  typedef pair<usr*, tag*> PAIR;
 	  typedef vector<expressions::base*> EXPRS;
           typedef vector<pair<PAIR*,EXPRS*> > VALUE;
-          extern map<usr*, VALUE> mtbl;
+          extern map<usr*, VALUE> for_parse;  // key is constructor
           void action(PAIR*, EXPRS*);
+	  typedef map<tag*, vector<tac*> > BTBL_VALUE;
+	  extern map<usr*, BTBL_VALUE> btbl;
+	  typedef map<usr*, vector<tac*> > MTBL_VALUE;
+	  extern map<usr*, MTBL_VALUE> mtbl;
         } // end of mem_initializer
       } // end of namespace definition
     } // end of namespace function

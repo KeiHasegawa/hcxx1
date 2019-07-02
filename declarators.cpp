@@ -616,12 +616,12 @@ action(statements::base* stmt)
   else {
     using namespace mem_initializer;
     typedef map<usr*, VALUE>::iterator IT;
-    IT p = mtbl.find(u);
-    if (p != mtbl.end()) {
+    IT p = for_parse.find(u);
+    if (p != for_parse.end()) {
       VALUE& v = p->second;
       for_each(begin(v), end(v), [](const pair<PAIR*, EXPRS*>& x)
                { mem_initializer::action(x.first, x.second); });
-      mtbl.erase(p);
+      for_parse.erase(p);
     }
     file_t org = parse::position;
     usr::flag_t flag = u->m_flag;

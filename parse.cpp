@@ -773,25 +773,26 @@ void cxx_compiler::parse::block::enter()
       vector<scope*>& children = scope::current->m_children;
       assert(!children.empty());
       scope::current = children.back();
+      usr* func = fundef::current->m_usr;
       if (!T) {
         parameter::decide_dim(), new_block(), parameter::move();
-        usr* u = fundef::current->m_usr;
-        assert(!(u->m_flag & usr::OVERLOAD));
-        u->m_flag = usr::flag_t(u->m_flag | usr::INLINE);
+        assert(!(func->m_flag & usr::OVERLOAD));
+        func->m_flag = usr::flag_t(func->m_flag | usr::INLINE);
         return member_function_body::save();
       }
-      usr::flag_t flag = fundef::current->m_usr->m_flag;
-      if (!(flag & usr::STATIC)) {
+      if (!(func->m_flag & usr::STATIC)) {
 	map<string, vector<usr*> >& usrs = scope::current->m_usrs;
-	if (usrs.find("this") == usrs.end()) {
-	  T = pointer_type::create(T);
-	  string name = "this";
-	  usr* u = new usr(name,T,usr::NONE,file_t(),usr::NONE2);
-	  usrs[name].push_back(u);
+	string name = "this";
+	typedef map<string, vector<usr*> >::const_iterator IT;
+	IT p = usrs.find(name);
+	if (p == usrs.end()) {
+	  const type* pt = pointer_type::create(T);
+	  usr* this_ptr = new usr(name,pt,usr::NONE,file_t(),usr::NONE2);
+	  usrs[name].push_back(this_ptr);
 	  vector<usr*>& order = scope::current->m_order;
 	  vector<usr*> tmp = order;
 	  order.clear();
-	  order.push_back(u);
+	  order.push_back(this_ptr);
 	  copy(begin(tmp), end(tmp), back_inserter(order));
 	}
       }

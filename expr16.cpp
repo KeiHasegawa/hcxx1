@@ -173,13 +173,13 @@ cxx_compiler::var* cxx_compiler::refaddr::assign(var* op)
   }
   bool discard = false;
   var* z = op->rvalue();
-  T = expressions::assignment::valid(T, z, &discard, true);
-  if ( !T ){
+  const type* res = expressions::assignment::valid(T, z, &discard, true);
+  if (!res) {
     using namespace error::expressions::assignment;
     invalid(parse::position,0,discard);
-    T = int_type::create();
+    res = int_type::create();
   }
-  z = T->aggregate() ? aggregate_conv(T, z) : z->cast(T);
+  z = res->aggregate() ? aggregate_conv(res, z) : z->cast(res);
   using namespace expressions::primary::literal;
   int offset = m_addrof.m_offset;
   var* y = integer::create(offset);
@@ -200,19 +200,32 @@ cxx_compiler::var* cxx_compiler::refaddr::assign(var* op)
     }
     code.push_back(new invladdr3ac(xx,z));
   }
-  else
-    code.push_back(new loff3ac(x,y,z));
-  if ( !z->isconstant() )
+  else {
+    if (T->m_id == type::REFERENCE) {
+      var* r = new var(T);
+      if ( scope::current->m_id == scope::BLOCK ){
+	block* b = static_cast<block*>(scope::current);
+	b->m_vars.push_back(r);
+      }
+      else
+	garbage.push_back(r);
+      code.push_back(new roff3ac(r,x,y));
+      code.push_back(new invladdr3ac(r,z));
+    }
+    else
+      code.push_back(new loff3ac(x,y,z));
+  }
+  if (!z->isconstant())
     return z;
-  var* res = new var(T);
+  var* ret = new var(res);
   if ( scope::current->m_id == scope::BLOCK ){
     block* b = static_cast<block*>(scope::current);
-    b->m_vars.push_back(res);
+    b->m_vars.push_back(ret);
   }
   else
-    garbage.push_back(res);
-  code.push_back(new assign3ac(res,z));
-  return res;
+    garbage.push_back(ret);
+  code.push_back(new assign3ac(ret,z));
+  return ret;
 }
 
 cxx_compiler::var* cxx_compiler::refbit::assign(var* op)

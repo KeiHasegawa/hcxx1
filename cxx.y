@@ -110,7 +110,7 @@ namespace cxx_compiler {
   std::vector<cxx_compiler::base*>* m_base_clause;
   cxx_compiler::base* m_base_specifier;
   cxx_compiler::name_space* m_name_space;
-  std::pair<cxx_compiler::var*, cxx_compiler::tag*>* m_pvt;
+  std::pair<cxx_compiler::usr*, cxx_compiler::tag*>* m_pvt;
   std::pair<const cxx_compiler::type*, cxx_compiler::expressions::base*>* m_param;
   std::vector<std::pair<const cxx_compiler::type*, cxx_compiler::expressions::base*>*>* m_params;
   std::pair<cxx_compiler::declarations::type_specifier*, bool>* m_pseudo_dest;
@@ -1316,34 +1316,36 @@ mem_initializer_id
     {
       using namespace std;
       using namespace cxx_compiler;
-      $$ = new pair<var*, tag*>(0, $4);
+      $$ = new pair<usr*, tag*>(0, $4);
       class_or_namespace_name::after(false);
     }
   | COLONCOLON_MK move_to_root class_name
     {
       using namespace std;
       using namespace cxx_compiler;
-      $$ = new pair<var*, tag*>(0, $3);
+      $$ = new pair<usr*, tag*>(0, $3);
       class_or_namespace_name::after(false);
     }
   | nested_name_specifier class_name
     {
       using namespace std;
       using namespace cxx_compiler;
-      $$ = new pair<var*, tag*>(0, $2);
+      $$ = new pair<usr*, tag*>(0, $2);
       class_or_namespace_name::after(false);
     }
   | class_name
     {
       using namespace std;
       using namespace cxx_compiler;
-      $$ = new pair<var*, tag*>(0, $1);
+      $$ = new pair<usr*, tag*>(0, $1);
     }
   | IDENTIFIER_LEX
     {
       using namespace std;
       using namespace cxx_compiler;
-      $$ = new pair<var*, tag*>($1, 0);
+      assert($1->usr_cast());
+      usr* u = static_cast<usr*>($1);
+      $$ = new pair<usr*, tag*>(u, 0);
     }
   ;
 
