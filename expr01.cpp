@@ -1661,15 +1661,9 @@ namespace cxx_compiler {
       var* ctor_conv_common(const record_type* xx, var* src, bool trial)
       {
 	tag* ptr = xx->get_tag();
-	string tgn = ptr->m_name;
-	const map<string, vector<usr*> >& usrs = ptr->m_usrs;
-	typedef map<string, vector<usr*> >::const_iterator IT;
-	IT p = usrs.find(tgn);
-	if (p == usrs.end())
+	usr* ctor = has_ctor_dtor(ptr, false);
+	if (!ctor)
 	  return 0;
-
-	const vector<usr*>& v= p->second;
-	usr* ctor = v.back();
 	usr::flag_t flag = ctor->m_flag;
 	var* obj = new var(xx);
 	if (scope::current->m_id == scope::BLOCK) {
@@ -2136,15 +2130,9 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::fcast::gen()
   typedef const record_type REC;
   REC* rec = static_cast<REC*>(m_type);
   tag* ptr = rec->get_tag();
-  string tgn = ptr->m_name;
-  const map<string, vector<usr*> >& usrs = ptr->m_usrs;
-  typedef map<string, vector<usr*> >::const_iterator IT;
-  IT p = usrs.find(tgn);
-  if (p == usrs.end())
+  usr* ctor = has_ctor_dtor(ptr, false);
+  if (!ctor)
     return ret;
-
-  const vector<usr*>& v = p->second;
-  usr* ctor = v.back();
   usr::flag_t flag = ctor->m_flag;
   if (flag & usr::OVERLOAD) {
     overload* ovl = static_cast<overload*>(ctor);

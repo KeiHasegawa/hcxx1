@@ -161,18 +161,7 @@ namespace cxx_compiler {
 	typedef const record_type REC;
 	REC* rec = static_cast<REC*>(U);
 	tag* ptr = rec->get_tag();
-	map<string, vector<usr*> >& tusrs = ptr->m_usrs;
-	string tgn = ptr->m_name;
-	if (is_dtor)
-	  tgn = '~' + tgn;
-	map<string, vector<usr*> >::const_iterator p = tusrs.find(tgn);
-	if (p == tusrs.end())
-	  return 0;
-
-	const vector<usr*>& v = p->second;
-	assert(!v.empty());
-	usr* tor = v.back();
-	return tor;
+	return has_ctor_dtor(ptr, is_dtor);
       }
       inline usr* ctor_entry(const type* T)
       {

@@ -280,7 +280,23 @@ namespace cxx_compiler {
             }
             void for_aggregate(var* dst, vector<expressions::base*>* p)
             {
-              error::not_implemented();
+	      vector<var*> arg;
+	      transform(begin(*p), end(*p), back_inserter(arg),
+			mem_fun(&expressions::base::gen));
+	      const type* T = dst->result_type();
+	      assert(T->m_id == type::RECORD);
+	      typedef const record_type REC;
+	      REC* rec = static_cast<REC*>(T);
+	      tag* ptr = rec->get_tag();
+	      usr* ctor = has_ctor_dtor(ptr, false);
+	      usr::flag_t flag = ctor->m_flag;
+	      if (flag & usr::OVERLOAD) {
+		overload* ovl = static_cast<overload*>(ctor);
+		ovl->m_obj = dst;
+		ovl->call(&arg);
+		return;
+	      }
+	      call_impl::wrapper(ctor, &arg, dst);
             }
             struct sweeper {
               vector<expressions::base*>* m_expr;

@@ -756,19 +756,6 @@ namespace cxx_compiler {
 	common_ctor_dtor(ptr, m_this, m_block, m_is_dtor, offset);
       }
     };
-    inline usr* has_ctor_dtor(tag* ptr, bool is_dtor)
-    {
-      string tgn = ptr->m_name;
-      if (is_dtor)
-	tgn = '~' + tgn;
-      const map<string, vector<usr*> >& usrs = ptr->m_usrs;
-      typedef map<string, vector<usr*> >::const_iterator IT;
-      IT p = usrs.find(tgn);
-      if (p == usrs.end())
-	return 0;
-      const vector<usr*>& v = p->second;
-      return v.back();
-    }
     inline bool bases_have_ctor_dtor(tag* ptr, bool is_dtor)
     {
       if (!ptr->m_bases)
@@ -1058,13 +1045,11 @@ namespace cxx_compiler {
     inline usr* add_ctor_dtor_common(tag* ptr, scope** param, usr** this_ptr,
 				     block** pb, bool is_dtor)
     {
+      if (has_ctor_dtor(ptr, is_dtor))
+	return 0;
       string tgn = ptr->m_name;
       if (is_dtor)
 	tgn = '~' + tgn;
-      map<string, vector<usr*> >& usrs = ptr->m_usrs;
-      map<string, vector<usr*> >::const_iterator p = usrs.find(tgn);
-      if (p != usrs.end())
-	return 0;
       const func_type* ft = default_ctor_type();
       usr::flag_t flag = is_dtor ? usr::DTOR : usr::CTOR;
       flag = usr::flag_t(flag | usr::FUNCTION | usr::INLINE);
@@ -2067,6 +2052,20 @@ void cxx_compiler::handle_vdel(tag* ptr)
   using namespace record_impl;
   const vector<usr*>& order = ptr->m_order;
   for_each(begin(order), end(order), bind2nd(ptr_fun(handle_vdel1), ptr));
+}
+
+cxx_compiler::usr* cxx_compiler::has_ctor_dtor(tag* ptr, bool is_dtor)
+{
+  string tgn = ptr->m_name;
+  if (is_dtor)
+    tgn = '~' + tgn;
+  const map<string, vector<usr*> >& usrs = ptr->m_usrs;
+  typedef map<string, vector<usr*> >::const_iterator IT;
+  IT p = usrs.find(tgn);
+  if (p == usrs.end())
+    return 0;
+  const vector<usr*>& v = p->second;
+  return v.back();
 }
 
 void cxx_compiler::record_type::destroy_tmp()
