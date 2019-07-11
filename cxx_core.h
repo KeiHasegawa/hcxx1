@@ -280,7 +280,7 @@ struct var {
 struct usr : var {
   std::string m_name;
   enum flag_t {
-    NONE        = 0,
+    NONE                = 0,
     TYPEDEF             = 1 << 0,
     EXTERN              = 1 << 1,
     STATIC              = 1 << 2,
@@ -327,6 +327,7 @@ struct usr : var {
     AMBIGUOUS_OVERRIDE  = 1 << 6,
     INITIALIZE_FUNCTION = 1 << 7,
     TERMINATE_FUNCTION  = 1 << 8,
+    GENED_BY_COMP       = 1 << 9,
   };
   flag2_t m_flag2;
   file_t m_file;
@@ -1657,8 +1658,9 @@ public:
   static const record_type* create(tag*);
   static void destroy_tmp();
   static void collect_tmp(std::vector<const type*>&);
-  void tor_code(usr* ctor, scope* param, usr* this_ptr, block* pb,
-		bool is_ctor) const;
+  void tor_code(usr* tor, scope* param, var* this_ptr, block* pb,
+		bool is_dtor,
+		const std::set<const record_type*>& exclude) const;
 };
 
 class enum_type : public type {

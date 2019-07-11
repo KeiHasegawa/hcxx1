@@ -570,8 +570,10 @@ namespace cxx_compiler {
     assert(v.size() == 1);
     return v.back();
   }
-  inline void add_tor_code(usr* u, scope* param, bool is_ctor)
+  inline void add_tor_code(fundef* fdef, bool is_dtor)
   {
+    usr* u = fdef->m_usr;
+    scope* param = fdef->m_param;
     scope* p = u->m_scope;
     assert(p->m_id == scope::TAG);
     tag* ptr = static_cast<tag*>(p);
@@ -587,8 +589,136 @@ namespace cxx_compiler {
     block* b = static_cast<block*>(q);
     scope* org = scope::current;
     scope::current = b;
-    rec->tor_code(u, param, this_ptr, b, is_ctor);
+    set<REC*> dummy;
+    rec->tor_code(u, param, this_ptr, b, is_dtor, dummy);
     scope::current = org;
+  }
+  inline bool tor_of_vbase(usr* func)
+  {
+    usr::flag_t flag = func->m_flag;
+    usr::flag_t mask = usr::flag_t(usr::CTOR | usr::DTOR);
+    if (!(flag & mask))
+      return false;
+    scope* p = func->m_scope;
+    assert(p->m_id == scope::TAG);
+    tag* ptr = static_cast<tag*>(p);
+    vector<base*>* bases = ptr->m_bases;
+    if (!bases)
+      return false;
+    typedef vector<base*>::const_iterator IT;
+    IT it = find_if(begin(*bases), end(*bases),
+		    [](const base* bp){ return bp->m_flag & usr::VIRTUAL; });
+    return it != end(*bases);
+  }
+  inline void copy_usrs(const map<string, vector<usr*> >& src,
+			map<string, vector<usr*> >& dst, map<var*, var*>& tbl)
+  {
+    for (const auto& p : src) {
+      for (auto x : p.second) {
+	usr* y = new usr(*x);
+	dst[y->m_name].push_back(y);
+	tbl[x] = y;
+      }
+    }
+  }
+  inline void copy_order(const vector<usr*>& src,
+			 vector<usr*>& dst, const map<var*, var*>& tbl)
+  {
+    for (auto x : src) {
+      map<var*, var*>::const_iterator p = tbl.find(x);
+      assert(p != tbl.end());
+      var* v = p->second;
+      assert(v->usr_cast());
+      usr* y = static_cast<usr*>(v);
+      dst.push_back(y);
+    }
+  }
+  inline void copy_vars(const vector<var*>& src,
+			vector<var*>& dst, map<var*, var*>& tbl)
+  {
+    for (auto x : src) {
+      var* y = new var(*x);
+      dst.push_back(y);
+      tbl[x] = y;
+    }
+  }
+  struct copy_recursively {
+    scope* m_dst;
+    map<var*, var*>& m_tbl;
+    copy_recursively(scope* dst, map<var*, var*>& tbl)
+      : m_dst(dst), m_tbl(tbl) {}
+    void operator()(scope* p)
+    {
+      assert(p->m_id == scope::BLOCK);
+      using namespace class_or_namespace_name;
+      block* bp = new block;
+      assert(before.back() == bp);
+      before.pop_back();
+      m_dst->m_children.push_back(bp);
+      bp->m_parent = m_dst;
+      copy_scope(p, bp, m_tbl);
+    }
+  };
+  void copy_scope(const scope* src, scope* dst, map<var*, var*>& tbl)
+  {
+    const map<string, vector<usr*> >& x = src->m_usrs;
+    map<string, vector<usr*> >& y = dst->m_usrs;
+    copy_usrs(x, y, tbl);
+    const vector<usr*>& xx = src->m_order;
+    vector<usr*>& yy = dst->m_order;
+    copy_order(xx, yy, tbl);
+    if (src->m_id == scope::BLOCK) {
+      const block* bx = static_cast<const block*>(src);
+      assert(dst->m_id == scope::BLOCK);
+      block* by = static_cast<block*>(dst);
+      const vector<var*>& x = bx->m_vars;
+      vector<var*>& y = by->m_vars;
+      copy_vars(x, y, tbl);
+    }
+    const vector<scope*>& children = src->m_children;
+    for_each(begin(children), end(children), copy_recursively(dst, tbl));
+  }
+  inline void save_tor_body(fundef* fdef, int n)
+  {
+    usr* func = fdef->m_usr;
+    string name = func->m_name + dot_body;
+
+    const type* T = func->m_type;
+    assert(T->m_id == type::FUNC);
+    typedef const func_type FT;
+    FT* ft = static_cast<FT*>(T);
+
+    scope* p = func->m_scope;
+    assert(p->m_id == scope::TAG);
+    tag* ptr = static_cast<tag*>(p);
+    usr::flag_t flag = usr::flag_t(func->m_flag | usr::INLINE);
+    usr* u = new usr(name, ft, flag, file_t(), usr::GENED_BY_COMP);
+    ptr->m_usrs[name].push_back(u);
+
+    using namespace declarations::declarators::function::definition;
+    const vector<const type*>& parameter = ft->param();
+    KEY key(make_pair(name, ptr), &parameter);
+    dtbl[key] = u;
+
+    using namespace class_or_namespace_name;
+    scope* param = new scope(scope::PARAM);
+    assert(before.back() == param);
+    before.pop_back();
+    ptr->m_children.push_back(param);
+    param->m_parent = ptr;
+
+    map<var*, var*> tbl;
+    copy_scope(fdef->m_param, param, tbl);
+
+    vector<tac*> tmp;
+    transform(begin(code)+n, end(code), back_inserter(tmp), new3ac(tbl));
+
+    fundef* org = fundef::current;
+    fundef::current = new fundef(u, param);
+    declarations::declarators::
+      function::definition::action(fundef::current, tmp);
+    delete fundef::current;
+    fundef::current = org;
   }
 } // end of namespace cxx_compiler
 
@@ -626,15 +756,18 @@ action(statements::base* stmt)
     file_t org = parse::position;
     usr::flag_t flag = u->m_flag;
     if (flag & usr::CTOR)
-      add_tor_code(u, fundef::current->m_param, true);
+      add_tor_code(fundef::current, false);
+    int n = code.size();
     stmt->gen();
+    if (tor_of_vbase(u))
+      save_tor_body(fundef::current, n);
     if (flag & usr::DTOR)
-      add_tor_code(u, fundef::current->m_param, false);
+      add_tor_code(fundef::current, true);
     parse::position = org;
     statements::label::check();
     statements::label::clear();
     action(fundef::current, code);
-    if ( scope::current->m_id == scope::TAG ){
+    if (scope::current->m_id == scope::TAG) {
       scope::current = scope::current->m_parent;
       if (!(flag & usr::INLINE))
         destroy();

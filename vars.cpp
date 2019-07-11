@@ -14,6 +14,17 @@ cxx_compiler::usr::~usr()
       default_arg_table.erase(this);
 #endif // __CYGWIN__
   }
+  if (m_flag & usr::CTOR) {
+    using namespace definition::mem_initializer;
+    btbl.erase(this);
+    mtbl.erase(this);
+  }
+
+  usr::flag_t mask = usr::flag_t(usr::CTOR | usr::DTOR);
+  if (m_flag & mask) {
+    using namespace record_impl::special_ctor_dtor;
+    scd_tbl.erase(this);
+  }
 }
 
 cxx_compiler::addrof::addrof(const type* T, var* ref, int offset)

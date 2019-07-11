@@ -470,7 +470,7 @@ extern var* aggregate_conv(const type* T, var* y);
 
 extern void check_abstract_obj(usr*);
 
-extern void check_abstract_func(usr* );
+extern void check_abstract_func(usr*);
 
 extern void handle_copy_ctor(tag*);
 
@@ -505,6 +505,31 @@ extern bool must_call_dtor(usr*);
 
 extern void terminate_dtor_code(usr*);
 
+extern void copy_scope(const scope* src, scope* dst, map<var*, var*>& tbl);
+
+struct new3ac {
+  const map<var*, var*>& m_tbl;
+  new3ac(const map<var*, var*>& tbl) : m_tbl(tbl) {}
+  var* conv(var* v)
+  {
+    map<var*, var*>::const_iterator p = m_tbl.find(v);
+    if (p != m_tbl.end())
+      return p->second;
+    return v;
+  }
+  tac* operator()(tac* ptac)
+  {
+    ptac = ptac->new3ac();
+    if (ptac->x)
+      ptac->x = conv(ptac->x);
+    if (ptac->y)
+      ptac->y = conv(ptac->y);
+    if (ptac->z)
+      ptac->z = conv(ptac->z);
+    return ptac;
+  }
+};
+
 namespace var_impl {
   extern var* operator_code(int op, var* y, var* z);
   extern var* conversion_code(int op, var* y, var* z, var* (*)(var*, var*));
@@ -512,6 +537,10 @@ namespace var_impl {
 
 namespace record_impl {
   extern int base_vb(int n, const base* bp);
+  namespace special_ctor_dtor {
+    typedef map<set<const record_type*>, usr*> VALUE_TYPE;
+    extern map<usr*, VALUE_TYPE> scd_tbl;  // key is ctor or dtor
+  } // end of namespace special_ctor_dtor
 } // end of namespace record_impl
 
 namespace expressions {
@@ -639,10 +668,16 @@ namespace declarations {
           typedef vector<pair<PAIR*,EXPRS*> > VALUE;
           extern map<usr*, VALUE> for_parse;  // key is constructor
           void action(PAIR*, EXPRS*);
-	  typedef map<tag*, vector<tac*> > BTBL_VALUE;
-	  extern map<usr*, BTBL_VALUE> btbl;
-	  typedef map<usr*, vector<tac*> > MTBL_VALUE;
-	  extern map<usr*, MTBL_VALUE> mtbl;
+	  struct pbc {
+	    scope* m_param;
+	    block* m_block;
+	    vector<tac*> m_code;
+	    pbc(scope* param, block* bp, const vector<tac*>& c)
+	    : m_param(param), m_block(bp), m_code(c) {}
+  	    pbc() : m_param(0), m_block(0) {}
+	  };
+	  extern map<usr*, map<tag*, pbc> > btbl;
+	  extern map<usr*, map<usr*, vector<tac*> > > mtbl;
         } // end of mem_initializer
       } // end of namespace definition
     } // end of namespace function
@@ -1427,6 +1462,8 @@ inline const type* composite(const type* x, const type* y)
 namespace SUB_CONST_LONG_impl {
   const type* propagation(const usr* y, const usr* z);
 } // end of namespace SUB_CONST_LONG_impl
+
+const string dot_body = ".body";
  
 } // end of namespace cxx_compiler
 

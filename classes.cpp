@@ -393,10 +393,25 @@ namespace cxx_compiler {
 	      if (flag & usr::OVERLOAD) {
 		overload* ovl = static_cast<overload*>(ctor);
 		ovl->m_obj = this_ptr;
+		const vector<usr*>& cand = ovl->m_candidacy;
+		vector<usr::flag_t> org;
+		for_each(begin(cand), end(cand), [&org](usr* u) {
+		    usr::flag_t flag = u->m_flag;
+		    org.push_back(flag);
+		    u->m_flag = usr::flag_t(flag & ~usr::INLINE);
+ 		  });             // (*1)
 		ovl->call(&arg);
+		int i = 0;
+		for (auto u : cand)
+		  u->m_flag = org[i++];
 		return;
 	      }
+
+	      // (*1) and bellow are coded for replacing special ctor version
+	      // See record_type.cpp base_ctor_dtor::operator()
+	      ctor->m_flag = usr::flag_t(ctor->m_flag & ~usr::INLINE);
 	      call_impl::wrapper(ctor, &arg, this_ptr);
+	      ctor->m_flag = flag;
 	    }
 	    inline usr* get_this(scope* param, const record_type* rec)
 	    {
@@ -427,7 +442,7 @@ namespace cxx_compiler {
 	      bp->m_parent = param;
 	      return this_ptr;
 	    }
-	    map<usr*, map<tag*, vector<tac*> > > btbl;
+	    map<usr*, map<tag*, pbc> > btbl;
 	    void tag_action(tag* btag, EXPRS* exprs, usr* ctor)
 	    {
 	      scope* tmp = ctor->m_scope;
@@ -471,7 +486,7 @@ namespace cxx_compiler {
 	      assert(code.empty());
               gen(bp->m_tag, this_ptr, offset, exprs);
               scope::current = org;
-	      btbl[ctor][btag] = code;
+	      btbl[ctor][btag] = pbc(param, b, code);
 	      code.clear();
 	    }
             void action(pair<usr*, tag*>* x, EXPRS* exprs)
