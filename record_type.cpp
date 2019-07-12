@@ -1139,21 +1139,6 @@ namespace cxx_compiler {
 	scope::current = org;
       }
     };
-    void sort(const set<const record_type*>& s,
-	      const map<const record_type*, int>& m,
-	      vector<const record_type*>& res)
-    {
-      copy(begin(s), end(s), back_inserter(res));
-      sort(begin(res), end(res),
-	   [&m](const record_type* x, const record_type* y){
-	     typedef map<const record_type*, int>::const_iterator IT;
-	     IT p = m.find(x);
-	     assert(p != m.end());
-	     IT q = m.find(y);
-	     assert(q != m.end());
-	     return p->second < q->second;
-	   });
-    }
     void add_ctor_code(tag* ptr,
 		       const map<string, pair<int, usr*> >& layout,
 		       const map<base*, int>& base_offset,
@@ -1171,9 +1156,7 @@ namespace cxx_compiler {
 		       scope* param,
 		       const set<const record_type*>& exclude)
     {
-      vector<const record_type*> tmp;
-      sort(common, virt_common_offset, tmp);
-      for_each(begin(tmp), end(tmp),
+      for_each(begin(common), end(common),
 	       common_ctor_dtor(virt_common_offset, pb, this_ptr, param,
 				false));
       if (ptr->m_bases) {
@@ -1378,9 +1361,7 @@ namespace cxx_compiler {
                  base_ctor_dtor(base_offset, this_ptr, param, pb,
 				true, dtor, ce));
       }
-      vector<const record_type*> tmp;
-      sort(common, virt_common_offset, tmp);
-      for_each(rbegin(tmp), rend(tmp),
+      for_each(rbegin(common), rend(common),
 	       common_ctor_dtor(virt_common_offset, pb, this_ptr, param,
 				true));
     }
