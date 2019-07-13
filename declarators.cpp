@@ -1016,7 +1016,8 @@ namespace cxx_compiler { namespace declarations { namespace declarators { namesp
 cxx_compiler::declarations::declarators::function::definition::table_t
 cxx_compiler::declarations::declarators::function::definition::dtbl;
 
-cxx_compiler::declarations::declarators::function::definition::static_inline::info_t::~info_t()
+cxx_compiler::declarations::declarators::function::definition::
+static_inline::info_t::~info_t()
 {
   using namespace std;
   for (auto p : m_code) delete p;

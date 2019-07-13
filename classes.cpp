@@ -341,7 +341,7 @@ namespace cxx_compiler {
 	      param->m_usrs[name].push_back(this_ptr);
 	      return b;
 	    }
-	    map<usr*, map<usr*, vector<tac*> > > mtbl;
+	    map<usr*, map<usr*, pbc> > mtbl;
 	    void id_action(usr* u, EXPRS* exprs, usr* ctor)
 	    {
               using namespace expressions::primary;
@@ -362,7 +362,7 @@ namespace cxx_compiler {
               var* dst = from_member(u, dummy);
               gen(dst, exprs);
               scope::current = org;
-	      mtbl[ctor][u] = code;
+	      mtbl[ctor][u] = pbc(b->m_parent, b, code);
 	      code.clear();
 	    }
 	    void gen(tag* ptr, var* this_ptr, int offset, EXPRS* exprs)

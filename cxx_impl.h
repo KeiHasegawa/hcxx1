@@ -505,8 +505,6 @@ extern bool must_call_dtor(usr*);
 
 extern void terminate_dtor_code(usr*);
 
-extern void copy_scope(const scope* src, scope* dst, map<var*, var*>& tbl);
-
 struct new3ac {
   const map<var*, var*>& m_tbl;
   new3ac(const map<var*, var*>& tbl) : m_tbl(tbl) {}
@@ -677,7 +675,7 @@ namespace declarations {
   	    pbc() : m_param(0), m_block(0) {}
 	  };
 	  extern map<usr*, map<tag*, pbc> > btbl;
-	  extern map<usr*, map<usr*, vector<tac*> > > mtbl;
+	  extern map<usr*, map<usr*, pbc> > mtbl;
         } // end of mem_initializer
       } // end of namespace definition
     } // end of namespace function
@@ -1464,7 +1462,9 @@ namespace SUB_CONST_LONG_impl {
 } // end of namespace SUB_CONST_LONG_impl
 
 const string dot_body = ".body";
- 
+
+extern void copy_scope(const scope* src, scope* dst, map<var*, var*>& tbl);
+
 } // end of namespace cxx_compiler
 
 #endif // _CXX_IMPL_H_
