@@ -1471,6 +1471,154 @@ namespace cxx_compiler {
       tmp.push_back(T);
       return func_type::create(0, tmp);
     }
+    inline usr* has_copy_ctor(tag* ptr)
+    {
+      usr* ctor = has_ctor_dtor(ptr, false);
+      if (!ctor)
+	return 0;
+      usr::flag_t flag = ctor->m_flag;
+      if (flag & usr::OVERLOAD) {
+	overload* ovl = static_cast<overload*>(ctor);
+	const vector<usr*>& cand = ovl->m_candidacy;
+	typedef vector<usr*>::const_iterator IT;
+	IT p = find_if(begin(cand), end(cand),
+		       bind2nd(ptr_fun(canbe_copy_ctor), ptr));
+	return p != end(cand) ? *p : 0;
+      }
+      return canbe_copy_ctor(ctor, ptr) ? ctor : 0;
+    }
+    inline usr* base_copy_ctor(base* bp)
+    {
+      tag* ptr = bp->m_tag;
+      return has_copy_ctor(ptr);
+    }
+    inline usr* member_copy_ctor(usr* member)
+    {
+      const type* T = member->m_type;
+      assert(T);
+      T = T->unqualified();
+      if (T->m_id != type::RECORD)
+	return 0;
+      typedef const record_type REC;
+      REC* rec = static_cast<REC*>(T);
+      tag* ptr = rec->get_tag();
+      return has_copy_ctor(ptr);
+    }
+    struct call_copy_ctor {
+      const record_type* m_rec;
+      block* m_block;
+      var* m_src;
+      var* m_dst;
+      call_copy_ctor(const record_type* rec, block* b, var* src, var* dst)
+	: m_rec(rec), m_block(b), m_src(src), m_dst(dst) {}
+      void call(usr* copy_ctor, int offset)
+      {
+	using namespace expressions::primary::literal;
+	const type* T = copy_ctor->m_type;
+	assert(T->m_id == type::FUNC);
+	typedef const func_type FT;
+	FT* ft = static_cast<FT*>(T);
+	const vector<const type*>& param = ft->param();
+	assert(!param.empty());
+	const type* rt = param[0];
+	scope* ps = copy_ctor->m_scope;
+	assert(ps->m_id == scope::TAG);
+	tag* ptr = static_cast<tag*>(ps);
+	T = ptr->m_types.second;
+	assert(T->m_id == type::RECORD);
+	typedef const record_type REC;
+	REC* rec = static_cast<REC*>(T);
+	const type* pt = pointer_type::create(rec);
+	var* t0 = new var(rt);
+	var* t1 = new var(pt);
+	m_block->m_vars.push_back(t0);
+	m_block->m_vars.push_back(t1);
+	code.push_back(new cast3ac(t0, m_src, rt));
+	code.push_back(new cast3ac(t1, m_dst, pt));
+	if (offset) {
+	  var* t2 = new var(rt);
+	  var* t3 = new var(pt);
+	  m_block->m_vars.push_back(t2);
+	  m_block->m_vars.push_back(t3);
+	  var* off = integer::create(offset);
+	  code.push_back(new add3ac(t2, t0, off));
+	  code.push_back(new add3ac(t3, t1, off));
+	  t0 = t2;
+	  t1 = t3;
+	}
+	vector<var*> arg;
+	arg.push_back(t0);
+	scope* org = scope::current;
+	scope::current = m_block;
+	call_impl::wrapper(copy_ctor, &arg, t1);
+	scope::current = org;
+      }
+      void copy(const type* T, int offset)
+      {
+	using namespace expressions::primary::literal;
+	const type* pt = pointer_type::create(T);
+	var* px = new var(pt);
+	var* py = new var(pt);
+	var* tmp = new var(T);
+	m_block->m_vars.push_back(px);
+	m_block->m_vars.push_back(py);
+	m_block->m_vars.push_back(tmp);
+	code.push_back(new cast3ac(px, m_dst, pt));
+	code.push_back(new cast3ac(py, m_src, pt));
+	if (offset) {
+	  var* off = integer::create(offset);
+	  var* tx = new var(pt);
+	  var* ty = new var(pt);
+	  m_block->m_vars.push_back(tx);
+	  m_block->m_vars.push_back(ty);
+	  code.push_back(new add3ac(tx, px, off));
+	  code.push_back(new add3ac(ty, py, off));
+	  px = tx;
+	  py = ty;
+	}
+	code.push_back(new invraddr3ac(tmp, py));
+	code.push_back(new invladdr3ac(px, tmp));
+      }
+    };
+    struct call_base_copy_ctor : call_copy_ctor {
+      call_base_copy_ctor(const record_type* rec, block* b, var* src, var* dst)
+	: call_copy_ctor(rec, b, src, dst) {}
+      void operator()(base* bp)
+      {
+	const map<base*, int>& tbl = m_rec->base_offset();
+	typedef map<base*, int>::const_iterator IT;
+	IT p = tbl.find(bp);
+	assert(p != tbl.end());
+	int offset = p->second;
+
+	usr* copy_ctor = base_copy_ctor(bp);
+	if (copy_ctor)
+	  call(copy_ctor, offset);
+	else {
+	  tag* ptr = bp->m_tag;
+	  const type* T = ptr->m_types.second;
+	  copy(T, offset);
+	}
+      }
+    };
+    struct call_member_copy_ctor : call_copy_ctor {
+      call_member_copy_ctor(const record_type* rec, block* b, var* src,
+			    var* dst)
+	: call_copy_ctor(rec, b, src, dst) {}
+      void operator()(usr* member)
+      {
+	string name = member->m_name;
+	pair<int, usr*> off = m_rec->offset(name);
+	int offset = off.first;
+	assert(offset >= 0);
+
+	usr* copy_ctor = member_copy_ctor(member);
+	if (copy_ctor)
+	  call(copy_ctor, offset);
+	else
+	  copy(member->m_type, offset);
+      }
+    };
     void add_copy_ctor(tag* ptr)
     {
       string tgn = ptr->m_name;
@@ -1502,7 +1650,10 @@ namespace cxx_compiler {
       string name = "this";
       const type* T = ptr->m_types.second;
       assert(T);
-      const type* pt = pointer_type::create(T);
+      assert(T->m_id == type::RECORD);
+      typedef const record_type REC;
+      REC* rec = static_cast<REC*>(T);
+      const type* pt = pointer_type::create(rec);
       usr* this_ptr = new usr(name,pt,usr::NONE,file_t(),usr::NONE2);
       this_ptr->m_scope = param;
       param->m_order.push_back(this_ptr);
@@ -1521,10 +1672,29 @@ namespace cxx_compiler {
       param->m_children.push_back(bp);
       bp->m_parent = param;
       assert(code.empty());
-      var* tmp = new var(T);
-      bp->m_vars.push_back(tmp);
-      code.push_back(new invraddr3ac(tmp, arg));
-      code.push_back(new invladdr3ac(this_ptr, tmp));
+
+      vector<base*>* bases = ptr->m_bases;
+      typedef vector<base*>::const_iterator ITx;
+      ITx itx;
+      if (bases)
+	itx = find_if(begin(*bases), end(*bases), base_copy_ctor);
+      const vector<usr*>& member = rec->member();
+      typedef vector<usr*>::const_iterator ITy;
+      ITy ity = find_if(begin(member), end(member), member_copy_ctor);
+      if (bases && itx != end(*bases) || ity != end(member)) {
+	if (bases)
+	  for_each(begin(*bases), end(*bases),
+		   call_base_copy_ctor(rec, bp, arg, this_ptr));
+	for_each(begin(member), end(member),
+		 call_member_copy_ctor(rec, bp, arg, this_ptr));
+      }
+      else {
+	var* tmp = new var(T);
+	bp->m_vars.push_back(tmp);
+	code.push_back(new invraddr3ac(tmp, arg));
+	code.push_back(new invladdr3ac(this_ptr, tmp));
+      }
+
       fundef* fdef = new fundef(ctor, param);
       declarations::declarators::function::definition::action(fdef, code);
     }
@@ -2111,46 +2281,6 @@ namespace cxx_compiler {
     }
     return false;
   }
-  bool canbe_copy_ctor(usr* u, tag* ptr)
-  {
-    using namespace record_impl;
-    using namespace declarations::declarators::function;
-    const type* T = u->m_type;
-    if (!T)
-      return false;
-    const type* cct = copy_ctor_type(ptr, true);
-    if (compatible(T, cct))
-      return true;
-    cct = copy_ctor_type(ptr, false);
-    if (compatible(T, cct))
-      return true;
-    usr::flag_t flag = u->m_flag;
-    if (flag & usr::HAS_DEFAULT_ARG) {
-      typedef map<usr*, vector<var*> >::const_iterator ITx;
-      ITx p = default_arg_table.find(u);
-      assert(p != default_arg_table.end());
-      const vector<var*>& v = p->second;
-      assert(!v.empty());
-      typedef vector<var*>::const_iterator ITy;
-      ITy beg = begin(v) + 1;
-      ITy q = find(beg, end(v), (var*)0);
-      if (q != end(v))
-	return false;
-      assert(T->m_id == type::FUNC);
-      typedef const func_type FT;
-      FT* ft = static_cast<FT*>(T);
-      const vector<const type*>& param = ft->param();
-      assert(!param.empty());
-      T = param[0];
-      if (T->m_id != type::REFERENCE)
-	return false;
-      typedef const reference_type RT;
-      RT* rt = static_cast<RT*>(T);
-      T = rt->referenced_type();
-      return T->get_tag() == ptr;
-    }
-    return false;
-  }
   namespace record_impl {
     inline void add_vdel_code(usr* vdtor, usr* del, usr* this_ptr)
     {
@@ -2349,6 +2479,48 @@ void cxx_compiler::handle_vdel(tag* ptr)
   const vector<usr*>& order = ptr->m_order;
   for_each(begin(order), end(order), bind2nd(ptr_fun(handle_vdel1), ptr));
 }
+
+bool cxx_compiler::canbe_copy_ctor(usr* u, tag* ptr)
+{
+  using namespace record_impl;
+  using namespace declarations::declarators::function;
+  const type* T = u->m_type;
+  if (!T)
+    return false;
+  const type* cct = copy_ctor_type(ptr, true);
+  if (compatible(T, cct))
+    return true;
+  cct = copy_ctor_type(ptr, false);
+  if (compatible(T, cct))
+    return true;
+  usr::flag_t flag = u->m_flag;
+  if (flag & usr::HAS_DEFAULT_ARG) {
+    typedef map<usr*, vector<var*> >::const_iterator ITx;
+    ITx p = default_arg_table.find(u);
+    assert(p != default_arg_table.end());
+    const vector<var*>& v = p->second;
+    assert(!v.empty());
+    typedef vector<var*>::const_iterator ITy;
+    ITy beg = begin(v) + 1;
+    ITy q = find(beg, end(v), (var*)0);
+    if (q != end(v))
+      return false;
+    assert(T->m_id == type::FUNC);
+    typedef const func_type FT;
+    FT* ft = static_cast<FT*>(T);
+    const vector<const type*>& param = ft->param();
+    assert(!param.empty());
+    T = param[0];
+    if (T->m_id != type::REFERENCE)
+      return false;
+    typedef const reference_type RT;
+    RT* rt = static_cast<RT*>(T);
+    T = rt->referenced_type();
+    return T->get_tag() == ptr;
+  }
+  return false;
+}
+
 
 cxx_compiler::usr* cxx_compiler::has_ctor_dtor(tag* ptr, bool is_dtor)
 {
