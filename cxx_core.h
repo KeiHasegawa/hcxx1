@@ -1630,7 +1630,7 @@ class record_type : public type {
   std::map<base*, int> m_vbtbl_offset;
   std::map<base*, int> m_vftbl_offset;
 
-  std::set<const record_type*> m_common;
+  std::vector<const record_type*> m_common;
   std::map<const record_type*, int> m_common_vftbl_offset;
   record_type(tag*);
 public:
@@ -1660,7 +1660,7 @@ public:
   static void collect_tmp(std::vector<const type*>&);
   void tor_code(usr* tor, scope* param, var* this_ptr, block* pb,
 		bool is_dtor,
-		const std::set<const record_type*>& exclude) const;
+		const std::vector<const record_type*>& exclude) const;
 };
 
 class enum_type : public type {

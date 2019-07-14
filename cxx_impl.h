@@ -536,7 +536,7 @@ namespace var_impl {
 namespace record_impl {
   extern int base_vb(int n, const base* bp);
   namespace special_ctor_dtor {
-    typedef map<set<const record_type*>, usr*> VALUE_TYPE;
+    typedef map<vector<const record_type*>, usr*> VALUE_TYPE;
     extern map<usr*, VALUE_TYPE> scd_tbl;  // key is ctor or dtor
   } // end of namespace special_ctor_dtor
 } // end of namespace record_impl

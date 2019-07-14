@@ -589,7 +589,7 @@ namespace cxx_compiler {
     block* b = static_cast<block*>(q);
     scope* org = scope::current;
     scope::current = b;
-    set<REC*> dummy;
+    vector<REC*> dummy;
     rec->tor_code(u, param, this_ptr, b, is_dtor, dummy);
     scope::current = org;
   }
