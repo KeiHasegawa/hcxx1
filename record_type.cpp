@@ -682,11 +682,22 @@ namespace cxx_compiler {
 	const type* T = tor->m_type;
 	usr::flag_t flag = usr::flag_t(tor->m_flag | usr::INLINE);
 	usr* scd = new usr(sn, T, flag, file_t(), usr::GENED_BY_COMP);
-	scope* p = tor->m_scope;
-	assert(p->m_id == scope::TAG);
-	tag* ptr = static_cast<tag*>(p);
+	scope* ps = tor->m_scope;
+	assert(ps->m_id == scope::TAG);
+	tag* ptr = static_cast<tag*>(ps);
 	scd->m_scope = ptr;
-	ptr->m_usrs[sn].push_back(scd);
+	map<string, vector<usr*> >& usrs = ptr->m_usrs;
+	typedef map<string, vector<usr*> >::iterator IT;
+	IT p = usrs.find(sn);
+	if (p != usrs.end()) {
+	  vector<usr*>& v = p->second;
+	  usr* prev = v.back();
+	  overload* ovl = new overload(prev, scd);
+	  v.push_back(scd);
+	  v.push_back(ovl);
+	}
+	else
+	  usrs[sn].push_back(scd);
 
 	assert(T->m_id == type::FUNC);
 	typedef const func_type FT;
@@ -909,13 +920,45 @@ namespace cxx_compiler {
     struct member_ctor_dtor {
       const map<string, pair<int, usr*> >& m_layout;
       var* m_this;
+      scope* m_param;
       block* m_block;
       bool m_is_dtor;
       usr* m_tor;
+      bool m_call_copy_ctor;
+      void cp(int offset, const type* T)
+      {
+	using namespace expressions::primary::literal;
+	const vector<usr*>& order = m_param->m_order;
+	assert(order.size() >= 2);
+	usr* arg = order[1];
+	const type* pt = pointer_type::create(T);
+	var* src = new var(pt);
+	var* dst = new var(pt);
+	m_block->m_vars.push_back(src);
+	m_block->m_vars.push_back(dst);
+	code.push_back(new cast3ac(src, arg, pt));
+	code.push_back(new cast3ac(dst, m_this, pt));
+	if (offset) {
+	  var* off = integer::create(offset);
+	  var* t0 = new var(pt);
+	  var* t1 = new var(pt);
+	  m_block->m_vars.push_back(t0);
+	  m_block->m_vars.push_back(t1);
+	  code.push_back(new add3ac(t0, src, off));
+	  code.push_back(new add3ac(t1, dst, off));
+	  src = t0;
+	  dst = t1;
+	}
+	var* tmp = new var(T);
+	m_block->m_vars.push_back(tmp);
+	code.push_back(new invraddr3ac(tmp, src));
+	code.push_back(new invladdr3ac(dst, tmp));
+      }
       member_ctor_dtor(const map<string, pair<int, usr*> >& layout,
-		       var* this_ptr, block* b, bool is_dtor, usr* tor)
-	: m_layout(layout), m_this(this_ptr), m_block(b), m_is_dtor(is_dtor),
-	  m_tor(tor) {}
+		       var* this_ptr, scope* param, block* b, bool is_dtor,
+		       usr* tor, bool call_copy_ctor)
+	: m_layout(layout), m_this(this_ptr), m_param(param), m_block(b),
+	  m_is_dtor(is_dtor), m_tor(tor), m_call_copy_ctor(call_copy_ctor) {}
       void operator()(usr* u)
       {
 	using namespace declarations::declarators::function::definition;
@@ -946,19 +989,22 @@ namespace cxx_compiler {
 	    }
 	  }
 	}
-	const type* T = u->m_type;
-	T = T->unqualified();
-	if (T->m_id != type::RECORD)
-	  return;
-	typedef const record_type REC;
-	REC* rec = static_cast<REC*>(T);
-	tag* ptr = rec->get_tag();
 	string name = u->m_name;
 	typedef map<string, pair<int, usr*> >::const_iterator IT;
 	IT p = m_layout.find(name);
 	assert(p != m_layout.end());
 	pair<int, usr*> off = p->second;
 	int offset = off.first;
+	const type* T = u->m_type;
+	T = T->unqualified();
+	if (T->m_id != type::RECORD) {
+	  if (m_call_copy_ctor)
+	    cp(offset, T);
+	  return;
+	}
+	typedef const record_type REC;
+	REC* rec = static_cast<REC*>(T);
+	tag* ptr = rec->get_tag();
 	vector<REC*> dummy;
 	call_ctor_dtor(ptr, m_this, m_block, m_is_dtor, offset, dummy);
       }
@@ -1199,6 +1245,7 @@ namespace cxx_compiler {
 		       scope* param,
 		       const vector<const record_type*>& exclude)
     {
+      bool call_copy_ctor = canbe_copy_ctor(ctor, ptr);
       for_each(begin(common), end(common),
 	       common_ctor_dtor(virt_common_offset, pb, this_ptr, param,
 				false));
@@ -1216,6 +1263,12 @@ namespace cxx_compiler {
         for_each(begin(bases), end(bases), base_ctor_dtor(base_offset,
 	  this_ptr, param, pb, false, ctor, ce, false));
         scope::current = org;
+	if (call_copy_ctor) {
+	  for_each(begin(member), end(member),
+		   member_ctor_dtor(layout, this_ptr, param, pb, false, ctor,
+				    true));
+	  return;
+	}
         if (usr* vbtbl = get_vbtbl(ptr)) {
           const type* T = vbtbl->m_type;
           T = pointer_type::create(T);
@@ -1285,7 +1338,8 @@ namespace cxx_compiler {
         code.push_back(new invladdr3ac(t1, t0));
       }
       for_each(begin(member), end(member),
-	       member_ctor_dtor(layout, this_ptr, pb, false, ctor));
+	       member_ctor_dtor(layout, this_ptr, param, pb, false, ctor,
+				false));
     }
     
     inline bool member_have_ctor_dtor(const vector<usr*>& member,
@@ -1399,7 +1453,8 @@ namespace cxx_compiler {
 		       const vector<const record_type*>& exclude)
     {
       for_each(rbegin(member), rend(member), 
-	       member_ctor_dtor(layout, this_ptr, pb, true, dtor));
+	       member_ctor_dtor(layout, this_ptr, param, pb, true, dtor,
+				false));
       if (ptr->m_bases) {
 	const vector<base*>& bases = *ptr->m_bases;
 	vector<const record_type*> ce = common;
@@ -1487,10 +1542,21 @@ namespace cxx_compiler {
       }
       return canbe_copy_ctor(ctor, ptr) ? ctor : 0;
     }
-    inline usr* base_copy_ctor(base* bp)
+    inline usr* common_copy_ctor(const record_type* rec)
+    {
+      tag* ptr = rec->get_tag();
+      return has_copy_ctor(ptr);
+    }
+    inline usr* base_copy_ctor(base* bp,
+			       const vector<const record_type*>& exclude)
     {
       tag* ptr = bp->m_tag;
-      return has_copy_ctor(ptr);
+      usr* copy_ctor = has_copy_ctor(ptr);
+      if (!copy_ctor)
+	return 0;
+      if (!exclude.empty())
+	return special_ctor_dtor::get(copy_ctor, exclude, false);
+      return copy_ctor;
     }
     inline usr* member_copy_ctor(usr* member)
     {
@@ -1580,6 +1646,24 @@ namespace cxx_compiler {
 	code.push_back(new invladdr3ac(px, tmp));
       }
     };
+    struct call_common_copy_ctor : call_copy_ctor {
+      call_common_copy_ctor(const record_type* rec, block* b, var* src,
+			    var* dst)
+	: call_copy_ctor(rec, b, src, dst) {}
+      void operator()(const record_type* x)
+      {
+	const map<const record_type*, int>& vco = m_rec->virt_common_offset();
+	typedef map<const record_type*, int>::const_iterator IT;
+	IT p = vco.find(x);
+	assert(p != vco.end());
+	int offset = p->second;
+	usr* copy_ctor = common_copy_ctor(x);
+	if (copy_ctor)
+	  call(copy_ctor, offset);
+	else
+	  copy(x, offset);
+      }
+    };
     struct call_base_copy_ctor : call_copy_ctor {
       call_base_copy_ctor(const record_type* rec, block* b, var* src, var* dst)
 	: call_copy_ctor(rec, b, src, dst) {}
@@ -1591,7 +1675,8 @@ namespace cxx_compiler {
 	assert(p != tbl.end());
 	int offset = p->second;
 
-	usr* copy_ctor = base_copy_ctor(bp);
+	const vector<const record_type*>& common = m_rec->common();
+	usr* copy_ctor = base_copy_ctor(bp, common);
 	if (copy_ctor)
 	  call(copy_ctor, offset);
 	else {
@@ -1674,14 +1759,18 @@ namespace cxx_compiler {
       assert(code.empty());
 
       vector<base*>* bases = ptr->m_bases;
+      const vector<REC*>& common = rec->common();
       typedef vector<base*>::const_iterator ITx;
       ITx itx;
       if (bases)
-	itx = find_if(begin(*bases), end(*bases), base_copy_ctor);
+	itx = find_if(begin(*bases), end(*bases), [&common](base* bp)
+		      { return base_copy_ctor(bp, common); });
       const vector<usr*>& member = rec->member();
       typedef vector<usr*>::const_iterator ITy;
       ITy ity = find_if(begin(member), end(member), member_copy_ctor);
       if (bases && itx != end(*bases) || ity != end(member)) {
+	for_each(begin(common), end(common),
+		 call_common_copy_ctor(rec, bp, arg, this_ptr));
 	if (bases)
 	  for_each(begin(*bases), end(*bases),
 		   call_base_copy_ctor(rec, bp, arg, this_ptr));

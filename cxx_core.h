@@ -1655,6 +1655,7 @@ public:
   bool tmp() const;
   const std::vector<const record_type*>& virt_ancestor() const
   { return m_virt_ancestor; }
+  const std::vector<const record_type*>& common() const { return  m_common; }
   static const record_type* create(tag*);
   static void destroy_tmp();
   static void collect_tmp(std::vector<const type*>&);
