@@ -104,6 +104,8 @@ cxx_compiler::var* cxx_compiler::usr::assign(var* op)
     code.push_back(new invladdr3ac(this,y));
   else {
     y = T->aggregate() ? aggregate_conv(T, y) : y->cast(T);
+    if (var* r = var_impl::operator_code('=', this, y))
+      return r;
     code.push_back(new assign3ac(this,y));
   }
   if ( !y->isconstant() )
