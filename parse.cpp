@@ -246,10 +246,23 @@ namespace cxx_compiler {
 	  }
 	  if (x.m_kind != y.m_kind)
 	    return true;
-	  if (x.m_lval != y.m_lval)
-	    return true;
+	  if (x.m_lval != y.m_lval) {
+	    genaddr* xg = x.m_lval->genaddr_cast();
+	    genaddr* yg = y.m_lval->genaddr_cast();
+	    if (!xg || !yg)
+	      return true;
+	    var* xr = xg->m_ref;
+	    var* yr = yg->m_ref;
+	    if (xr != yr)
+	      return true;
+	    int xo = xg->m_offset;
+	    int yo = yg->m_offset;
+	    assert(xo == yo);
+	  }
 	  if (x.m_kind == IDENTIFIER_LEX) {
 	    var* v = x.m_lval;
+	    if (genaddr* ga = v->genaddr_cast())
+	      v = ga->m_ref;
 	    usr* u = v->usr_cast();
 	    usr::flag_t flag = u->m_flag;
 	    usr::flag_t mask = usr::flag_t(usr::ENUM_MEMBER | usr::STATIC);
