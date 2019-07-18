@@ -83,6 +83,109 @@ namespace cxx_compiler {
     assert(fun);
     return call_impl::wrapper(fun, 0, y);
   }
+  namespace operator_assign {
+    inline bool require(const type* T)
+    {
+      T = T->unqualified();
+      if (operator_function(T, '='))
+	return true;
+      if (T->m_id != type::RECORD)
+	return false;
+      typedef const record_type REC;
+      REC* rec = static_cast<REC*>(T);
+      const vector<usr*>& member = rec->member();
+      typedef vector<usr*>::const_iterator IT;
+      IT p = find_if(begin(member), end(member),
+		     [](usr* u){ return require(u->m_type); });
+      return p != end(member);
+    }
+    void gen(var* px, var* y, const record_type* rec);
+    struct recursive {
+      var* px;
+      var* py;
+      const record_type* m_rec;
+      recursive(var* x, var* y, const record_type* rec)
+	: px(x), py(y), m_rec(rec) {}
+      void operator()(usr* member)
+      {
+	using namespace expressions::primary::literal;
+	string name = member->m_name;
+	pair<int, usr*> off = m_rec->offset(name);
+	int offset = off.first;
+	assert(offset >= 0);
+	const type* T = member->m_type;
+	const reference_type* rt = reference_type::create(T);
+	var* src = new ref(rt);
+	const type* pt = pointer_type::create(T);
+	var* dst = new var(pt);
+	if (scope::current->m_id == scope::BLOCK) {
+	  block* b = static_cast<block*>(scope::current);
+	  b->m_vars.push_back(src);
+	  b->m_vars.push_back(dst);
+	}
+	else {
+	  garbage.push_back(src);
+	  garbage.push_back(dst);
+	}
+	code.push_back(new cast3ac(src, py, rt));
+	code.push_back(new cast3ac(dst, px, pt));
+	if (offset) {
+	  var* off = integer::create(offset);
+	  var* t0 = new ref(rt);
+	  var* t1 = new var(pt);
+	  if (scope::current->m_id == scope::BLOCK) {
+	    block* b = static_cast<block*>(scope::current);
+	    b->m_vars.push_back(t0);
+	    b->m_vars.push_back(t1);
+	  }
+	  else {
+	    garbage.push_back(t0);
+	    garbage.push_back(t1);
+	  }
+	  code.push_back(new add3ac(t0, src, off));
+	  code.push_back(new add3ac(t1, dst, off));
+	  src = t0;
+	  dst = t1;
+	}
+	var* tmp = new var(T);
+	if (scope::current->m_id == scope::BLOCK) {
+	  block* b = static_cast<block*>(scope::current);
+	  b->m_vars.push_back(tmp);
+	}
+	else
+	  garbage.push_back(tmp);
+	if (require(T)) {
+	  assert(T->m_id == type::RECORD);
+	  typedef const record_type REC;
+	  REC* rec = static_cast<REC*>(T);
+	  gen(dst, src, rec);
+	}
+	else {
+	  code.push_back(new invraddr3ac(tmp, src));
+	  code.push_back(new invladdr3ac(dst, tmp));
+	}
+      }
+    };
+    void gen(var* px, var* y, const record_type* rec)
+    {
+      if (usr* op_fun = operator_function(rec, '=')) {
+	vector<var*> arg;
+	arg.push_back(y);
+	call_impl::wrapper(op_fun, &arg, px);
+      }
+      else {
+	const vector<usr*>& member = rec->member();
+	var* py = new var(px->m_type);
+	if (scope::current->m_id == scope::BLOCK) {
+	  block* b = static_cast<block*>(scope::current);
+	  b->m_vars.push_back(py);
+	}
+	else
+	  garbage.push_back(py);
+	for_each(begin(member), end(member), recursive(px, py, rec));
+      }
+    }
+  } // end of namespace operator_assign
 } // end of namespace cxx_compiler
 
 cxx_compiler::var* cxx_compiler::usr::assign(var* op)
@@ -104,9 +207,23 @@ cxx_compiler::var* cxx_compiler::usr::assign(var* op)
     code.push_back(new invladdr3ac(this,y));
   else {
     y = T->aggregate() ? aggregate_conv(T, y) : y->cast(T);
-    if (var* r = var_impl::operator_code('=', this, y))
-      return r;
-    code.push_back(new assign3ac(this,y));
+    if (operator_assign::require(T)) {
+      const type* pt = pointer_type::create(T);
+      var* px = new var(pt);
+      if (scope::current->m_id == scope::BLOCK) {
+	block* b = static_cast<block*>(scope::current);
+	b->m_vars.push_back(px);
+      }
+      else
+	garbage.push_back(px);
+      code.push_back(new addr3ac(px, this));
+      assert(T->m_id == type::RECORD);
+      typedef const record_type REC;
+      REC* rec = static_cast<REC*>(T);
+      operator_assign::gen(px, y, rec);
+    }
+    else
+      code.push_back(new assign3ac(this, y));
   }
   if ( !y->isconstant() )
     return y;
