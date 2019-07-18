@@ -84,11 +84,28 @@ namespace cxx_compiler {
     return call_impl::wrapper(fun, 0, y);
   }
   namespace operator_assign {
-    inline bool require(const type* T)
+    inline bool require(const type* T, var* y)
     {
       T = T->unqualified();
-      if (operator_function(T, '='))
+      if (usr* op_fun = operator_function(T, '=')) {
+	if (y) {
+	  const type* T2 = op_fun->m_type;
+	  assert(T2->m_id == type::FUNC);
+	  typedef const func_type FT;
+	  FT* ft = static_cast<FT*>(T2);
+	  vector<var*> arg;
+	  arg.push_back(y);
+	  int trial_cost = 0;
+	  var tmp(T);
+	  int n = code.size();
+	  var* ret = call_impl::common(ft, op_fun, &arg, &trial_cost, &tmp,
+				       false, 0);
+	  for_each(begin(code)+n, end(code), [](tac* p){ delete p; });
+	  code.resize(n);
+	  return ret;
+	}
 	return true;
+      }
       if (T->m_id != type::RECORD)
 	return false;
       typedef const record_type REC;
@@ -96,7 +113,7 @@ namespace cxx_compiler {
       const vector<usr*>& member = rec->member();
       typedef vector<usr*>::const_iterator IT;
       IT p = find_if(begin(member), end(member),
-		     [](usr* u){ return require(u->m_type); });
+		     [](usr* u){ return require(u->m_type, 0); });
       return p != end(member);
     }
     void gen(var* px, var* y, const record_type* rec);
@@ -154,7 +171,7 @@ namespace cxx_compiler {
 	}
 	else
 	  garbage.push_back(tmp);
-	if (require(T)) {
+	if (require(T, src)) {
 	  assert(T->m_id == type::RECORD);
 	  typedef const record_type REC;
 	  REC* rec = static_cast<REC*>(T);
@@ -207,7 +224,7 @@ cxx_compiler::var* cxx_compiler::usr::assign(var* op)
     code.push_back(new invladdr3ac(this,y));
   else {
     y = T->aggregate() ? aggregate_conv(T, y) : y->cast(T);
-    if (operator_assign::require(T)) {
+    if (operator_assign::require(T, y)) {
       const type* pt = pointer_type::create(T);
       var* px = new var(pt);
       if (scope::current->m_id == scope::BLOCK) {
