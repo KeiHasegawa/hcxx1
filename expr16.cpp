@@ -348,8 +348,16 @@ cxx_compiler::var* cxx_compiler::refaddr::assign(var* op)
       code.push_back(new roff3ac(r,x,y));
       code.push_back(new invladdr3ac(r,z));
     }
-    else
-      code.push_back(new loff3ac(x,y,z));
+    else {
+      const type* Tx = x->m_type;
+      Tx = Tx->complete_type();
+      if (Tx->aggregate())
+	code.push_back(new loff3ac(x,y,z));
+      else {
+	assert(!offset);
+	code.push_back(new invladdr3ac(x,z));
+      }
+    }
   }
   if (!z->isconstant())
     return z;

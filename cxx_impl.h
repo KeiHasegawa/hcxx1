@@ -1282,6 +1282,8 @@ struct refaddr : ref {
   addrof m_addrof;
   refaddr(const pointer_type* pt, var* v, int offset)
     : ref(pt), m_addrof(pt,v,offset) {}
+  refaddr(const reference_type* rt, var* v, int offset)
+    : ref(rt), m_addrof(rt,v,offset) {}
   var* rvalue();
   bool lvalue() const { return m_addrof.m_ref->lvalue(); }
   var* assign(var*);

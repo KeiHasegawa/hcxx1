@@ -170,13 +170,24 @@ namespace cxx_compiler {
         return 0;
       return integer::create(offset);
     }
+#if 0
+    inline var* get_var(const type* Tx)
+    {
+      if (Tx->m_id == type::REFERENCE) {
+	typedef const reference_type RT;
+	RT* rt = static_cast<RT*>(Tx);
+	return new ref(rt);
+      }
+      return new var(Tx);
+    }
+#endif
     var* with_route(const type* Tx, var* y, const vector<route_t>& route)
     {
       const type* Ty = y->m_type;
       if ( Tx == Ty )
         return y;
       var* x = new var(Tx);
-      if ( scope::current->m_id == scope::BLOCK ){
+      if (scope::current->m_id == scope::BLOCK) {
         block* b = static_cast<block*>(scope::current);
         b->m_vars.push_back(x);
       }
@@ -271,8 +282,45 @@ cxx_compiler::expressions::cast::valid(const type* T, var* y)
   return 0;
 }
 
+namespace cxx_compiler {
+  namespace cast_impl {
+    var* refaddr_case(const type* T, var* src)
+    {
+      if (T->m_id != type::REFERENCE)
+	return 0;
+      const type* Ty = src->m_type;
+      if (Ty->m_id == type::REFERENCE)
+	return 0;
+      const type* R = src->result_type();
+      if (Ty != R)
+	return 0;
+      typedef const reference_type RT;
+      RT* xrt = static_cast<RT*>(T);
+      const type* Rx = xrt->referenced_type();
+      Rx = Rx->unqualified();
+      int offset = 0;
+      if (Rx->m_id == type::RECORD) {
+	typedef const record_type REC;
+	REC* xrec = static_cast<REC*>(Rx);
+	if (Ty->m_id != type::RECORD)
+	  return 0;
+	REC* yrec = static_cast<REC*>(Ty);
+	vector<route_t> dummy;
+	offset = calc_offset(yrec, xrec, dummy, 0);
+	assert(offset >= 0);
+      }
+      var* ret = new refaddr(xrt, src, offset);
+      garbage.push_back(ret);
+      return ret;
+    }
+  } // end of namespace cast_impl
+} // end of namespace cxx_compiler
+
 cxx_compiler::var* cxx_compiler::var::cast(const type* T)
 {
+  if (var* r = cast_impl::refaddr_case(T, this))
+    return r;
+
   const type* U = m_type->unqualified();
   if (U->m_id == type::RECORD) {
     typedef const record_type REC;

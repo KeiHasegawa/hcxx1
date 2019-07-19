@@ -224,7 +224,7 @@ namespace cxx_compiler { namespace dump { namespace names {
 std::string cxx_compiler::dump::names::ref(var* v)
 {
   using namespace std;
-  if ( usr* u = v->usr_cast() ){
+  if (usr* u = v->usr_cast()) {
     string name = u->m_name;
     if ( name[0] != '.' )
       return names::scopey(v->m_scope) + name;
