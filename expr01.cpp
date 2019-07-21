@@ -442,6 +442,104 @@ namespace cxx_compiler {
       }
       return ret;
     }
+    inline var* via_obj(var* obj, var* func, bool qualified_func,
+			var* vftbl_off, const func_type* ft)
+    {
+      const type* T = obj->result_type();
+      if (T->scalar()) {
+	type::id_t id = T->m_id;
+	assert(id == type::POINTER || id == type::REFERENCE);
+	if (usr* u = func->usr_cast()) {
+	  usr::flag_t flag = u->m_flag;
+	  if ((flag & usr::VIRTUAL) && !qualified_func)
+	    func = ref_vftbl(u,obj);
+	}
+	else if (vftbl_off) {
+	  using namespace expressions::primary::literal;
+	  var* zero = integer::create(0);
+	  goto3ac* go = new goto3ac(goto3ac::LT, vftbl_off, zero);
+	  code.push_back(go);
+	  if (var* vf = ref_vftbl(obj, vftbl_off, ft))
+	    code.push_back(new assign3ac(func, vf));
+	  to3ac* to = new to3ac;
+	  code.push_back(to);
+	  go->m_to = to;
+	  to->m_goto.push_back(go);
+	}
+	code.push_back(new param3ac(obj));
+      }
+      else {
+	if (obj->m_type != T) {
+	  var* tmp = obj->address();
+	  code.push_back(new param3ac(tmp));
+	}
+	else {
+	  T = pointer_type::create(T);
+	  var* tmp = new var(T);
+	  if ( scope::current->m_id == scope::BLOCK ){
+	    block* b = static_cast<block*>(scope::current);
+	    b->m_vars.push_back(tmp);
+	  }
+	  else
+	    garbage.push_back(tmp);
+	  code.push_back(new addr3ac(tmp,obj));
+	  code.push_back(new param3ac(tmp));
+	}
+      }
+      return func;
+    }
+    inline var* call_copy_ctor(var* y)
+    {
+      const type* T = y->m_type;
+      T = T->unqualified();
+      if (T->m_id != type::RECORD)
+	return y;
+      typedef const record_type REC;
+      REC* rec = static_cast<REC*>(T);
+      tag* ptr = rec->get_tag();
+      string name = ptr->m_name;
+      const map<string, vector<usr*> >& usrs = ptr->m_usrs;
+      typedef map<string, vector<usr*> >::const_iterator ITx;
+      ITx p = usrs.find(name);
+      if (p == usrs.end())
+	return y;
+      const vector<usr*>& v = p->second;
+      typedef vector<usr*>::const_iterator ITy;
+      ITy q = find_if(begin(v), end(v),
+		      bind2nd(ptr_fun(canbe_copy_ctor), ptr));
+      if (q == end(v))
+	return y;
+      usr* copy_ctor = *q;
+      usr::flag2_t flag2 = copy_ctor->m_flag2;
+      if (flag2 & usr::GENED_BY_COMP)
+	return y;
+      var* t0 = new var(rec);
+      if (scope::current->m_id == scope::BLOCK) {
+	block* b = static_cast<block*>(scope::current);
+	b->m_vars.push_back(t0);
+      }
+      else
+	garbage.push_back(t0);
+      const type* Tc = copy_ctor->m_type;
+      assert(Tc->m_id == type::FUNC);
+      typedef const func_type FT;
+      FT* ft = static_cast<FT*>(Tc);
+      const vector<const type*>& param = ft->param();
+      assert(!param.empty());
+      const type* Tp = param[0];
+      var* t1 = new var(Tp);
+      if (scope::current->m_id == scope::BLOCK) {
+	block* b = static_cast<block*>(scope::current);
+	b->m_vars.push_back(t1);
+      }
+      else
+	garbage.push_back(t1);
+      code.push_back(new addr3ac(t1, y));
+      vector<var*> arg;
+      arg.push_back(t1);
+      call_impl::wrapper(copy_ctor, &arg, t0);
+      return t0;
+    }
   } // end of namespace call_impl
 } // end of namespace cxx_compiler
 
@@ -466,7 +564,7 @@ cxx_compiler::call_impl::common(const func_type* ft,
       }
       using namespace error::expressions::postfix::call;
       num_of_arg(parse::position,func,n,m.first);
-    }      typedef const func_type FT;
+    }
   }
   else if (m.second < n) {
     if (trial_cost) {
@@ -488,49 +586,10 @@ cxx_compiler::call_impl::common(const func_type* ft,
       return 0;
     }
   }
-  if (obj) {
-    const type* T = obj->result_type();
-    if (T->scalar()) {
-      type::id_t id = T->m_id;
-      assert(id == type::POINTER || id == type::REFERENCE);
-      if (usr* u = func->usr_cast()) {
-        usr::flag_t flag = u->m_flag;
-        if ((flag & usr::VIRTUAL) && !qualified_func)
-          func = ref_vftbl(u,obj);
-      }
-      else if (vftbl_off) {
-        using namespace expressions::primary::literal;
-        var* zero = integer::create(0);
-        goto3ac* go = new goto3ac(goto3ac::LT, vftbl_off, zero);
-        code.push_back(go);
-        if (var* vf = ref_vftbl(obj, vftbl_off, ft))
-          code.push_back(new assign3ac(func, vf));
-        to3ac* to = new to3ac;
-        code.push_back(to);
-        go->m_to = to;
-        to->m_goto.push_back(go);
-      }
-      code.push_back(new param3ac(obj));
-    }
-    else {
-      if (obj->m_type != T) {
-	var* tmp = obj->address();
-	code.push_back(new param3ac(tmp));
-      }
-      else {
-	T = pointer_type::create(T);
-	var* tmp = new var(T);
-	if ( scope::current->m_id == scope::BLOCK ){
-	  block* b = static_cast<block*>(scope::current);
-	  b->m_vars.push_back(tmp);
-	}
-	else
-	  garbage.push_back(tmp);
-	code.push_back(new addr3ac(tmp,obj));
-	code.push_back(new param3ac(tmp));
-      }
-    }
-  }
+  transform(begin(conved), begin(conved)+min(n, m.first), begin(conved),
+	    call_copy_ctor);
+  if (obj)
+    func = via_obj(obj, func, qualified_func, vftbl_off, ft);
   transform(conved.begin(),conved.end(),back_inserter(code),
             call_impl::gen_param);
   if (n < m.first)
