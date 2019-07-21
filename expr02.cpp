@@ -245,8 +245,19 @@ cxx_compiler::var* cxx_compiler::expressions::unary::new_expr::gen()
   var* ret = call_new(new_func, new_arg);
 
   usr* ctor = ctor_entry(m_T);
-  if (!ctor)
+  if (!ctor) {
+    if (!m_exprs)
+      return ret;
+    if (m_exprs->size() != 1)
+      error::not_implemented();
+    expressions::base* expr = (*m_exprs)[0];
+    var* src = expr->gen();
+    bool discard = false;
+    if (!expressions::assignment::valid(m_T, src, &discard, true))
+      error::not_implemented();
+    code.push_back(new invladdr3ac(ret, src));
     return ret;
+  }
   usr::flag_t flag = ctor->m_flag;
   if (flag & usr::OVERLOAD) {
     overload* ovl = static_cast<overload*>(ctor);

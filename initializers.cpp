@@ -365,6 +365,13 @@ expr_list(std::vector<expressions::base*>* exprs, argument* arg)
   typedef map<string, vector<usr*> >::const_iterator IT;
   IT p = ptr->m_usrs.find(name);
   if (p == ptr->m_usrs.end()) {
+    if (exprs->size() == 1) {
+      expressions::base* expr = (*exprs)[0];
+      var* src = expr->gen();
+      bool discard = false;
+      if (expressions::assignment::valid(T, src, &discard, true))
+	return clause::assign(src, arg);
+    }
     using namespace error::declarations::initializers;
     no_ctor(argument::dst);
     return 0;
