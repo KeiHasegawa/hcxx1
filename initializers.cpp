@@ -125,6 +125,7 @@ void
 cxx_compiler::ctor_dtor_common(var* v, const array_type* at, void (*pf)(var*),
 			       bool ctor)
 {
+  using namespace expressions::primary::literal;
   const type* T = at->element_type();
   int size = T->size();
   if (!size)
@@ -142,7 +143,6 @@ cxx_compiler::ctor_dtor_common(var* v, const array_type* at, void (*pf)(var*),
       garbage.push_back(t0);
     code.push_back(new addr3ac(t0, v));
     if (offset) {
-      using namespace expressions::primary::literal;
       var* off = integer::create(offset);
       var* t1 = new ref(pt);
       if (scope::current->m_id == scope::BLOCK) {
@@ -177,11 +177,11 @@ namespace cxx_compiler {
         }
         void not_constant(usr* u, var* v)
         {
+	  using namespace expressions::primary::literal;
           addrof* addr = v->addrof_cast();
           assert(addr);
           var* ref = addr->m_ref;
           if (int offset = addr->m_offset) {
-            using namespace expressions::primary::literal;
             var* off = integer::create(offset);
             var* tmp = new var(u->m_type);
             if (scope::current->m_id == scope::BLOCK) {
@@ -586,6 +586,7 @@ namespace cxx_compiler {
 int cxx_compiler::declarations::initializers::char_array_string::
 action(var* y, argument* arg)
 {
+  using namespace expressions::primary::literal;
   usr* s = is_string(y);
   if ( !s )
     return 0;
@@ -595,7 +596,7 @@ action(var* y, argument* arg)
   if ( !array )
     return 0;
   const type* T = array->element_type();
-  var* zero = expressions::primary::literal::integer::create(char(0));
+  var* zero = integer::create(char(0));
   zero = zero->cast(T);
   std::string name = s->m_name;
   bool wide = name[0] == 'L';
@@ -866,6 +867,7 @@ cxx_compiler::declarations::initializers::member_size(const record_type* rec)
 int cxx_compiler::declarations::initializers::bit_field(var* y, argument* arg)
 {
   using namespace std;
+  using namespace expressions::primary::literal;
   typedef const record_type REC;
   REC* rec =static_cast<REC*>(arg->T);
   usr* member = rec->member()[arg->nth];
@@ -877,7 +879,7 @@ int cxx_compiler::declarations::initializers::bit_field(var* y, argument* arg)
   conversion::arithmetic::gen(&y, &a);
   y = y->bit_and(a);
   int pos = rec->position(member);
-  var* p = expressions::primary::literal::integer::create(pos);
+  var* p = integer::create(pos);
   conversion::arithmetic::gen(&y, &p);
   y = y->lsh(p);
   var*& x = arg->V[arg->off];
@@ -1091,6 +1093,7 @@ merge(std::pair<std::map<int,var*>*,int> x, std::pair<int,var*> y)
 int cxx_compiler::declarations::initializers::fill_zero(argument* arg)
 {
   using namespace std;
+  using namespace expressions::primary::literal;
   if ( arg->list_pos < 0 )
     return 0;
   if ( arg->list_pos != arg->list_len )
@@ -1112,7 +1115,7 @@ int cxx_compiler::declarations::initializers::fill_zero(argument* arg)
       T = bf->integer_type();
     }
     if ( T->scalar() ){
-      var* zero = expressions::primary::literal::integer::create(0);
+      var* zero = integer::create(0);
       zero = zero->cast(T);
       arg->V[arg->off] = zero;
       arg->off_max = max(arg->off_max, arg->off += T->size());
@@ -1244,7 +1247,10 @@ void cxx_compiler::declarations::initializers::common(usr* u, bool ini)
   if (u->m_flag & usr::WITH_INI) {
     for_each(code.begin(),code.end(),bind2nd(ptr_fun(change_scope1),body));
     with_initial* p = static_cast<with_initial*>(u);
+    scope* org = scope::current;
+    scope::current = body;
     for_with_initial(p, body);
+    scope::current = org;
   }
   else {
     assert(code.empty());
@@ -1297,29 +1303,101 @@ void cxx_compiler::declarations::initializers::
 scalar(std::map<int, var*>::iterator it, var* x, block* body)
 {
   using namespace std;
+  using namespace expressions::primary::literal;
   var* y = it->second;
   assert(!y->isconstant(true));
   code.push_back(new assign3ac(x,y));
   const type* T = y->m_type;
-  var* zero = expressions::primary::literal::integer::create(0);
+  var* zero = integer::create(0);
   it->second = zero->cast(T);
 }
+
+namespace cxx_compiler {
+  namespace declarations {
+    namespace initializers {
+      namespace aggregate_impl {
+	bool call_copy_ctor(var* x, var* y, int offset)
+	{
+	  using namespace expressions::primary::literal;
+	  const type* Ty = y->m_type;
+	  Ty = Ty->unqualified();
+	  if (Ty->m_id != type::RECORD)
+	    return false;
+	  typedef const record_type REC;
+	  REC* rec = static_cast<REC*>(Ty);
+	  tag* ptr = rec->get_tag();
+	  string name = ptr->m_name;
+	  const map<string, vector<usr* > >& usrs = ptr->m_usrs;
+	  typedef map<string, vector<usr*> >::const_iterator ITx;
+	  ITx p = usrs.find(name);
+	  if (p == usrs.end())
+	    return false;
+	  const vector<usr*>& v = p->second;
+	  typedef vector<usr*>::const_iterator ITy;
+	  ITy q = find_if(begin(v), end(v),
+			  bind2nd(ptr_fun(canbe_copy_ctor), ptr));
+	  if (q == end(v))
+	    return false;
+	  usr* copy_ctor = *q;
+	  const type* Tc = copy_ctor->m_type;
+	  assert(Tc->m_id == type::FUNC);
+	  typedef const func_type FT;
+	  FT* ft = static_cast<FT*>(Tc);
+	  const vector<const type*>& param = ft->param();
+	  assert(!param.empty());
+	  const type* Ta = param[0];
+	  var* t0 = new var(Ta);
+	  assert(scope::current->m_id == scope::BLOCK);
+	  block* b = static_cast<block*>(scope::current);
+	  b->m_vars.push_back(t0);
+	  code.push_back(new addr3ac(t0, y));
+	  if (offset) {
+	    var* t1 = new var(Ta);
+	    var* t2 = new var(Ta);
+	    b->m_vars.push_back(t1);
+	    b->m_vars.push_back(t2);
+	    var* off = integer::create(offset);
+	    code.push_back(new addr3ac(t1, x));
+	    code.push_back(new add3ac(t2, t1, off));
+	    x = t2;
+	  }
+	  vector<var*> arg;
+	  arg.push_back(t0);
+	  call_impl::wrapper(copy_ctor, &arg, x);
+	  return true;
+	}
+      } // end of namespace aggregate_impl
+    } // end of namespace initializers
+  } // end of namespace declarations
+} // end of namespace cxx_compiler
 
 void
 cxx_compiler::declarations::initializers::
 aggregate(std::map<int, var*>::iterator it, var* x, block* body)
 {
   using namespace std;
+  using namespace expressions::primary::literal;
   var* y = it->second;
   if ( y->isconstant(true) )
     return;
   int offset = it->first;
-  var* off = expressions::primary::literal::integer::create(offset);
-  code.push_back(new loff3ac(x,off,y));
-  const type* T = y->m_type;
+  const type* Ty = y->m_type;
+  Ty = Ty->unqualified();
+  if (!aggregate_impl::call_copy_ctor(x, y, offset)) {
+    const type* Tx = x->m_type;
+    Tx = Tx->unqualified();
+    if (compatible(Tx, Ty)) {
+      assert(!offset);
+      code.push_back(new assign3ac(x, y));
+    }
+    else {
+      var* off = integer::create(offset);
+      code.push_back(new loff3ac(x,off,y));
+    }
+  }
   var* zero = expressions::primary::literal::integer::create(0);
-  if ( T->scalar() )
-    it->second = zero->cast(T);
+  if (Ty->scalar())
+    it->second = zero->cast(Ty);
   else
     it->second = zero->cast(char_type::create());
 }
