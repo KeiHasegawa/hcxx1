@@ -32,16 +32,18 @@ action(std::vector<int>* p, bool pm)
 }
 
 const cxx_compiler::type*
-cxx_compiler::declarations::declarators::pointer::action(const type* pointer, const type* T)
+cxx_compiler::declarations::declarators::pointer::action(const type* X,
+							 const type* T)
 {
   if (T->backpatch())
-    return T->patch(pointer,0);
+    return T->patch(X, 0);
 
   if (specifier_seq::info_t::s_stack.empty())
     return T;
   specifier_seq::info_t* p = specifier_seq::info_t::s_stack.top();
   p->update();
-  p->m_type = pointer_type::create(p->m_type);
+  assert(X->backpatch());
+  p->m_type = X->patch(p->m_type, 0);
   return T;
 }
 

@@ -990,9 +990,8 @@ cxx_compiler::declarations::check_installed(usr* u, specifier_seq::info_t* p)
     FT* ft = static_cast<FT*>(Tu);
     const type* T = ft->return_type();
     const type* Tp = p->m_type;
-    if (!compatible(T, Tp)) {
+    if (!compatible(T, Tp))
       error::not_implemented();
-    }
   }
 }
 
