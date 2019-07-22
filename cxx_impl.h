@@ -505,6 +505,8 @@ extern bool must_call_dtor(usr*);
 
 extern void terminate_dtor_code(usr*);
 
+extern usr* installed_delete();
+
 struct new3ac {
   const map<var*, var*>& m_tbl;
   new3ac(const map<var*, var*>& tbl) : m_tbl(tbl) {}

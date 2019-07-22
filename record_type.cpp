@@ -1904,10 +1904,11 @@ cxx_compiler::record_type::record_type(tag* ptr)
   if (usr* dtor = has_ctor_dtor(m_tag, true)) {
     usr::flag_t flag = dtor->m_flag;
     if (flag & usr::VIRTUAL) {
-      if (usr* del = delete_entry(m_tag)) {
-	add_vdel(m_tag, dtor, del);
-	++nvf;
-      }
+      usr* del = delete_entry(m_tag);
+      if (!del)
+	del = installed_delete();
+      add_vdel(m_tag, dtor, del);
+      ++nvf;
     }
   }
     

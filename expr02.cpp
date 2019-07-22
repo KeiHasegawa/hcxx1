@@ -118,19 +118,20 @@ namespace cxx_compiler {
   }
   inline void install_new()
   {
+    string name = "new";
     vector<const type*> param;
     param.push_back(sizeof_type());
     const type* T = void_type::create();
     const pointer_type* vp = pointer_type::create(T);
     const func_type* ft = func_type::create(vp,param);
     usr::flag_t flag = usr::flag_t(usr::FUNCTION | usr::NEW_SCALAR);
-    string name = "new";
-    usr* new_func = new usr(name,ft,flag,file_t(),usr::NONE2);
-    new_func->m_scope = &scope::root;
+
+    usr* new_func = new usr(name,ft,flag,file_t(), usr::GENED_BY_COMP);
     map<string, vector<usr*> >& usrs = scope::root.m_usrs;
     typedef map<string, vector<usr*> >::const_iterator IT;
     IT p = usrs.find(name);
     if (p == usrs.end()) {
+      new_func->m_scope = &scope::root;
       usrs[name].push_back(new_func);
       return;
     }
@@ -279,6 +280,29 @@ cxx_compiler::var* cxx_compiler::expressions::unary::new_expr::gen()
   return ret;
 }
 
+namespace cxx_compiler {
+  usr* installed_delete()
+  {
+    string name = "delete";
+    map<string, vector<usr*> >& usrs = scope::root.m_usrs;
+    map<string, vector<usr*> >::const_iterator p = usrs.find(name);
+    if (p != usrs.end()) {
+      const vector<usr*>& v = p->second;
+      return v.back();
+    }
+
+    vector<const type*> param;
+    const type* vp = pointer_type::create(void_type::create());
+    param.push_back(vp);
+    const func_type* ft = func_type::create(vp,param);
+    usr::flag_t flag = usr::flag_t(usr::FUNCTION | usr::DELETE_SCALAR);
+    usr* delete_func = new usr(name, ft, flag, file_t(), usr::GENED_BY_COMP);
+    delete_func->m_scope = &scope::root;
+    usrs[name].push_back(delete_func);
+    return delete_func;
+  }
+} // end of namespace cxx_compiler
+
 cxx_compiler::var* cxx_compiler::expressions::unary::delete_expr::gen()
 {
   using namespace std;
@@ -297,27 +321,8 @@ cxx_compiler::var* cxx_compiler::expressions::unary::delete_expr::gen()
   vector<var*> arg;
   arg.push_back(v);
   usr* delete_func = delete_entry(T);
-  if (!delete_func) {
-    string name = "delete";
-    map<string, vector<usr*> >& usrs = scope::root.m_usrs;
-    map<string, vector<usr*> >::const_iterator it = usrs.find(name);
-    if ( it != usrs.end() ){
-      const vector<usr*>& v = it->second;
-      if (v.size() != 1)
-	error::not_implemented();
-      delete_func = v.back();
-    }
-    else {
-      vector<const type*> param;
-      const type* vp = pointer_type::create(void_type::create());
-      param.push_back(vp);
-      const func_type* ft = func_type::create(vp,param);
-      usr::flag_t flag = usr::flag_t(usr::FUNCTION | usr::DELETE_SCALAR);
-      delete_func = new usr(name,ft,flag,file_t(),usr::NONE2);
-      delete_func->m_scope = &scope::root;
-      usrs[name].push_back(delete_func);
-    }
-  }
+  if (!delete_func)
+    delete_func = installed_delete();
   const type* D = delete_func->m_type;
   assert(D->m_id == type::FUNC);
   typedef const func_type FT;
