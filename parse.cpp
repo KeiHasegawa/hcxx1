@@ -37,8 +37,9 @@ int cxx_compiler::parse::identifier::judge(std::string name)
     return ORIGINAL_NAMESPACE_NAME_LEX;
   }
   
-  if (last_token == '(' && scope::current->m_id == scope::PARAM) {
-    // guess abstract-declarator
+  if (last_token == '(' && scope::current->m_id == scope::PARAM ||
+      mode == canbe_ctor) {
+    // guess abstract-declarator or declaration of constructor
     if (int r = lookup(name,scope::current)) {
       switch (r) {
       case ORIGINAL_NAMESPACE_NAME_LEX:
@@ -52,7 +53,7 @@ int cxx_compiler::parse::identifier::judge(std::string name)
     }
   }
 
-  if (mode == new_obj)
+  if (mode == new_obj || mode == canbe_ctor)
     return create(name);
 
   if (int r = lookup(name, scope::current)) {

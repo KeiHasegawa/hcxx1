@@ -13,11 +13,13 @@ while ( <> ){
   s/cxx\.tab\.c/cxx_y.cpp/;
   if ( /yychar = yylex \(\);/ ){
     print "      yychar = cxx_compiler::parse::get_token();\n";
+    print "#include \"patch.04.p2\"\n";
     ++$yychar_converted;
     next;
   }
   if ( /yychar = YYLEX;/ ){
     print "      yychar = cxx_compiler::parse::get_token();\n";
+    print "#include \"patch.04.p2\"\n";
     ++$yychar_converted;
     next;
   }
