@@ -87,6 +87,12 @@ std::string cxx_compiler::usr::keyword(flag_t flag)
       os << ' ';
     os << "virtual";
   }
+  if (flag & EXPLICIT) {
+    string s = os.str();
+    if (!s.empty())
+      os << ' ';
+    os << "explicit";
+  }
   if (flag & NAMESPACE)
     os << "namespace";
   return os.str();

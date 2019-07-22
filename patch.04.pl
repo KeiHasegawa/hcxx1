@@ -65,24 +65,14 @@ print <<EOF
   if (yystate == $xxx && yychar == '(') {
     using namespace cxx_compiler;
     if (scope::current->m_id == scope::TAG) {
-      tag* xptr = static_cast<tag*>(scope::current);
-      declarations::type_specifier* ts = yyvsp->m_type_specifier;
-      const type* T = ts->m_type;
-      if (T->m_id == type::INCOMPLETE_TAGGED) {
-        typedef const incomplete_tagged_type ITT;
-        ITT* itt = static_cast<ITT*>(T);
-        tag* yptr = itt->get_tag();
-        if (xptr == yptr) {
-          if (!parse::context_t::retry[$xxx]) {
-            parse::identifier::mode = parse::identifier::canbe_ctor;
-            parse::save(yystate, yyss, yyssp, yyvs, yyvsp);
-	  }
-          else {
-            YYDPRINTF((stderr, "patch.04 is applied\\n"));
-            yyn = $bbb + 1;
-            goto yyreduce;
-          }
-        }
+      if (!parse::context_t::retry[$xxx]) {
+        parse::identifier::mode = parse::identifier::canbe_ctor;
+        parse::save(yystate, yyss, yyssp, yyvs, yyvsp);
+      }
+      else {
+        YYDPRINTF((stderr, "patch.04 is applied\\n"));
+        yyn = $bbb + 1;
+        goto yyreduce;
       }
     }
   }

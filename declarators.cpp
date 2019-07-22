@@ -425,9 +425,11 @@ function::definition::begin(declarations::specifier_seq::info_t* p, var* v)
   }
   if (u->m_flag2 & usr::CONV_OPE)
     p = declarations::specifier_seq::info_t::s_stack.top();
-  auto_ptr<declarations::specifier_seq::info_t> sweeper(p);
   parse::identifier::mode = parse::identifier::look;
   u = declarations::action1(u,false);
+  usr::flag_t flag = u->m_flag;
+  auto_ptr<declarations::specifier_seq::info_t>
+    sweeper((flag & usr::CTOR) ? 0 : p);
   vector<scope*>& children = scope::current->m_children;
   if (children.empty()) {
     using namespace error::declarations::declarators::function::definition;
@@ -444,7 +446,6 @@ function::definition::begin(declarations::specifier_seq::info_t* p, var* v)
   const vector<usr*>& order = param->m_order;
   if (check_now(u))
     for_each(order.begin(),order.end(),check_object);
-  usr::flag_t flag = u->m_flag;
   if (flag & usr::OVERLOAD) {
     overload* ovl = static_cast<overload*>(u);
     const vector<usr*>& c = ovl->m_candidacy;
@@ -1194,6 +1195,7 @@ namespace cxx_compiler {
         auto_ptr<specifier_seq::info_t> sweeper(p);
         assert(p->m_tag);
         assert(p->m_type);
+	usr::flag_t flag = usr::flag_t(p->m_flag | usr::CTOR);
         const type* T = p->m_type;
         assert(T->m_id == type::INCOMPLETE_TAGGED);
         typedef const incomplete_tagged_type ITT;
@@ -1201,7 +1203,7 @@ namespace cxx_compiler {
         tag* ptr = itt->get_tag();
         string name = ptr->m_name;
         T = backpatch_type::create();
-        return new usr(name, T, usr::CTOR, parse::position, usr::NONE2);
+        return new usr(name, T, flag, parse::position, usr::NONE2);
       }
       usr* ctor(type_specifier* spec)
       {

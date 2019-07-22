@@ -1058,8 +1058,10 @@ member_declaration
 	delete specifier_seq::info_t::s_stack.top();
         specifier_seq::info_t::rare_case = false;
       }
-      else
-        delete $1;
+      else {
+	if (!specifier_seq::info_t::s_stack.empty())
+	  delete $1;
+      }
       using namespace cxx_compiler::parse;
       identifier::mode = identifier::look;
       context_t::clear();
