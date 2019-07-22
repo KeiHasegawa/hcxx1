@@ -985,7 +985,7 @@ cxx_compiler::declarations::check_installed(usr* u, specifier_seq::info_t* p)
   if (flag & usr::OVERLOAD)
     return;
   assert(!Tu->backpatch());
-  if (Tu->m_id  == type::FUNC) {
+  if (Tu->m_id == type::FUNC) {
     typedef const func_type FT;
     FT* ft = static_cast<FT*>(Tu);
     const type* T = ft->return_type();

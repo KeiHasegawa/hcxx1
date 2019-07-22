@@ -410,7 +410,7 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
   if (ptr->m_parent)
     return lookup(name,ptr->m_parent);
 
-  if (mode == no_err)
+  if (mode == no_err || mode == canbe_ctor)
     return 0;
 
   if ( name == "__func__" )
