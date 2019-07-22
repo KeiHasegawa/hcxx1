@@ -872,16 +872,17 @@ namespace cxx_compiler { namespace declarations { namespace declarators { namesp
     }
 
     string name = u->m_name;
-    it = find_if(stbl.begin(),stbl.end(),
-         [name](const pair<usr*, info_t*>& p)
-                 { return p.first->m_name == name; });
+    const type* T = u->m_type;
+    it = find_if(begin(stbl), end(stbl),
+	 [name, T](const pair<usr*, info_t*>& p){
+		   usr* u = p.first;
+		   return u->m_name == name && compatible(u->m_type, T); });
     if (it != stbl.end()) {
       info_t* info = it->second;
       stbl.erase(it);
       return gencode(info);
     }
 
-    const type* T = u->m_type;
     typedef const func_type FT;
     assert(T->m_id == type::FUNC);
     FT* ft = static_cast<FT*>(T);

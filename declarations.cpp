@@ -536,8 +536,8 @@ cxx_compiler::declarations::action1(var* v, bool ini)
     }
   }
   else if (specifier_seq::info_t* p = specifier_seq::info_t::s_stack.top()) {
-    assert(!(flag & usr::CTOR));
-    if (flag & usr::DTOR) {
+    usr::flag_t mask = usr::flag_t(usr::CTOR | usr::DTOR);
+    if (flag & mask) {
       assert(!p->m_type);
       assert(p->m_tmp.empty());
     }
@@ -545,7 +545,7 @@ cxx_compiler::declarations::action1(var* v, bool ini)
       declarations::specifier_seq::type::g_usr = u;
       p->update();
     }
-    if (!p->m_type && !(flag & usr::DTOR)) {
+    if (!p->m_type && !(flag & mask)) {
       implicit_int(u);
       p->m_type = int_type::create();
     }
