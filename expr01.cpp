@@ -706,7 +706,7 @@ cxx_compiler::var* cxx_compiler::call_impl::convert::operator()(var* arg)
       assert(Ty->m_id == type::RECORD);
       typedef const record_type REC;
       REC* rec = static_cast<REC*>(Ty);
-      if (usr* fun = cast_impl::conversion_function(rec, T)) {
+      if (usr* fun = cast_impl::conversion_function(rec, T, true)) {
 	arg = call_impl::wrapper(fun, 0, arg);
 	if (m_trial_cost)
 	  ++*m_trial_cost;
@@ -1919,7 +1919,7 @@ assignment::valid(const type* T, var* src, bool* discard, bool ctor_conv)
       xx = rt->referenced_type();
       xx = xx->unqualified();
     }
-    return cast_impl::conversion_function(rec, xx) ? xx : 0;
+    return cast_impl::conversion_function(rec, xx, true) ? xx : 0;
   }
   return 0;
 }

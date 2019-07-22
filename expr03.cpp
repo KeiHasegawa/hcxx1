@@ -170,17 +170,6 @@ namespace cxx_compiler {
         return 0;
       return integer::create(offset);
     }
-#if 0
-    inline var* get_var(const type* Tx)
-    {
-      if (Tx->m_id == type::REFERENCE) {
-	typedef const reference_type RT;
-	RT* rt = static_cast<RT*>(Tx);
-	return new ref(rt);
-      }
-      return new var(Tx);
-    }
-#endif
     var* with_route(const type* Tx, var* y, const vector<route_t>& route)
     {
       const type* Ty = y->m_type;
@@ -204,7 +193,45 @@ namespace cxx_compiler {
       }
       return x;
     }
-    usr* conversion_function(const record_type* rec, const type* T)
+    inline usr* other_conv_fun(const record_type* rec, const type* T)
+    {
+      if (!T->arithmetic())
+	return 0;
+      const type* Ta[] = {
+	bool_type::create(),
+	schar_type::create(),
+	uchar_type::create(),
+	short_type::create(),
+	ushort_type::create(),
+	wchar_type::create(),
+	int_type::create(),
+	uint_type::create(),
+	long_type::create(),
+	ulong_type::create(),
+	long_long_type::create(),
+	ulong_long_type::create(),
+	float_type::create(),
+	double_type::create(),
+	long_double_type::create()
+      };
+      int n = sizeof Ta/sizeof Ta[0];
+      usr* tmp = 0;
+      auto cf = [rec, T, &tmp](const type* O) {
+	if (T == O)
+	  return (usr*)0;
+	tmp = conversion_function(rec, O, false);
+	return tmp;
+      };
+      const type** p = find_if(&Ta[0], &Ta[n], cf);
+      if (p == &Ta[n])
+	return 0;
+      usr* ret = tmp;
+      const type** q = find_if(p+1, &Ta[n], cf);
+      if (q != &Ta[n])
+	error::not_implemented();
+      return ret;
+    }
+    usr* conversion_function(const record_type* rec, const type* T, bool other)
     {
       ostringstream os;
       T->decl(os, "");
@@ -215,7 +242,7 @@ namespace cxx_compiler {
       int r = parse::identifier::lookup(name, ptr);
       parse::identifier::mode = org;
       if (!r)
-	return 0;
+	return other ? other_conv_fun(rec, T) : 0;
       assert(r == IDENTIFIER_LEX);
       var* v = cxx_compiler_lval.m_var;
       genaddr* ga = v->genaddr_cast();
@@ -227,7 +254,7 @@ namespace cxx_compiler {
     }
     inline var* conversion(const record_type* rec, var* src, const type* T)
     {
-      usr* op = conversion_function(rec, T);
+      usr* op = conversion_function(rec, T, true);
       if (!op) {
 	// already handled error
 	var* ret = new var(T);
@@ -258,7 +285,8 @@ namespace cxx_compiler {
 	FT* ft = static_cast<FT*>(T);
 	return call_impl::common(ft, func, 0, 0, src, false, 0);
       }
-      return call_impl::wrapper(op, 0, src);
+      var* ret = call_impl::wrapper(op, 0, src);
+      return ret->cast(T);
     }
   }  // end of namespace cast_impl
 }  // end of namespace cxx_compiler
@@ -277,7 +305,7 @@ cxx_compiler::expressions::cast::valid(const type* T, var* y)
   if (Ty->m_id == type::RECORD) {
     typedef const record_type REC;
     REC* rec = static_cast<REC*>(Ty);
-    return cast_impl::conversion_function(rec, T) ? T : 0;
+    return cast_impl::conversion_function(rec, T, true) ? T : 0;
   }
   return 0;
 }

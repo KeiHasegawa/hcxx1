@@ -1251,7 +1251,8 @@ struct generated : virtual var {
 
 namespace cast_impl {
   extern var* with_route(const type* Tx, var* src, const vector<route_t>&);
-  extern usr* conversion_function(const record_type* rec, const type* T);
+  extern usr* conversion_function(const record_type* rec, const type* T,
+				  bool other);
 } // end of namespace cast_impl
 
 struct genaddr : generated, addrof {

@@ -79,7 +79,7 @@ namespace cxx_compiler {
       for_each(begin(va), end(va), set_va(x, y, xvco, yvco));
       return x;
     }
-    usr* fun = cast_impl::conversion_function(yrec, xrec);
+    usr* fun = cast_impl::conversion_function(yrec, xrec, true);
     assert(fun);
     return call_impl::wrapper(fun, 0, y);
   }
