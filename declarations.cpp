@@ -504,6 +504,16 @@ namespace cxx_compiler { namespace declarations {
   void check_installed(usr*, specifier_seq::info_t*);
   usr* exchange(bool installed, usr* new_one, usr* org);
   usr* action2(usr*);
+  inline bool just_static_member_decl(usr* u)
+  {
+    scope* p = u->m_scope;
+    if (p->m_id != scope::TAG)
+      return false;
+    usr::flag_t flag = u->m_flag;
+    if (!(flag & usr::STATIC))
+      return false;
+    return !(flag & usr::STATIC_DEF);
+  }
 } } // end of namespace declarations ans cxx_compiler
 
 cxx_compiler::usr*
@@ -712,7 +722,8 @@ cxx_compiler::declarations::action1(var* v, bool ini)
   if (!ini) {
     usr::flag_t mask = 
       usr::flag_t(usr::TYPEDEF |usr::FUNCTION | usr::OVERLOAD);
-    if (!(flag & mask) && is_external_declaration(u)) {
+    if (!(flag & mask) && is_external_declaration(u) &&
+	!just_static_member_decl(u)) {
       if (must_call_default_ctor(u))
 	initialize_ctor_code(u);
       if (must_call_dtor(u))
