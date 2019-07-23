@@ -527,19 +527,22 @@ cxx_compiler::var* cxx_compiler::ref::address()
 cxx_compiler::var* cxx_compiler::refaddr::address()
 {
   using namespace std;
-  if ( !lvalue() ){
+  using namespace expressions::primary::literal;
+  if (!lvalue()) {
     using namespace error::expressions::unary::address;
     not_lvalue(parse::position);
     return this;
   }
-  block* b = scope::current->m_id == scope::BLOCK ? static_cast<block*>(scope::current) : 0;
-  if ( b && !expressions::constant_flag ){
+  block* b = 0;
+  if (scope::current->m_id == scope::BLOCK)
+    b = static_cast<block*>(scope::current);
+  if (b && !expressions::constant_flag) {
     const type* T = m_type;
     var* ret = new var(T);
     b->m_vars.push_back(ret);
     code.push_back(new addr3ac(ret,m_addrof.m_ref));
     if ( m_addrof.m_offset ){
-      usr* off = expressions::primary::literal::integer::create(m_addrof.m_offset);
+      usr* off = integer::create(m_addrof.m_offset);
       var* tmp = new var(T);
       b->m_vars.push_back(tmp);
       code.push_back(new add3ac(tmp,ret,off));

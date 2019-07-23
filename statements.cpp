@@ -1100,15 +1100,17 @@ int cxx_compiler::statements::return_stmt::info_t::gen()
 	return 0;
     }
     bool discard = false;
-    T = expressions::assignment::valid(T, expr, &discard, true);
-    if (!T) {
+    const type* res = expressions::assignment::valid(T, expr, &discard, true);
+    if (!res) {
       using namespace error::statements::return_stmt;
       const type* from = expr->m_type;
       const type* to = ft->return_type();
       invalid(m_file,from,to);
       return 0;
     }
-    expr = T->aggregate() ? aggregate_conv(T, expr) : expr->cast(T);
+    expr = res->aggregate() ? aggregate_conv(res, expr) : expr->cast(res);
+    if (T->m_id == type::REFERENCE && res->m_id != type::REFERENCE)
+      expr = expr->address();
   }
   else {
     if (T->m_id != type::VOID) {

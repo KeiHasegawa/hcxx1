@@ -1783,6 +1783,8 @@ assignment::valid(const type* T, var* src, bool* discard, bool ctor_conv)
   const type* yy = src->result_type();
   xx = xx->unqualified();
   yy = yy->unqualified();
+  xx = xx->complete_type();
+  yy = yy->complete_type();
   if ( xx->arithmetic() && yy->arithmetic() )
     return xx;
 
