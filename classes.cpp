@@ -261,9 +261,16 @@ namespace cxx_compiler {
             void for_scalar(var* x, vector<expressions::base*>* p)
             {
               using namespace expressions;
+	      using namespace expressions::primary::literal;
+              const type* Tx = x->result_type();
+	      if (!p) {
+		var* zero = integer::create(0);
+		zero = zero->cast(Tx);
+		code.push_back(new invladdr3ac(x, zero));
+		return;
+	      }
               if (p->size() != 1)
                 error::not_implemented();
-              const type* Tx = x->result_type();
               const type* Ux = Tx->unqualified();
               expressions::base* expr = (*p)[0];
               var* y = expr->gen();
@@ -281,8 +288,9 @@ namespace cxx_compiler {
             void for_aggregate(var* dst, vector<expressions::base*>* p)
             {
 	      vector<var*> arg;
-	      transform(begin(*p), end(*p), back_inserter(arg),
-			mem_fun(&expressions::base::gen));
+	      if (p)
+		transform(begin(*p), end(*p), back_inserter(arg),
+			  mem_fun(&expressions::base::gen));
 	      const type* T = dst->result_type();
 	      assert(T->m_id == type::RECORD);
 	      typedef const record_type REC;
@@ -303,8 +311,10 @@ namespace cxx_compiler {
               sweeper(vector<expressions::base*>* p) : m_expr(p) {}
               ~sweeper()
               {
-                for (auto p : *m_expr)
-                  delete p;
+		if (!m_expr) 
+		  return;
+		for (auto p : *m_expr)
+		  delete p;
                 delete m_expr;
               }
             };
