@@ -126,7 +126,8 @@ namespace cxx_compiler {
     const func_type* ft = func_type::create(vp,param);
     usr::flag_t flag = usr::flag_t(usr::FUNCTION | usr::NEW_SCALAR);
 
-    usr* new_func = new usr(name,ft,flag,file_t(), usr::GENED_BY_COMP);
+    usr* new_func = new usr(name, ft, flag, parse::position,
+			    usr::GENED_BY_COMP);
     map<string, vector<usr*> >& usrs = scope::root.m_usrs;
     typedef map<string, vector<usr*> >::const_iterator IT;
     IT p = usrs.find(name);
@@ -296,7 +297,8 @@ namespace cxx_compiler {
     param.push_back(vp);
     const func_type* ft = func_type::create(vp,param);
     usr::flag_t flag = usr::flag_t(usr::FUNCTION | usr::DELETE_SCALAR);
-    usr* delete_func = new usr(name, ft, flag, file_t(), usr::GENED_BY_COMP);
+    usr* delete_func = new usr(name, ft, flag, parse::position,
+			       usr::GENED_BY_COMP);
     delete_func->m_scope = &scope::root;
     usrs[name].push_back(delete_func);
     return delete_func;

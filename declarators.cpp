@@ -695,7 +695,7 @@ namespace cxx_compiler {
     assert(p->m_id == scope::TAG);
     tag* ptr = static_cast<tag*>(p);
     usr::flag_t flag = usr::flag_t(func->m_flag | usr::INLINE);
-    usr* u = new usr(name, ft, flag, file_t(), usr::GENED_BY_COMP);
+    usr* u = new usr(name, ft, flag, parse::position, usr::GENED_BY_COMP);
     ptr->m_usrs[name].push_back(u);
 
     using namespace declarations::declarators::function::definition;

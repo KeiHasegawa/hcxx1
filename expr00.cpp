@@ -1451,9 +1451,83 @@ namespace cxx_compiler {
 cxx_compiler::var*
 cxx_compiler::unqualified_id::operator_function_id(int op)
 {
-  const type* T = backpatch_type::create();
-  string name = operator_name(op);
-  return new usr(name,T,usr::NONE,parse::position,usr::OPERATOR);
+  typedef declarations::specifier_seq::info_t INFO;
+  const stack<INFO*>& s = INFO::s_stack;
+  string opn = operator_name(op);
+  if (!s.empty() && s.top()) {
+    const type* bp = backpatch_type::create();
+    return new usr(opn, bp, usr::NONE, parse::position, usr::OPERATOR);
+  }
+  parse::identifier::mode_t morg = parse::identifier::mode;
+  parse::identifier::mode = parse::identifier::no_err;
+  int r = parse::identifier::lookup(opn, scope::current);
+  parse::identifier::mode = morg;
+  if (r)
+    return cxx_compiler_lval.m_var;
+  if (op != '=')
+    error::not_implemented();
+
+  assert(scope::current->m_id == scope::TAG);
+  tag* ptr = static_cast<tag*>(scope::current);
+  const type* T = ptr->m_types.second;
+  assert(T);
+  const type* rt = reference_type::create(T);
+  const type* rtc = reference_type::create(const_type::create(T));
+  vector<const type*> tmp;
+  tmp.push_back(rtc);
+  const func_type* ft = func_type::create(rt, tmp);
+  usr::flag_t flag = usr::flag_t(usr::FUNCTION | usr::INLINE);
+  usr::flag2_t flag2 = usr::flag2_t(usr::OPERATOR | usr::GENED_BY_COMP);
+  usr* u = new usr(opn, ft, flag, parse::position, flag2);
+  u->m_scope = scope::current;
+  map<string, vector<usr*> >& usrs = ptr->m_usrs;
+  usrs[opn].push_back(u);
+
+  using namespace declarations::declarators::function::definition;
+  const vector<const type*>& parameter = ft->param();
+  KEY key(make_pair(opn, ptr), &parameter);
+  dtbl[key] = u;
+
+  using namespace class_or_namespace_name;
+  scope* param = new scope(scope::PARAM);
+  assert(before.back() == param);
+  before.pop_back();
+  ptr->m_children.push_back(param);
+  param->m_parent = ptr;
+  string thn = "this";
+  const type* pt = pointer_type::create(T);
+  usr* this_ptr = new usr(thn, pt, usr::NONE, parse::position, usr::NONE2);
+  string frn = new_name(".param");
+  usr* first = new usr(frn, rtc, usr::NONE, parse::position, usr::NONE2);
+  map<string, vector<usr*> >& pusrs = param->m_usrs;
+  pusrs[thn].push_back(this_ptr);
+  pusrs[frn].push_back(first);
+  vector<usr*>& order = param->m_order;
+  order.push_back(this_ptr);
+  order.push_back(first);
+
+  block* body = new block;
+  assert(!before.empty());
+  assert(before.back() == body);
+  before.pop_back();
+  body->m_parent = param;
+  param->m_children.push_back(body);
+
+  vector<tac*> vc;
+  var* t0 = new var(T);
+  body->m_vars.push_back(t0);
+  vc.push_back(new invraddr3ac(t0, first));
+  vc.push_back(new invladdr3ac(this_ptr, t0));
+  vc.push_back(new return3ac(this_ptr));
+  fundef* forg = fundef::current;
+  fundef::current = new fundef(u, param);
+  declarations::declarators::
+    function::definition::action(fundef::current, vc);
+  delete fundef::current;
+  fundef::current = forg;
+
+  const pointer_type* G = ft->ptr_gen();
+  return new genaddr(G, ft, u, 0);
 }
 
 namespace cxx_compiler {

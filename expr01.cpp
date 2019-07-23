@@ -1878,8 +1878,16 @@ assignment::valid(const type* T, var* src, bool* discard, bool ctor_conv)
     const type* X = src->result_type();
     if (T == X)
       return T;
-    if (!T->modifiable() || !X->modifiable())
-      return valid(T, src, discard, ctor_conv);
+    if (!T->modifiable() || !X->modifiable()) {
+      if (const type* r = valid(T, src, discard, ctor_conv))
+	return r;
+    }
+    if (X->m_id == type::REFERENCE) {
+      REF* ref = static_cast<REF*>(X);
+      X = ref->referenced_type();
+    }
+    T = T->unqualified();
+    X = X->unqualified();
     if (T->m_id == type::RECORD && X->m_id == type::RECORD) {
       T = pointer_type::create(T);
       X = pointer_type::create(X);

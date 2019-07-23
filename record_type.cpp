@@ -681,7 +681,7 @@ namespace cxx_compiler {
 	string sn = special_name(tor, exclude);
 	const type* T = tor->m_type;
 	usr::flag_t flag = usr::flag_t(tor->m_flag | usr::INLINE);
-	usr* scd = new usr(sn, T, flag, file_t(), usr::GENED_BY_COMP);
+	usr* scd = new usr(sn, T, flag, parse::position, usr::GENED_BY_COMP);
 	scope* ps = tor->m_scope;
 	assert(ps->m_id == scope::TAG);
 	tag* ptr = static_cast<tag*>(ps);
@@ -1374,7 +1374,7 @@ namespace cxx_compiler {
       const func_type* ft = default_ctor_type();
       usr::flag_t flag = is_dtor ? usr::DTOR : usr::CTOR;
       flag = usr::flag_t(flag | usr::FUNCTION | usr::INLINE);
-      usr* tor = new usr(tgn, ft, flag, file_t(),usr::GENED_BY_COMP);
+      usr* tor = new usr(tgn, ft, flag, parse::position, usr::GENED_BY_COMP);
       ptr->m_usrs[tgn].push_back(tor);
       using namespace declarations::declarators::function::definition;
       const vector<const type*>& parameter = ft->param();
@@ -1710,7 +1710,7 @@ namespace cxx_compiler {
       const func_type* ft = copy_ctor_type(ptr, true);
       usr::flag_t flag =
 	usr::flag_t(usr::CTOR | usr::FUNCTION | usr::INLINE);
-      usr* ctor = new usr(tgn, ft, flag, file_t(),usr::GENED_BY_COMP);
+      usr* ctor = new usr(tgn, ft, flag, parse::position, usr::GENED_BY_COMP);
       map<string, vector<usr*> >& usrs = ptr->m_usrs;
       map<string, vector<usr*> >::iterator p = usrs.find(tgn);
       assert(p != usrs.end());
@@ -1822,7 +1822,7 @@ namespace cxx_compiler {
       T = func_type::create(T, param);
       usr::flag_t flag = usr::flag_t(usr::FUNCTION | usr::VIRTUAL | usr::VDEL);
       virtual_delete* vdel =
-	new virtual_delete(name, T, flag, file_t(), usr::GENED_BY_COMP,
+	new virtual_delete(name, T, flag, parse::position, usr::GENED_BY_COMP,
 			   dtor, del);
       ptr->m_usrs[name].push_back(vdel);
       ptr->m_order.push_back(vdel);
