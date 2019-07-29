@@ -2095,6 +2095,11 @@ fcast::fcast(declarations::type_specifier* ptr, std::vector<base*>* list)
     }
   }
 
+  if (context_t::retry[DECL_FCAST_CONFLICT_STATE]) {
+    assert(!specifier_seq::info_t::s_stack.empty());
+    specifier_seq::info_t::s_stack.pop();
+  }
+
   specifier* spec = new specifier(ptr);
   specifier_seq::info_t info(0, spec);
   info.update();
