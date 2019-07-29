@@ -131,16 +131,28 @@ namespace cxx_compiler {
       code.push_back(new invraddr3ac(t2, t1));
       return t2;
     }
+    inline const type* referenced_type(const type* T)
+    {
+      if (T->m_id == type::POINTER) {
+	typedef const pointer_type PT;
+	PT* pt = static_cast<PT*>(T);
+	return pt->referenced_type();
+      }
+      if (T->m_id == type::REFERENCE) {
+	typedef const reference_type RT;
+	RT* rt = static_cast<RT*>(T);
+	return rt->referenced_type();
+      }
+      return 0;
+    }
     inline var*
     base_ptr_offset(const type* Tx, var* src, const vector<route_t>& route)
     {
       using namespace expressions::primary::literal;
       Tx = Tx->unqualified();
-      if (Tx->m_id != type::POINTER)
+      Tx = referenced_type(Tx);
+      if (!Tx)
         return 0;
-      typedef const pointer_type PT;
-      PT* Px = static_cast<PT*>(Tx);
-      Tx = Px->referenced_type();
       Tx = Tx->unqualified();
       if (Tx->m_id != type::RECORD)
         return 0;
@@ -148,12 +160,12 @@ namespace cxx_compiler {
       REC* Rx = static_cast<REC*>(Tx);
       const type* Ty = src->m_type;
       Ty = Ty->unqualified();
-      if (Ty->m_id != type::POINTER)
+      Ty = referenced_type(Ty);
+      if (!Ty)
         return 0;
-      PT* Py = static_cast<PT*>(Ty);
-      Ty = Py->referenced_type();
+      Ty = Ty->unqualified();
       if (Ty->m_id != type::RECORD) 
-        return 0;
+	return 0;
       REC* Ry = static_cast<REC*>(Ty);
       tag* xtag = Rx->get_tag();
       tag* ytag = Ry->get_tag();

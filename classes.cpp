@@ -452,33 +452,9 @@ namespace cxx_compiler {
 	      return this_ptr;
 	    }
 	    map<usr*, map<tag*, pbc> > btbl;
-	    void tag_action(tag* btag, EXPRS* exprs, usr* ctor)
+	    inline void direct_base(base* bp, const record_type* rec,
+				    tag* btag, EXPRS* exprs, usr* ctor)
 	    {
-	      scope* tmp = ctor->m_scope;
-	      assert(tmp->m_id == scope::TAG);
-	      tag* ptr = static_cast<tag*>(tmp);
-	      if (!ptr->m_bases) {
-		error::not_implemented();
-		return;
-	      }
-	      const type* T = ptr->m_types.second;
-              if (!T) {
-                assert(scope::current->m_id == scope::PARAM);
-                for_parse[ctor].push_back(make_pair(new PAIR(0, btag),exprs));
-                return;
-              }
-	      vector<base*>& bases = *ptr->m_bases;
-	      typedef vector<base*>::const_iterator IT;
-	      IT p = find_if(begin(bases), end(bases), 
-			     [btag](base* bp){ return bp->m_tag == btag; });
-	      if (p == end(bases)) {
-		error::not_implemented();
-		return;
-	      }
-	      base* bp = *p;
-	      assert(T->m_id == type::RECORD);
-	      typedef const record_type REC;
-	      REC* rec = static_cast<REC*>(T);
 	      const map<base*, int>& bo = rec->base_offset();
 	      map<base*, int>::const_iterator q = bo.find(bp);
 	      assert(q != bo.end());
@@ -497,6 +473,63 @@ namespace cxx_compiler {
               scope::current = org;
 	      btbl[ctor][btag] = pbc(param, b, code);
 	      code.clear();
+	    }
+	    inline void common_case(const record_type* x,
+				    const record_type* rec,
+				    tag* btag, EXPRS* exprs, usr* ctor)
+	    {
+	      typedef const record_type REC;
+	      const map<REC*, int>& vco = rec->virt_common_offset();
+	      typedef map<REC*, int>::const_iterator IT;
+	      IT p = vco.find(x);
+	      assert(p != vco.end());
+	      int offset = p->second;
+              scope* param = fundef::current->m_param;
+	      usr* this_ptr = get_this(param, rec);
+              vector<scope*>& c = param->m_children;
+              assert(!c.empty());
+              scope* ps = c.back();
+              assert(ps->m_id == scope::BLOCK);
+              block* b = static_cast<block*>(ps);
+              scope* org = scope::current;
+              scope::current = b;
+	      assert(code.empty());
+              gen(x->get_tag(), this_ptr, offset, exprs);
+              scope::current = org;
+	      btbl[ctor][btag] = pbc(param, b, code);
+	      code.clear();
+	    }
+	    void tag_action(tag* btag, EXPRS* exprs, usr* ctor)
+	    {
+	      scope* tmp = ctor->m_scope;
+	      assert(tmp->m_id == scope::TAG);
+	      tag* ptr = static_cast<tag*>(tmp);
+	      if (!ptr->m_bases) {
+		error::not_implemented();
+		return;
+	      }
+	      const type* T = ptr->m_types.second;
+              if (!T) {
+                assert(scope::current->m_id == scope::PARAM);
+                for_parse[ctor].push_back(make_pair(new PAIR(0, btag),exprs));
+                return;
+              }
+	      assert(T->m_id == type::RECORD);
+	      typedef const record_type REC;
+	      REC* rec = static_cast<REC*>(T);
+	      vector<base*>& bases = *ptr->m_bases;
+	      typedef vector<base*>::const_iterator ITx;
+	      ITx p = find_if(begin(bases), end(bases), 
+			      [btag](base* bp){ return bp->m_tag == btag; });
+	      if (p != end(bases))
+		return direct_base(*p, rec, btag, exprs, ctor);
+	      const vector<REC*>& common = rec->common();
+	      typedef vector<REC*>::const_iterator ITy;
+	      ITy q = find_if(begin(common), end(common),
+			      [btag](REC* x){ return x->get_tag() == btag; });
+	      if (q != end(common))
+		return common_case(*q, rec, btag, exprs, ctor);
+	      error::not_implemented();
 	    }
             void action(pair<usr*, tag*>* x, EXPRS* exprs)
             {

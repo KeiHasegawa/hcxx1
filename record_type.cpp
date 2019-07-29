@@ -842,6 +842,23 @@ namespace cxx_compiler {
       assert(cd.size() == 1);
       copy_scope(cs.back(), cd.back(), tbl);
     }
+    typedef declarations::declarators::function::definition::
+    mem_initializer::pbc PBC;
+    inline void handle_pbc(const PBC& x, scope* param, block* bp)
+    {
+      if (x.m_param == param) {
+	assert(x.m_block == bp);
+	const vector<tac*>& v = x.m_code;
+	transform(begin(v), end(v), back_inserter(code),
+		  [](tac* p){ return p->new3ac(); });
+      }
+      else {
+	map<var*, var*> tbl;
+	just_copy_block(x.m_param, param, tbl);
+	const vector<tac*>& v = x.m_code;
+	transform(begin(v), end(v), back_inserter(code), new3ac(tbl));
+      }
+    }
     struct base_ctor_dtor {
       const map<base*, int>& m_base_offset;
       var* m_this;
@@ -883,19 +900,7 @@ namespace cxx_compiler {
 	if (q == tbl.end())
 	  return false;
 
-	const pbc& tmp = q->second;
-	if (tmp.m_param == m_param) {
-	  assert(tmp.m_block == m_block);
-	  const vector<tac*>& v = tmp.m_code;
-	  transform(begin(v), end(v), back_inserter(code),
-		    [](tac* p){ return p->new3ac(); });
-	}
-	else {
-	  map<var*, var*> tbl;
-	  just_copy_block(tmp.m_param, m_param, tbl);
-	  const vector<tac*>& v = tmp.m_code;
-	  transform(begin(v), end(v), back_inserter(code), new3ac(tbl));
-	}
+	handle_pbc(q->second, m_param, m_block);
 	tac* ptac = code.back();
 	assert(ptac->m_id == tac::CALL);
 	assert(ptac->y->usr_cast());
@@ -990,22 +995,7 @@ namespace cxx_compiler {
 	if (q == tblx.end())
 	  return false;
 
-	const pbc& tmp = q->second;
-	if (tmp.m_block == m_block) {
-	  const vector<tac*>& v = tmp.m_code;
-	  transform(begin(v), end(v), back_inserter(code),
-		    [](tac* p){ return p->new3ac(); });
-	  return true;
-	}
-
-	map<var*, var*> tbl;
-	const scope* src = tmp.m_block->m_parent;
-	assert(src->m_id == scope::PARAM);
-	scope* dst = m_block->m_parent;
-	assert(dst->m_id == scope::PARAM);
-	just_copy_block(src, dst, tbl);
-	const vector<tac*>& v = tmp.m_code;
-	transform(begin(v), end(v), back_inserter(code), new3ac(tbl));
+	handle_pbc(q->second, m_param, m_block);
 	return true;
       }
       void operator()(usr* u)
@@ -1205,49 +1195,64 @@ namespace cxx_compiler {
     };
     struct common_ctor_dtor {
       const map<const record_type*, int>& m_virt_common_offset;
-      block* m_pb;
+      block* m_block;
       var* m_this;
       scope* m_param;
       bool m_is_dtor;
+      usr* m_ctor;
       common_ctor_dtor(const map<const record_type*, int>& virt_common_offset,
-		       block* pb, var* this_ptr, scope* param, bool is_dtor)
-	: m_virt_common_offset(virt_common_offset), m_pb(pb),
-	  m_this(this_ptr), m_param(param), m_is_dtor(is_dtor) {}
+		       block* b, var* this_ptr, scope* param, bool is_dtor,
+		       usr* ctor)
+	: m_virt_common_offset(virt_common_offset), m_block(b),
+	  m_this(this_ptr), m_param(param), m_is_dtor(is_dtor), m_ctor(ctor) {}
       void operator()(const record_type* rec)
       {
 	using namespace expressions::primary::literal;
 	tag* ptr = rec->get_tag();
+
+	using namespace declarations::declarators::function::definition;
+	using namespace mem_initializer;
+	typedef map<usr*, map<tag*, pbc> >::const_iterator ITb;
+	ITb pb = btbl.find(m_ctor);
+	if (pb != btbl.end()) {
+	  const map<tag*, pbc>& tbl = pb->second;
+	  typedef map<tag*, pbc>::const_iterator ITc;
+	  ITc pc = tbl.find(ptr);
+	  if (pc != tbl.end())
+	    return handle_pbc(pc->second, m_param, m_block);
+	}
+
 	usr* tor = has_ctor_dtor(ptr, m_is_dtor);
 	if (!tor)
 	  return;
+
 	const type* T = pointer_type::create(rec);
 	var* t0 = new var(T);
-	m_pb->m_vars.push_back(t0);
+	m_block->m_vars.push_back(t0);
 	code.push_back(new cast3ac(t0, m_this, T));
-	map<const record_type*, int>::const_iterator p =
-	  m_virt_common_offset.find(rec);
-	assert(p != m_virt_common_offset.end());
-	if (int offset = p->second) {
+	typedef map<const record_type*, int>::const_iterator ITa;
+	ITa pa = m_virt_common_offset.find(rec);
+	assert(pa != m_virt_common_offset.end());
+	if (int offset = pa->second) {
 	  var* off = integer::create(offset);
 	  var* t1 = new var(T);
-	  m_pb->m_vars.push_back(t1);
+	  m_block->m_vars.push_back(t1);
 	  code.push_back(new add3ac(t1, t0, off));
 	  t0 = t1;
 	}
+
 	usr::flag_t flag = tor->m_flag;
 	if (flag & usr::OVERLOAD) {
 	  overload* ovl = static_cast<overload*>(tor);
 	  const vector<usr*>& v = ovl->m_candidacy;
-	  typedef vector<usr*>::const_iterator IT;
-	  IT p = find_if(begin(v), end(v), canbe_default_ctor);
-	  if (p == end(v))
+	  typedef vector<usr*>::const_iterator ITd;
+	  ITd pd = find_if(begin(v), end(v), canbe_default_ctor);
+	  if (pd == end(v))
 	    error::not_implemented();
-	  tor = *p;
+	  tor = *pd;
 	}
-	vector<const record_type*> dummy;
-	rec->tor_code(tor, m_param, t0, m_pb, m_is_dtor, dummy);
 	scope* org = scope::current;
-	scope::current = m_pb;
+	scope::current = m_block;
 	call_impl::wrapper(tor, 0, t0);
 	scope::current = org;
       }
@@ -1271,7 +1276,7 @@ namespace cxx_compiler {
     {
       for_each(begin(common), end(common),
 	       common_ctor_dtor(virt_common_offset, pb, this_ptr, param,
-				false));
+				false, ctor));
       if (ptr->m_bases) {
         vector<base*>& bases = *ptr->m_bases;
 	vector<const record_type*> ce = common;
@@ -1491,7 +1496,7 @@ namespace cxx_compiler {
       }
       for_each(rbegin(common), rend(common),
 	       common_ctor_dtor(virt_common_offset, pb, this_ptr, param,
-				true));
+				true, 0));
     }
     void add_dtor(tag* ptr,
                   const map<string, pair<int, usr*> >& layout,
