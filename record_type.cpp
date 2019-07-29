@@ -713,17 +713,17 @@ namespace cxx_compiler {
 	before.pop_back();
 	ptr->m_children.push_back(param);
 	param->m_parent = ptr;
-	string tn = "this";
 	const type* T2 = ptr->m_types.second;
 	assert(T2);
 	assert(T2->m_id == type::RECORD);
 	typedef const record_type REC;
 	REC* rec = static_cast<REC*>(T2);
 	const type* pt = pointer_type::create(rec);
-	usr* this_ptr = new usr(tn,pt,usr::NONE,file_t(),usr::NONE2);
+	usr* this_ptr = new usr(this_name, pt, usr::NONE, parse::position,
+				usr::NONE2);
 	this_ptr->m_scope = param;
 	param->m_order.push_back(this_ptr);
-	param->m_usrs[tn].push_back(this_ptr);
+	param->m_usrs[this_name].push_back(this_ptr);
 	for_each(begin(parameter), end(parameter),
 		 bind2nd(ptr_fun(install), param));
 
@@ -778,8 +778,8 @@ namespace cxx_compiler {
       const vector<REC*>& va = drec->virt_ancestor();
       return find(begin(va), end(va), rec) != end(va);
     }
-    inline void call_ctor_dtor(tag* ptr, var* this_ptr, block* pb,
-			       bool is_dtor, int offset,
+    inline void call_ctor_dtor(tag* ptr, var* this_ptr, scope* param,
+			       block* pb, bool is_dtor, int offset,
 			       const vector<const record_type*>& exclude)
     {
       string tgn = ptr->m_name;
@@ -791,14 +791,14 @@ namespace cxx_compiler {
 	return;
       const vector<usr*>& v = p->second;
       const func_type* ft = default_ctor_type();
-      vector<usr*>::const_iterator r =
-	find_if(begin(v), end(v), [ft](usr* u){
+      vector<usr*>::const_reverse_iterator q =
+	find_if(rbegin(v), rend(v), [ft](usr* u){
 	    const type* T = u->m_type;
 	    return T ? compatible(T, ft) : false;
 	  });
-      if (r == end(v))
+      if (q == rend(v))
 	return;
-      usr* tor = *r;
+      usr* tor = *q;
       const type* T = ptr->m_types.second;
       assert(T->m_id == type::RECORD);
       typedef const record_type REC;
@@ -849,18 +849,66 @@ namespace cxx_compiler {
       block* m_block;
       bool m_is_dtor;
       usr* m_tor;
-      bool m_for_virt;
       const vector<const record_type*>& m_exclude;
+      bool m_for_virt;
       base_ctor_dtor(const map<base*, int>& base_offset, var* this_ptr,
 		     scope* param, block* b, bool is_dtor, usr* tor,
 		     const vector<const record_type*>& exclude, bool for_virt)
         : m_base_offset(base_offset), m_this(this_ptr), m_param(param),
 	  m_block(b), m_is_dtor(is_dtor), m_tor(tor), m_exclude(exclude),
 	  m_for_virt(for_virt) {}
-      void operator()(base* pb)
+      bool base_initializer_case(tag* ptr)
       {
 	using namespace declarations::declarators::function::definition;
 	using namespace mem_initializer;
+
+	if (m_is_dtor)
+	  return false;
+
+	typedef map<usr*, map<tag*, pbc> >::iterator ITx;
+	ITx p = btbl.find(m_tor);
+	if (p == btbl.end())
+	  return false;
+
+	map<tag*, pbc>& tbl = p->second;
+	typedef map<tag*, pbc>::iterator ITy;
+	ITy q = tbl.find(ptr);
+	const type* T = ptr->m_types.second;
+	assert(T->m_id == type::RECORD);
+	typedef const record_type REC;
+	REC* rec = static_cast<REC*>(T);
+	if (find(begin(m_exclude), end(m_exclude), rec) != end(m_exclude))
+	  return false;
+
+	if (q == tbl.end())
+	  return false;
+
+	const pbc& tmp = q->second;
+	if (tmp.m_param == m_param) {
+	  assert(tmp.m_block == m_block);
+	  const vector<tac*>& v = tmp.m_code;
+	  transform(begin(v), end(v), back_inserter(code),
+		    [](tac* p){ return p->new3ac(); });
+	}
+	else {
+	  map<var*, var*> tbl;
+	  just_copy_block(tmp.m_param, m_param, tbl);
+	  const vector<tac*>& v = tmp.m_code;
+	  transform(begin(v), end(v), back_inserter(code), new3ac(tbl));
+	}
+	tac* ptac = code.back();
+	assert(ptac->m_id == tac::CALL);
+	assert(ptac->y->usr_cast());
+	usr* tor = static_cast<usr*>(ptac->y);
+	vector<REC*> ex;
+	copy_if(begin(m_exclude), end(m_exclude), 
+		back_inserter(ex), bind2nd(ptr_fun(of_va), tor));
+	if (!ex.empty())
+	  ptac->y = special_ctor_dtor::get(tor, ex, m_is_dtor);
+	return true;
+      }
+      void operator()(base* pb)
+      {
 	usr::flag_t flag = pb->m_flag;
 	if (flag & usr::VIRTUAL) {
 	  if (!m_for_virt)
@@ -871,50 +919,14 @@ namespace cxx_compiler {
 	    return;
 	}
         tag* ptr = pb->m_tag;
-	if (!m_is_dtor) {
-	  typedef map<usr*, map<tag*, pbc> >::iterator ITx;
-	  ITx p = btbl.find(m_tor);
-	  if (p != btbl.end()) {
-	    map<tag*, pbc>& tbl = p->second;
-	    typedef map<tag*, pbc>::iterator ITy;
-	    ITy q = tbl.find(ptr);
-	    const type* T = ptr->m_types.second;
-	    assert(T->m_id == type::RECORD);
-	    typedef const record_type REC;
-	    REC* rec = static_cast<REC*>(T);
-	    if (find(begin(m_exclude), end(m_exclude), rec) != end(m_exclude))
-	      return;
-	    if (q != tbl.end()) {
-	      const pbc& tmp = q->second;
-	      if (tmp.m_param == m_param) {
-		assert(tmp.m_block == m_block);
-		const vector<tac*>& v = tmp.m_code;
-		copy(begin(v), end(v), back_inserter(code));
-	      }
-	      else {
-		map<var*, var*> tbl;
-		just_copy_block(tmp.m_param, m_param, tbl);
-		const vector<tac*>& v = tmp.m_code;
-		transform(begin(v), end(v), back_inserter(code), new3ac(tbl));
-	      }
-	      tac* ptac = code.back();
-	      assert(ptac->m_id == tac::CALL);
-	      assert(ptac->y->usr_cast());
-	      usr* tor = static_cast<usr*>(ptac->y);
-	      vector<REC*> ex;
-	      copy_if(begin(m_exclude), end(m_exclude), 
-		      back_inserter(ex), bind2nd(ptr_fun(of_va), tor));
-	      if (!ex.empty())
-		ptac->y = special_ctor_dtor::get(tor, ex, m_is_dtor);
-	      return;
-	    }
-	  }
-	}
+	if (base_initializer_case(ptr))
+	  return;
 	typedef map<base*, int>::const_iterator ITy;
 	ITy q = m_base_offset.find(pb);
 	assert(q != m_base_offset.end());
 	int offset = q->second;
-	call_ctor_dtor(ptr, m_this, m_block, m_is_dtor, offset, m_exclude);
+	call_ctor_dtor(ptr, m_this, m_param, m_block, m_is_dtor, offset,
+		       m_exclude);
       }
     };
     struct member_ctor_dtor {
@@ -959,36 +971,47 @@ namespace cxx_compiler {
 		       usr* tor, bool call_copy_ctor)
 	: m_layout(layout), m_this(this_ptr), m_param(param), m_block(b),
 	  m_is_dtor(is_dtor), m_tor(tor), m_call_copy_ctor(call_copy_ctor) {}
-      void operator()(usr* u)
+      bool member_initializer_case(usr* u)
       {
 	using namespace declarations::declarators::function::definition;
 	using namespace mem_initializer;
-	if (!m_is_dtor) {
-	  typedef map<usr*, map<usr*, pbc> >::iterator ITx;
-	  ITx p = mtbl.find(m_tor);
-	  if (p != mtbl.end()) {
-	    map<usr*, pbc>& tbl = p->second;
-	    typedef map<usr*, pbc>::iterator ITy;
-	    ITy q = tbl.find(u);
-	    if (q != tbl.end()) {
-	      const pbc& tmp = q->second;
-	      if (tmp.m_block == m_block) {
-		assert(tmp.m_block->m_parent = m_block->m_parent);
-		const vector<tac*>& v = tmp.m_code;
-		copy(begin(v), end(v), back_inserter(code));
-	      }
-	      else {
-		map<var*, var*> tbl;
-		const scope* src = tmp.m_block->m_parent;
-		scope* dst = m_block->m_parent;
-		just_copy_block(src, dst, tbl);
-		const vector<tac*>& v = tmp.m_code;
-		transform(begin(v), end(v), back_inserter(code), new3ac(tbl));
-	      }
-	      return;
-	    }
-	  }
+
+	if (m_is_dtor)
+	  return false;
+
+	typedef map<usr*, map<usr*, pbc> >::iterator ITx;
+	ITx p = mtbl.find(m_tor);
+	if (p == mtbl.end())
+	  return false;
+
+	map<usr*, pbc>& tblx = p->second;
+	typedef map<usr*, pbc>::iterator ITy;
+	ITy q = tblx.find(u);
+	if (q == tblx.end())
+	  return false;
+
+	const pbc& tmp = q->second;
+	if (tmp.m_block == m_block) {
+	  const vector<tac*>& v = tmp.m_code;
+	  transform(begin(v), end(v), back_inserter(code),
+		    [](tac* p){ return p->new3ac(); });
+	  return true;
 	}
+
+	map<var*, var*> tbl;
+	const scope* src = tmp.m_block->m_parent;
+	assert(src->m_id == scope::PARAM);
+	scope* dst = m_block->m_parent;
+	assert(dst->m_id == scope::PARAM);
+	just_copy_block(src, dst, tbl);
+	const vector<tac*>& v = tmp.m_code;
+	transform(begin(v), end(v), back_inserter(code), new3ac(tbl));
+	return true;
+      }
+      void operator()(usr* u)
+      {
+	if (member_initializer_case(u))
+	  return;
 	string name = u->m_name;
 	typedef map<string, pair<int, usr*> >::const_iterator IT;
 	IT p = m_layout.find(name);
@@ -1006,7 +1029,8 @@ namespace cxx_compiler {
 	REC* rec = static_cast<REC*>(T);
 	tag* ptr = rec->get_tag();
 	vector<REC*> dummy;
-	call_ctor_dtor(ptr, m_this, m_block, m_is_dtor, offset, dummy);
+	call_ctor_dtor(ptr, m_this, m_param, m_block, m_is_dtor, offset,
+		       dummy);
       }
     };
     inline bool bases_have_ctor_dtor(tag* ptr, bool is_dtor)
@@ -1245,7 +1269,6 @@ namespace cxx_compiler {
 		       scope* param,
 		       const vector<const record_type*>& exclude)
     {
-      bool call_copy_ctor = canbe_copy_ctor(ctor, ptr);
       for_each(begin(common), end(common),
 	       common_ctor_dtor(virt_common_offset, pb, this_ptr, param,
 				false));
@@ -1263,7 +1286,7 @@ namespace cxx_compiler {
         for_each(begin(bases), end(bases), base_ctor_dtor(base_offset,
 	  this_ptr, param, pb, false, ctor, ce, false));
         scope::current = org;
-	if (call_copy_ctor) {
+	if (canbe_copy_ctor(ctor, ptr)) {
 	  for_each(begin(member), end(member),
 		   member_ctor_dtor(layout, this_ptr, param, pb, false, ctor,
 				    true));
@@ -1388,13 +1411,12 @@ namespace cxx_compiler {
       before.pop_back();
       (*param)->m_parent = ptr;
       ptr->m_children.push_back(*param);
-      string name = "this";
       const type* T = ptr->m_types.first;
       T = pointer_type::create(T);
-      *this_ptr = new usr(name,T,usr::NONE,file_t(),usr::NONE2);
+      *this_ptr = new usr(this_name,T,usr::NONE,file_t(),usr::NONE2);
       (*this_ptr)->m_scope = *param;
       (*param)->m_order.push_back(*this_ptr);
-      (*param)->m_usrs[name].push_back(*this_ptr);
+      (*param)->m_usrs[this_name].push_back(*this_ptr);
 
       *pb = new block;
       assert(!before.empty());
@@ -1463,9 +1485,9 @@ namespace cxx_compiler {
 		  return find(begin(ce), end(ce), rec) == end(ce);
 		});
 	for_each(rbegin(bases), rend(bases), base_ctor_dtor(base_offset,
-          this_ptr, param, pb, true, dtor, ce, false));
+	    this_ptr, param, pb, true, dtor, ce, false));
 	for_each(rbegin(bases), rend(bases), base_ctor_dtor(base_offset,
-          this_ptr, param, pb, true, dtor, ce, true));
+	    this_ptr, param, pb, true, dtor, ce, true));
       }
       for_each(rbegin(common), rend(common),
 	       common_ctor_dtor(virt_common_offset, pb, this_ptr, param,
@@ -1732,24 +1754,24 @@ namespace cxx_compiler {
       before.pop_back();
       scope::current->m_children.push_back(param);
       param->m_parent = scope::current;
-      string name = "this";
       const type* T = ptr->m_types.second;
       assert(T);
       assert(T->m_id == type::RECORD);
       typedef const record_type REC;
       REC* rec = static_cast<REC*>(T);
       const type* pt = pointer_type::create(rec);
-      usr* this_ptr = new usr(name,pt,usr::NONE,file_t(),usr::NONE2);
+      usr* this_ptr = new usr(this_name, pt, usr::NONE, parse::position,
+			      usr::NONE2);
       this_ptr->m_scope = param;
       param->m_order.push_back(this_ptr);
-      param->m_usrs[name].push_back(this_ptr);
+      param->m_usrs[this_name].push_back(this_ptr);
 
-      string aname = new_name(".param");
+      string arg_name = new_name(".param");
       const reference_type* rt = copy_ctor_arg_type(ptr, true);
-      usr* arg = new usr(aname, rt, usr::NONE, file_t(),usr::NONE2);
+      usr* arg = new usr(arg_name, rt, usr::NONE, parse::position, usr::NONE2);
       arg->m_scope = param;
       param->m_order.push_back(arg);
-      param->m_usrs[name].push_back(arg);
+      param->m_usrs[arg_name].push_back(arg);
 
       block* bp = new block;
       assert(before.back() == bp);
@@ -2394,9 +2416,9 @@ namespace cxx_compiler {
       scope::current->m_children.push_back(param);
       const type* T = ptr->m_types.second;
       T = pointer_type::create(T);
-      string name = "this";
-      usr* this_ptr = new usr(name, T, usr::NONE, file_t(), usr::NONE2);
-      param->m_usrs[name].push_back(this_ptr);
+      usr* this_ptr = new usr(this_name, T, usr::NONE, parse::position,
+			      usr::NONE2);
+      param->m_usrs[this_name].push_back(this_ptr);
       param->m_order.push_back(this_ptr);
 
       block* bp = new block;

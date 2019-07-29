@@ -32,7 +32,7 @@ namespace cxx_compiler {
 cxx_compiler::expressions::primary::info_t::info_t()
  : m_var(0), m_expr(0), m_file(parse::position)
 {
-  parse::identifier::lookup("this",scope::current);
+  parse::identifier::lookup(this_name, scope::current);
   m_var = cxx_compiler_lval.m_usr;
 }
 
@@ -1267,7 +1267,7 @@ from_member(usr* u, const std::vector<route_t>& route)
 
   scope* s = fundef::current->m_param;
   const map<string, vector<usr*> >& usrs = s->m_usrs;
-  map<string, vector<usr*> >::const_iterator it = usrs.find("this");
+  map<string, vector<usr*> >::const_iterator it = usrs.find(this_name);
   assert(it != usrs.end());
   const vector<usr*>& v = it->second;
   assert(v.size() == 1);
@@ -1494,13 +1494,13 @@ cxx_compiler::unqualified_id::operator_function_id(int op)
   before.pop_back();
   ptr->m_children.push_back(param);
   param->m_parent = ptr;
-  string thn = "this";
   const type* pt = pointer_type::create(T);
-  usr* this_ptr = new usr(thn, pt, usr::NONE, parse::position, usr::NONE2);
+  usr* this_ptr = new usr(this_name, pt, usr::NONE, parse::position,
+			  usr::NONE2);
   string frn = new_name(".param");
   usr* first = new usr(frn, rtc, usr::NONE, parse::position, usr::NONE2);
   map<string, vector<usr*> >& pusrs = param->m_usrs;
-  pusrs[thn].push_back(this_ptr);
+  pusrs[this_name].push_back(this_ptr);
   pusrs[frn].push_back(first);
   vector<usr*>& order = param->m_order;
   order.push_back(this_ptr);

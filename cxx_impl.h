@@ -1468,6 +1468,8 @@ namespace SUB_CONST_LONG_impl {
 
 const string dot_body = ".body";
 
+const string this_name = "this";
+
 extern void copy_scope(const scope* src, scope* dst, map<var*, var*>& tbl);
 
 } // end of namespace cxx_compiler

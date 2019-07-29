@@ -163,7 +163,7 @@ cxx_compiler::genaddr::call(std::vector<var*>* arg)
   var* this_ptr = 0;
   if (fun_scope->m_id == scope::TAG) {
     if (!(flag & usr::STATIC)) {
-      int r = parse::identifier::lookup("this", scope::current);
+      int r = parse::identifier::lookup(this_name, scope::current);
       if (!r)
         error::not_implemented();
       assert(r == IDENTIFIER_LEX);

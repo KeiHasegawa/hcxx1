@@ -338,17 +338,17 @@ namespace cxx_compiler {
 	      children.push_back(b);
 	      b->m_parent = param;
 
-	      string name = "this";
 	      const type* T = ptr->m_types.second;
 	      T = pointer_type::create(T);
-	      usr* this_ptr = new usr(name,T,usr::NONE,file_t(),usr::NONE2);
+	      usr* this_ptr = new usr(this_name, T, usr::NONE, parse::position,
+				      usr::NONE2);
 	      this_ptr->m_scope = param;
 	      vector<usr*>& order = param->m_order;
 	      vector<usr*> tmp = order;
 	      order.clear();
 	      order.push_back(this_ptr);
 	      copy(begin(tmp), end(tmp), back_inserter(order));
-	      param->m_usrs[name].push_back(this_ptr);
+	      param->m_usrs[this_name].push_back(this_ptr);
 	      return b;
 	    }
 	    map<usr*, map<usr*, pbc> > mtbl;
@@ -427,8 +427,7 @@ namespace cxx_compiler {
 	    {
 	      map<string, vector<usr*> >& usrs = param->m_usrs;
 	      typedef map<string, vector<usr*> >::const_iterator IT;
-	      string name = "this";
-	      IT p = usrs.find(name);
+	      IT p = usrs.find(this_name);
 	      if (p != usrs.end()) {
 		const vector<usr*>& v = p->second;
 		assert(v.size() == 1);
@@ -436,9 +435,9 @@ namespace cxx_compiler {
 		return this_ptr;
 	      }
 	      const type* T = pointer_type::create(rec);
-	      usr* this_ptr =
-		new usr(name, T, usr::NONE, file_t(), usr::NONE2);
-	      usrs[name].push_back(this_ptr);
+	      usr* this_ptr = new usr(this_name, T, usr::NONE,
+				      parse::position, usr::NONE2);
+	      usrs[this_name].push_back(this_ptr);
 	      vector<usr*>& order = param->m_order;
 	      vector<usr*> tmp = order;
 	      order.clear();

@@ -367,6 +367,13 @@ namespace cxx_compiler {
       namespace function {
 	namespace definition {
 	  bool valid(const type*, usr*);
+	  inline bool include_this(const vector<usr*>& order)
+	  {
+	    if (order.empty())
+	      return false;
+	    usr* u = order[0];
+	    return u->m_name == this_name;
+	  }
 	  bool match(const usr* u, const vector<usr*>& order)
 	  {
 	    const type* T = u->m_type;
@@ -374,6 +381,25 @@ namespace cxx_compiler {
 	    typedef const func_type FT;
 	    FT* ft = static_cast<FT*>(T);
 	    const vector<const type*>& param = ft->param();
+#if 1
+	    bool inc = include_this(order);
+	    int n = inc ? 1 : 0;
+	    if (order.empty() || inc && order.size() == 1) {
+	      if (param.size() != 1)
+		return false;
+	      const type* T = param.back();
+	      return T->m_id == type::VOID;
+	    }
+	    if (param.size() != order.size() - n)
+	      return false;
+	    typedef vector<const type*>::const_iterator ITx;
+	    typedef vector<usr*>::const_iterator ITy;
+	    pair<ITx, ITy> ret = 
+	      mismatch(begin(param), end(param), begin(order) + n,
+		       [](const type* T, const usr* u)
+		       { return compatible(T, u->m_type); });
+	    return ret == make_pair(end(param), end(order));
+#else
 	    if (order.empty()) {
 	      if (param.size() != 1)
 		return false;
@@ -389,6 +415,7 @@ namespace cxx_compiler {
 		       [](const type* T, const usr* u)
 		       { return compatible(T, u->m_type); });
 	    return ret == make_pair(end(param), end(order));
+#endif
 	  }
 	  inline bool check_now(usr* fun)
 	  {
@@ -526,7 +553,7 @@ namespace cxx_compiler {
     namespace declarators {
       namespace function {
         namespace definition {
-          inline void delete_erase(scope* param, vector<tac*>& vc)
+          inline void erase(scope* param)
           {
             assert(param->m_id == scope::PARAM);
             vector<scope*>& children = param->m_parent->m_children;
@@ -534,12 +561,8 @@ namespace cxx_compiler {
             IT p = find(rbegin(children), rend(children), param);
             assert(p != rend(children));
             vector<scope*>::iterator q = p.base() - 1;
-            delete param;
             children.erase(q);
 	    class_or_namespace_name::pop(param);
-            for (tac* p : vc)
-              delete p;
-            vc.clear();
           }
           namespace static_inline {
             using namespace std;
@@ -564,10 +587,9 @@ namespace cxx_compiler {
 namespace cxx_compiler {
   inline usr* get_this(scope* param, const record_type* rec)
   {
-    string name = "this";
     map<string, vector<usr*> >& usrs = param->m_usrs;
     typedef map<string, vector<usr*> >::const_iterator IT;
-    IT p = usrs.find(name);
+    IT p = usrs.find(this_name);
     assert(p != usrs.end());
     const vector<usr*>& v = p->second;
     assert(v.size() == 1);
@@ -696,7 +718,18 @@ namespace cxx_compiler {
     tag* ptr = static_cast<tag*>(p);
     usr::flag_t flag = usr::flag_t(func->m_flag | usr::INLINE);
     usr* u = new usr(name, ft, flag, parse::position, usr::GENED_BY_COMP);
-    ptr->m_usrs[name].push_back(u);
+    map<string, vector<usr*> >& pusrs = ptr->m_usrs;
+    typedef map<string, vector<usr*> >::const_iterator ITx;
+    ITx itx = pusrs.find(name);
+    if (itx == pusrs.end())
+      pusrs[name].push_back(u);
+    else {
+      const vector<usr*>& v = itx->second;
+      usr* prev = v.back();
+      overload* ovl = new overload(prev, u);
+      pusrs[name].push_back(u);
+      pusrs[name].push_back(ovl);
+    }
 
     using namespace declarations::declarators::function::definition;
     const vector<const type*>& parameter = ft->param();
@@ -821,6 +854,8 @@ function::definition::action(fundef* fdef, std::vector<tac*>& vc)
     cout << '\n';
     dump::scopex();
   }
+
+  using namespace mem_initializer;
   if (!error::counter) {
     if (generator::generate) {
       generator::interface_t tmp = {
@@ -829,15 +864,26 @@ function::definition::action(fundef* fdef, std::vector<tac*>& vc)
         &vc
       };
       generator::generate(&tmp);
-      delete_erase(fdef->m_param, vc);
+      erase(fdef->m_param);
+      if (mtbl.find(fdef->m_usr) == mtbl.end())
+	delete fdef->m_param;
+      for (tac* p : vc)
+	delete p;
+      vc.clear();
     }
     else if (generator::last) {
       remember(fdef, vc);
       class_or_namespace_name::pop(fdef->m_param);
       fundef::current = 0;
     }
-    else
-      delete_erase(fdef->m_param, vc);
+    else {
+      erase(fdef->m_param);
+      if (mtbl.find(fdef->m_usr) == mtbl.end())
+	delete fdef->m_param;
+      for (tac* p : vc)
+	delete p;
+      vc.clear();
+    }
   }
   u->m_type = u->m_type->vla2a();
 }

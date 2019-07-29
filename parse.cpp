@@ -796,13 +796,13 @@ void cxx_compiler::parse::block::enter()
       }
       if (!(func->m_flag & usr::STATIC)) {
 	map<string, vector<usr*> >& usrs = scope::current->m_usrs;
-	string name = "this";
 	typedef map<string, vector<usr*> >::const_iterator IT;
-	IT p = usrs.find(name);
+	IT p = usrs.find(this_name);
 	if (p == usrs.end()) {
 	  const type* pt = pointer_type::create(T);
-	  usr* this_ptr = new usr(name,pt,usr::NONE,file_t(),usr::NONE2);
-	  usrs[name].push_back(this_ptr);
+	  usr* this_ptr = new usr(this_name, pt, usr::NONE, parse::position,
+				  usr::NONE2);
+	  usrs[this_name].push_back(this_ptr);
 	  vector<usr*>& order = scope::current->m_order;
 	  vector<usr*> tmp = order;
 	  order.clear();
