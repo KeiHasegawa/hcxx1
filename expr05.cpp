@@ -44,14 +44,19 @@ namespace cxx_compiler { namespace var_impl {
     }
     usr::flag_t flag = op_fun->m_flag;
     vector<var*> arg;
+    scope* p = op_fun->m_scope;
+    if (p->m_id != scope::TAG)
+      arg.push_back(y);
     arg.push_back(z);
     if (flag & usr::OVERLOAD) {
       overload* ovl = static_cast<overload*>(op_fun);
-      ovl->m_obj = y;
+      if (p->m_id == scope::TAG)
+	ovl->m_obj = y;
       return ovl->call(&arg);
     }
 
-    return call_impl::wrapper(op_fun, &arg, y);
+    var* obj = p->m_id == scope::TAG ? y : 0;
+    return call_impl::wrapper(op_fun, &arg, obj);
   }
 } } // end of namespace var_impl and cxx_compiler
 

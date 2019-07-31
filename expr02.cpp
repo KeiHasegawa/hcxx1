@@ -441,8 +441,14 @@ cxx_compiler::var* cxx_compiler::usr::address()
     using namespace error::expressions::unary::address;
     not_lvalue(parse::position);
   }
+  const type* T = m_type;
+  if (T->m_id == type::REFERENCE) {
+    typedef const reference_type RT;
+    RT* rt = static_cast<RT*>(T);
+    T = rt->referenced_type();
+  }
   typedef const pointer_type PT;
-  PT* pt = pointer_type::create(m_type);
+  PT* pt = pointer_type::create(T);
   block* b = 0;
   if (scope::current->m_id == scope::BLOCK)
     b = static_cast<block*>(scope::current);

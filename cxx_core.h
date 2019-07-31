@@ -76,7 +76,7 @@ typedef std::pair<base*, const record_type*> route_t;
 struct var {
   const type* m_type;
   scope* m_scope;
-  var(const type* T) : m_type(T), m_scope(scope::current) {}
+  var(const type* T);
   virtual var* rvalue(){ return this; }
   virtual bool lvalue() const { return false; }
   virtual bool zero() const { return false; }

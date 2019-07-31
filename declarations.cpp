@@ -564,6 +564,7 @@ cxx_compiler::declarations::action1(var* v, bool ini)
     else {
       u->m_flag = flag = usr::flag_t(flag | p->m_flag);
       u->m_type = T = T->patch(p->m_type,u);
+      flag = u->m_flag;
     }
   }
   else {
@@ -760,6 +761,10 @@ namespace cxx_compiler { namespace declarations {
       return true;
     return name == operator_name(DELETE_ARRAY_LEX);
   }
+  struct friend_func : usr {
+    tag* m_tag;
+    friend_func(const usr& u, tag* ptr) : usr(u), m_tag(ptr) {}
+  };
 } } // end of namespace declarations and cxx_compiler
 
 cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr)
@@ -793,6 +798,17 @@ cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr)
   if (new_or_delete(name)) {
     if (scope::current->m_id == scope::TAG)
       curr->m_flag = usr::flag_t(curr->m_flag | usr::STATIC);
+  }
+
+  usr::flag_t flag = curr->m_flag;
+  if (flag & usr::FRIEND) {
+    if (scope::current->m_id != scope::TAG)
+      error::not_implemented();
+    tag* ptr = static_cast<tag*>(scope::current);
+    if (!(flag & usr::FUNCTION))
+      error::not_implemented();
+    curr->m_scope = &scope::root;
+    curr = new friend_func(*curr, ptr);
   }
 
   map<string, vector<usr*> >& usrs = curr->m_scope->m_usrs;
@@ -829,8 +845,17 @@ cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr)
   }
 
   usrs[name].push_back(curr);
-  if (curr->m_scope->m_id != scope::PARAM || !(curr->m_flag & usr::ENUM_MEMBER))
+  if (curr->m_scope->m_id != scope::PARAM ||
+      !(curr->m_flag & usr::ENUM_MEMBER)) {
     curr->m_scope->m_order.push_back(curr);
+    if (curr->m_scope->m_id == scope::BLOCK) {
+      block* b = static_cast<block*>(curr->m_scope);
+      usr::flag_t mask =
+	usr::flag_t(usr::TYPEDEF | usr::EXTERN | usr::FUNCTION);
+      if (!(flag & mask))
+	block_impl::dtor_tbl[b].push_back(curr);
+    }
+  }
   class_or_namespace_name::last = 0;
   return curr;
 }
@@ -924,7 +949,11 @@ bool cxx_compiler::declarations::conflict(const type* prev, const type* curr)
 cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
 {
   using namespace std;
+#if 0
   scope::id_t id = scope::current->m_id;
+#else
+  scope::id_t id = curr->m_scope->m_id;
+#endif
   switch (id) {
   case scope::NONE: case scope::NAMESPACE:
     {

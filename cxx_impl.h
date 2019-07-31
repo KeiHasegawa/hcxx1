@@ -1172,9 +1172,17 @@ namespace statements {
       expressions::base* m_expr2;
       expressions::base* m_expr3;
       base* m_stmt;
+      scope* m_child;
       int gen();
-      info_t(base* stmt1, expressions::base* expr2, expressions::base* expr3, base* stmt)
-        : m_scope(scope::current), m_stmt1(stmt1), m_expr2(expr2), m_expr3(expr3), m_stmt(stmt) {}
+      info_t(base* stmt1, expressions::base* expr2, expressions::base* expr3,
+	     base* stmt)
+        : m_scope(scope::current), m_stmt1(stmt1), m_expr2(expr2),
+	m_expr3(expr3), m_stmt(stmt)
+      {
+	const vector<scope*>& children = m_scope->m_children;
+	assert(!children.empty());
+	m_child = children.back();
+      }
       ~info_t(){ delete m_stmt1; delete m_expr2; delete m_expr3; delete m_stmt; }
     };
   } // end of namespace do_stmt
@@ -1196,7 +1204,7 @@ namespace statements {
     struct info_t : base {
       expressions::base* m_expr;
       file_t m_file;
-      vector<usr*> m_usrs;
+      vector<var*> m_vars;
       info_t(expressions::base*);
       int gen();
       ~info_t(){ delete m_expr; }
@@ -1471,6 +1479,10 @@ const string dot_body = ".body";
 const string this_name = "this";
 
 extern void copy_scope(const scope* src, scope* dst, map<var*, var*>& tbl);
+
+namespace block_impl {
+  extern map<block*, vector<var*> > dtor_tbl;
+} // end of namespace block_impl
 
 } // end of namespace cxx_compiler
 

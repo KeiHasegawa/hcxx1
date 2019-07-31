@@ -1282,7 +1282,7 @@ from_member(usr* u, const std::vector<route_t>& route)
   const pointer_type* pt = pointer_type::create(T);
   var* res = new ref(pt);
   block* b = get_block();
-  if ( b )
+  if (b)
     b->m_vars.push_back(res);
   else
     garbage.push_back(res);

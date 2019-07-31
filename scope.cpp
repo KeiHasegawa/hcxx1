@@ -61,6 +61,12 @@ cxx_compiler::block::~block()
     delete p;
 }
 
+namespace cxx_compiler {
+  namespace block_impl {
+    map<block*, vector<var*> > dtor_tbl;
+  } // end of namespace block_impl
+} // end of namespace cxx_compiler
+
 std::string cxx_compiler::usr::keyword(flag_t flag)
 {
   using namespace std;
@@ -92,6 +98,12 @@ std::string cxx_compiler::usr::keyword(flag_t flag)
     if (!s.empty())
       os << ' ';
     os << "explicit";
+  }
+  if (flag & FRIEND) {
+    string s = os.str();
+    if (!s.empty())
+      os << ' ';
+    os << "friend";
   }
   if (flag & NAMESPACE)
     os << "namespace";

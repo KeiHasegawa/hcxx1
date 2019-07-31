@@ -223,18 +223,24 @@ int cxx_compiler::statements::compound::info_t::gen()
   using namespace std;
   scope* org = scope::current;
   scope::current = m_scope;
-  if ( m_bases ){
+  if (m_bases) {
     const vector<base*>& v = *m_bases;
     for_each(v.begin(),v.end(),mem_fun(&base::gen));
   }
+  assert(scope::current->m_id == scope::BLOCK);
   block* b = static_cast<block*>(scope::current);
-  const vector<usr*>& order = scope::current->m_order;
-  for_each(order.rbegin(),order.rend(),[](usr* u)
-	   {
-	     usr::flag_t flag = u->m_flag;
-	     if (!(flag & usr::TYPEDEF))
-	       call_dtor(u);
-	   });
+  typedef map<block*, vector<var*> >::iterator IT;
+  IT p = block_impl::dtor_tbl.find(b);
+  if (p != block_impl::dtor_tbl.end()) {
+    const vector<var*>& v = p->second;
+    for_each(rbegin(v), rend(v), call_dtor);
+    block_impl::dtor_tbl.erase(p);
+  }
+  scope* parent = scope::current->m_parent;
+  if (parent->m_id == scope::PARAM) {
+    const vector<usr*>& order = parent->m_order;
+    for_each(rbegin(order), rend(order), call_dtor);
+  }
   scope::current = org;
   return 0;
 }
@@ -866,18 +872,29 @@ int cxx_compiler::statements::for_stmt::info_t::gen()
   using namespace std;
   scope* org = scope::current;
   scope::current = m_scope;
-  if ( m_stmt1 )
+  if (m_stmt1)
     m_stmt1->gen();
   to3ac* begin = new to3ac;
   code.push_back(begin);
   var unused(0);
   var* expr = m_expr2 ? m_expr2->gen() : &unused;
-  expr->for_code(this,begin);
+  expr->for_code(this, begin);
+
+  assert(m_child->m_id == scope::BLOCK);
+  block* b = static_cast<block*>(m_child);
+  typedef map<block*, vector<var*> >::iterator IT;
+  IT p = block_impl::dtor_tbl.find(b);
+  if (p != block_impl::dtor_tbl.end()) {
+    const vector<var*>& v = p->second;
+    for_each(v.rbegin(), v.rend(), call_dtor);
+    block_impl::dtor_tbl.erase(p);
+  }
   scope::current = org;
   return 0;
 }
 
-void cxx_compiler::var::for_code(statements::for_stmt::info_t* info, to3ac* begin)
+void cxx_compiler::var::for_code(statements::for_stmt::info_t* info,
+				 to3ac* begin)
 {
   using namespace std;
   using namespace statements;
@@ -1055,26 +1072,95 @@ int cxx_compiler::statements::continue_stmt::info_t::gen()
   return 0;
 }
 
-namespace cxx_compiler { namespace statements { namespace return_stmt {
-  extern void gather(scope*, std::vector<usr*>&);
-} } } // end of namespace return_stmt, statements and cxx_compiler
+namespace cxx_compiler {
+  namespace statements {
+    namespace return_stmt {
+      extern void gather(scope*, std::vector<var*>&);
+      inline var* copy_ctor(const type* T, var* expr)
+      {
+	if (T->m_id != type::RECORD)
+	  return expr;
+	typedef const record_type REC;
+	REC* rec = static_cast<REC*>(T);
+	tag* ptr = rec->get_tag();
+	usr* ctor = has_ctor_dtor(ptr, false);
+	if (!ctor)
+	  return expr;
+	usr::flag_t flag = ctor->m_flag;
+	if (flag & usr::OVERLOAD) {
+	  overload* ovl = static_cast<overload*>(ctor);
+	  const vector<usr*>& v = ovl->m_candidacy;
+	  typedef vector<usr*>::const_iterator IT;
+	  IT p = find_if(begin(v), end(v),
+			 bind2nd(ptr_fun(canbe_copy_ctor), ptr));
+	  if (p == end(v))
+	    return expr;
+	  ctor = *p;
+	}
+	else {
+	  if (!canbe_copy_ctor(ctor, ptr))
+	    return expr;
+	}
+	usr::flag2_t flag2 = ctor->m_flag2;
+	if (flag2 & usr::GENED_BY_COMP)
+	  return expr;
+	T = ctor->m_type;
+	assert(T->m_id == type::FUNC);
+	typedef const func_type FT;
+	FT* ft = static_cast<FT*>(T);
+	const vector<const type*>& param = ft->param();
+	assert(!param.empty());
+	T = param[0];
+	var* t0 = new var(T);
+	var* t1 = new var(rec);
+	if (scope::current->m_id == scope::BLOCK) {
+	  block* b = static_cast<block*>(scope::current);
+	  b->m_vars.push_back(t0);
+	  b->m_vars.push_back(t1);
+	}
+	else {
+	  garbage.push_back(t0);
+	  garbage.push_back(t1);
+	}
+	code.push_back(new addr3ac(t0, expr));
+	vector<var*> arg;
+	arg.push_back(t0);
+	call_impl::wrapper(ctor, &arg, t1);
+	return t1;
+      }
+    } // end of namespace return_stmt
+  } // end of namespace statements
+} // end of namespace cxx_compiler
 
-cxx_compiler::statements::return_stmt::info_t::info_t(expressions::base* b) : m_expr(b), m_file(parse::position)
+cxx_compiler::statements::return_stmt::info_t::info_t(expressions::base* b)
+  : m_expr(b), m_file(parse::position)
 {
-  gather(scope::current,m_usrs);
+  gather(scope::current, m_vars);
 }
 
 void cxx_compiler::statements::
-return_stmt::gather(scope* ptr, std::vector<usr*>& res)
+return_stmt::gather(scope* ptr, std::vector<var*>& res)
 {
   using namespace std;
   scope::id_t id = ptr->m_id;
-  if (id != scope::BLOCK && id != scope::PARAM)
+  if (id == scope::BLOCK) {
+    block* b = static_cast<block*>(ptr);
+    typedef map<block*, vector<var*> >::iterator IT;
+    IT p = block_impl::dtor_tbl.find(b);
+    if (p != block_impl::dtor_tbl.end()) {
+      const vector<var*>& v = p->second;
+      copy(rbegin(v), rend(v), back_inserter(res));
+    }
+  }
+  else if (id == scope::PARAM) {
+    vector<usr*>& order = ptr->m_order;
+    copy(order.rbegin(),order.rend(),back_inserter(res));
+  }
+  else
     return;
-  vector<usr*>& order = ptr->m_order;
-  copy(order.rbegin(),order.rend(),back_inserter(res));
+
   if (ptr->m_parent)
-    gather(ptr->m_parent,res);
+    gather(ptr->m_parent, res);
 }
 
 int cxx_compiler::statements::return_stmt::info_t::gen()
@@ -1111,6 +1197,7 @@ int cxx_compiler::statements::return_stmt::info_t::gen()
     expr = res->aggregate() ? aggregate_conv(res, expr) : expr->cast(res);
     if (T->m_id == type::REFERENCE && res->m_id != type::REFERENCE)
       expr = expr->address();
+    expr = copy_ctor(T, expr);
   }
   else {
     if (T->m_id != type::VOID) {
@@ -1118,14 +1205,7 @@ int cxx_compiler::statements::return_stmt::info_t::gen()
       invalid(m_file,void_type::create(),T);
     }
   }
-  for_each(m_usrs.begin(),m_usrs.end(),[](usr* u)
-	   {
-	     usr::flag_t flag = u->m_flag;
-	     usr::flag_t mask =
-	       usr::flag_t(usr::TYPEDEF | usr::EXTERN | usr::FUNCTION);
-	     if (!(flag & mask))
-	       call_dtor(u);
-	   });
+  for_each(begin(m_vars), end(m_vars), call_dtor);
   code.push_back(new return3ac(expr));
   return 0;
 }
