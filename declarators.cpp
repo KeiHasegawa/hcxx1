@@ -1077,12 +1077,14 @@ function::definition::static_inline::gencode(info_t* info)
     ss(scope* ptr) : m_org(0)
     {
       vector<scope*>& ch = scope::root.m_children;
-      typedef vector<scope*>::iterator IT;
-      IT p = find_if(begin(ch), end(ch), bind2nd(ptr_fun(cmp), scope::PARAM));
-      if (p == end(ch))
+      typedef vector<scope*>::reverse_iterator IT;
+      IT p = find_if(rbegin(ch), rend(ch),
+		     bind2nd(ptr_fun(cmp), scope::PARAM));
+      if (p == rend(ch))
         ch.push_back(ptr);
       else {
-        assert(p+1 == ch.end());
+	vector<scope*>::iterator q = p.base() - 1;
+        assert(q+1 == end(ch));
         m_org = *p;
         *p = ptr;
       }
