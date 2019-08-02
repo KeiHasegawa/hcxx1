@@ -2206,19 +2206,18 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::fcast::gen()
   typedef const record_type REC;
   REC* rec = static_cast<REC*>(m_type);
   tag* ptr = rec->get_tag();
-  usr* ctor = has_ctor_dtor(ptr, false);
-  if (!ctor)
-    return ret;
-  usr::flag_t flag = ctor->m_flag;
-  if (flag & usr::OVERLOAD) {
-    overload* ovl = static_cast<overload*>(ctor);
-    ovl->m_obj = ret;
-    ctor->call(&arg);
-    return ret;
-  }
+  if (usr* ctor = has_ctor_dtor(ptr, false)) {
+    usr::flag_t flag = ctor->m_flag;
+    if (flag & usr::OVERLOAD) {
+      overload* ovl = static_cast<overload*>(ctor);
+      ovl->m_obj = ret;
+      ctor->call(&arg);
+      return ret;
+    }
 
-  if (fcast_impl::try_call(ctor, &arg, ret))
-    return ret;
+    if (fcast_impl::try_call(ctor, &arg, ret))
+      return ret;
+  }
 
   if (arg.size() != 1)
     return ret;  // already error handled. just return.
