@@ -44,7 +44,7 @@ namespace cxx_compiler {
       code.push_back(new loff3ac(x, xoff, tmp));
     }
   };
-  var* aggregate_conv(const type* T, var* y)
+  var* aggregate_conv(const type* T, var* y, bool* conv_fun)
   {
     using namespace expressions::primary::literal;
     const type* Tx = T->unqualified();
@@ -55,8 +55,10 @@ namespace cxx_compiler {
     assert(Tx->m_id == type::RECORD);
     typedef const record_type REC;
     REC* xrec = static_cast<REC*>(Tx);
-    if (Ty->m_id != type::RECORD)
+    if (Ty->m_id != type::RECORD) {
+      *conv_fun = true;
       return expressions::assignment::ctor_conv_common(xrec, y, false);
+    }
     REC* yrec = static_cast<REC*>(Ty);
     vector<route_t> dummy;
     bool ambiguous = false;
@@ -81,6 +83,7 @@ namespace cxx_compiler {
     }
     usr* fun = cast_impl::conversion_function(yrec, xrec, true);
     assert(fun);
+    *conv_fun = true;
     return call_impl::wrapper(fun, 0, y);
   }
   namespace operator_assign {
@@ -223,7 +226,8 @@ cxx_compiler::var* cxx_compiler::usr::assign(var* op)
   if (m_type->m_id == type::REFERENCE)
     code.push_back(new invladdr3ac(this,y));
   else {
-    y = T->aggregate() ? aggregate_conv(T, y) : y->cast(T);
+    bool conv_fun = false;
+    y = T->aggregate() ? aggregate_conv(T, y, &conv_fun) : y->cast(T);
     if (operator_assign::require(T, y)) {
       const type* pt = pointer_type::create(T);
       var* px = new var(pt);
@@ -278,7 +282,8 @@ cxx_compiler::var* cxx_compiler::ref::assign(var* op)
     invalid(parse::position,0,discard);
     T = int_type::create();
   }
-  y = T->aggregate() ? aggregate_conv(T, y) : y->cast(T);
+  bool conv_fun = false;
+  y = T->aggregate() ? aggregate_conv(T, y, &conv_fun) : y->cast(T);
   code.push_back(new invladdr3ac(this,y));
   if ( !y->isconstant() )
     return y;
@@ -315,7 +320,8 @@ cxx_compiler::var* cxx_compiler::refaddr::assign(var* op)
     invalid(parse::position,0,discard);
     res = int_type::create();
   }
-  z = res->aggregate() ? aggregate_conv(res, z) : z->cast(res);
+  bool conv_fun = false;
+  z = res->aggregate() ? aggregate_conv(res, z, &conv_fun) : z->cast(res);
   using namespace expressions::primary::literal;
   int offset = m_addrof.m_offset;
   var* y = integer::create(offset);
@@ -438,7 +444,8 @@ cxx_compiler::var* cxx_compiler::refsomewhere::assign(var* op)
     invalid(parse::position,0,discard);
     T = int_type::create();
   }
-  op = T->aggregate() ? aggregate_conv(T, op) : op->cast(T);
+  bool conv_fun = false;
+  op = T->aggregate() ? aggregate_conv(T, op, &conv_fun) : op->cast(T);
   vector<route_t> dummy;
   var* x = expressions::primary::action(m_ref, dummy);
   if (x != m_ref) {

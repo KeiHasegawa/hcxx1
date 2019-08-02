@@ -949,11 +949,7 @@ bool cxx_compiler::declarations::conflict(const type* prev, const type* curr)
 cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
 {
   using namespace std;
-#if 0
-  scope::id_t id = scope::current->m_id;
-#else
   scope::id_t id = curr->m_scope->m_id;
-#endif
   switch (id) {
   case scope::NONE: case scope::NAMESPACE:
     {

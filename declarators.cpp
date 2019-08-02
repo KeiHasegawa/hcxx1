@@ -381,7 +381,6 @@ namespace cxx_compiler {
 	    typedef const func_type FT;
 	    FT* ft = static_cast<FT*>(T);
 	    const vector<const type*>& param = ft->param();
-#if 1
 	    bool inc = include_this(order);
 	    int n = inc ? 1 : 0;
 	    if (order.empty() || inc && order.size() == 1) {
@@ -399,23 +398,6 @@ namespace cxx_compiler {
 		       [](const type* T, const usr* u)
 		       { return compatible(T, u->m_type); });
 	    return ret == make_pair(end(param), end(order));
-#else
-	    if (order.empty()) {
-	      if (param.size() != 1)
-		return false;
-	      const type* T = param.back();
-	      return T->m_id == type::VOID;
-	    }
-	    if (param.size() != order.size())
-	      return false;
-	    typedef vector<const type*>::const_iterator ITx;
-	    typedef vector<usr*>::const_iterator ITy;
-	    pair<ITx, ITy> ret = 
-	      mismatch(begin(param), end(param), begin(order),
-		       [](const type* T, const usr* u)
-		       { return compatible(T, u->m_type); });
-	    return ret == make_pair(end(param), end(order));
-#endif
 	  }
 	  inline bool check_now(usr* fun)
 	  {

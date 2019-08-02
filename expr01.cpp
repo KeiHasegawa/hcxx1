@@ -715,7 +715,8 @@ cxx_compiler::var* cxx_compiler::call_impl::convert::operator()(var* arg)
     }
   }
   else {
-    arg = aggregate_conv(T, arg);
+    bool conv_fun = false;
+    arg = aggregate_conv(T, arg, &conv_fun);
     if (m_trial_cost)
       ++*m_trial_cost;
   }

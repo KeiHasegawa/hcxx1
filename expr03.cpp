@@ -31,7 +31,9 @@ cxx_compiler::var* cxx_compiler::expressions::cast::info_t::gen()
       res = int_type::create();
     }
   }
-  return res->aggregate() ? aggregate_conv(res, expr) : expr->cast(res);
+  bool conv_fun = false;
+  return res->aggregate() ?
+    aggregate_conv(res, expr, &conv_fun) : expr->cast(res);
 }
 
 const cxx_compiler::file_t& cxx_compiler::expressions::cast::info_t::file() const
@@ -465,7 +467,11 @@ namespace cxx_compiler { namespace constant_impl {
         return cast(et->get_integer(),y);
       }
     default:
-      return Tx->aggregate() ? aggregate_conv(Tx, y) : y->var::cast(Tx);
+      {
+	bool conv_fun = false;
+	return Tx->aggregate() ?
+	  aggregate_conv(Tx, y, &conv_fun) : y->var::cast(Tx);
+      }
     }
   }
   template<class T> var* fcast(const type* Tx, constant<T>* y)
@@ -521,7 +527,11 @@ namespace cxx_compiler { namespace constant_impl {
         return fcast(et->get_integer(),y);
       }
     default:
-      return Tx->aggregate() ? aggregate_conv(Tx, y) : y->var::cast(Tx);
+      {
+	bool conv_fun = false;
+	return Tx->aggregate() ?
+	  aggregate_conv(Tx, y, &conv_fun) : y->var::cast(Tx);
+      }
     }
   }
   template<class T> var* pcast(const type* Tx, constant<T>* y)
@@ -703,7 +713,9 @@ cxx_compiler::var* cxx_compiler::constant<long double>::cast(const type* T)
     else {
       double d = (*generator::long_double->to_double)(b);
       usr* tmp = floating::create(d);
-      return T->aggregate() ? aggregate_conv(T, tmp) : tmp->cast(T);
+      bool conv_fun = false;
+      return T->aggregate() ?
+	aggregate_conv(T, tmp, &conv_fun) : tmp->cast(T);
     }
   }
   else

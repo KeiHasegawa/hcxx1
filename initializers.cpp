@@ -36,7 +36,7 @@ void cxx_compiler::declarations::initializers::action(var* v, info_t* i)
   argument arg(u->m_type,p ? p->m_value : table[u].m_value,0,0,-1,-1,-1,-1);
   int n = code.size();
   i->m_clause ? clause::gencode(i->m_clause,&arg) : expr_list(i->m_exprs,&arg);
-  if ( p ){
+  if (p) {
 #ifdef _DEBUG
     map<int,var*>& m = p->m_value;
     typedef map<int,var*>::const_iterator IT;
@@ -48,7 +48,7 @@ void cxx_compiler::declarations::initializers::action(var* v, info_t* i)
       }
     }
 #endif // _DEBUG
-    if ( scope::current != &scope::root )
+    if (scope::current != &scope::root)
       expressions::constant_flag = false;
   }
   else {
@@ -58,7 +58,7 @@ void cxx_compiler::declarations::initializers::action(var* v, info_t* i)
     code.resize(n);
   }
   const type* T = u->m_type;
-  if ( T->m_id == type::ARRAY ){
+  if (T->m_id == type::ARRAY) {
     typedef const array_type ARRAY;
     ARRAY* array = static_cast<ARRAY*>(T);
     if (!array->dim()) {
@@ -72,6 +72,24 @@ void cxx_compiler::declarations::initializers::action(var* v, info_t* i)
   if (p) {
     if (arg.not_constant)
       initialize_code(p);
+    else {
+      typedef map<usr*, gendata>::const_iterator IT;
+      IT it = table.find(p);
+      if (it != table.end()) {
+	const gendata& tmp = it->second;
+	const vector<tac*>& c = tmp.m_code;
+	assert(!c.empty());
+	copy(begin(c), end(c), back_inserter(code));
+	initialize_code(p);
+      }
+      else {
+	if (n != code.size()) {
+	  const map<int, var*>& value = p->m_value;
+	  if (value.empty())
+	    initialize_code(p);
+	}
+      }
+    }
   }
   parse::identifier::mode = parse::identifier::new_obj;
 }
@@ -487,7 +505,8 @@ assign(var* y, argument* arg)
   typedef const bit_field_type BF;
   if ( T->m_id == type::BIT_FIELD )
     return bit_field(y,arg);
-  y = T->aggregate() ? aggregate_conv(T, y) : y->cast(T);
+  bool conv_fun = false;
+  y = T->aggregate() ? aggregate_conv(T, y, &conv_fun) : y->cast(T);
   if (y->addrof_cast()) {
     vector<var*>& v = garbage;
     vector<var*>::reverse_iterator p = find(v.rbegin(),v.rend(),y);
@@ -522,8 +541,11 @@ assign(var* y, argument* arg)
     else
       arg->V[arg->off] = new addrof(pt, y, 0);
   }
-  else
-    arg->V[arg->off] = y;
+  else {
+    usr::flag_t flag = argument::dst->m_flag;
+    if (!(flag & usr::WITH_INI) || !conv_fun)
+      arg->V[arg->off] = y;
+  }
   arg->nth_max = max(arg->nth_max,++arg->nth);
   arg->off_max = max(arg->off_max, arg->off += T->size());
   return arg->off;

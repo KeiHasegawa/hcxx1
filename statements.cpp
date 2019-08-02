@@ -1194,7 +1194,9 @@ int cxx_compiler::statements::return_stmt::info_t::gen()
       invalid(m_file,from,to);
       return 0;
     }
-    expr = res->aggregate() ? aggregate_conv(res, expr) : expr->cast(res);
+    bool conv_fun = false;
+    expr = res->aggregate() ?
+      aggregate_conv(res, expr, &conv_fun) : expr->cast(res);
     if (T->m_id == type::REFERENCE && res->m_id != type::REFERENCE)
       expr = expr->address();
     expr = copy_ctor(T, expr);
@@ -1277,7 +1279,7 @@ void cxx_compiler::statements::declaration::check_storage(usr* u)
 {
   usr::flag_t& flag = u->m_flag;
   usr::flag_t mask = usr::flag_t(usr::TYPEDEF | usr::EXTERN | usr::STATIC);
-  if ( flag & mask ){
+  if (flag & mask) {
     using namespace error::statements::for_stmt;
     invalid_storage(u);
     flag = usr::flag_t(flag & ~mask);
@@ -1287,7 +1289,7 @@ void cxx_compiler::statements::declaration::check_storage(usr* u)
 int cxx_compiler::statements::declaration::info_t::gen()
 {
   using namespace std;
-  if ( m_usrs )
+  if (m_usrs)
     for_each(m_usrs->begin(),m_usrs->end(),mem_fun(&usr::initialize));
   return 0;
 }

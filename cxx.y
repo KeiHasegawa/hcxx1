@@ -1650,20 +1650,22 @@ postfix_expression
     { $$ = new cxx_compiler::expressions::postfix::ppmm($1,true); }
   | postfix_expression MINUSMINUS_MK
     { $$ = new cxx_compiler::expressions::postfix::ppmm($1,false); }
-  | DYNAMIC_CAST_KW     '<' type_id '>' '(' expression ')'
+  | DYNAMIC_CAST_KW '<' type_id '>' '(' expression ')'
     { cxx_compiler::error::not_implemented(); }
-  | STATIC_CAST_KW      '<' type_id '>' '(' expression ')'
-    { cxx_compiler::error::not_implemented(); }
+  | STATIC_CAST_KW '<' type_id '>' '(' expression ')'
+    { $$ = new cxx_compiler::expressions::cast::info_t($3,$6); }
   | REINTERPRET_CAST_KW '<' type_id '>' '(' expression ')'
     { cxx_compiler::error::not_implemented(); }
-  | CONST_CAST_KW       '<' type_id '>' '(' expression ')'
+  | CONST_CAST_KW '<' type_id '>' '(' expression ')'
     { cxx_compiler::error::not_implemented(); }
   | TYPEID_KW '(' expression ')'
     { cxx_compiler::error::not_implemented(); }
   | TYPEID_KW '(' type_id ')'
     { cxx_compiler::error::not_implemented(); }
-  | '(' type_id ')' '{' initializer_list '}' { $$ = new cxx_compiler::expressions::compound::info_t($2,$5); }
-  | '(' type_id ')' '{' initializer_list ',' '}' { $$ = new cxx_compiler::expressions::compound::info_t($2,$5); }
+  | '(' type_id ')' '{' initializer_list '}'
+    { $$ = new cxx_compiler::expressions::compound::info_t($2,$5); }
+  | '(' type_id ')' '{' initializer_list ',' '}'
+    { $$ = new cxx_compiler::expressions::compound::info_t($2,$5); }
   ;
 
 fcast_prev
