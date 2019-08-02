@@ -612,6 +612,7 @@ cxx_compiler::call_impl::common(const func_type* ft,
   if (scope::current->m_id == scope::BLOCK) {
     block* b = static_cast<block*>(scope::current);
     b->m_vars.push_back(x);
+    block_impl::dtor_tbl[b].push_back(x);
   }
   else
     garbage.push_back(x);
@@ -2196,6 +2197,7 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::fcast::gen()
   if (scope::current->m_id == scope::BLOCK) {
     block* b = static_cast<block*>(scope::current);
     b->m_vars.push_back(ret);
+    block_impl::dtor_tbl[b].push_back(ret);
   }
   else
     garbage.push_back(ret);

@@ -442,7 +442,8 @@ cxx_compiler::var* cxx_compiler::usr::address()
     not_lvalue(parse::position);
   }
   const type* T = m_type;
-  if (T->m_id == type::REFERENCE) {
+  const type* U = T->unqualified();
+  if (U->m_id == type::REFERENCE) {
     typedef const reference_type RT;
     RT* rt = static_cast<RT*>(T);
     T = rt->referenced_type();
@@ -455,10 +456,19 @@ cxx_compiler::var* cxx_compiler::usr::address()
   if (b && !expressions::constant_flag) {
     var* x = new var(pt);
     b->m_vars.push_back(x);
-    code.push_back(new addr3ac(x,this));
+    if (U->m_id == type::REFERENCE)
+      code.push_back(new assign3ac(x,this));
+    else
+      code.push_back(new addr3ac(x,this));
     return x;
   }
   else {
+    if (U->m_id == type::REFERENCE) {
+      var* x = new var(pt);
+      code.push_back(new assign3ac(x,this));
+      garbage.push_back(x);
+      return x;
+    }
     var* ret = new addrof(pt,this,0);
     garbage.push_back(ret);
     return ret;
