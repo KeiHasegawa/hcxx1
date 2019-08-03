@@ -279,7 +279,7 @@ namespace cxx_compiler {
               const type* Ty = y->result_type();
               var tmp(Ty);
               bool discard = false;
-              const type* T = assignment::valid(Tx, &tmp, &discard, true);
+              const type* T = assignment::valid(Tx, &tmp, &discard, true, 0);
               if (!T)
                 error::not_implemented();
 	      y = y->cast(Tx);

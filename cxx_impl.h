@@ -205,6 +205,7 @@ namespace error {
       extern void invalid_assign(const file_t&, const usr*, bool);
       extern void with_extern(const usr*);
       extern void no_ctor(const usr*);
+      extern void implicit(const file_t&, const usr*);
       namespace designator {
         extern void invalid_subscripting(const file_t&, const type*);
         extern void not_integer(const file_t&);
@@ -1034,9 +1035,9 @@ namespace expressions {
     };
   } // end of namespace conditional
   namespace assignment {
-    extern const type* valid(const type*, var*, bool*, bool);
+    extern const type* valid(const type*, var*, bool*, bool, usr**);
     extern bool include(int cvr_x, int cvr_y);
-    extern var* ctor_conv_common(const record_type*, var*, bool);
+    extern var* ctor_conv_common(const record_type*, var*, bool, usr**);
   } // end of namespace assignment
   extern bool constant_flag;
 } // end of namespace expressions
@@ -1425,6 +1426,7 @@ struct overload : usr {
   var* m_obj;
   overload(usr* prev, usr* curr);
   var* call(vector<var*>*);
+  var* call(vector<var*>*, int*);
 };
 
 namespace class_or_namespace_name {

@@ -2581,9 +2581,11 @@ void cxx_compiler::handle_copy_ctor(tag* ptr)
     return;
   const vector<usr*>& v = p->second;
   typedef vector<usr*>::const_iterator IT;
+#if 0
   IT q = find_if(begin(v), end(v), canbe_default_ctor);
   if (q == end(v))
     return;
+#endif
   IT r = find_if(begin(v), end(v), bind2nd(ptr_fun(canbe_copy_ctor), ptr));
   if (r != end(v))
     return;

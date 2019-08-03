@@ -308,6 +308,12 @@ namespace cxx_compiler {
 
 cxx_compiler::var* cxx_compiler::overload::call(std::vector<var*>* arg)
 {
+  return call(arg, 0);
+}
+
+cxx_compiler::var* cxx_compiler::overload::call(std::vector<var*>* arg,
+						int* ind)
+{
   using namespace std;
   using namespace overload_impl;
   const vector<usr*>& cand = m_candidacy;
@@ -356,6 +362,8 @@ cxx_compiler::var* cxx_compiler::overload::call(std::vector<var*>* arg)
   assert(p != end(res));
   assert(*p);
   int m = p - begin(res);
+  if (ind)
+    *ind = m;
   var* ret = res[m];
   assert(ret);
   vector<tac*>& v = tmp[m];
@@ -684,7 +692,7 @@ cxx_compiler::var* cxx_compiler::call_impl::convert::operator()(var* arg)
   }
   T = T->unqualified();
   bool discard = false;
-  T = expressions::assignment::valid(T, arg, &discard, !m_trial_cost);
+  T = expressions::assignment::valid(T, arg, &discard, !m_trial_cost, 0);
   if (!T) {
     if (m_trial_cost) {
       *m_trial_cost = numeric_limits<int>::max();
@@ -1718,13 +1726,18 @@ namespace cxx_compiler {
       {
         return table.find(make_pair(x, y)) != table.end();
       }
-      var* ctor_conv_common(const record_type* xx, var* src, bool trial)
+      var* ctor_conv_common(const record_type* xx, var* src, bool trial,
+			    usr** exp_ctor)
       {
 	tag* ptr = xx->get_tag();
 	usr* ctor = has_ctor_dtor(ptr, false);
 	if (!ctor)
 	  return 0;
 	usr::flag_t flag = ctor->m_flag;
+	if (flag & usr::EXPLICIT) {
+	  if (exp_ctor)
+	    *exp_ctor = ctor;
+	}
 	var* obj = new var(xx);
 	if (scope::current->m_id == scope::BLOCK) {
 	  block* b = static_cast<block*>(scope::current);
@@ -1738,7 +1751,34 @@ namespace cxx_compiler {
 	  overload* ovl = static_cast<overload*>(ctor);
 	  ovl->m_obj = obj;
 	  int n = code.size();
-	  var* res = ovl->call(&arg);
+	  vector<usr::flag_t> org;
+	  if (scope::current->m_id != scope::BLOCK) {
+	    const vector<usr*>& v = ovl->m_candidacy;
+	    for_each(begin(v), end(v), [&org](usr* u)
+		     {
+		       usr::flag_t flag = u->m_flag;
+		       org.push_back(flag);
+		       u->m_flag = usr::flag_t(flag & ~usr::INLINE);
+		     });
+	  }
+	  int ind = -1;
+	  var* res = ovl->call(&arg, &ind);
+	  if (scope::current->m_id != scope::BLOCK) {
+	    vector<usr*>& v = ovl->m_candidacy;
+	    for (int i = 0 ; i != v.size() ; ++i )
+	      v[i]->m_flag = org[i];
+	  }
+	  if (res) {
+	    assert(ind >= 0);
+	    const vector<usr*>& v = ovl->m_candidacy;
+	    usr* u = v[ind];
+	    usr::flag_t flag = u->m_flag;
+	    if (flag & usr::EXPLICIT) {
+	      if (exp_ctor)
+		*exp_ctor = u;
+	    }
+	  }
+
 	  if (trial) {
 	    for_each(begin(code)+n, end(code), [](tac* p){ delete p; });
 	    code.resize(n);
@@ -1780,7 +1820,8 @@ namespace cxx_compiler {
 
 const cxx_compiler::type*
 cxx_compiler::expressions::
-assignment::valid(const type* T, var* src, bool* discard, bool ctor_conv)
+assignment::valid(const type* T, var* src, bool* discard, bool ctor_conv,
+		  usr** exp_ctor)
 {
   const type* xx = T;
   const type* yy = src->result_type();
@@ -1798,7 +1839,7 @@ assignment::valid(const type* T, var* src, bool* discard, bool ctor_conv)
     REC* xrec = static_cast<REC*>(xx);
     if (yy->m_id != type::RECORD) {
       if (ctor_conv)
-	return ctor_conv_common(xrec, src, true) ? xx : 0;
+	return ctor_conv_common(xrec, src, true, exp_ctor) ? xx : 0;
       return 0;
     }
     REC* yrec = static_cast<REC*>(yy);
@@ -1882,7 +1923,7 @@ assignment::valid(const type* T, var* src, bool* discard, bool ctor_conv)
     if (T == X)
       return T;
     if (!T->modifiable() || !X->modifiable()) {
-      if (const type* r = valid(T, src, discard, ctor_conv))
+      if (const type* r = valid(T, src, discard, ctor_conv, exp_ctor))
 	return r;
     }
     if (X->m_id == type::REFERENCE) {
@@ -1895,7 +1936,7 @@ assignment::valid(const type* T, var* src, bool* discard, bool ctor_conv)
       T = pointer_type::create(T);
       X = pointer_type::create(X);
       var tmp(X);
-      if (valid(T, &tmp, discard, ctor_conv))
+      if (valid(T, &tmp, discard, ctor_conv, exp_ctor))
         return xx;
     }
   }

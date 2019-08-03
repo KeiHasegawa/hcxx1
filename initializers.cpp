@@ -400,7 +400,7 @@ expr_list(std::vector<expressions::base*>* exprs, argument* arg)
       expressions::base* expr = (*exprs)[0];
       var* src = expr->gen();
       bool discard = false;
-      if (expressions::assignment::valid(T, src, &discard, true))
+      if (expressions::assignment::valid(T, src, &discard, true, 0))
 	return clause::assign(src, arg);
     }
     using namespace error::declarations::initializers;
@@ -419,7 +419,22 @@ expr_list(std::vector<expressions::base*>* exprs, argument* arg)
     overload* ovl = static_cast<overload*>(ctor);
     ovl->m_obj = argument::dst;
     int n = code.size();
+    vector<usr::flag_t> org;
+    if (scope::current->m_id != scope::BLOCK) {
+      const vector<usr*>& v = ovl->m_candidacy;
+      for_each(begin(v), end(v), [&org](usr* u)
+	       {
+		 usr::flag_t flag = u->m_flag;
+		 org.push_back(flag);
+		 u->m_flag = usr::flag_t(flag & ~usr::INLINE);
+	       });
+    }
     ovl->call(&res);
+    if (scope::current->m_id != scope::BLOCK) {
+      vector<usr*>& v = ovl->m_candidacy;
+      for (int i = 0 ; i != v.size() ; ++i )
+	v[i]->m_flag = org[i];
+    }
     vector<tac*>& c = table[argument::dst].m_code;
     copy(begin(code)+n, end(code), back_inserter(c));
     code.resize(n);
@@ -490,7 +505,7 @@ assign(var* y, argument* arg)
     T = ret.second;
     if (!T->scalar() && y->m_type->scalar()) {
       bool discard = false;
-      if (!expressions::assignment::valid(T, y, &discard, true))
+      if (!expressions::assignment::valid(T, y, &discard, true, 0))
 	return assign_special(y,arg);
     }
     arg->off_max = max(arg->off_max, arg->off = ret.first);
@@ -511,11 +526,17 @@ assign(var* y, argument* arg)
     }
   }
   bool discard = false;
-  T = expressions::assignment::valid(T, y, &discard, true);
+  usr* exp_ctor = 0;
+  T = expressions::assignment::valid(T, y, &discard, true, &exp_ctor);
   if (!T) {
     using namespace error::declarations::initializers;
     invalid_assign(parse::position,argument::dst,discard);
     return arg->off;
+  }
+
+  if (exp_ctor) {
+    using namespace error::declarations::initializers;
+    implicit(parse::position, exp_ctor);
   }
 
   typedef const bit_field_type BF;

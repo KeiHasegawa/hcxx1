@@ -1864,6 +1864,27 @@ void cxx_compiler::error::declarations::initializers::no_ctor(const usr* u)
   ++counter;
 }
 
+void cxx_compiler::error::declarations::initializers::
+implicit(const file_t& file, const usr* exp_ctor)
+{
+  using namespace std;
+  switch (lang) {
+  case jpn:
+    header(file,"エラー");
+    cerr << "コンストラクタによる暗黙の変換です.\n";
+    header(exp_ctor->m_file,"エラー");
+    cerr << "ここで宣言されています.\n";
+    break;
+  default:
+    header(file,"error");
+    cerr << "implicit constructor conversion.\n";
+    header(exp_ctor->m_file,"error");
+    cerr << "declared here.\n";
+    break;
+  }
+  ++counter;
+}
+
 void cxx_compiler::error::expressions::primary::literal::character::invalid(const file_t& file, std::string name, const type* T)
 {
   using namespace std;

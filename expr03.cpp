@@ -306,7 +306,7 @@ namespace cxx_compiler {
 const cxx_compiler::type*
 cxx_compiler::expressions::cast::valid(const type* T, var* y)
 {
-  if (assignment::valid(T, y, 0, true))
+  if (assignment::valid(T, y, 0, true, 0))
     return T;
   const type* Tx = T->unqualified();
   const type* Ty = y->m_type->unqualified();

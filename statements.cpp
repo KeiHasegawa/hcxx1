@@ -1186,7 +1186,8 @@ int cxx_compiler::statements::return_stmt::info_t::gen()
 	return 0;
     }
     bool discard = false;
-    const type* res = expressions::assignment::valid(T, expr, &discard, true);
+    const type* res =
+      expressions::assignment::valid(T, expr, &discard, true, 0);
     if (!res) {
       using namespace error::statements::return_stmt;
       const type* from = expr->m_type;
