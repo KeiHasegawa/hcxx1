@@ -1753,6 +1753,8 @@ namespace cxx_compiler {
 	int trial_cost = 0;
 	int* pi = trial ? &trial_cost : 0;
 	int n = code.size();
+	if (scope::current->m_id != scope::BLOCK)
+	  flag = usr::flag_t(flag & ~usr::INLINE);
 	var* res = call_impl::common(ft, ctor, &arg, pi, obj, false, 0);
 	if (trial) {
 	  for_each(begin(code)+n, end(code), [](tac* p){ delete p; });

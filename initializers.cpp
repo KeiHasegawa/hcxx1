@@ -1231,6 +1231,28 @@ namespace cxx_compiler {
 	}
       }
       void common(usr*, bool);
+      inline bool try_inline_sub(int n)
+      {
+	assert(code.size() >= n);
+	tac* ptac = code[n-1];
+	if (ptac->m_id != tac::CALL)
+	  return false;
+	var* v = ptac->y;
+	usr* u = v->usr_cast();
+	if (!u)
+	  return false;
+	usr::flag_t flag = u->m_flag;
+	if (!error::counter && !cmdline::no_inline_sub) {
+	  if (flag & usr::INLINE) {
+	    using namespace declarations::declarators::function;
+	    using namespace definition::static_inline::skip;
+	    table_t::const_iterator p = stbl.find(u);
+	    if (p != stbl.end())
+	      substitute(code, n-1, p->second);
+	  }
+	}
+	return true;
+      }
     }  // end of namespace initializers
   }  // end of namespace declarations
 }  // end of namespace cxx_compiler
@@ -1284,23 +1306,10 @@ void cxx_compiler::declarations::initializers::common(usr* u, bool ini)
     scope* org = scope::current;
     scope::current = body;
     for_with_initial(p, body);
-    if (!code.empty()) {
-      tac* ptac = code.back();
-      if (ptac->m_id == tac::CALL) {
-	var* v = ptac->y;
-	if (usr* u = v->usr_cast()) {
-	  usr::flag_t flag = u->m_flag;
-	  if (!error::counter && !cmdline::no_inline_sub) {
-	    if (flag & usr::INLINE) {
-	      using namespace declarations::declarators::function;
-	      using namespace definition::static_inline::skip;
-	      table_t::const_iterator p = stbl.find(u);
-	      if (p != stbl.end())
-		substitute(code, code.size()-1, p->second);
-	    }
-	  }
-	}
-      }
+    int n = code.size();
+    if (!try_inline_sub(n)) {
+      if (n > 1)
+	try_inline_sub(n-1);
     }
     scope::current = org;
   }
