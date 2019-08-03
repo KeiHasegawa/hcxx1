@@ -40,8 +40,7 @@ namespace cxx_compiler { namespace var_impl {
       op_fun = operator_function(Tz, op);
       if (!op_fun)
 	return 0;
-      bool conv_fun = false;
-      y = aggregate_conv(Tz, y, &conv_fun);
+      y = aggregate_conv(Tz, y);
     }
     usr::flag_t flag = op_fun->m_flag;
     vector<var*> arg;

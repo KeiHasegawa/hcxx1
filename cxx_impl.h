@@ -466,7 +466,7 @@ extern int calc_offset(const record_type* drec,
 		       const std::vector<route_t>& route,
 		       bool* ambiguous);
 
-extern var* aggregate_conv(const type* T, var* y, bool* conv_fun);
+extern var* aggregate_conv(const type* T, var* y);
 
 extern void check_abstract_obj(usr*);
 

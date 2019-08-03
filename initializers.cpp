@@ -18,6 +18,39 @@ namespace cxx_compiler {
         extern int gencode(info_t*, argument*);
       }  // end of namespace clause
       extern int expr_list(vector<expressions::base*>*, argument*);
+      inline void handle_with_initial(with_initial* p, const argument& arg,
+				      int n)
+      {
+	if (arg.not_constant) {
+	  initialize_code(p);
+	  return;
+	}
+
+	typedef map<usr*, gendata>::const_iterator ITx;
+	ITx itx = table.find(p);
+	if (itx != table.end()) {
+	  const gendata& data = itx->second;
+	  const vector<tac*>& c = data.m_code;
+	  copy(begin(c), end(c), back_inserter(code));
+	  initialize_code(p);
+	  return;
+	}
+
+	if (n == code.size())
+	  return;
+	map<int, var*>& value = p->m_value;
+	if (value.size() != 1)
+	  return;
+	typedef map<int, var*>::const_iterator ITy;
+	ITy ity = value.find(0);
+	assert(ity != value.end());
+	var* v = ity->second;
+	if (v->addrof_cast())
+	  return;
+	value.clear();
+	code.push_back(new assign3ac(p, v));
+	initialize_code(p);
+      }
     }  // end of namespace initializers
   }  // end of namespace declarations
 }  // end of namespace cxx_compiler
@@ -69,28 +102,8 @@ void cxx_compiler::declarations::initializers::action(var* v, info_t* i)
         u->m_type = array_type::create(T,(n + m - 1)/ m);
     }
   }
-  if (p) {
-    if (arg.not_constant)
-      initialize_code(p);
-    else {
-      typedef map<usr*, gendata>::const_iterator IT;
-      IT it = table.find(p);
-      if (it != table.end()) {
-	const gendata& tmp = it->second;
-	const vector<tac*>& c = tmp.m_code;
-	assert(!c.empty());
-	copy(begin(c), end(c), back_inserter(code));
-	initialize_code(p);
-      }
-      else {
-	if (n != code.size()) {
-	  const map<int, var*>& value = p->m_value;
-	  if (value.empty())
-	    initialize_code(p);
-	}
-      }
-    }
-  }
+  if (p)
+    handle_with_initial(p, arg, n);
   parse::identifier::mode = parse::identifier::new_obj;
 }
 
@@ -418,7 +431,10 @@ expr_list(std::vector<expressions::base*>* exprs, argument* arg)
   typedef const func_type FT;
   FT* ft = static_cast<FT*>(T2);
   int n = code.size();
+  if (scope::current->m_id != scope::BLOCK)
+    ctor->m_flag = usr::flag_t(ctor->m_flag & ~usr::INLINE);
   call_impl::wrapper(ctor, &res, argument::dst);
+  ctor->m_flag = flag;
   vector<tac*>& c = table[argument::dst].m_code;
   copy(begin(code)+n, end(code), back_inserter(c));
   code.resize(n);
@@ -505,8 +521,7 @@ assign(var* y, argument* arg)
   typedef const bit_field_type BF;
   if ( T->m_id == type::BIT_FIELD )
     return bit_field(y,arg);
-  bool conv_fun = false;
-  y = T->aggregate() ? aggregate_conv(T, y, &conv_fun) : y->cast(T);
+  y = T->aggregate() ? aggregate_conv(T, y) : y->cast(T);
   if (y->addrof_cast()) {
     vector<var*>& v = garbage;
     vector<var*>::reverse_iterator p = find(v.rbegin(),v.rend(),y);
@@ -541,11 +556,8 @@ assign(var* y, argument* arg)
     else
       arg->V[arg->off] = new addrof(pt, y, 0);
   }
-  else {
-    usr::flag_t flag = argument::dst->m_flag;
-    if (!(flag & usr::WITH_INI) || !conv_fun)
-      arg->V[arg->off] = y;
-  }
+  else
+    arg->V[arg->off] = y;
   arg->nth_max = max(arg->nth_max,++arg->nth);
   arg->off_max = max(arg->off_max, arg->off += T->size());
   return arg->off;
@@ -1272,6 +1284,24 @@ void cxx_compiler::declarations::initializers::common(usr* u, bool ini)
     scope* org = scope::current;
     scope::current = body;
     for_with_initial(p, body);
+    if (!code.empty()) {
+      tac* ptac = code.back();
+      if (ptac->m_id == tac::CALL) {
+	var* v = ptac->y;
+	if (usr* u = v->usr_cast()) {
+	  usr::flag_t flag = u->m_flag;
+	  if (!error::counter && !cmdline::no_inline_sub) {
+	    if (flag & usr::INLINE) {
+	      using namespace declarations::declarators::function;
+	      using namespace definition::static_inline::skip;
+	      table_t::const_iterator p = stbl.find(u);
+	      if (p != stbl.end())
+		substitute(code, code.size()-1, p->second);
+	    }
+	  }
+	}
+      }
+    }
     scope::current = org;
   }
   else {
