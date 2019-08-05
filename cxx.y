@@ -84,20 +84,26 @@ namespace cxx_compiler {
 
 %union {
   int m_ival;
-  cxx_compiler::usr* m_usr;
-  std::vector<cxx_compiler::usr*>* m_usrs;
+  typedef cxx_compiler::usr usr;
+  usr* m_usr;
+  std::vector<usr*>* m_usrs;
   cxx_compiler::var* m_var;
-  const cxx_compiler::type* m_type;
-  cxx_compiler::declarations::type_specifier* m_type_specifier;
+  typedef const cxx_compiler::type type;
+  type* m_type;
+  typedef cxx_compiler::declarations::type_specifier type_specifier;
+  type_specifier* m_type_specifier;
   cxx_compiler::declarations::type_specifier_seq::info_t* m_type_specifier_seq;
   cxx_compiler::declarations::specifier* m_specifier;
   cxx_compiler::declarations::specifier_seq::info_t* m_specifier_seq;
-  std::vector<const cxx_compiler::type*>* m_types;
-  cxx_compiler::expressions::base* m_expression;
-  std::vector<cxx_compiler::expressions::base*>* m_expressions;
-  cxx_compiler::statements::base* m_statement;
+  std::vector<type*>* m_types;
+  typedef cxx_compiler::expressions::base expr;
+  expr* m_expression;
+  typedef std::vector<expr*> exprs;
+  exprs* m_expressions;
   std::vector<int>* m_vi;
-  std::vector<cxx_compiler::statements::base*>* m_statements;
+  typedef cxx_compiler::statements::base stmt;
+  stmt* m_statement;
+  std::vector<stmt*>* m_statements;
   cxx_compiler::scope* m_scope;
   cxx_compiler::declarations::initializers::info_t* m_initializer;
   cxx_compiler::declarations::initializers::clause::info_t* m_clause;
@@ -105,15 +111,17 @@ namespace cxx_compiler {
   std::vector<cxx_compiler::declarations::initializers::designator::info_t*>* m_designation;
   cxx_compiler::declarations::initializers::designator::info_t* m_designator;
   cxx_compiler::expressions::postfix::member::info_t* m_member;
-  cxx_compiler::tag* m_tag;
+  typedef cxx_compiler::tag tag;
+  tag* m_tag;
   cxx_compiler::file_t* m_file;
   std::vector<cxx_compiler::base*>* m_base_clause;
   cxx_compiler::base* m_base_specifier;
   cxx_compiler::name_space* m_name_space;
-  std::pair<cxx_compiler::usr*, cxx_compiler::tag*>* m_pvt;
-  std::pair<const cxx_compiler::type*, cxx_compiler::expressions::base*>* m_param;
-  std::vector<std::pair<const cxx_compiler::type*, cxx_compiler::expressions::base*>*>* m_params;
-  std::pair<cxx_compiler::declarations::type_specifier*, bool>* m_pseudo_dest;
+  std::pair<usr*, tag*>* m_pvt;
+  std::pair<type*, expr*>* m_param;
+  std::vector<std::pair<type*, expr*>*>* m_params;
+  std::pair<type_specifier*, bool>* m_pseudo_dest;
+  std::list<std::pair<type*, exprs*> >* m_new_declarator;
 }
 
 %type<m_var> IDENTIFIER_LEX unqualified_id id_expression declarator_id
@@ -167,6 +175,8 @@ namespace cxx_compiler {
 %type<m_params> parameter_declaration_clause parameter_declaration_list
 %type<m_ival> operator_function_id operator
 %type<m_pseudo_dest> pseudo_destructor_name
+%type<m_expressions> direct_new_declarator
+%type<m_new_declarator> new_declarator
 
 %%
 
@@ -1896,24 +1906,57 @@ new_initializer
 
 new_type_id
   : type_specifier_seq new_declarator
-    { cxx_compiler::error::not_implemented(); }
+    { $$ = cxx_compiler::declarations::new_type_id::action($1, $2); }
   | type_specifier_seq
-    { $$ = cxx_compiler::declarations::new_type_id::action($1); }
+    { $$ = cxx_compiler::declarations::new_type_id::action($1, 0); }
   ;
 
 new_declarator
   : ptr_operator new_declarator
-    { cxx_compiler::error::not_implemented(); }
+    {
+      using namespace std;
+      typedef const cxx_compiler::type type;
+      typedef cxx_compiler::expressions::base expr;
+      typedef vector<expr*> exprs;
+      $$ = $2;
+      $$->push_front(pair<type*, exprs*>($1,0)); 
+    }
   | ptr_operator
-    { cxx_compiler::error::not_implemented(); }
+    {
+      using namespace std;
+      typedef const cxx_compiler::type type;
+      typedef cxx_compiler::expressions::base expr;
+      typedef vector<expr*> exprs;
+      $$ = new list<pair<type*, exprs*> >;
+      $$->push_back(pair<type*, exprs*>($1,0)); 
+    }
   | direct_new_declarator
+    {
+      using namespace std;
+      typedef const cxx_compiler::type type;
+      typedef cxx_compiler::expressions::base expr;
+      typedef vector<expr*> exprs;
+      $$ = new list<pair<type*, exprs*> >;
+      $$->push_back(pair<type*, exprs*>(0,$1)); 
+    }
   ;
 
 direct_new_declarator
-  : '[' expression ']'
+  : '['
+    {
+      using namespace cxx_compiler;
+      parse::identifier::mode = parse::identifier::look;
+    }
+    expression ']'
+    {
+      using namespace std;
+      using namespace cxx_compiler;
+      $$ = new vector<expressions::base*>;
+      $$->push_back($3); 
+    }
   | direct_new_declarator '[' constant_expression ']'
+    { $$ = $1; $$->push_back($3); }
   ;
-
 
 delete_expression
   : COLONCOLON_MK move_to_root DELETE_KW cast_expression

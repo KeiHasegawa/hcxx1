@@ -6,6 +6,10 @@ cxx_compiler::var::var(const type* T) : m_type(T), m_scope(scope::current)
 {
 }
 
+cxx_compiler::var::~var()
+{
+}
+
 cxx_compiler::usr::~usr()
 {
   using namespace declarations::declarators::function;

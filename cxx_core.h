@@ -274,7 +274,7 @@ struct var {
   virtual void while_code(statements::while_stmt::info_t*, to3ac*);
   virtual void for_code(statements::for_stmt::info_t*, to3ac*);
   virtual void do_code(statements::do_stmt::info_t*, to3ac*);
-  virtual ~var(){}
+  virtual ~var();
 };
 
 struct usr : var {

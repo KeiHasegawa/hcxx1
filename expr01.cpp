@@ -1246,6 +1246,7 @@ cxx_compiler::expressions::postfix::
 member::end(info_t* info, pair<declarations::type_specifier*, bool>* x)
 {
   auto_ptr<pair<declarations::type_specifier*, bool> > sweeper(x);
+  info->m_qualified = x->second;
   declarations::type_specifier* spec = x->first;
   auto_ptr<declarations::type_specifier> sweeper2(spec);
   if (const type* T = spec->m_type) {
@@ -1281,13 +1282,35 @@ member::end(info_t* info, pair<declarations::type_specifier*, bool>* x)
 
 namespace cxx_compiler {
   struct pseudo_destructor : var {
-    pseudo_destructor(const type* T) : var(T) {}
+    var* m_ptr;
+    bool m_qualified;
+    pseudo_destructor(const type* T, var* v, bool qualified)
+      : var(T), m_ptr(v), m_qualified(qualified) {}
+    static var* no_effect()
+    {
+      var* ret = new var(void_type::create());
+      garbage.push_back(ret);
+      return ret;
+    }
     var* call(vector<var*>* arg)
     {
       if (!arg->empty())
 	error::not_implemented();
-      var* ret = new var(void_type::create());
-      garbage.push_back(ret);
+      const type* T = m_type;
+      T = T->unqualified();
+      if (T->m_id != type::RECORD)
+	return no_effect();
+      typedef const record_type REC;
+      REC* rec = static_cast<REC*>(T);
+      tag* ptr = rec->get_tag();
+      usr* dtor = has_ctor_dtor(ptr, true);
+      if (!dtor)
+	return no_effect();
+      usr::flag_t flag = dtor->m_flag;
+      if (m_qualified)
+	dtor->m_flag = usr::flag_t(flag & ~usr::VIRTUAL);
+      var* ret = call_impl::wrapper(dtor, 0, m_ptr);
+      dtor->m_flag = flag;
       return ret;
     }
   };
@@ -1311,7 +1334,7 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::member::info_t::gen()
   }
   if (!compatible(T, m_type))
     error::not_implemented();
-  return new pseudo_destructor(m_type);
+  return new pseudo_destructor(m_type, v, m_qualified);
 }
 
 cxx_compiler::var*

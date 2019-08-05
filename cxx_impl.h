@@ -782,7 +782,9 @@ namespace declarations {
     };
   } // end of namespace asm_definition
   namespace new_type_id {
-    extern const type* action(type_specifier_seq::info_t*);
+    typedef pair<const type*, vector<expressions::base*>*> LIST_ELEMENT;
+    typedef list<LIST_ELEMENT> LIST;
+    extern const type* action(type_specifier_seq::info_t*, LIST*);
   } // end of namespace new_type_id
 } // end of namespace declarations
 
@@ -880,12 +882,13 @@ namespace expressions {
         var* m_member;
 	const type* m_type;
         vector<route_t> m_route;
+	bool m_qualified;
         var* gen();
         const file_t& file() const { return m_file; }
         info_t(const vector<tac*>& c, var* expr, bool dot, scope* s,
 	       const file_t& file)
           : m_code(c), m_expr(expr), m_dot(dot), m_scope(s), m_file(file),
-	  m_member(0), m_type(0) {}
+	  m_member(0), m_type(0), m_qualified(false) {}
       };
       extern stack<info_t*> handling;
       extern info_t* begin(base*, bool);

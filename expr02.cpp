@@ -293,9 +293,10 @@ namespace cxx_compiler {
     }
 
     vector<const type*> param;
-    const type* vp = pointer_type::create(void_type::create());
+    const type* vt = void_type::create();
+    const type* vp = pointer_type::create(vt);
     param.push_back(vp);
-    const func_type* ft = func_type::create(vp,param);
+    const func_type* ft = func_type::create(vt,param);
     usr::flag_t flag = usr::flag_t(usr::FUNCTION | usr::DELETE_SCALAR);
     usr* delete_func = new usr(name, ft, flag, parse::position,
 			       usr::GENED_BY_COMP);
@@ -727,12 +728,12 @@ cxx_compiler::var* cxx_compiler::constant<long double>::minus()
 
 cxx_compiler::var* cxx_compiler::var::size()
 {
-  if ( var* size = m_type->vsize() )
+  if (var* size = m_type->vsize())
     return size;
   else {
     const type* T = m_type->complete_type();
     int n = T->size();
-    if ( !n ){
+    if (!n) {
       using namespace error::expressions::unary::size;
       invalid(parse::position,m_type);
       n = 1;

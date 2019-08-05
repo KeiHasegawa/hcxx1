@@ -1319,10 +1319,58 @@ void cxx_compiler::declarations::asm_definition::info_t::initialize()
   delete this;
 }
 
-const cxx_compiler::type* cxx_compiler::declarations::new_type_id::action(type_specifier_seq::info_t* p)
+namespace cxx_compiler {
+  namespace declarations {
+    namespace new_type_id {
+      struct sweeper {
+	LIST* m_list;
+	sweeper(LIST* p) : m_list(p) {}
+	~sweeper()
+	{
+	  if (!m_list)
+	    return;
+	  for (auto p : *m_list) {
+	    vector<expressions::base*>* q = p.second;
+	    if (q) {
+	      for (auto x : *q)
+		delete x;
+	      delete q;
+	    }
+	  }
+	  delete m_list;
+	}
+      };
+      const type* calc2(const type* T, expressions::base* expr)
+      {
+	var* v = expr->gen();
+	v = v->rvalue();
+	if (!v->isconstant())
+	  error::not_implemented();
+	__int64 dim = v->value();
+	return array_type::create(T, dim);
+      }
+      const type* calc(const type* T, const LIST_ELEMENT& elem)
+      {
+	const type* Tx = elem.first;
+	if (Tx) {
+	  error::not_implemented();
+	  return T;
+	}
+	vector<expressions::base*>* exprs = elem.second;
+	return accumulate(begin(*exprs), end(*exprs), T, calc2);
+      } 
+    } // end of namespace new_type_id
+  } // end of namespace declarations
+} // end of namespace cxx_compiler
+
+const cxx_compiler::type* cxx_compiler::declarations::new_type_id::
+action(type_specifier_seq::info_t* p, LIST* q)
 {
   using namespace std;
+  sweeper sweeper(q);
   p->update();
   const type* T = p->m_type;
-  return T;
+  if (!q)
+    return T;
+  return accumulate(begin(*q), end(*q), T, calc);
 }

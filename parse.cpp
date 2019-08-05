@@ -387,14 +387,28 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
     return ptag->m_kind == tag::ENUM ? ENUM_NAME_LEX : CLASS_NAME_LEX;
   }
   if (mode == member) {
-    assert(scope::current->m_id == scope::TAG);
-    tag* ptag = static_cast<tag*>(scope::current);
-    if (ptag->m_name == name) {
-      cxx_compiler_lval.m_tag = ptag;
-      return CLASS_NAME_LEX;
+    if (scope::current->m_id == scope::TAG) {
+      tag* ptag = static_cast<tag*>(scope::current);
+      if (ptag->m_name == name) {
+	cxx_compiler_lval.m_tag = ptag;
+	return CLASS_NAME_LEX;
+      }
+      if (int r = base_lookup::action(name, ptag))
+	return r;
     }
-    if (int r = base_lookup::action(name, ptag))
-      return r;
+    if (ptr->m_parent) {
+      if (int r = lookup(name, ptr->m_parent)) {
+	if (r == TYPEDEF_NAME_LEX) {
+	  usr* u = cxx_compiler_lval.m_usr;
+	  const type* T = u->m_type;
+	  if (tag* ptr = T->get_tag()) {
+	    cxx_compiler_lval.m_tag = ptr;
+	    return CLASS_NAME_LEX;
+	  }
+	}
+	return r;
+      }
+    }
     error::undeclared(parse::position,name);
     int r = create(name,int_type::create());
     usr* u = cxx_compiler_lval.m_usr;
