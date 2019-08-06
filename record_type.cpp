@@ -2401,9 +2401,27 @@ namespace cxx_compiler {
   namespace record_impl {
     inline void add_vdel_code(usr* vdtor, usr* del, usr* this_ptr)
     {
+      using namespace expressions::primary::literal;
       call_impl::wrapper(vdtor, 0, this_ptr);
       vector<var*> arg;
       arg.push_back(this_ptr);
+      const type* T = del->m_type;
+      assert(T->m_id == type::FUNC);
+      typedef const func_type FT;
+      FT* ft = static_cast<FT*>(T);
+      const vector<const type*>& param = ft->param();
+      if (param.size() == 2) {
+	scope* p = del->m_scope;
+	assert(p->m_id == scope::TAG);
+	tag* ptr = static_cast<tag*>(p);
+	T = ptr->m_types.second;
+	assert(T);
+	int n = T->size();
+	var* sz = integer::create(n);
+	T = param[1];
+	sz = sz->cast(T);
+	arg.push_back(sz);
+      }
       call_impl::wrapper(del, &arg, 0);
     }
     inline void handle_vdel1(usr* u, tag* ptr)
