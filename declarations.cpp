@@ -1345,7 +1345,7 @@ namespace cxx_compiler {
 	var* v = expr->gen();
 	v = v->rvalue();
 	if (!v->isconstant())
-	  error::not_implemented();
+	  return varray_type::create(T, v);
 	__int64 dim = v->value();
 	return array_type::create(T, dim);
       }

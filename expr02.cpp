@@ -2,6 +2,7 @@
 #include "stdafx.h"
 #include "cxx_core.h"
 #include "cxx_impl.h"
+#include "cxx_y.h"
 
 cxx_compiler::var* cxx_compiler::expressions::unary::ppmm::gen()
 {
@@ -59,10 +60,10 @@ cxx_compiler::var* cxx_compiler::expressions::unary::size_of::gen()
   using namespace std;
   if (m_type) {
     const type* T = m_type->complete_type();
-    if ( var* size = T->vsize() )
+    if (var* size = T->vsize())
       return size;
     unsigned int n = T->size();
-    if ( !n ){
+    if (!n) {
       using namespace error::expressions::unary::size;
       invalid(file(), T);
       n = 1;
@@ -116,8 +117,10 @@ namespace cxx_compiler {
       return ulong_long_type::create();
     }
   }
-  inline void install_new()
+  static bool new_installed = false;
+  inline usr* install_new()
   {
+    assert(!new_installed);
     string name = "new";
     vector<const type*> param;
     param.push_back(sizeof_type());
@@ -134,13 +137,14 @@ namespace cxx_compiler {
     if (p == usrs.end()) {
       new_func->m_scope = &scope::root;
       usrs[name].push_back(new_func);
-      return;
+      return new_func;
     }
     const vector<usr*>& v = p->second;
     usr* prev = v.back();
     usrs[name].push_back(new_func);
     usr* ovl = new overload(prev, new_func);
     usrs[name].push_back(ovl);
+    return ovl;
   }
   inline var* call_new(usr* new_func, vector<var*>& arg)
   {
@@ -183,10 +187,21 @@ namespace cxx_compiler {
 	const map<string, vector<usr*> >& usrs = ptr->m_usrs;
 	typedef map<string, vector<usr*> >::const_iterator IT;
 	IT p = usrs.find(name);
-	if (p == usrs.end())
+	if (p != usrs.end()) {
+	  const vector<usr*>& v = p->second;
+	  return v.back();
+	}
+	using namespace parse::identifier;
+	int r = base_lookup::action(name, ptr);
+	if (!r)
 	  return 0;
-	const vector<usr*>& v = p->second;
-	return v.back();
+	assert(r == IDENTIFIER_LEX);
+	var* v = cxx_compiler_lval.m_var;
+	genaddr* ga = v->genaddr_cast();
+	assert(ga);
+	v = ga->m_ref;
+	assert(v->usr_cast());
+	return static_cast<usr*>(v);
       }
       inline usr* new_entry(const type* T)
       {
@@ -219,8 +234,11 @@ cxx_compiler::var* cxx_compiler::expressions::unary::new_expr::gen()
 {
   using namespace std;
   vector<var*> new_arg;
-  int n = m_T->size();
-  var* sz = sizeof_impl::common(n);
+  var* sz = m_T->vsize();
+  if (!sz) {
+    int n = m_T->size();
+    sz = sizeof_impl::common(n);
+  }
   new_arg.push_back(sz);
   usr* new_func = new_entry(m_T);
   if (m_place) {
@@ -228,21 +246,25 @@ cxx_compiler::var* cxx_compiler::expressions::unary::new_expr::gen()
 	      mem_fun(&base::gen));
   }
   else if (!new_func) {
-    static bool done;
-    if (!done) {
-      install_new();
-      done = true;
+    if (!new_installed) {
+      new_func = install_new();
+      new_installed = true;
     }
-  } 
+  }
 
   if (!new_func) {
     string name = "new";
     const map<string, vector<usr*> >& usrs = scope::root.m_usrs;
     map<string, vector<usr*> >::const_iterator it = usrs.find(name);
-    if (it == usrs.end())
-      error::not_implemented();
-    const vector<usr*>& vu = it->second;
-    new_func = vu.back();
+    if (it == usrs.end()) {
+      assert(!new_installed);
+      new_func = install_new();
+      new_installed = true;
+    }
+    else {
+      const vector<usr*>& v = it->second;
+      new_func = v.back();
+    }
   }
   var* ret = call_new(new_func, new_arg);
 
