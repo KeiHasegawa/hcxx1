@@ -956,8 +956,11 @@ namespace expressions {
     };
     struct delete_expr : base {
       base* m_expr;
+      bool m_array;
+      bool m_root;
       const file_t& file() const;
-      delete_expr(base* expr) : m_expr(expr) {}
+      delete_expr(base* expr, bool a, bool r)
+	: m_expr(expr), m_array(a), m_root(r) {}
       var* gen();
       ~delete_expr(){ delete m_expr; }
     };
@@ -979,7 +982,8 @@ namespace expressions {
       file_t m_file;
       var* gen();
       const file_t& file() const { return m_file; }
-      info_t(const type* type, vector<declarations::initializers::element*>* list)
+      info_t(const type* type,
+	     vector<declarations::initializers::element*>* list)
         : m_type(type), m_list(list), m_file(parse::position) {}
       ~info_t();
     };

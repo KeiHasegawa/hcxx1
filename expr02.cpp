@@ -207,9 +207,12 @@ namespace cxx_compiler {
       {
 	return new_delete_entry(T, "new");
       }
-      inline usr* delete_entry(const type* T)
+      inline usr* delete_entry(const type* T, bool array)
       {
-	return new_delete_entry(T, "delete");
+	string name = "delete";
+	if (array)
+	  name += " []";
+	return new_delete_entry(T, name);
       }
       inline usr* vdel_entry(const type* T)
       {
@@ -339,13 +342,15 @@ cxx_compiler::var* cxx_compiler::expressions::unary::delete_expr::gen()
   typedef const pointer_type PT;
   PT* pt = static_cast<PT*>(T);
   T = pt->referenced_type();
-  if (usr* vdel = vdel_entry(T))
-    return call_impl::wrapper(vdel, 0, v);
+  if (!m_root) {
+    if (usr* vdel = vdel_entry(T))
+      return call_impl::wrapper(vdel, 0, v);
+  }
   if (usr* dtor = dtor_entry(T))
     call_impl::wrapper(dtor, 0, v);
   vector<var*> arg;
   arg.push_back(v);
-  usr* delete_func = delete_entry(T);
+  usr* delete_func = m_root ? 0 : delete_entry(T, m_array);
   if (!delete_func)
     delete_func = installed_delete();
   const type* D = delete_func->m_type;

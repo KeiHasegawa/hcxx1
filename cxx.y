@@ -1960,13 +1960,19 @@ direct_new_declarator
 
 delete_expression
   : COLONCOLON_MK move_to_root DELETE_KW cast_expression
-    { cxx_compiler::error::not_implemented(); }
+    {
+      $$ = new cxx_compiler::expressions::unary::delete_expr($4, false, true);
+    }
   | DELETE_KW cast_expression
-    { $$ = new cxx_compiler::expressions::unary::delete_expr($2); }
+    {
+      $$ = new cxx_compiler::expressions::unary::delete_expr($2, false, false);
+    }
   | COLONCOLON_MK move_to_root DELETE_KW '[' ']' cast_expression
-    { cxx_compiler::error::not_implemented(); }
+    { $$ = new cxx_compiler::expressions::unary::delete_expr($6, true, true); }
   | DELETE_KW '[' ']' cast_expression
-    { cxx_compiler::error::not_implemented(); }
+    {
+      $$ = new cxx_compiler::expressions::unary::delete_expr($4, true, false);
+    }
   ;
 
 cast_expression
