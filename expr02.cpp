@@ -229,6 +229,24 @@ namespace cxx_compiler {
 	  return 0;
 	return *p;
       }
+      const type* array_element(const type* T)
+      {
+	if (T->m_id == type::ARRAY) {
+	  typedef const array_type AT;
+	  AT* at = static_cast<AT*>(T);
+	  T = at->element_type();
+	  T = T->unqualified();
+	  return array_element(T);
+	}
+	if (T->m_id == type::VARRAY) {
+	  typedef const varray_type VT;
+	  VT* vt = static_cast<VT*>(T);
+	  T = vt->element_type();
+	  T = T->unqualified();
+	  return array_element(T);
+	}
+	return T;
+      }
     } // end of namespace unary
   } // end of namespace expressions
 } // end of namespace cxx_compiler
@@ -236,13 +254,21 @@ namespace cxx_compiler {
 cxx_compiler::var* cxx_compiler::expressions::unary::new_expr::gen()
 {
   using namespace std;
+  using namespace primary::literal;
   vector<var*> new_arg;
-  var* sz = m_T->vsize();
-  if (!sz) {
+  var* whole_sz = m_T->vsize();
+  if (!whole_sz) {
     int n = m_T->size();
-    sz = sizeof_impl::common(n);
+    assert(n);
+    whole_sz = sizeof_impl::common(n);
   }
-  new_arg.push_back(sz);
+  const type* ET = array_element(m_T);
+  var* extra = integer::create(sizeof_type()->size());
+  var* new_sz = (ET == m_T) ? whole_sz : whole_sz->add(extra);
+  int n = ET->size();
+  assert(n);
+  var* esz = sizeof_impl::common(n);
+  new_arg.push_back(new_sz);
   usr* new_func = new_entry(m_T);
   if (m_place) {
     transform(begin(*m_place), end(*m_place), back_inserter(new_arg),
@@ -270,8 +296,23 @@ cxx_compiler::var* cxx_compiler::expressions::unary::new_expr::gen()
     }
   }
   var* ret = call_new(new_func, new_arg);
+  if (ET != m_T) {
+    var* times = whole_sz->div(esz);
+    const type* T = times->m_type;
+    T = pointer_type::create(T);
+    var* t0 = new var(T);
+    if (scope::current->m_id == scope::BLOCK) {
+      block* b = static_cast<block*>(scope::current);
+      b->m_vars.push_back(t0);
+    }
+    else
+      garbage.push_back(t0);
+    code.push_back(new cast3ac(t0, ret, T));
+    code.push_back(new invladdr3ac(t0, times));
+    code.push_back(new add3ac(ret, ret, extra));
+  }
 
-  usr* ctor = ctor_entry(m_T);
+  usr* ctor = ctor_entry(ET);
   if (!ctor) {
     if (!m_exprs)
       return ret;
@@ -280,29 +321,64 @@ cxx_compiler::var* cxx_compiler::expressions::unary::new_expr::gen()
     expressions::base* expr = (*m_exprs)[0];
     var* src = expr->gen();
     bool discard = false;
-    if (!expressions::assignment::valid(m_T, src, &discard, true, 0))
+    if (!expressions::assignment::valid(ET, src, &discard, true, 0))
       error::not_implemented();
     code.push_back(new invladdr3ac(ret, src));
     return ret;
   }
-  usr::flag_t flag = ctor->m_flag;
-  if (flag & usr::OVERLOAD) {
-    overload* ovl = static_cast<overload*>(ctor);
-    ovl->m_obj = ret;
-    vector<var*> arg;
-    if (m_exprs) {
-      transform(begin(*m_exprs), end(*m_exprs), back_inserter(arg),
-		mem_fun(&base::gen));
-    }
-    ovl->call(&arg);
-    return ret;
-  }
+
   vector<var*> arg;
   if (m_exprs) {
     transform(begin(*m_exprs), end(*m_exprs), back_inserter(arg),
 	      mem_fun(&base::gen));
   }
-  call_impl::wrapper(ctor, &arg, ret);
+
+  usr::flag_t flag = ctor->m_flag;
+  if (ET == m_T) {
+    if (flag & usr::OVERLOAD) {
+      overload* ovl = static_cast<overload*>(ctor);
+      ovl->m_obj = ret;
+      ovl->call(&arg);
+      return ret;
+    }
+    call_impl::wrapper(ctor, &arg, ret);
+    return ret;
+  }
+
+  const type* T = ret->m_type;
+  var* t0 = new var(T);
+  var* t1 = new var(T);
+  if (scope::current->m_id == scope::BLOCK) {
+    block* b = static_cast<block*>(scope::current);
+    b->m_vars.push_back(t0);
+    b->m_vars.push_back(t1);
+  }
+  else {
+    garbage.push_back(t0);
+    garbage.push_back(t1);
+  }
+  code.push_back(new assign3ac(t0, ret));
+  code.push_back(new add3ac(t1, ret, whole_sz));
+  to3ac* label0 = new to3ac;
+  code.push_back(label0);
+  goto3ac* goto1 = new goto3ac(goto3ac::EQ, t0, t1);
+  code.push_back(goto1);
+  if (flag & usr::OVERLOAD) {
+    overload* ovl = static_cast<overload*>(ctor);
+    ovl->m_obj = t0;
+    ovl->call(&arg);
+  }
+  else
+    call_impl::wrapper(ctor, &arg, t0);
+  code.push_back(new add3ac(t0, t0, esz));
+  goto3ac* goto0 = new goto3ac;
+  goto0->m_to = label0;
+  label0->m_goto.push_back(goto0);
+  code.push_back(goto0);
+  to3ac* label1 = new to3ac;
+  code.push_back(label1);
+  goto1->m_to = label1;
+  label1->m_goto.push_back(goto1);
   return ret;
 }
 
@@ -329,13 +405,76 @@ namespace cxx_compiler {
     usrs[name].push_back(delete_func);
     return delete_func;
   }
+  inline void dtor_for_array(var* delete_arg, var* expr, usr* dtor)
+  {
+    using namespace expressions::primary::literal;
+    using namespace expressions::unary;
+    const type* st = sizeof_type();
+    const type* pt = pointer_type::create(st);
+    var* t0 = new var(pt);
+    var* t1 = new var(st);
+    var* t2 = new var(expr->m_type);
+    if (scope::current->m_id == scope::BLOCK) {
+      block* b = static_cast<block*>(scope::current);
+      b->m_vars.push_back(t0);
+      b->m_vars.push_back(t1);
+      b->m_vars.push_back(t2);
+    }
+    else {
+      garbage.push_back(t0);
+      garbage.push_back(t1);
+      garbage.push_back(t2);
+    }
+    code.push_back(new cast3ac(t0, delete_arg, pt));
+    code.push_back(new invraddr3ac(t1, t0));
+    var* one = integer::create(1);
+    one = one->cast(st);
+    code.push_back(new sub3ac(t1, t1, one));
+    scope* p = dtor->m_scope;
+    assert(p->m_id == scope::TAG);
+    tag* ptr = static_cast<tag*>(p);
+    const type* T = ptr->m_types.second;
+    int n = T->size();
+    var* sz = sizeof_impl::common(n);
+    t1 = t1->mul(sz);
+    code.push_back(new add3ac(t2, expr, t1));
+    to3ac* label0 = new to3ac;
+    code.push_back(label0);
+    call_impl::wrapper(dtor, 0, t2);
+    goto3ac* goto1 = new goto3ac(goto3ac::EQ, expr, t2);
+    code.push_back(goto1);
+    code.push_back(new sub3ac(t2, t2, sz));
+    goto3ac* goto0 = new goto3ac;
+    goto0->m_to = label0;
+    label0->m_goto.push_back(goto0);
+    code.push_back(goto0);
+    to3ac* label1 = new to3ac;
+    code.push_back(label1);
+    goto1->m_to = label1;
+    label1->m_goto.push_back(goto1);
+  }
 } // end of namespace cxx_compiler
 
 cxx_compiler::var* cxx_compiler::expressions::unary::delete_expr::gen()
 {
   using namespace std;
-  var* v = m_expr->gen();
-  const type* T = v->m_type;
+  using namespace primary::literal;
+  var* expr = m_expr->gen();
+  expr = expr->rvalue();
+  var* delete_arg = expr;
+  const type* T = expr->m_type;
+  if (m_array) {
+    var* extra = integer::create(sizeof_type()->size());
+    var* t0 = new var(T);
+    if (scope::current->m_id == scope::BLOCK) {
+      block* b = static_cast<block*>(scope::current);
+      b->m_vars.push_back(t0);
+    }
+    else
+      garbage.push_back(t0);
+    code.push_back(new sub3ac(t0, expr, extra));
+    delete_arg = t0;
+  }
   T = T->unqualified();
   if (T->m_id != type::POINTER)
     error::not_implemented();
@@ -344,12 +483,16 @@ cxx_compiler::var* cxx_compiler::expressions::unary::delete_expr::gen()
   T = pt->referenced_type();
   if (!m_root) {
     if (usr* vdel = vdel_entry(T))
-      return call_impl::wrapper(vdel, 0, v);
+      return call_impl::wrapper(vdel, 0, expr);
   }
-  if (usr* dtor = dtor_entry(T))
-    call_impl::wrapper(dtor, 0, v);
+  if (usr* dtor = dtor_entry(T)) {
+    if (m_array)
+      dtor_for_array(delete_arg, expr, dtor);
+    else
+      call_impl::wrapper(dtor, 0, expr);
+  }
   vector<var*> arg;
-  arg.push_back(v);
+  arg.push_back(delete_arg);
   usr* delete_func = m_root ? 0 : delete_entry(T, m_array);
   if (!delete_func)
     delete_func = installed_delete();
