@@ -542,7 +542,14 @@ assign(var* y, argument* arg)
   typedef const bit_field_type BF;
   if ( T->m_id == type::BIT_FIELD )
     return bit_field(y,arg);
-  y = T->aggregate() ? aggregate_conv(T, y) : y->cast(T);
+  if (T->aggregate()) {
+    var* tmp = aggregate_conv(T, y);
+    if (tmp != y)
+      arg->not_constant = true;
+    y = tmp;
+  }
+  else
+    y = y->cast(T);
   if (y->addrof_cast()) {
     vector<var*>& v = garbage;
     vector<var*>::reverse_iterator p = find(v.rbegin(),v.rend(),y);
@@ -608,7 +615,7 @@ lsting(std::vector<element*>* v, argument* arg)
            bind1st(ptr_fun(initializers::merge), make_pair(&arg->V,arg->off)));
   arg->nth_max = max(arg->nth_max, ++arg->nth);
   arg->off_max = max(arg->off_max, arg->off += tmp.off_max);
-  if ( tmp.not_constant )
+  if (tmp.not_constant)
     arg->not_constant = true;
   return arg->off;
 }
