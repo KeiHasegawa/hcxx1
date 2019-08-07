@@ -76,7 +76,8 @@ namespace parse {
   namespace identifier {
     extern int lookup(std::string, scope*);
     extern int judge(string);
-    enum mode_t { look, new_obj, member, peeking, no_err, canbe_ctor };
+    enum mode_t { look, new_obj, member, peeking, no_err, canbe_ctor,
+		  mem_ini };
     extern mode_t mode;
     namespace base_lookup {
       extern vector<route_t> route;

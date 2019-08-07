@@ -1294,12 +1294,15 @@ move_to_param
       assert(fdef);
       scope::current = fdef->m_param;
       class_or_namespace_name::before.push_back(scope::current);
+      assert(parse::identifier::mode == parse::identifier::look);
+      parse::identifier::mode = parse::identifier::mem_ini;
     }
   ;
 
 move_from_param
   : {
       using namespace cxx_compiler;
+      parse::identifier::mode == parse::identifier::look;
       scope::current = scope::current->m_parent;
       class_or_namespace_name::before.pop_back();
     }

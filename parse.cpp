@@ -355,6 +355,13 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
     cxx_compiler_lval.m_usr = u;
     usr::flag_t flag = u->m_flag;
     if (flag & usr::TYPEDEF) {
+      if (mode == member || mode == mem_ini) {
+	const type* T = u->m_type;
+	if (tag* ptr = T->get_tag()) {
+	  cxx_compiler_lval.m_tag = ptr;
+	  return CLASS_NAME_LEX;
+	}
+      }
       type_def* tdef = static_cast<type_def*>(u);
       tdef->m_refed.push_back(parse::position);
       return TYPEDEF_NAME_LEX;
@@ -398,14 +405,6 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
     }
     if (ptr->m_parent) {
       if (int r = lookup(name, ptr->m_parent)) {
-	if (r == TYPEDEF_NAME_LEX) {
-	  usr* u = cxx_compiler_lval.m_usr;
-	  const type* T = u->m_type;
-	  if (tag* ptr = T->get_tag()) {
-	    cxx_compiler_lval.m_tag = ptr;
-	    return CLASS_NAME_LEX;
-	  }
-	}
 	return r;
       }
     }
