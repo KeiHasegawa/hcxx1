@@ -500,8 +500,8 @@ namespace cxx_compiler {
     };
     bool comp_size(usr*, usr*);
     bool comp_align(usr*, usr*);
-    bool member_modifiable(usr*);
-    bool base_modifiable(base*);
+    bool member_modifiable(usr*, bool);
+    bool base_modifiable(base*, bool);
     struct set_org_vbtbl_subr {
       int* m_offset;
       int m_base_offset;
@@ -1884,7 +1884,8 @@ namespace cxx_compiler {
 } // end of namespace cxx_compiler
 
 cxx_compiler::record_type::record_type(tag* ptr)
-  : type(RECORD), m_size(0), m_modifiable(true), m_tag(ptr)
+  : type(RECORD), m_size(0), m_modifiable(true), m_partially_modifiable(false),
+    m_tag(ptr)
 {
   using namespace std;
   using namespace record_impl;
@@ -2107,17 +2108,28 @@ cxx_compiler::record_type::record_type(tag* ptr)
   }
   if (bases) {
     typedef vector<base*>::const_iterator IT;
-    IT p =
-      find_if(begin(*bases), end(*bases), not1(ptr_fun(base_modifiable)));
+    IT p = find_if(begin(*bases), end(*bases),
+		   not1(bind2nd(ptr_fun(base_modifiable), false)));
     if (p != end(*bases))
       m_modifiable = false;
+    IT q = find_if(begin(*bases), end(*bases),
+		   bind2nd(ptr_fun(base_modifiable), true));
+    if (q != end(*bases))
+      m_partially_modifiable = true;
   }
   if (m_modifiable) {
     typedef vector<usr*>::const_iterator IT;
     IT p = find_if(begin(m_member), end(m_member),
-                   not1(ptr_fun(member_modifiable)));
+                   not1(bind2nd(ptr_fun(member_modifiable), false)));
     if (p != end(m_member))
       m_modifiable = false;
+  }
+  if (!m_partially_modifiable) {
+    typedef vector<usr*>::const_iterator IT;
+    IT p = find_if(begin(m_member), end(m_member),
+                   bind2nd(ptr_fun(member_modifiable), true));
+    if (p != end(m_member))
+      m_partially_modifiable = true;
   }
   int al = align();
   if ( int n = m_size % al ) {
@@ -2271,18 +2283,18 @@ bool cxx_compiler::record_impl::comp_align(usr* x, usr* y)
   return xx->align() < yy->align();
 }
 
-bool cxx_compiler::record_impl::member_modifiable(usr* u)
+bool cxx_compiler::record_impl::member_modifiable(usr* u, bool partially)
 {
   const type* T = u->m_type;
-  return T->modifiable();
+  return T->modifiable(partially);
 }
 
-bool cxx_compiler::record_impl::base_modifiable(base* bp)
+bool cxx_compiler::record_impl::base_modifiable(base* bp, bool partially)
 {
   tag* ptr = bp->m_tag;
   const type* T = ptr->m_types.second;
   assert(T);
-  return T->modifiable();
+  return T->modifiable(partially);
 }
 
 namespace cxx_compiler {
