@@ -1633,6 +1633,7 @@ class record_type : public type {
 
   std::vector<const record_type*> m_common;
   std::map<const record_type*, int> m_common_vftbl_offset;
+  std::vector<const record_type*> m_direct_common;
   record_type(tag*);
 public:
   void decl(std::ostream&, std::string) const;
