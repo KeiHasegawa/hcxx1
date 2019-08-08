@@ -698,8 +698,8 @@ namespace cxx_compiler {
     scope* p = func->m_scope;
     assert(p->m_id == scope::TAG);
     tag* ptr = static_cast<tag*>(p);
-    usr::flag_t flag = usr::flag_t(func->m_flag | usr::INLINE);
-    usr* u = new usr(name, ft, flag, parse::position, usr::GENED_BY_COMP);
+    usr* u = new usr(name, ft, func->m_flag, parse::position,
+		     usr::GENED_BY_COMP);
     map<string, vector<usr*> >& pusrs = ptr->m_usrs;
     typedef map<string, vector<usr*> >::const_iterator ITx;
     ITx itx = pusrs.find(name);

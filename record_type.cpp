@@ -641,19 +641,33 @@ namespace cxx_compiler {
 		    tag* ptr = rec->get_tag(); return '.' + ptr->m_name; });
 	return name + os.str();
       }
-      inline void call_body(usr* tor, vector<var*>* arg, usr* this_ptr)
+      inline usr* get_body(usr* tor)
       {
 	scope* p = tor->m_scope;
 	assert(p->m_id == scope::TAG);
 	tag* ptr = static_cast<tag*>(p);
 	map<string, vector<usr*> >& usrs = ptr->m_usrs;
-
 	typedef map<string, vector<usr*> >::const_iterator IT;
 	string bn = tor->m_name + dot_body;
+	const type* T = tor->m_type;
 	IT q = usrs.find(bn);
-	assert(q != usrs.end());
-	const vector<usr*>& v = q->second;
-	usr* body = v.back();
+	if (q != usrs.end()) {
+	  const vector<usr*>& v = q->second;
+	  typedef vector<usr*>::const_iterator IT;
+	  IT it = find_if(begin(v), end(v),
+			  [T](usr* u){ return compatible(T, u->m_type); });
+	  if (it != end(v))
+	    return *it;
+	}
+	usr::flag_t flag = usr::flag_t(usr::FUNCTION | usr::CTOR);
+	usr* body = new usr(bn, T, flag, parse::position, usr::GENED_BY_COMP);
+	body->m_scope = ptr;
+	usrs[bn].push_back(body);
+	return body;
+      }
+      inline void call_body(usr* tor, vector<var*>* arg, usr* this_ptr)
+      {
+	usr* body = get_body(tor);
 	usr::flag_t flag = body->m_flag;
 	if (flag & usr::OVERLOAD) {
 	  overload* ovl = static_cast<overload*>(body);
