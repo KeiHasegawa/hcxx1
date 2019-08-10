@@ -887,12 +887,24 @@ namespace cxx_compiler {
       usr* m_tor;
       const vector<const record_type*>& m_exclude;
       bool m_for_virt;
+      const vector<const record_type*>& m_direct_common;
       base_ctor_dtor(const map<base*, int>& base_offset, var* this_ptr,
                      scope* param, block* b, bool is_dtor, usr* tor,
-                     const vector<const record_type*>& exclude, bool for_virt)
+                     const vector<const record_type*>& exclude, bool for_virt,
+		     const vector<const record_type*>& dc)
         : m_base_offset(base_offset), m_this(this_ptr), m_param(param),
           m_block(b), m_is_dtor(is_dtor), m_tor(tor), m_exclude(exclude),
-          m_for_virt(for_virt) {}
+          m_for_virt(for_virt), m_direct_common(dc) {}
+      bool direct_common_case(tag* ptr)
+      {
+        const type* T = ptr->m_types.second;
+        assert(T->m_id == type::RECORD);
+        typedef const record_type REC;
+        REC* rec = static_cast<REC*>(T);
+	typedef vector<REC*>::const_iterator IT;
+	IT p = find(begin(m_direct_common), end(m_direct_common), rec);
+        return p != end(m_direct_common);
+      }
       bool base_initializer_case(tag* ptr)
       {
         using namespace declarations::declarators::function::definition;
@@ -934,15 +946,17 @@ namespace cxx_compiler {
       void operator()(base* pb)
       {
         usr::flag_t flag = pb->m_flag;
+        tag* ptr = pb->m_tag;
         if (flag & usr::VIRTUAL) {
           if (!m_for_virt)
             return;
+	  if (direct_common_case(ptr))
+	    return;
         }
         else {
           if (m_for_virt)
             return;
         }
-        tag* ptr = pb->m_tag;
         if (base_initializer_case(ptr))
           return;
         typedef map<base*, int>::const_iterator ITy;
@@ -1276,6 +1290,18 @@ namespace cxx_compiler {
         scope::current = org;
       }
     };
+    inline void set_cd(vector<const record_type*>& cd,
+		       const vector<const record_type*>& common,
+		       const vector<const record_type*>& direct_common,
+		       const vector<const record_type*>& exclude)
+    {
+      auto not_ex = [&exclude](const record_type* rec) {
+	  return find(begin(exclude), end(exclude), rec) == end(exclude);
+	};
+      copy_if(begin(common), end(common), back_inserter(cd), not_ex);
+      copy_if(begin(direct_common), end(direct_common), back_inserter(cd),
+	      not_ex);
+    }
     void add_ctor_code(tag* ptr,
                        const map<string, pair<int, usr*> >& layout,
                        const map<base*, int>& base_offset,
@@ -1294,12 +1320,14 @@ namespace cxx_compiler {
                        scope* param,
                        const vector<const record_type*>& exclude)
     {
-      for_each(begin(common), end(common),
+      vector<const record_type*> cd;
+      set_cd(cd, common, direct_common, exclude);
+      for_each(begin(cd), end(cd),
                common_ctor_dtor(virt_common_offset, pb, this_ptr, param,
                                 false, ctor));
       if (ptr->m_bases) {
         vector<base*>& bases = *ptr->m_bases;
-        vector<const record_type*> ce = common;
+	vector<const record_type*>& ce = cd;
         copy_if(begin(exclude), end(exclude), back_inserter(ce),
                 [&ce](const record_type* rec){
                   return find(begin(ce), end(ce), rec) == end(ce);
@@ -1307,9 +1335,9 @@ namespace cxx_compiler {
         scope* org = scope::current;
         scope::current = pb;
         for_each(begin(bases), end(bases), base_ctor_dtor(base_offset,
-          this_ptr, param, pb, false, ctor, ce, true));
+	  this_ptr, param, pb, false, ctor, ce, true, direct_common));
         for_each(begin(bases), end(bases), base_ctor_dtor(base_offset,
-          this_ptr, param, pb, false, ctor, ce, false));
+	  this_ptr, param, pb, false, ctor, ce, false, direct_common));
         scope::current = org;
         if (canbe_copy_ctor(ctor, ptr)) {
           for_each(begin(member), end(member),
@@ -1505,19 +1533,21 @@ namespace cxx_compiler {
       for_each(rbegin(member), rend(member), 
                member_ctor_dtor(layout, this_ptr, param, pb, true, dtor,
                                 false));
+      vector<const record_type*> cd;
+      set_cd(cd, common, direct_common, exclude);
       if (ptr->m_bases) {
         const vector<base*>& bases = *ptr->m_bases;
-        vector<const record_type*> ce = common;
+	vector<const record_type*> ce = cd;
         copy_if(begin(exclude), end(exclude), back_inserter(ce),
                 [&ce](const record_type* rec){
                   return find(begin(ce), end(ce), rec) == end(ce);
                 });
         for_each(rbegin(bases), rend(bases), base_ctor_dtor(base_offset,
-            this_ptr, param, pb, true, dtor, ce, false));
+            this_ptr, param, pb, true, dtor, ce, false, direct_common));
         for_each(rbegin(bases), rend(bases), base_ctor_dtor(base_offset,
-            this_ptr, param, pb, true, dtor, ce, true));
+            this_ptr, param, pb, true, dtor, ce, true, direct_common));
       }
-      for_each(rbegin(common), rend(common),
+      for_each(rbegin(cd), rend(cd),
                common_ctor_dtor(virt_common_offset, pb, this_ptr, param,
                                 true, 0));
     }
