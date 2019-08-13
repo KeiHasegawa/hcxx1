@@ -1296,13 +1296,31 @@ move_to_param
       class_or_namespace_name::before.push_back(scope::current);
       assert(parse::identifier::mode == parse::identifier::look);
       parse::identifier::mode = parse::identifier::mem_ini;
+
+      map<string, vector<usr*> >& usrs = scope::current->m_usrs;
+      assert(usrs.find(this_name) == usrs.end());
+      scope* p = fdef->m_usr->m_scope;
+      assert(p->m_id == scope::TAG);
+      tag* ptr = static_cast<tag*>(p);
+      const type* T = ptr->m_types.second;
+      if (!T)
+	T = ptr->m_types.first;
+      T = pointer_type::create(T);
+      usr* this_ptr = new usr(this_name, T , usr::NONE, parse::position,
+			      usr::NONE2);
+      usrs[this_name].push_back(this_ptr);
+      vector<usr*>& order = scope::current->m_order;
+      vector<usr*> tmp = order;
+      order.clear();
+      order.push_back(this_ptr);
+      copy(begin(tmp), end(tmp), back_inserter(order));
     }
   ;
 
 move_from_param
   : {
       using namespace cxx_compiler;
-      parse::identifier::mode == parse::identifier::look;
+      parse::identifier::mode = parse::identifier::look;
       scope::current = scope::current->m_parent;
       class_or_namespace_name::before.pop_back();
     }
@@ -1314,15 +1332,19 @@ mem_initializer_list
   ;
 
 mem_initializer
-  : mem_initializer_id '(' expression_list ')'
+  : mem_initializer_id '(' expression_list')'
     {
       using namespace cxx_compiler::declarations::declarators;
       function::definition::mem_initializer::action($1, $3);
+      using namespace cxx_compiler;
+      parse::identifier::mode = parse::identifier::mem_ini;
     }
   | mem_initializer_id '(' ')'
     {
       using namespace cxx_compiler::declarations::declarators;
       function::definition::mem_initializer::action($1, 0);
+      using namespace cxx_compiler;
+      parse::identifier::mode = parse::identifier::mem_ini;
     }
   ;
 
@@ -1333,6 +1355,7 @@ mem_initializer_id
       using namespace cxx_compiler;
       $$ = new pair<usr*, tag*>(0, $4);
       class_or_namespace_name::after(false);
+      parse::identifier::mode = parse::identifier::look;
     }
   | COLONCOLON_MK move_to_root class_name
     {
@@ -1340,6 +1363,7 @@ mem_initializer_id
       using namespace cxx_compiler;
       $$ = new pair<usr*, tag*>(0, $3);
       class_or_namespace_name::after(false);
+      parse::identifier::mode = parse::identifier::look;
     }
   | nested_name_specifier class_name
     {
@@ -1347,12 +1371,14 @@ mem_initializer_id
       using namespace cxx_compiler;
       $$ = new pair<usr*, tag*>(0, $2);
       class_or_namespace_name::after(false);
+      parse::identifier::mode = parse::identifier::look;
     }
   | class_name
     {
       using namespace std;
       using namespace cxx_compiler;
       $$ = new pair<usr*, tag*>(0, $1);
+      parse::identifier::mode = parse::identifier::look;
     }
   | IDENTIFIER_LEX
     {
@@ -1361,6 +1387,7 @@ mem_initializer_id
       assert($1->usr_cast());
       usr* u = static_cast<usr*>($1);
       $$ = new pair<usr*, tag*>(u, 0);
+      parse::identifier::mode = parse::identifier::look;
     }
   ;
 

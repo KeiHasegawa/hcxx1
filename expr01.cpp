@@ -684,11 +684,12 @@ cxx_compiler::var* cxx_compiler::call_impl::convert::operator()(var* arg)
   const type* U = T->unqualified();
   if (U->m_id != type::REFERENCE)
     arg = arg->rvalue();
-  if ( T->m_id == type::ELLIPSIS ){
-    const type* T2 = arg->m_type;
-    if ( T2->compatible(T2->varg()) )
+  if (T->m_id == type::ELLIPSIS) {
+    const type* Ta = arg->m_type;
+    const type* Tav = Ta->varg();
+    if ( Ta->compatible(Tav) )
       return arg;
-    T = T2->varg();
+    T = Tav;
   }
   T = T->unqualified();
   bool discard = false;
@@ -703,15 +704,30 @@ cxx_compiler::var* cxx_compiler::call_impl::convert::operator()(var* arg)
     return arg;
   }
   if (T->scalar()) {
-    if (arg->m_type->scalar()) {
-      var* org = arg;
-      arg = arg->cast(T);
-      if (org != arg && m_trial_cost)
-	++*m_trial_cost;
+    const type* Ty = arg->m_type;
+    Ty = Ty->unqualified();
+    if (Ty->scalar()) {
+      if (T->m_id != type::REFERENCE && Ty->m_id == type::REFERENCE) {
+	var* tmp = new var(T);
+	if (scope::current->m_id == scope::BLOCK) {
+	  block* b = static_cast<block*>(scope::current);
+	  b->m_vars.push_back(tmp);
+	}
+	else
+	  garbage.push_back(tmp);
+	code.push_back(new invraddr3ac(tmp, arg));
+	if (m_trial_cost)
+	  ++*m_trial_cost;
+	arg = tmp;
+      }
+      else {
+	var* org = arg;
+	arg = arg->cast(T);
+	if (org != arg && m_trial_cost)
+	  ++*m_trial_cost;
+      }
     }
     else {
-      const type* Ty = arg->m_type;
-      Ty = Ty->unqualified();
       assert(Ty->m_id == type::RECORD);
       typedef const record_type REC;
       REC* rec = static_cast<REC*>(Ty);
@@ -1876,7 +1892,7 @@ assignment::valid(const type* T, var* src, bool* discard, bool ctor_conv,
   }
 
   typedef const pointer_type PT;
-  if ( xx->m_id == type::POINTER ){
+  if (xx->m_id == type::POINTER) {
     PT* px = static_cast<PT*>(xx);
     if ( yy->m_id == type::POINTER ){
       PT* py = static_cast<PT*>(yy);
@@ -1962,6 +1978,14 @@ assignment::valid(const type* T, var* src, bool* discard, bool ctor_conv,
       if (valid(T, &tmp, discard, ctor_conv, exp_ctor))
         return xx;
     }
+  }
+
+  if (yy->m_id == type::REFERENCE) {
+    typedef const reference_type REF;
+    REF* ref = static_cast<REF*>(yy);
+    const type* T = ref->referenced_type();
+    var tmp(T);
+    return valid(xx, &tmp, discard, ctor_conv, exp_ctor);
   }
 
   if (xx->m_id == type::POINTER_MEMBER) {

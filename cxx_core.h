@@ -1576,6 +1576,7 @@ public:
   bool integer() const { return false; }
   const type* complete_type() const;
   bool tmp() const { return m_T->tmp(); }
+  const type* varg() const { return m_T->varg(); }
   static const reference_type* create(const type*);
   static void destroy_tmp();
   static void collect_tmp(std::vector<const type*>&);

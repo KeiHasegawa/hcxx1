@@ -337,18 +337,10 @@ namespace cxx_compiler {
 	      block* b = new block;
 	      children.push_back(b);
 	      b->m_parent = param;
-
-	      const type* T = ptr->m_types.second;
-	      T = pointer_type::create(T);
-	      usr* this_ptr = new usr(this_name, T, usr::NONE, parse::position,
-				      usr::NONE2);
-	      this_ptr->m_scope = param;
-	      vector<usr*>& order = param->m_order;
-	      vector<usr*> tmp = order;
-	      order.clear();
-	      order.push_back(this_ptr);
-	      copy(begin(tmp), end(tmp), back_inserter(order));
-	      param->m_usrs[this_name].push_back(this_ptr);
+	      map<string, vector<usr*> >& usrs = param->m_usrs;
+	      typedef map<string, vector<usr*> >::const_iterator IT;
+	      IT p = usrs.find(this_name);
+	      assert(p != usrs.end());
 	      return b;
 	    }
 	    map<usr*, map<usr*, pbc> > mtbl;
@@ -425,6 +417,15 @@ namespace cxx_compiler {
 	    }
 	    inline usr* get_this(scope* param, const record_type* rec)
 	    {
+	      vector<scope*>& children = param->m_children;
+	      if (children.empty()) {
+		block* bp = new block;
+		using namespace class_or_namespace_name;
+		assert(before.back() == bp);
+		before.pop_back();
+		param->m_children.push_back(bp);
+		bp->m_parent = param;
+	      }
 	      map<string, vector<usr*> >& usrs = param->m_usrs;
 	      typedef map<string, vector<usr*> >::const_iterator IT;
 	      IT p = usrs.find(this_name);
@@ -443,12 +444,6 @@ namespace cxx_compiler {
 	      order.clear();
 	      order.push_back(this_ptr);
 	      copy(begin(tmp), end(tmp), back_inserter(order));
-	      block* bp = new block;
-	      using namespace class_or_namespace_name;
-	      assert(before.back() == bp);
-	      before.pop_back();
-	      param->m_children.push_back(bp);
-	      bp->m_parent = param;
 	      return this_ptr;
 	    }
 	    map<usr*, map<tag*, pbc> > btbl;

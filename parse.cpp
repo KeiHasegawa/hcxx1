@@ -13,6 +13,15 @@ namespace cxx_compiler {
     namespace identifier {
       mode_t mode;
       int create(std::string, const type* = backpatch_type::create());
+      inline scope* search_scope()
+      {
+	if (mode != mem_ini)
+	  return scope::current;
+	assert(scope::current->m_id == scope::PARAM);
+	scope* parent = scope::current->m_parent;
+	assert(parent->m_id == scope::TAG);
+	return parent;
+      }
     } // end of namespace identifier
   } // end of namespace parse and
 } // end of namespace cxx_compiler
@@ -40,7 +49,7 @@ int cxx_compiler::parse::identifier::judge(std::string name)
   if (last_token == '(' && scope::current->m_id == scope::PARAM ||
       mode == canbe_ctor) {
     // guess abstract-declarator or declaration of constructor
-    if (int r = lookup(name,scope::current)) {
+    if (int r = lookup(name, scope::current)) {
       switch (r) {
       case ORIGINAL_NAMESPACE_NAME_LEX:
       case NAMESPACE_ALIAS_LEX:
@@ -56,7 +65,7 @@ int cxx_compiler::parse::identifier::judge(std::string name)
   if (mode == new_obj || mode == canbe_ctor)
     return create(name);
 
-  if (int r = lookup(name, scope::current)) {
+  if (int r = lookup(name, search_scope())) {
     if (context_t::retry[DECL_FCAST_CONFLICT_STATE])
       return r;
     using namespace declarations::specifier_seq;

@@ -1500,6 +1500,7 @@ cxx_compiler::unqualified_id::operator_function_id(int op)
   string frn = new_name(".param");
   usr* first = new usr(frn, rtc, usr::NONE, parse::position, usr::NONE2);
   map<string, vector<usr*> >& pusrs = param->m_usrs;
+  assert(pusrs.find(this_name) == pusrs.end());
   pusrs[this_name].push_back(this_ptr);
   pusrs[frn].push_back(first);
   vector<usr*>& order = param->m_order;

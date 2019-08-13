@@ -741,8 +741,10 @@ namespace cxx_compiler {
         usr* this_ptr = new usr(this_name, pt, usr::NONE, parse::position,
                                 usr::NONE2);
         this_ptr->m_scope = param;
+	map<string, vector<usr*> >& pusrs = param->m_usrs;
+	assert(pusrs.find(this_name) == pusrs.end());
+        pusrs[this_name].push_back(this_ptr);
         param->m_order.push_back(this_ptr);
-        param->m_usrs[this_name].push_back(this_ptr);
         for_each(begin(parameter), end(parameter),
                  bind2nd(ptr_fun(install), param));
 
@@ -1469,7 +1471,9 @@ namespace cxx_compiler {
       *this_ptr = new usr(this_name,T,usr::NONE,file_t(),usr::NONE2);
       (*this_ptr)->m_scope = *param;
       (*param)->m_order.push_back(*this_ptr);
-      (*param)->m_usrs[this_name].push_back(*this_ptr);
+      map<string, vector<usr*> >& usrs = (*param)->m_usrs;
+      assert(usrs.find(this_name) == usrs.end());
+      usrs[this_name].push_back(*this_ptr);
 
       *pb = new block;
       assert(!before.empty());
@@ -1823,8 +1827,10 @@ namespace cxx_compiler {
       usr* this_ptr = new usr(this_name, pt, usr::NONE, parse::position,
                               usr::NONE2);
       this_ptr->m_scope = param;
+      map<string, vector<usr*> >& pusrs = param->m_usrs;
+      assert(pusrs.find(this_name) == pusrs.end());
+      pusrs[this_name].push_back(this_ptr);
       param->m_order.push_back(this_ptr);
-      param->m_usrs[this_name].push_back(this_ptr);
 
       string arg_name = new_name(".param");
       const reference_type* rt = copy_ctor_arg_type(ptr, true);
@@ -2510,7 +2516,9 @@ namespace cxx_compiler {
       T = pointer_type::create(T);
       usr* this_ptr = new usr(this_name, T, usr::NONE, parse::position,
                               usr::NONE2);
-      param->m_usrs[this_name].push_back(this_ptr);
+      map<string, vector<usr*> >& usrs = param->m_usrs;
+      assert(usrs.find(this_name) == usrs.end());
+      usrs[this_name].push_back(this_ptr);
       param->m_order.push_back(this_ptr);
 
       block* bp = new block;
