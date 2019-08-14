@@ -250,8 +250,14 @@ namespace cxx_compiler {
 	    if (p != end(xb))
 	      return false;
 	    IT q = find_if(begin(yb), end(yb), virt);
-	    if (q != end(yb))
-	      return false;
+	    if (q != end(yb)) {
+	       // If `x' is direct base, `x' is conflict with `y'.
+	      if (xb.size() != 1)
+		return false;
+	      if (x.m_kind != y.m_kind)
+		error::not_implemented();
+	      return x.m_kind == CLASS_NAME_LEX;
+	    }
 	    return true;
 	  }
 	  if (x.m_kind != y.m_kind)
