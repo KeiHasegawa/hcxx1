@@ -1978,7 +1978,8 @@ cxx_compiler::record_type::record_type(tag* ptr)
       usrs[vbtbl_name].push_back(vbtbl);
       if (nvb) {
         T = pointer_type::create(T);
-        usr* vbptr = new usr(vbptr_name,T,usr::NONE,file_t(),usr::NONE2);
+        usr* vbptr = new usr(vbptr_name, T, usr::NONE, parse::position,
+			     usr::NONE2);
         usrs[vbptr_name].push_back(vbptr);
         m_member.push_back(vbptr);
         m_layout[vbptr_name] = make_pair(m_size, vbptr);
@@ -2052,12 +2053,14 @@ cxx_compiler::record_type::record_type(tag* ptr)
     m_tag->m_usrs[vftbl_name].push_back(vftbl);
     if (nvf) {
       T = pointer_type::create(T);
-      usr* vfptr = new usr(vfptr_name,T,usr::NONE,file_t(),usr::NONE2);
+      usr* vfptr = new usr(vfptr_name, T, usr::NONE, parse::position,
+			   usr::NONE2);
       m_tag->m_usrs[vfptr_name].push_back(vfptr);
       m_member.push_back(vfptr);
       m_layout[vfptr_name] = make_pair(vfptr_offset, vfptr);
       m_position[vfptr] = vfptr_offset ? 1 : 0;
     }
+
     int offset = 0;
     if (bases) {
       map<int, var*>& value = vftbl->m_value;
