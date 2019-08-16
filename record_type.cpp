@@ -404,8 +404,8 @@ namespace cxx_compiler {
                                    const vector<const record_type*>* va)
     {
       const map<string, vector<usr*> >& usrs = ptr->m_usrs;
-      typedef map<string, vector<usr*> >::const_iterator IT;
-      IT p = usrs.find(vftbl_name);
+      typedef map<string, vector<usr*> >::const_iterator ITx;
+      ITx p = usrs.find(vftbl_name);
       if (p == usrs.end())
         return offset;
       const vector<usr*>& v = p->second;
@@ -414,7 +414,16 @@ namespace cxx_compiler {
       assert(u->m_flag & usr::WITH_INI);
       with_initial* w = static_cast<with_initial*>(u);
       const map<int, var*>& src = w->m_value;
-      return accumulate(begin(src), end(src), offset, add_if(result, va));
+      const vector<usr*>& order = ptr->m_order;
+      int nvf = count_if(begin(order),end(order),
+			 [](usr* u){ return u->m_flag & usr::VIRTUAL; });
+      typedef map<int, var*>::const_iterator ITy;
+      ITy it = begin(src);
+      int m = src.size() - nvf;
+      while (m--)
+	++it;
+      offset = accumulate(begin(src), it, offset, add_if(result, va));
+      return accumulate(it, end(src), offset, add_if(result, 0));
     } 
     struct copy_base_vf {
       map<int, var*>& m_value;
