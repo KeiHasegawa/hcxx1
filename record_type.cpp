@@ -275,18 +275,11 @@ namespace cxx_compiler {
     }
     inline int base_vf(int n, const base* b)
     {
-      if (b->m_flag & usr::VIRTUAL)
-        return n;
+      usr::flag_t flag = b->m_flag;
+      if (flag & usr::VIRTUAL)
+	return n;
       tag* ptr = b->m_tag;
-      const type* T = ptr->m_types.second;
-      assert(T->m_id == type::RECORD);
-      typedef const record_type REC;
-      REC* rec = static_cast<REC*>(T);
-      const vector<REC*>& va = rec->virt_ancestor();
-      int x = base_vcommon(b->m_tag, vftbl_name);
-      int y = accumulate(begin(va), end(va), 0, vbase_vf);
-      assert(x - y >= 0);
-      return n + x - y;
+      return n + base_vcommon(ptr, vftbl_name);
     }
     int base_vb(int n, const base* b)
     {
@@ -390,7 +383,6 @@ namespace cxx_compiler {
                            bind2nd(ptr_fun(match_vf), vf));
             assert(r != end(m_result));
             r->second = override(r->second, v);
-            return off;
           }
         }
         m_result[off] = v;
@@ -418,10 +410,9 @@ namespace cxx_compiler {
       int nvf = count_if(begin(order),end(order),
 			 [](usr* u){ return u->m_flag & usr::VIRTUAL; });
       typedef map<int, var*>::const_iterator ITy;
-      ITy it = begin(src);
-      int m = src.size() - nvf;
-      while (m--)
-	++it;
+      ITy it = end(src);
+      while (nvf--)
+	--it;
       offset = accumulate(begin(src), it, offset, add_if(result, va));
       return accumulate(it, end(src), offset, add_if(result, 0));
     } 
@@ -464,20 +455,21 @@ namespace cxx_compiler {
     struct override_vf {
       map<int, var*>& m_value;
       override_vf(map<int, var*>& value) : m_value(value) {}
+      static var* update(usr* u)
+      {
+	u->m_flag = usr::flag_t(u->m_flag | usr::OVERRIDE);
+	const type* T = u->m_type;
+	T = pointer_type::create(T);
+	return new addrof(T, u, 0);
+      }
       void operator()(usr* u)
       {
-        usr::flag_t flag = u->m_flag;
-        if (!(flag & usr::FUNCTION))
-          return;
-        typedef map<int, var*>::iterator IT;
-        IT p = find_if(begin(m_value), end(m_value),
-                       bind2nd(ptr_fun(match_vf), u));
-        if (p != end(m_value)) {
-          u->m_flag = usr::flag_t(u->m_flag | usr::OVERRIDE);
-          const type* T = u->m_type;
-          T = pointer_type::create(T);
-          p->second = new addrof(T, u, 0);
-        }
+        if (u->m_flag & usr::FUNCTION) {
+	  for (auto& p : m_value) {
+	    if (match_vf(p, u))
+	      p.second = update(u);
+	  }
+	}
       }
     };
     inline void check_override(pair<int, var*> x, tag* ptr)
