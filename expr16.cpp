@@ -224,7 +224,10 @@ cxx_compiler::var* cxx_compiler::usr::assign(var* op)
     code.push_back(new invladdr3ac(this,y));
   else {
     y = T->aggregate() ? aggregate_conv(T, y) : y->cast(T);
-    if (operator_assign::require(T, y)) {
+    const type* Ty = y->m_type;
+    Ty = Ty->unqualified();
+    var tmp(Ty);
+    if (operator_assign::require(T, &tmp)) {
       const type* pt = pointer_type::create(T);
       var* px = new var(pt);
       if (scope::current->m_id == scope::BLOCK) {
