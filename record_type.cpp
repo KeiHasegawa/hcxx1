@@ -2738,7 +2738,8 @@ cxx_compiler::usr* cxx_compiler::get_copy_ctor(const type* T)
 {
   if (!T)
     return 0;
-  T = T->unqualified();
+  int cvr = 0;
+  T = T->unqualified(&cvr);
   if (T->m_id != type::RECORD)
     return 0;
   typedef const record_type REC;
@@ -2751,12 +2752,54 @@ cxx_compiler::usr* cxx_compiler::get_copy_ctor(const type* T)
   if (p == usrs.end())
     return 0;
   const vector<usr*>& v = p->second;
-  typedef vector<usr*>::const_iterator ITy;
-  ITy q = find_if(begin(v), end(v),
+  typedef vector<usr*>::const_reverse_iterator ITy;
+  ITy q = find_if(rbegin(v), rend(v),
 		  bind2nd(ptr_fun(canbe_copy_ctor), ptr));
-  if (q == end(v))
+  if (q == rend(v))
     return 0;
-  return *q;
+  usr* u1 = *q;
+  ITy r = find_if(q+1, rend(v), [ptr, u1](usr* u) {
+      return canbe_copy_ctor(u, ptr) && !compatible(u->m_type, u1->m_type);
+    });
+  if (r == rend(v))
+    return u1;
+  usr* u2 = *r;
+  for_each(r+1, rend(v), [ptr, u1, u2](usr* u)
+	   {
+	     if (canbe_copy_ctor(u, ptr)) {
+	       assert(!compatible(u->m_type, u1->m_type));
+	       assert(!compatible(u->m_type, u2->m_type));
+	     }
+	   });
+  const type* T1 = u1->m_type;
+  const type* T2 = u2->m_type;
+  assert(T1->m_id == type::FUNC);
+  assert(T2->m_id == type::FUNC);
+  typedef const func_type FT;
+  FT* ft1 = static_cast<FT*>(T1);
+  FT* ft2 = static_cast<FT*>(T2);
+  const vector<const type*>& param1 = ft1->param();
+  const vector<const type*>& param2 = ft2->param();
+  assert(!param1.empty());
+  assert(!param2.empty());
+  const type* Tp1 = param1[0];
+  const type* Tp2 = param2[0];
+  assert(Tp1->m_id == type::REFERENCE);
+  assert(Tp2->m_id == type::REFERENCE);
+  typedef const reference_type RT;
+  RT* rt1 = static_cast<RT*>(Tp1);
+  RT* rt2 = static_cast<RT*>(Tp2);
+  const type* R1 = rt1->referenced_type();
+  const type* R2 = rt2->referenced_type();
+  int cvr1 = 0, cvr2 = 0;
+  R1->unqualified(&cvr1);
+  R2->unqualified(&cvr2);
+  if (cvr == cvr1)
+    return u1;
+  if (cvr == cvr2)
+    return u2;
+  error::not_implemented();
+  return 0;
 }
 
 cxx_compiler::usr* cxx_compiler::has_ctor_dtor(tag* ptr, bool is_dtor)

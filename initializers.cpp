@@ -270,22 +270,19 @@ void cxx_compiler::declarations::initializers::gencode(usr* u)
   }
 
   var* v = value[0];
-#if 1
-  const type* Ty = v->m_type;
-#else
   const type* Ty = v->result_type();
-#endif
   if (Tx->scalar() != Ty->scalar()) {
     for_each(value.begin(),value.end(),bind1st(ptr_fun(gen_loff),u));
     return;
   }
 
   Tx = Tx->unqualified();
-  Ty = Ty->unqualified();
+  int cvr = 0;
+  Ty = Ty->unqualified(&cvr);
   if (Tx->m_id == type::REFERENCE && Ty->m_id != type::REFERENCE)
     return reference_case(u, v);
 
-  if (usr* copy_ctor = get_copy_ctor(Tx)) {
+  if (usr* copy_ctor = get_copy_ctor(Tx->qualified(cvr))) {
     const type* T = pointer_type::create(Tx);
     var* t0 = new var(T);
     var* t1 = new var(T);
@@ -302,7 +299,7 @@ void cxx_compiler::declarations::initializers::gencode(usr* u)
     code.push_back(new addr3ac(t1, v));
     code.push_back(new param3ac(t0));
     code.push_back(new param3ac(t1));
-    usr::flag_t flag = copy_ctor->m_flag;	
+    usr::flag_t flag = copy_ctor->m_flag;
     if (flag & usr::HAS_DEFAULT_ARG) {
       using namespace declarations::declarators::function;
       typedef map<usr*, vector<var*> >::const_iterator IT;
@@ -477,12 +474,9 @@ assign(var* y, argument* arg)
   const type* T = arg->T;
   const type* U = T->unqualified();
   if (U->m_id != type::REFERENCE) {
-#if 1
-    y = y->rvalue();
-#else
-    if (!get_copy_ctor(T))
+    usr* copy_ctor = get_copy_ctor(T);
+    if (!copy_ctor || !dynamic_cast<ref*>(y))
       y = y->rvalue();
-#endif
   }
   if (duration::_static(argument::dst) && !y->isconstant(true)
       && U->m_id != type::REFERENCE)
