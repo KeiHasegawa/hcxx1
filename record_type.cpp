@@ -2798,6 +2798,7 @@ cxx_compiler::usr* cxx_compiler::get_copy_ctor(const type* T)
     return u1;
   if (cvr == cvr2)
     return u2;
+  bool debug = compatible(u1->m_type, u2->m_type);
   error::not_implemented();
   return 0;
 }

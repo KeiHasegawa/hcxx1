@@ -1396,11 +1396,14 @@ namespace cxx_compiler {
       namespace aggregate_impl {
 	bool call_copy_ctor(var* x, var* y, int offset)
 	{
+	  using namespace expressions;
 	  using namespace expressions::primary::literal;
+	  using namespace error::expressions::postfix::call;
 	  const type* Ty = y->m_type;
 	  usr* copy_ctor = get_copy_ctor(Ty);
 	  if (!copy_ctor)
 	    return false;
+
 	  const type* Tc = copy_ctor->m_type;
 	  assert(Tc->m_id == type::FUNC);
 	  typedef const func_type FT;
@@ -1408,6 +1411,11 @@ namespace cxx_compiler {
 	  const vector<const type*>& param = ft->param();
 	  assert(!param.empty());
 	  const type* Ta = param[0];
+	  bool discard = false;
+	  if (!assignment::valid(Ta, y, &discard, false, 0)) {
+	    assert(discard);
+	    mismatch_argument(parse::position, 0, discard, copy_ctor);
+	  }
 	  var* t0 = new var(Ta);
 	  assert(scope::current->m_id == scope::BLOCK);
 	  block* b = static_cast<block*>(scope::current);

@@ -96,18 +96,22 @@ void cxx_compiler::error::header(const file_t& file, std::string msg)
   if (!headered) {
     if (fundef* func = fundef::current) {
       usr* u = func->m_usr;
-      string name = u->m_name;
-      if (u->m_flag & usr::CTOR)
-	name += "::" + name;
-      switch ( lang ){
-      case jpn:
-        cerr << file.m_name << ": 函数 `" << name << "' :\n";
-        break;
-      default:
-        cerr << file.m_name << ": In function `" << name << "' :\n";
-        break;
+      usr::flag2_t flag2 = u->m_flag2;
+      if (!(flag2 & usr::GENED_BY_COMP)) {
+	string name = u->m_name;
+	usr::flag_t flag = u->m_flag;
+	if (flag & usr::CTOR)
+	  name += "::" + name;
+	switch ( lang ){
+	case jpn:
+	  cerr << file.m_name << ": 函数 `" << name << "' :\n";
+	  break;
+	default:
+	  cerr << file.m_name << ": In function `" << name << "' :\n";
+	  break;
+	}
+	headered = true;
       }
-      headered = true;
     }
   }
   cerr << file.m_name << ':' << file.m_lineno << ": ";
@@ -652,8 +656,13 @@ void cxx_compiler::error::expressions::postfix::call::mismatch_argument(const fi
   case jpn:
     header(file,"エラー");
     cerr << "函数";
-    if ( u )
-      cerr << " `" << u->m_name << "' の";
+    if (u) {
+      string name = u->m_name;
+      usr::flag_t flag = u->m_flag;
+      if (flag & usr::CTOR)
+	name += "::" + name;
+      cerr << " `" << name << "' の";
+    }
     cerr << "呼び出しの " << n + 1 << " 番目の引数がマッチしません.";
     if ( discard )
       cerr << " 修飾子が失われます.";
@@ -662,8 +671,13 @@ void cxx_compiler::error::expressions::postfix::call::mismatch_argument(const fi
   default:
     header(file,"error");
     cerr << "function call ";
-    if ( u )
-      cerr << '`' << u->m_name << "' ";
+    if (u) {
+      string name = u->m_name;
+      usr::flag_t flag = u->m_flag;
+      if (flag & usr::CTOR)
+	name += "::" + name;
+      cerr << '`' << name << "' ";
+    }
     switch ( n ){
     case 0: cerr << "1st"; break;
     case 1: cerr << "2nd"; break;
