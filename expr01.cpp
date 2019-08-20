@@ -499,29 +499,13 @@ namespace cxx_compiler {
     inline var* call_copy_ctor(var* y)
     {
       const type* T = y->m_type;
-      T = T->unqualified();
-      if (T->m_id != type::RECORD)
+      usr* copy_ctor = get_copy_ctor(T);
+      if (!copy_ctor)
 	return y;
-      typedef const record_type REC;
-      REC* rec = static_cast<REC*>(T);
-      tag* ptr = rec->get_tag();
-      string name = ptr->m_name;
-      const map<string, vector<usr*> >& usrs = ptr->m_usrs;
-      typedef map<string, vector<usr*> >::const_iterator ITx;
-      ITx p = usrs.find(name);
-      if (p == usrs.end())
-	return y;
-      const vector<usr*>& v = p->second;
-      typedef vector<usr*>::const_iterator ITy;
-      ITy q = find_if(begin(v), end(v),
-		      bind2nd(ptr_fun(canbe_copy_ctor), ptr));
-      if (q == end(v))
-	return y;
-      usr* copy_ctor = *q;
       usr::flag2_t flag2 = copy_ctor->m_flag2;
       if (flag2 & usr::GENED_BY_COMP)
 	return y;
-      var* t0 = new var(rec);
+      var* t0 = new var(T);
       if (scope::current->m_id == scope::BLOCK) {
 	block* b = static_cast<block*>(scope::current);
 	b->m_vars.push_back(t0);

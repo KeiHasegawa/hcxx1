@@ -480,6 +480,8 @@ extern void handle_vdel(tag*);
 
 extern bool canbe_copy_ctor(usr*, tag*);
 
+extern usr* get_copy_ctor(const type*);
+
 extern bool array_of_tor(const array_type* at, bool ctor);
 
 extern void ctor_dtor_common(var* v, const array_type* at, void (*pf)(var*),

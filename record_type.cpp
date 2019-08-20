@@ -2734,6 +2734,30 @@ bool cxx_compiler::canbe_copy_ctor(usr* u, tag* ptr)
   return false;
 }
 
+cxx_compiler::usr* cxx_compiler::get_copy_ctor(const type* T)
+{
+  if (!T)
+    return 0;
+  T = T->unqualified();
+  if (T->m_id != type::RECORD)
+    return 0;
+  typedef const record_type REC;
+  REC* rec = static_cast<REC*>(T);
+  tag* ptr = rec->get_tag();
+  string name = ptr->m_name;
+  const map<string, vector<usr*> >& usrs = ptr->m_usrs;
+  typedef map<string, vector<usr*> >::const_iterator ITx;
+  ITx p = usrs.find(name);
+  if (p == usrs.end())
+    return 0;
+  const vector<usr*>& v = p->second;
+  typedef vector<usr*>::const_iterator ITy;
+  ITy q = find_if(begin(v), end(v),
+		  bind2nd(ptr_fun(canbe_copy_ctor), ptr));
+  if (q == end(v))
+    return 0;
+  return *q;
+}
 
 cxx_compiler::usr* cxx_compiler::has_ctor_dtor(tag* ptr, bool is_dtor)
 {

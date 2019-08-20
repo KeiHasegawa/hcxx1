@@ -1078,41 +1078,21 @@ namespace cxx_compiler {
       extern void gather(scope*, std::vector<var*>&);
       inline var* copy_ctor(const type* T, var* expr)
       {
-	if (T->m_id != type::RECORD)
-	  return expr;
-	typedef const record_type REC;
-	REC* rec = static_cast<REC*>(T);
-	tag* ptr = rec->get_tag();
-	usr* ctor = has_ctor_dtor(ptr, false);
+	usr* ctor = get_copy_ctor(T);
 	if (!ctor)
 	  return expr;
-	usr::flag_t flag = ctor->m_flag;
-	if (flag & usr::OVERLOAD) {
-	  overload* ovl = static_cast<overload*>(ctor);
-	  const vector<usr*>& v = ovl->m_candidacy;
-	  typedef vector<usr*>::const_iterator IT;
-	  IT p = find_if(begin(v), end(v),
-			 bind2nd(ptr_fun(canbe_copy_ctor), ptr));
-	  if (p == end(v))
-	    return expr;
-	  ctor = *p;
-	}
-	else {
-	  if (!canbe_copy_ctor(ctor, ptr))
-	    return expr;
-	}
 	usr::flag2_t flag2 = ctor->m_flag2;
 	if (flag2 & usr::GENED_BY_COMP)
 	  return expr;
-	T = ctor->m_type;
-	assert(T->m_id == type::FUNC);
+	const type* Tc = ctor->m_type;
+	assert(Tc->m_id == type::FUNC);
 	typedef const func_type FT;
-	FT* ft = static_cast<FT*>(T);
+	FT* ft = static_cast<FT*>(Tc);
 	const vector<const type*>& param = ft->param();
 	assert(!param.empty());
-	T = param[0];
-	var* t0 = new var(T);
-	var* t1 = new var(rec);
+	const type* Tp = param[0];
+	var* t0 = new var(Tp);
+	var* t1 = new var(T);
 	if (scope::current->m_id == scope::BLOCK) {
 	  block* b = static_cast<block*>(scope::current);
 	  b->m_vars.push_back(t0);
