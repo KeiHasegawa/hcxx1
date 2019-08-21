@@ -1473,8 +1473,24 @@ operator
   ;
 
 template_declaration
-  : EXPORT_KW TEMPLATE_KW '<' template_parameter_list '>' declaration
-  |           TEMPLATE_KW '<' template_parameter_list '>' declaration
+  : EXPORT_KW TEMPLATE_KW '<'
+    enter_temp_param template_parameter_list leave_temp_param '>' declaration
+  | TEMPLATE_KW '<'
+    enter_temp_param template_parameter_list leave_temp_param '>' declaration
+  ;
+
+enter_temp_param
+  : {
+      using namespace cxx_compiler;
+      parse::identifier::mode = parse::identifier::new_obj;
+    }
+  ;
+
+leave_temp_param
+  : {
+      using namespace cxx_compiler;
+      parse::identifier::mode = parse::identifier::look;
+    }
   ;
 
 template_parameter_list
@@ -1498,8 +1514,10 @@ type_parameter
   | TYPENAME_KW                '=' type_id
   | TEMPLATE_KW '<' template_parameter_list '>' CLASS_KW IDENTIFIER_LEX
   | TEMPLATE_KW '<' template_parameter_list '>' CLASS_KW
-  | TEMPLATE_KW '<' template_parameter_list '>' CLASS_KW IDENTIFIER_LEX '=' id_expression
-  | TEMPLATE_KW '<' template_parameter_list '>' CLASS_KW                '=' id_expression
+  | TEMPLATE_KW '<' template_parameter_list '>' CLASS_KW IDENTIFIER_LEX
+    '=' id_expression
+  | TEMPLATE_KW '<' template_parameter_list '>' CLASS_KW
+    '=' id_expression
   ;
 
 template_id

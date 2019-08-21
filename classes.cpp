@@ -347,9 +347,9 @@ namespace cxx_compiler {
 	    void id_action(usr* u, EXPRS* exprs, usr* ctor)
 	    {
               using namespace expressions::primary;
-	      scope* tmp = ctor->m_scope;
-	      assert(tmp->m_id == scope::TAG);
-	      tag* ptr = static_cast<tag*>(tmp);
+	      scope* ps = ctor->m_scope;
+	      assert(ps->m_id == scope::TAG);
+	      tag* ptr = static_cast<tag*>(ps);
               const type* T = ptr->m_types.second;
               if (!T) {
                 assert(scope::current->m_id == scope::PARAM);
@@ -359,13 +359,15 @@ namespace cxx_compiler {
 	      block* b = get_block(ptr);
               scope* org = scope::current;
               scope::current = b;
-	      assert(code.empty());
+	      int n = code.size();
               vector<route_t> dummy;
               var* dst = from_member(u, dummy);
               gen(dst, exprs);
               scope::current = org;
-	      mtbl[ctor][u] = pbc(b->m_parent, b, code);
-	      code.clear();
+	      vector<tac*> tmp;
+	      copy(begin(code) + n, end(code), back_inserter(tmp));
+	      mtbl[ctor][u] = pbc(b->m_parent, b, tmp);
+	      code.resize(n);
 	    }
 	    void gen(tag* ptr, var* this_ptr, int offset, EXPRS* exprs)
 	    {
