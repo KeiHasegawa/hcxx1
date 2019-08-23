@@ -4,8 +4,6 @@
 #include "yy.h"
 #include "cxx_y.h"
 
-extern void debug_break();
-
 cxx_compiler::tag::kind_t cxx_compiler::classes::specifier::get(int keyword)
 {
   switch ( keyword ){

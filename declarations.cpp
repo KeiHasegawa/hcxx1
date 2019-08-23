@@ -4,10 +4,6 @@
 #include "yy.h"
 #include "cxx_y.h"
 
-void debug_break()
-{
-}
-
 void cxx_compiler::declarations::destroy()
 {
   using namespace std;
@@ -723,7 +719,6 @@ cxx_compiler::declarations::action1(var* v, bool ini)
 
   const map<string, tag*>& tps = scope::current->m_tps;
   if (!tps.empty()) {
-    debug_break();
     using namespace parse::templ;
     assert(!save_t::s_stack.empty());
     save_t* p = save_t::s_stack.top();
