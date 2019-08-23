@@ -13,6 +13,7 @@ struct scope {
   std::vector<scope*> m_children;
   std::map<std::string, std::vector<usr*> > m_usrs;
   std::map<std::string, tag*> m_tags;
+  std::map<std::string, tag*> m_tps; // template parameter
   static scope* current;
   static scope root;
   std::vector<usr*> m_order;
@@ -328,6 +329,7 @@ struct usr : var {
     INITIALIZE_FUNCTION = 1 << 7,
     TERMINATE_FUNCTION  = 1 << 8,
     GENED_BY_COMP       = 1 << 9,
+    TEMPLATE            = 1 << 10,
   };
   flag2_t m_flag2;
   file_t m_file;
@@ -1085,7 +1087,7 @@ struct type {
     CONST, VOLATILE, RESTRICT,
     POINTER, REFERENCE, ARRAY, FUNC, RECORD, ENUM, BIT_FIELD, ELLIPSIS,
     INCOMPLETE_TAGGED, VARRAY,
-    POINTER_MEMBER,
+    POINTER_MEMBER, TEMPLATE_PARAM,
   };
   id_t m_id;
   type(id_t id) : m_id(id) {}
@@ -1764,6 +1766,18 @@ public:
   static const pointer_member_type* create(const tag*, const type*);
   static void destroy_tmp();
   static void collect_tmp(std::vector<const type*>&);
+};
+
+class template_param_type : public type {
+  tag* m_tag;
+  struct table_t;
+  static table_t table;
+  template_param_type(tag* ptr) : type(TEMPLATE_PARAM), m_tag(ptr) {}
+public:
+  void decl(std::ostream&, std::string) const;
+  void encode(std::ostream&) const;
+  int size() const;
+  static const template_param_type* create(tag*);
 };
 
 struct fundef {

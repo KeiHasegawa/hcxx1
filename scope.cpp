@@ -38,7 +38,7 @@ cxx_compiler::scope::~scope()
     case scope::BLOCK:
       delete p;
       break;
-    default:
+    case scope::TAG:
       p->m_parent = 0;
       break;
     }

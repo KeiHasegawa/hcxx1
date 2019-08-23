@@ -1770,3 +1770,17 @@ cxx_compiler::pointer_member_type::collect_tmp(std::vector<const type*>& vt)
     vt.push_back(p.second);
   tmp_tbl.clear();
 }
+
+void cxx_compiler::
+template_param_type::decl(std::ostream&, std::string) const { assert(0); }
+
+void cxx_compiler::
+template_param_type::encode(std::ostream& os) const { assert(0); }
+
+int cxx_compiler::template_param_type::size() const { return 1; }
+
+const cxx_compiler::template_param_type*
+cxx_compiler::template_param_type::create(tag* ptr)
+{
+  return new template_param_type(ptr);
+}

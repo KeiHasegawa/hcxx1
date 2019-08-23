@@ -103,6 +103,15 @@ namespace parse {
     extern save_t* saved;
     extern int get_token();
   } // end of namespace member_function_body
+  namespace templ {
+    struct save_t {
+      read_t m_read;
+      usr* m_usr;
+      tag* m_tag;
+      save_t() : m_usr(0), m_tag(0) {}
+      static stack<save_t*> s_stack;
+    };
+  } // end of namespace templ
 } // end of namespace parse
 
 typedef pair<const fundef*, vector<tac*> > FUNCS_ELEMENT_TYPE;
@@ -789,6 +798,10 @@ namespace declarations {
     typedef list<LIST_ELEMENT> LIST;
     extern const type* action(type_specifier_seq::info_t*, LIST*);
   } // end of namespace new_type_id
+  namespace templ {
+    extern void decl_begin();
+    extern void decl_end();
+  } // end of namespace templ
 } // end of namespace declarations
 
 namespace conversion {
@@ -1456,6 +1469,10 @@ namespace qualified_id {
   extern var* action(var*);
 } // end of namespace qualified_id
 
+namespace type_parameter {
+  extern void action(var*);
+} // end of namespace type_parameter
+
 namespace call_impl {
   var* common(const func_type* ft,
               var* func,
@@ -1495,6 +1512,19 @@ extern void copy_scope(const scope* src, scope* dst, map<var*, var*>& tbl);
 namespace block_impl {
   extern map<block*, vector<var*> > dtor_tbl;
 } // end of namespace block_impl
+
+struct template_usr : usr {
+  parse::read_t m_read;
+  template_usr(usr& u) : usr(u)
+  {
+    m_flag2 = usr::flag2_t(m_flag2 | usr::TEMPLATE);
+  }
+};
+
+struct template_tag : tag {
+  parse::read_t m_read;
+  template_tag(tag& t) : tag(t) {}
+};
 
 } // end of namespace cxx_compiler
 

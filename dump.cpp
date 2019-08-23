@@ -59,6 +59,11 @@ void cxx_compiler::dump::usrx(const usr* u, int ntab)
       cout << s << ' ';
   }
   string name = names::ref(const_cast<usr*>(u));
+  usr::flag2_t flag2 = u->m_flag2;
+  if (flag2 & usr::TEMPLATE) {
+    cout << "template " << name << '\n';
+    return;
+  }
   const type* T = u->m_type;
   if (!T) {
     assert(flag & usr::NAMESPACE);

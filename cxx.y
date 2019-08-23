@@ -1474,22 +1474,38 @@ operator
 
 template_declaration
   : EXPORT_KW TEMPLATE_KW '<'
-    enter_temp_param template_parameter_list leave_temp_param '>' declaration
+    enter_templ_param template_parameter_list leave_templ_param '>'
+    templ_decl_begin declaration templ_decl_end
   | TEMPLATE_KW '<'
-    enter_temp_param template_parameter_list leave_temp_param '>' declaration
+    enter_templ_param template_parameter_list leave_templ_param '>'
+    templ_decl_begin declaration templ_decl_end
   ;
 
-enter_temp_param
+enter_templ_param
   : {
       using namespace cxx_compiler;
       parse::identifier::mode = parse::identifier::new_obj;
     }
   ;
 
-leave_temp_param
+leave_templ_param
   : {
       using namespace cxx_compiler;
       parse::identifier::mode = parse::identifier::look;
+    }
+  ;
+
+templ_decl_begin
+  : {
+      using namespace cxx_compiler;
+      declarations::templ::decl_begin();
+    }
+  ;
+
+templ_decl_end
+  : {
+      using namespace cxx_compiler;
+      declarations::templ::decl_end();
     }
   ;
 
@@ -1505,19 +1521,31 @@ template_parameter
 
 type_parameter
   : CLASS_KW IDENTIFIER_LEX
+    { cxx_compiler::type_parameter::action($2); }
   | CLASS_KW
+    { cxx_compiler::error::not_implemented(); }
   | CLASS_KW IDENTIFIER_LEX '=' type_id
-  | CLASS_KW                '=' type_id
+    { cxx_compiler::error::not_implemented(); }
+  | CLASS_KW '=' type_id
+    { cxx_compiler::error::not_implemented(); }
   | TYPENAME_KW IDENTIFIER_LEX
+    { cxx_compiler::type_parameter::action($2); }
   | TYPENAME_KW
+    { cxx_compiler::error::not_implemented(); }
   | TYPENAME_KW IDENTIFIER_LEX '=' type_id
-  | TYPENAME_KW                '=' type_id
+    { cxx_compiler::error::not_implemented(); }
+  | TYPENAME_KW '=' type_id
+    { cxx_compiler::error::not_implemented(); }
   | TEMPLATE_KW '<' template_parameter_list '>' CLASS_KW IDENTIFIER_LEX
+    { cxx_compiler::error::not_implemented(); }
   | TEMPLATE_KW '<' template_parameter_list '>' CLASS_KW
+    { cxx_compiler::error::not_implemented(); }
   | TEMPLATE_KW '<' template_parameter_list '>' CLASS_KW IDENTIFIER_LEX
     '=' id_expression
+    { cxx_compiler::error::not_implemented(); }
   | TEMPLATE_KW '<' template_parameter_list '>' CLASS_KW
     '=' id_expression
+    { cxx_compiler::error::not_implemented(); }
   ;
 
 template_id

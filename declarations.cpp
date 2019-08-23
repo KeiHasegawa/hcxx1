@@ -4,6 +4,10 @@
 #include "yy.h"
 #include "cxx_y.h"
 
+void debug_break()
+{
+}
+
 void cxx_compiler::declarations::destroy()
 {
   using namespace std;
@@ -717,6 +721,16 @@ cxx_compiler::declarations::action1(var* v, bool ini)
     u = tmp;
   }
 
+  const map<string, tag*>& tps = scope::current->m_tps;
+  if (!tps.empty()) {
+    debug_break();
+    using namespace parse::templ;
+    assert(!save_t::s_stack.empty());
+    save_t* p = save_t::s_stack.top();
+    assert(!p->m_usr);
+    p->m_usr = u = new template_usr(*u);
+  }
+
   if (!installed)
     u = action2(u);
 
@@ -817,7 +831,7 @@ cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr)
     const vector<usr*>& v = p->second;
     usr* prev = v.back();
     assert(prev != curr);
-    if ( conflict(prev,curr) ){
+    if (conflict(prev,curr)) {
       using namespace error::declarations;
       redeclaration(prev,curr,false);
     }

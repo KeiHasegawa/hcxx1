@@ -54,6 +54,7 @@ SRCS =	cxx_l.cpp \
 	scope.cpp \
 	statements.cpp \
 	type.cpp \
+	template.cpp \
 	vars.cpp \
 	$(WARNING_CPP) \
 

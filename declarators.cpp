@@ -802,9 +802,18 @@ function::definition::action(fundef* fdef, std::vector<tac*>& vc)
 {
   using namespace std;
   using namespace static_inline;
+  usr* u = fdef->m_usr;
+  usr::flag2_t flag2 = u->m_flag2;
+  if (flag2 & usr::TEMPLATE) {
+    assert(fundef::current == fdef);
+    using namespace parse::templ;
+    assert(!save_t::s_stack.empty());
+    save_t* p = save_t::s_stack.top();
+    assert(p->m_usr == u);
+    return;
+  }
   if (!error::counter && cmdline::optimize_level >= 1)
     optimize::action(fdef, vc);
-  usr* u = fdef->m_usr;
   usr::flag_t flag = u->m_flag;
   usr::flag_t mask = usr::flag_t(usr::VIRTUAL | usr::OVERRIDE);
   if ((flag & usr::INLINE) && !(flag & mask))

@@ -4,6 +4,8 @@
 #include "yy.h"
 #include "cxx_y.h"
 
+extern void debug_break();
+
 cxx_compiler::tag::kind_t cxx_compiler::classes::specifier::get(int keyword)
 {
   switch ( keyword ){
@@ -26,7 +28,7 @@ cxx_compiler::classes::specifier::begin(int keyword, var* v,
   const file_t& file = u ? u->m_file : parse::position;
   map<string,tag*>& tags = scope::current->m_tags;
   map<string,tag*>::const_iterator p = tags.find(name);
-  if ( p != tags.end() ){
+  if (p != tags.end()) {
     tag* prev = p->second;
     if ( prev->m_kind != kind ){
       using namespace error::classes;
@@ -45,6 +47,16 @@ cxx_compiler::classes::specifier::begin(int keyword, var* v,
   }
   else {
     tag* ptr = new tag(kind,name,file,bases);
+
+    const map<string, tag*>& tps = scope::current->m_tps;
+    if (!tps.empty()) {
+      using namespace parse::templ;
+      assert(!save_t::s_stack.empty());
+      save_t* p = save_t::s_stack.top();
+      assert(!p->m_tag);
+      p->m_tag = ptr = new template_tag(*ptr);
+    }
+
     ptr->m_parent = scope::current;
     ptr->m_parent->m_children.push_back(ptr);
     ptr->m_types.first = incomplete_tagged_type::create(ptr);
@@ -79,6 +91,9 @@ const cxx_compiler::type* cxx_compiler::classes::specifier::action()
   using namespace class_or_namespace_name;
   assert(scope::current->m_id == scope::TAG);
   tag* ptr = static_cast<tag*>(scope::current);
+  scope* ps = ptr->m_parent;
+  if (!ps->m_tps.empty())
+    return void_type::create();
   const type* ret = record_type::create(ptr);
   ptr->m_types.second = ret;
   handle_copy_ctor(ptr);

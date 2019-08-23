@@ -362,6 +362,12 @@ int
 cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
 {
   using namespace std;
+  const map<string, tag*>& tps = ptr->m_tps;
+  map<string, tag*>::const_iterator r = tps.find(name);
+  if (r != tps.end()) {
+    cxx_compiler_lval.m_tag = r->second;
+    return CLASS_NAME_LEX;
+  }
   const map<string, vector<usr*> >& usrs = ptr->m_usrs;
   map<string, vector<usr*> >::const_iterator p = usrs.find(name);
   if (p != usrs.end()) {
@@ -450,10 +456,10 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
   if (last_token == NAMESPACE_KW)
     return create(name);
   error::undeclared(parse::position,name);
-  int r = create(name,int_type::create());
+  int ret = create(name,int_type::create());
   usr* u = cxx_compiler_lval.m_usr;
   scope::current->m_usrs[name].push_back(u);
-  return r;
+  return ret;
 }
 
 cxx_compiler::parse::read_t cxx_compiler::parse::g_read;
@@ -621,7 +627,7 @@ namespace cxx_compiler {
 
 int cxx_compiler::parse::get_token()
 {
-  if ( !g_read.m_token.empty() ){
+  if (!g_read.m_token.empty()) {
     position = g_read.m_token.front().second;
     last_token = g_read.m_token.front().first;
     g_read.m_token.pop_front();
@@ -643,6 +649,13 @@ int cxx_compiler::parse::get_token()
   last_token = cxx_compiler_lex();
   if ( last_token == COLONCOLON_MK )
     identifier::mode = identifier::look;
+
+  if (!templ::save_t::s_stack.empty()) {
+    templ::save_t* p = templ::save_t::s_stack.top();
+    read_t& r = p->m_read;
+    r.m_token.push_back(make_pair(last_token, parse::position));
+    save_common(last_token, r.m_lval);
+  }
 
   return save_for_retry();
 }
@@ -906,7 +919,7 @@ void cxx_compiler::parse::member_function_body::save_brace()
   save_t& tmp = stbl[key];
   list<pair<int, file_t> >& token = tmp.m_read.m_token;
   list<void*>& lval = tmp.m_read.m_lval;
-  while ( 1 ){
+  while (1) {
     int n;
     if ( !g_read.m_token.empty() ){
       position = g_read.m_token.front().second;
@@ -1006,3 +1019,11 @@ namespace cxx_compiler {
   } // end of namesapce parse
 } // end of namesapce cxx_compiler
 
+
+namespace cxx_compiler {
+  namespace parse {
+    namespace templ {
+      stack<save_t*> save_t::s_stack;
+    } // end of namespace templ
+  } // end of namespace parse
+} // end of namespace cxx_compiler
