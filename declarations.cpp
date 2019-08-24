@@ -717,13 +717,13 @@ cxx_compiler::declarations::action1(var* v, bool ini)
     u = tmp;
   }
 
-  const map<string, tag*>& tps = scope::current->m_tps;
-  if (!tps.empty()) {
+  const pair<map<string, tag*>, vector<string> >& tps = scope::current->m_tps;
+  if (!tps.first.empty()) {
     using namespace parse::templ;
     assert(!save_t::s_stack.empty());
     save_t* p = save_t::s_stack.top();
     assert(!p->m_usr);
-    p->m_usr = u = new template_usr(*u);
+    p->m_usr = u = new template_usr(*u, tps);
   }
 
   if (!installed)

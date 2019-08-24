@@ -46,13 +46,14 @@ cxx_compiler::classes::specifier::begin(int keyword, var* v,
   else {
     tag* ptr = new tag(kind,name,file,bases);
 
-    const map<string, tag*>& tps = scope::current->m_tps;
-    if (!tps.empty()) {
+    const pair<map<string, tag*>, vector<string> >& tps
+      = scope::current->m_tps;
+    if (!tps.first.empty()) {
       using namespace parse::templ;
       assert(!save_t::s_stack.empty());
       save_t* p = save_t::s_stack.top();
       assert(!p->m_tag);
-      p->m_tag = ptr = new template_tag(*ptr);
+      p->m_tag = ptr = new template_tag(*ptr, tps);
     }
 
     ptr->m_parent = scope::current;
@@ -90,7 +91,8 @@ const cxx_compiler::type* cxx_compiler::classes::specifier::action()
   assert(scope::current->m_id == scope::TAG);
   tag* ptr = static_cast<tag*>(scope::current);
   scope* ps = ptr->m_parent;
-  if (!ps->m_tps.empty()) {
+  const map<string, tag*>& tpsf = ps->m_tps.first;
+  if (!tpsf.empty()) {
     assert(ptr->m_template);
     scope::current = ptr->m_parent;
     return ptr->m_types.first;

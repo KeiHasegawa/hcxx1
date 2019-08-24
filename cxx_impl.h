@@ -1514,16 +1514,21 @@ namespace block_impl {
 } // end of namespace block_impl
 
 struct template_usr : usr {
+  pair<map<string, tag*>, vector<string> > m_tps;
   parse::read_t m_read;
-  template_usr(usr& u) : usr(u)
+  template_usr(usr& u, const pair<map<string, tag*>, vector<string> >& tps)
+    : usr(u), m_tps(tps)
   {
     m_flag2 = usr::flag2_t(m_flag2 | usr::TEMPLATE);
   }
+  usr* instantiate(vector<var*>* arg) const;
 };
 
 struct template_tag : tag {
+  pair<map<string, tag*>, vector<string> > m_tps;
   parse::read_t m_read;
-  template_tag(tag& t) : tag(t) { m_template = true; }
+  template_tag(tag& t, const pair<map<string, tag*>, vector<string> >& tps)
+    : tag(t), m_tps(tps) { m_template = true; }
 };
 
 } // end of namespace cxx_compiler

@@ -362,9 +362,9 @@ int
 cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
 {
   using namespace std;
-  const map<string, tag*>& tps = ptr->m_tps;
-  map<string, tag*>::const_iterator r = tps.find(name);
-  if (r != tps.end()) {
+  const map<string, tag*>& tpsf = ptr->m_tps.first;
+  map<string, tag*>::const_iterator r = tpsf.find(name);
+  if (r != tpsf.end()) {
     cxx_compiler_lval.m_tag = r->second;
     return CLASS_NAME_LEX;
   }

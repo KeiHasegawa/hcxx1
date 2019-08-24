@@ -148,16 +148,21 @@ cxx_compiler::var*
 cxx_compiler::genaddr::call(std::vector<var*>* arg)
 {
   using namespace std;
-  const type* T = m_ref->m_type;
-  if ( T->m_id != type::FUNC ){
+  assert(m_ref->usr_cast());
+  usr* u = static_cast<usr*>(m_ref);
+  usr::flag2_t flag2 = u->m_flag2;
+  if (flag2 & usr::TEMPLATE) {
+    template_usr* templ = static_cast<template_usr*>(u);
+    u = templ->instantiate(arg);
+  }
+  const type* T = u->m_type;
+  if (T->m_id != type::FUNC) {
     using namespace error::expressions::postfix::call;
     not_function(parse::position,m_ref);
     return rvalue();
   }
   typedef const func_type FT;
   FT* ft = static_cast<FT*>(T);
-  assert(m_ref->usr_cast());
-  usr* u = static_cast<usr*>(m_ref);
   usr::flag_t flag = u->m_flag;
   scope* fun_scope = u->m_scope;
   var* this_ptr = 0;

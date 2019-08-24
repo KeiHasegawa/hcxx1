@@ -13,7 +13,10 @@ struct scope {
   std::vector<scope*> m_children;
   std::map<std::string, std::vector<usr*> > m_usrs;
   std::map<std::string, tag*> m_tags;
-  std::map<std::string, tag*> m_tps; // template parameter
+
+  // template parameter
+  std::pair<std::map<std::string, tag*>, std::vector<std::string> > m_tps;
+
   static scope* current;
   static scope root;
   std::vector<usr*> m_order;
@@ -1778,6 +1781,7 @@ public:
   void decl(std::ostream&, std::string) const;
   void encode(std::ostream&) const;
   int size() const;
+  tag* get_tag() const { return m_tag; }
   static const template_param_type* create(tag*);
 };
 
