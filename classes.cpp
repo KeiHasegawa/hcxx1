@@ -90,8 +90,12 @@ const cxx_compiler::type* cxx_compiler::classes::specifier::action()
   assert(scope::current->m_id == scope::TAG);
   tag* ptr = static_cast<tag*>(scope::current);
   scope* ps = ptr->m_parent;
-  if (!ps->m_tps.empty())
-    return void_type::create();
+  if (!ps->m_tps.empty()) {
+    assert(ptr->m_template);
+    scope::current = ptr->m_parent;
+    return ptr->m_types.first;
+  }
+
   const type* ret = record_type::create(ptr);
   ptr->m_types.second = ret;
   handle_copy_ctor(ptr);

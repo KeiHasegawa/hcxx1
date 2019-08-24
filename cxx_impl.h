@@ -1523,7 +1523,7 @@ struct template_usr : usr {
 
 struct template_tag : tag {
   parse::read_t m_read;
-  template_tag(tag& t) : tag(t) {}
+  template_tag(tag& t) : tag(t) { m_template = true; }
 };
 
 } // end of namespace cxx_compiler

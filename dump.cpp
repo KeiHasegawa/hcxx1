@@ -112,9 +112,11 @@ void cxx_compiler::dump::
 tagx(std::pair<std::string, tag*> p, int ntab)
 {
   using namespace std;
+  tag* T = p.second;
+  if (T->m_template)
+    return;
   int n = ntab;
   while ( n-- ) cout << '\t';
-  tag* T = p.second;
   cout << tag::keyword(T->m_kind);
   string name = T->m_name;
   if ( !name.empty() )
