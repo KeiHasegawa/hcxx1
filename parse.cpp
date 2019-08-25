@@ -473,7 +473,15 @@ int cxx_compiler::parse::peek()
   }
 
   if (member_function_body::saved) {
-    list<pair<int, file_t> >& token = member_function_body::saved->m_read.m_token;
+    const list<pair<int, file_t> >& token =
+      member_function_body::saved->m_read.m_token;
+    assert(!token.empty());
+    parse::position = token.front().second;
+    return token.front().first;
+  }
+
+  if (templ::ptr) {
+    const list<pair<int, file_t> >& token = templ::ptr->m_read.m_token;
     assert(!token.empty());
     parse::position = token.front().second;
     return token.front().first;
@@ -529,10 +537,12 @@ namespace cxx_compiler {
       cxx_compiler_text = const_cast<char*>(u->m_name.c_str());
       return identifier::judge(cxx_compiler_text);
     }
-    int get_common(int n, list<void*>& lval, bool from_mem_fun_body)
+    int get_common(int n, list<void*>& lval, bool from_mem_fun_body,
+		   bool templ)
     {
       switch (n) {
       case PEEKED_NAME_LEX:
+	assert(!templ);
         assert(!lval.empty());
         cxx_compiler_lval.m_var = static_cast<var*>(lval.front());
         lval.pop_front();
@@ -554,12 +564,20 @@ namespace cxx_compiler {
           return get_id_from_mem_fun_body(n);
         if (context_t::retry[DECL_FCAST_CONFLICT_STATE] ||
             context_t::retry[TYPE_NAME_CONFLICT_STATE]) {
+	  assert(!templ);
           usr* u = static_cast<usr*>(cxx_compiler_lval.m_var);
           assert(u->m_type->backpatch());
           string name = u->m_name;
           last_token = identifier::lookup(name, scope::current);
           delete u;
         }
+	if (templ) {
+	  var* v = cxx_compiler_lval.m_var;
+	  assert(v->usr_cast());
+          usr* u = static_cast<usr*>(v);
+          string name = u->m_name;
+	  last_token = identifier::judge(name);
+	}
         return n;
       case INTEGER_LITERAL_LEX:
       case CHARACTER_LITERAL_LEX:
@@ -620,8 +638,17 @@ namespace cxx_compiler {
     inline int save_for_retry()
     {
       for_each(begin(context_t::all), end(context_t::all), save_each);
+      if (!templ::save_t::s_stack.empty()) {
+	templ::save_t* p = templ::save_t::s_stack.top();
+	read_t& r = p->m_read;
+	r.m_token.push_back(make_pair(last_token, parse::position));
+	save_common(last_token, r.m_lval);
+      }
       return last_token;
     }
+    namespace templ {
+      templ_base* ptr;
+    } // end of namespac templ
   } // end of namesapce parse
 } // end of namesapce cxx_compiler
 
@@ -631,7 +658,7 @@ int cxx_compiler::parse::get_token()
     position = g_read.m_token.front().second;
     last_token = g_read.m_token.front().first;
     g_read.m_token.pop_front();
-    get_common(last_token, g_read.m_lval, false);
+    get_common(last_token, g_read.m_lval, false, false);
     if (last_token == COLONCOLON_MK) {
       if (scope::current->m_id != scope::TAG && peek() != '*')
         identifier::mode = identifier::look;
@@ -646,16 +673,17 @@ int cxx_compiler::parse::get_token()
     return save_for_retry();
   }
 
-  last_token = cxx_compiler_lex();
-  if ( last_token == COLONCOLON_MK )
-    identifier::mode = identifier::look;
-
-  if (!templ::save_t::s_stack.empty()) {
-    templ::save_t* p = templ::save_t::s_stack.top();
-    read_t& r = p->m_read;
-    r.m_token.push_back(make_pair(last_token, parse::position));
-    save_common(last_token, r.m_lval);
+  if (templ::ptr) {
+    const read_t& r = templ::ptr->m_read;
+    last_token = templ::get_token();
+    if (last_token == COLONCOLON_MK)
+      identifier::mode = identifier::look;
+    return save_for_retry();
   }
+
+  last_token = cxx_compiler_lex();
+  if (last_token == COLONCOLON_MK)
+    identifier::mode = identifier::look;
 
   return save_for_retry();
 }
@@ -945,13 +973,26 @@ int cxx_compiler::parse::member_function_body::get_token()
 {
   using namespace std;
   list<pair<int, file_t> >& token = saved->m_read.m_token;
-  if ( token.empty() )
+  if (token.empty())
     return 0; // YYEOF
   position = token.front().second;
   int n = token.front().first;
   token.pop_front();
   list<void*>& lval = saved->m_read.m_lval;
-  return get_common(n, lval, true);
+  return get_common(n, lval, true, false);
+}
+
+int cxx_compiler::parse::templ::get_token()
+{
+  using namespace std;
+  list<pair<int, file_t> >& token = ptr->m_read.m_token;
+  if (token.empty())
+    return 0; // YYEOF
+  position = token.front().second;
+  int n = token.front().first;
+  token.pop_front();
+  list<void*>& lval = ptr->m_read.m_lval;
+  return get_common(n, lval, false, true);
 }
 
 int cxx_compiler::parse::last_token;

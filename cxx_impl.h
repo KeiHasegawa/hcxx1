@@ -1513,23 +1513,33 @@ namespace block_impl {
   extern map<block*, vector<var*> > dtor_tbl;
 } // end of namespace block_impl
 
-struct template_usr : usr {
+struct templ_base {
   pair<map<string, tag*>, vector<string> > m_tps;
   parse::read_t m_read;
+  templ_base(const pair<map<string, tag*>, vector<string> >& tps)
+  : m_tps(tps) {}
+};
+
+struct template_usr : usr, templ_base {
   template_usr(usr& u, const pair<map<string, tag*>, vector<string> >& tps)
-    : usr(u), m_tps(tps)
+    : usr(u), templ_base(tps)
   {
     m_flag2 = usr::flag2_t(m_flag2 | usr::TEMPLATE);
   }
   usr* instantiate(vector<var*>* arg) const;
 };
 
-struct template_tag : tag {
-  pair<map<string, tag*>, vector<string> > m_tps;
-  parse::read_t m_read;
+struct template_tag : templ_base, tag {
   template_tag(tag& t, const pair<map<string, tag*>, vector<string> >& tps)
-    : tag(t), m_tps(tps) { m_template = true; }
+    : tag(t), templ_base(tps) { m_template = true; }
 };
+
+namespace parse {
+  namespace templ {
+    extern templ_base* ptr;
+    int get_token();
+  } // end of namespace templp
+} // end of namespace parse
 
 } // end of namespace cxx_compiler
 
