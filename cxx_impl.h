@@ -1521,12 +1521,14 @@ struct templ_base {
 };
 
 struct template_usr : usr, templ_base {
+  typedef map<vector<const type*>, usr*> table_t;
+  table_t m_table;
   template_usr(usr& u, const pair<map<string, tag*>, vector<string> >& tps)
     : usr(u), templ_base(tps)
   {
     m_flag2 = usr::flag2_t(m_flag2 | usr::TEMPLATE);
   }
-  usr* instantiate(vector<var*>* arg) const;
+  usr* instantiate(vector<var*>* arg);
 };
 
 struct template_tag : templ_base, tag {

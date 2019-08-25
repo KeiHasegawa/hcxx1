@@ -993,6 +993,10 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
     }
   }
 
+  usr::flag2_t flag2 = prev->m_flag2;
+  if (flag2 & usr::TEMPLATE)
+    return curr;
+
   string name = curr->m_name;
   scope::current->m_usrs[name].push_back(curr);
   return new overload(prev, curr);
