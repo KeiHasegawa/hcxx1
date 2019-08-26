@@ -994,8 +994,10 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
   }
 
   usr::flag2_t flag2 = prev->m_flag2;
-  if (flag2 & usr::TEMPLATE)
+  if (flag2 & usr::TEMPLATE) {
+    curr->m_flag2 = usr::flag2_t(curr->m_flag2 | usr::INSTANTIATE);
     return curr;
+  }
 
   string name = curr->m_name;
   scope::current->m_usrs[name].push_back(curr);
@@ -1285,6 +1287,10 @@ cxx_compiler::tac::tac(id_t id, var* xx, var* yy, var* zz) : m_id(id), x(xx), y(
       if ( z ) check(z);
     }
   }
+}
+
+cxx_compiler::tac::~tac()
+{
 }
 
 bool cxx_compiler::declarations::internal_linkage(usr* u)

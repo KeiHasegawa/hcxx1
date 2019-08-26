@@ -134,10 +134,18 @@ cxx_compiler::optimize::basic_block::action(fundef* fdef, std::vector<tac*>& v)
 
   usr::flag_t flag = u->m_flag;
   scope* ptr = u->m_scope;
-  if ((flag & usr::INLINE) && ptr->m_id == scope::TAG)
+  if ((flag & usr::INLINE) && ptr->m_id == scope::TAG) {
     symtab::literal::just_clear();
-  else
-    symtab::literal::simplify(v);
+    return;
+  }
+
+  usr::flag2_t flag2 = u->m_flag2;
+  if (flag2 & usr::INSTANTIATE) {
+    symtab::literal::just_clear();
+    return;
+  }
+
+  symtab::literal::simplify(v);
 }
 
 namespace cxx_compiler { namespace optimize { namespace basic_block {

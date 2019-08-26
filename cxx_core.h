@@ -334,6 +334,7 @@ struct usr : var {
     TERMINATE_FUNCTION  = 1 << 8,
     GENED_BY_COMP       = 1 << 9,
     TEMPLATE            = 1 << 10,
+    INSTANTIATE         = 1 << 11,
   };
   flag2_t m_flag2;
   file_t m_file;
@@ -1813,7 +1814,7 @@ struct tac {
   file_t m_file;
   tac(id_t, var*, var*, var*);
   virtual tac* new3ac() = 0;
-  virtual ~tac(){}
+  virtual ~tac();
 };
 
 struct assign3ac : tac {
