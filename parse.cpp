@@ -602,6 +602,10 @@ namespace cxx_compiler {
         assert(!lval.empty());
         cxx_compiler_lval.m_tag = static_cast<tag*>(lval.front());
         lval.pop_front();
+	if (templ) {
+	  if (cxx_compiler_lval.m_tag == template_tag::current)
+	    cxx_compiler_lval.m_tag = template_tag::result;
+	}
         return n;
       case DEFAULT_KW:
         assert(!lval.empty());
