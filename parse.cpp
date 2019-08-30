@@ -412,7 +412,12 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
   if (q != tags.end()) {
     tag* ptag = q->second;
     cxx_compiler_lval.m_tag = q->second;
-    return ptag->m_kind == tag::ENUM ? ENUM_NAME_LEX : CLASS_NAME_LEX;
+    if (ptag->m_kind == tag::ENUM)
+      return ENUM_NAME_LEX;
+    if (!ptag->m_template)
+      return CLASS_NAME_LEX;
+    template_tag* tt = static_cast<template_tag*>(ptag);
+    return tt->m_specified ? TEMPLATE_NAME_LEX : CLASS_NAME_LEX;
   }
   if (mode == member) {
     if (scope::current->m_id == scope::TAG) {
@@ -534,8 +539,7 @@ namespace cxx_compiler {
         assert(v->genaddr_cast());
         return IDENTIFIER_LEX;
       }
-      cxx_compiler_text = const_cast<char*>(u->m_name.c_str());
-      return identifier::judge(cxx_compiler_text);
+      return identifier::judge(u->m_name);
     }
     int get_common(int n, list<void*>& lval, bool from_mem_fun_body,
 		   bool templ)
@@ -562,15 +566,6 @@ namespace cxx_compiler {
         lval.pop_front();
         if (from_mem_fun_body)
           return get_id_from_mem_fun_body(n);
-        if (context_t::retry[DECL_FCAST_CONFLICT_STATE] ||
-            context_t::retry[TYPE_NAME_CONFLICT_STATE]) {
-	  assert(!templ);
-          usr* u = static_cast<usr*>(cxx_compiler_lval.m_var);
-          assert(u->m_type->backpatch());
-          string name = u->m_name;
-          last_token = identifier::lookup(name, scope::current);
-          delete u;
-        }
 	if (templ) {
 	  var* v = cxx_compiler_lval.m_var;
 	  assert(v->usr_cast());
@@ -578,6 +573,14 @@ namespace cxx_compiler {
           string name = u->m_name;
 	  last_token = identifier::judge(name);
 	}
+        else if (context_t::retry[DECL_FCAST_CONFLICT_STATE] ||
+		 context_t::retry[TYPE_NAME_CONFLICT_STATE]) {
+          usr* u = static_cast<usr*>(cxx_compiler_lval.m_var);
+          assert(u->m_type->backpatch());
+          string name = u->m_name;
+          last_token = identifier::lookup(name, scope::current);
+          delete u;
+        }
         return n;
       case INTEGER_LITERAL_LEX:
       case CHARACTER_LITERAL_LEX:
@@ -861,6 +864,8 @@ void cxx_compiler::parse::block::enter()
         parameter::decide_dim(), new_block(), parameter::move();
         assert(!(func->m_flag & usr::OVERLOAD));
         func->m_flag = usr::flag_t(func->m_flag | usr::INLINE);
+	if (templ::ptr)
+	  return;
         return member_function_body::save();
       }
       if (!(func->m_flag & usr::STATIC)) {
@@ -911,11 +916,11 @@ void cxx_compiler::parse::block::leave()
   assert(scope::current == before.back());
   before.pop_back();
   scope::current = scope::current->m_parent;
-  if ( scope::current->m_parent == &scope::root )
+  if (scope::current->m_parent == &scope::root)
     scope::current = &scope::root;
   else {
     scope::id_t id = scope::current->m_parent->m_id;
-    if ( id == scope::TAG || id == scope::NAMESPACE )
+    if (id == scope::TAG || id == scope::NAMESPACE)
       scope::current = scope::current->m_parent;
   }
 }
@@ -1053,9 +1058,16 @@ namespace cxx_compiler {
       cxx_compiler_char = x.m_char;
       read_t tmp = g_read;
       g_read = x.m_read;
-      copy(begin(tmp.m_token), end(tmp.m_token), back_inserter(g_read.m_token));
+      copy(begin(tmp.m_token), end(tmp.m_token),
+	   back_inserter(g_read.m_token));
       copy(begin(tmp.m_lval), end(tmp.m_lval), back_inserter(g_read.m_lval));
       context_t::all.pop_back();
+      if (!templ::save_t::s_stack.empty()) {
+	templ::save_t* p = templ::save_t::s_stack.top();
+	read_t& r = p->m_read;
+	for (int i = 0 ; i != g_read.m_token.size() ; ++i)
+	  r.m_token.pop_back();
+      }
     }
   } // end of namesapce parse
 } // end of namesapce cxx_compiler

@@ -1191,7 +1191,8 @@ void cxx_compiler::error::statements::label::multiple(std::string label, const f
   ++counter;
 }
 
-void cxx_compiler::error::expressions::unary::address::not_lvalue(const file_t& file)
+void cxx_compiler::error::expressions::
+unary::address::not_lvalue(const file_t& file)
 {
   using namespace std;
   switch ( lang ){

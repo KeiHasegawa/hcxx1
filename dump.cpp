@@ -112,19 +112,21 @@ void cxx_compiler::dump::
 tagx(std::pair<std::string, tag*> p, int ntab)
 {
   using namespace std;
-  tag* T = p.second;
-  if (T->m_template)
-    return;
+  tag* ptr = p.second;
   int n = ntab;
   while ( n-- ) cout << '\t';
-  cout << tag::keyword(T->m_kind);
-  string name = T->m_name;
+  if (ptr->m_template)
+    cout << "template ";
+  cout << tag::keyword(ptr->m_kind);
+  string name = ptr->m_name;
   if ( !name.empty() )
     cout << ' ' << name;
   cout << '\n';
+  if (ptr->m_template)
+    return;
   scope* org = scope::current;
-  scope::current = T;
-  dump::scopex(T,ntab+1);
+  scope::current = ptr;
+  dump::scopex(ptr, ntab+1);
   scope::current = org;
 }
 

@@ -87,7 +87,8 @@ namespace cxx_compiler {
   typedef cxx_compiler::usr usr;
   usr* m_usr;
   std::vector<usr*>* m_usrs;
-  cxx_compiler::var* m_var;
+  typedef cxx_compiler::var var;
+  var* m_var;
   typedef const cxx_compiler::type type;
   type* m_type;
   typedef cxx_compiler::declarations::type_specifier type_specifier;
@@ -122,6 +123,9 @@ namespace cxx_compiler {
   std::vector<std::pair<type*, expr*>*>* m_params;
   std::pair<type_specifier*, bool>* m_pseudo_dest;
   std::list<std::pair<type*, exprs*> >* m_new_declarator;
+  typedef std::pair<var*, type*> TA;
+  TA* m_templ_arg;
+  std::vector<TA*>* m_templ_arg_list;
 }
 
 %type<m_var> IDENTIFIER_LEX unqualified_id id_expression declarator_id
@@ -164,7 +168,8 @@ namespace cxx_compiler {
 %type<m_list> initializer_list
 %type<m_designation> designation designator_list
 %type<m_designator> designator
-%type<m_tag> enum_specifier_begin CLASS_NAME_LEX ENUM_NAME_LEX class_name
+%type<m_tag> ENUM_NAME_LEX CLASS_NAME_LEX TEMPLATE_NAME_LEX
+%type<m_tag> enum_specifier_begin class_name template_id
 %type<m_file> DEFAULT_KW
 %type<m_base_clause> base_clause base_specifier_list
 %type<m_base_specifier> base_specifier
@@ -177,6 +182,8 @@ namespace cxx_compiler {
 %type<m_pseudo_dest> pseudo_destructor_name
 %type<m_expressions> direct_new_declarator
 %type<m_new_declarator> new_declarator
+%type<m_templ_arg> template_argument
+%type<m_templ_arg_list> template_argument_list
 
 %%
 
@@ -997,7 +1004,6 @@ type_specifier_seq
 class_name
   : CLASS_NAME_LEX
   | template_id
-    { cxx_compiler::error::not_implemented(); }
   ;
 
 class_key
@@ -1550,18 +1556,44 @@ type_parameter
 
 template_id
   : TEMPLATE_NAME_LEX '<' template_argument_list '>'
-  | TEMPLATE_NAME_LEX '<'                        '>'
+    { $$ = cxx_compiler::declarations::templ::id::action($1, $3); }
+  | TEMPLATE_NAME_LEX '<' '>'
+    { $$ = cxx_compiler::declarations::templ::id::action($1, 0); }
   ;
 
 template_argument_list
   : template_argument
+    {
+      using namespace std;
+      using namespace cxx_compiler;
+      $$ = new vector<pair<var*, const type*>*>;
+      $$->push_back($1);
+    }
   | template_argument_list ',' template_argument
+    {
+      $$->push_back($3);
+    }
   ;
 
 template_argument
   : assignment_expression
+    {
+      using namespace std;
+      using namespace cxx_compiler;
+      $$ = new pair<var*, const type*>($1->gen(), 0);
+    }
   | type_id
+    {
+      using namespace std;
+      using namespace cxx_compiler;
+      $$ = new pair<var*, const type*>(0, $1);
+    }
   | id_expression
+    {
+      using namespace std;
+      using namespace cxx_compiler;
+      $$ = new pair<var*, const type*>($1, 0);
+    }
   ;
 
 explicit_instantiation

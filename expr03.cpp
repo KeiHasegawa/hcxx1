@@ -333,7 +333,7 @@ namespace cxx_compiler {
 	return 0;
       const type* R = src->result_type();
       if (Ty != R)
-	return 0;
+	return src;
       typedef const reference_type RT;
       RT* xrt = static_cast<RT*>(T);
       const type* Rx = xrt->referenced_type();

@@ -6,7 +6,7 @@
 
 cxx_compiler::tag::kind_t cxx_compiler::classes::specifier::get(int keyword)
 {
-  switch ( keyword ){
+  switch (keyword) {
   case CLASS_KW:  return tag::CLASS;
   case STRUCT_KW: return tag::STRUCT;
   case UNION_KW:  return tag::UNION;
@@ -14,54 +14,91 @@ cxx_compiler::tag::kind_t cxx_compiler::classes::specifier::get(int keyword)
   }
 }
 
+namespace cxx_compiler {
+  namespace classes {
+    namespace specifier {
+      struct templ_name {
+	const map<string, tag*>& m_tpsf;
+	templ_name(const map<string, tag*>& tpsf) : m_tpsf(tpsf) {}
+	string operator()(string name, string pn)
+	{
+	  map<string, tag*>::const_iterator p = m_tpsf.find(pn);
+	  assert(p != m_tpsf.end());
+	  tag* ptr = p->second;
+	  const type* T = ptr->m_types.second;
+	  ostringstream os;
+	  T->decl(os, "");
+	  return name + os.str() + ',';
+	}
+      };
+    } // end of namespace specifier
+  } // end of namespace classes
+} // end of namespace cxx_compiler
+
 void
 cxx_compiler::classes::specifier::begin(int keyword, var* v,
 					std::vector<base*>* bases)
 {
   using namespace std;
   usr* u = static_cast<usr*>(v);
-  auto_ptr<usr> sweeper(u);
+  const map<string, tag*>& tpsf = scope::current->m_tps.first;
+  usr* uu = tpsf.empty() ? u : 0;
+  auto_ptr<usr> sweeper(uu);
   tag::kind_t kind = get(keyword);
   string name = u ? u->m_name : new_name(".tag");
   const file_t& file = u ? u->m_file : parse::position;
   map<string,tag*>& tags = scope::current->m_tags;
   map<string,tag*>::const_iterator p = tags.find(name);
+  bool instantiating = false;
   if (p != tags.end()) {
     tag* prev = p->second;
-    if ( prev->m_kind != kind ){
-      using namespace error::classes;
-      redeclaration(parse::position,prev->m_file.back(),name);
-      name = new_name(".tag");
+    if (!prev->m_template) {
+      if ( prev->m_kind != kind ){
+	using namespace error::classes;
+	redeclaration(parse::position,prev->m_file.back(),name);
+	name = new_name(".tag");
+      }
+      pair<const type*, const type*> types = prev->m_types;
+      if (types.second) {
+	using namespace error::classes;
+	redeclaration(parse::position,prev->m_file.back(),name);
+	name = new_name(".tag");
+      }
+      prev->m_file.push_back(file);
+      scope::current = prev;
+      class_or_namespace_name::before.push_back(prev);
+      declarations::specifier_seq::info_t::clear();
+      return;
     }
-    pair<const type*, const type*> types = prev->m_types;
-    if (types.second) {
-      using namespace error::classes;
-      redeclaration(parse::position,prev->m_file.back(),name);
-      name = new_name(".tag");
-    }
-    prev->m_file.push_back(file);
-    scope::current = prev;
-    class_or_namespace_name::before.push_back(prev);
+    template_tag* tt = static_cast<template_tag*>(prev);
+    const map<string, tag*>& tpsf = tt->templ_base::m_tps.first;
+    const vector<string>& tpss = tt->templ_base::m_tps.second;
+    name += '<';
+    name = accumulate(begin(tpss), end(tpss), name, templ_name(tpsf));
+    name.erase(name.size()-1);
+    name += '>';
+    instantiating = true;
   }
-  else {
-    tag* ptr = new tag(kind,name,file,bases);
 
-    const pair<map<string, tag*>, vector<string> >& tps
-      = scope::current->m_tps;
-    if (!tps.first.empty()) {
-      using namespace parse::templ;
-      assert(!save_t::s_stack.empty());
-      save_t* p = save_t::s_stack.top();
-      assert(!p->m_tag);
-      p->m_tag = ptr = new template_tag(*ptr, tps);
-    }
+  tag* ptr = new tag(kind, name, file, bases);
+  if (instantiating)
+    template_tag::result = ptr;
 
-    ptr->m_parent = scope::current;
-    ptr->m_parent->m_children.push_back(ptr);
-    ptr->m_types.first = incomplete_tagged_type::create(ptr);
-    tags[name] = ptr;
-    scope::current = ptr;
+  const pair<map<string, tag*>, vector<string> >& tps
+    = scope::current->m_tps;
+  if (!tps.first.empty()) {
+    using namespace parse::templ;
+    assert(!save_t::s_stack.empty());
+    save_t* p = save_t::s_stack.top();
+    assert(!p->m_tag);
+    p->m_tag = ptr = new template_tag(*ptr, tps);
   }
+
+  ptr->m_parent = scope::current;
+  ptr->m_parent->m_children.push_back(ptr);
+  ptr->m_types.first = incomplete_tagged_type::create(ptr);
+  tags[name] = ptr;
+  scope::current = ptr;
   declarations::specifier_seq::info_t::clear();
 }
 
@@ -94,6 +131,12 @@ const cxx_compiler::type* cxx_compiler::classes::specifier::action()
   const map<string, tag*>& tpsf = ps->m_tps.first;
   if (!tpsf.empty()) {
     assert(ptr->m_template);
+    template_tag* tt = static_cast<template_tag*>(ptr);
+    assert(!tt->m_specified);
+    tt->m_specified = true;
+    assert(tt->m_mem_fun_body.empty());
+    tt->m_mem_fun_body = parse::member_function_body::stbl;
+    parse::member_function_body::stbl.clear();
     scope::current = ptr->m_parent;
     return ptr->m_types.first;
   }

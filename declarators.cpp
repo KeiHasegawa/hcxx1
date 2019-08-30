@@ -745,6 +745,8 @@ action(statements::base* stmt)
 {
   using namespace std;
   auto_ptr<statements::base> sweeper(stmt);
+  if (template_tag::result)
+    return;
   usr* u = fundef::current->m_usr;
   using namespace parse::member_function_body;
   const map<usr*, save_t>& tbl = parse::member_function_body::stbl;

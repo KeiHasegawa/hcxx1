@@ -1175,7 +1175,7 @@ int cxx_compiler::statements::return_stmt::info_t::gen()
       invalid(m_file,from,to);
       return 0;
     }
-    expr = res->aggregate() ? aggregate_conv(res, expr) : expr->cast(res);
+    expr = T->aggregate() ? aggregate_conv(T, expr) : expr->cast(T);
     if (T->m_id == type::REFERENCE && res->m_id != type::REFERENCE)
       expr = expr->address();
     expr = copy_ctor(T, expr);
