@@ -1014,8 +1014,10 @@ void cxx_compiler::parse::member_function_body::save_brace()
     }
 
 #ifdef FIX_MEMBER_FUNCTION_DECL_DEF
-    if ( n == '{' )
+    if ( n == '{' ) {
       save_brace(key);
+      break;
+    }
 #else // FIX_MEMBER_FUNCTION_DECL_DEF
     if ( n == '{' )
       save_brace();
