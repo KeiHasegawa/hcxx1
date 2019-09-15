@@ -551,8 +551,8 @@ namespace cxx_compiler {
             extern void remember(fundef*, vector<tac*>&);
             skip::table_t skip::stbl;
             namespace defer {
-              map<string, vector<ref_t> > refs;
-              map<string, set<usr*> > callers;
+              map<pair<string, scope*>, vector<ref_t> > refs;
+              map<pair<string, scope*>, set<usr*> > callers;
               map<usr*, vector<int> > positions;
             }  // end of namespace defer
           }  // end of namespace static_inline
@@ -745,9 +745,9 @@ action(statements::base* stmt)
 {
   using namespace std;
   auto_ptr<statements::base> sweeper(stmt);
+  usr* u = fundef::current->m_usr;
   if (template_tag::result)
     return;
-  usr* u = fundef::current->m_usr;
   using namespace parse::member_function_body;
   const map<usr*, save_t>& tbl = parse::member_function_body::stbl;
   map<usr*, save_t>::const_iterator p = tbl.find(u);
@@ -885,76 +885,102 @@ function::definition::action(fundef* fdef, std::vector<tac*>& vc)
   u->m_type = u->m_type->vla2a();
 }
 
-namespace cxx_compiler { namespace declarations { namespace declarators { namespace function { namespace definition { namespace static_inline {
-    
-  void skip::check(tac* ptac, chk_t* arg)
-  {
-    using namespace std;
-    ++arg->m_pos;
-    var* y = ptac->y;
-    if (!y)
-      return;
-    usr* u = y->usr_cast();
-    if (!u)
-      return;
-    usr::flag_t flag = u->m_flag;
-    if (!(flag & usr::FUNCTION))
-      return;
-    usr::flag_t mask = usr::flag_t(usr::STATIC | usr::INLINE);
-    if (!(flag & mask))
-      return;
+namespace cxx_compiler {
+  namespace declarations {
+    namespace declarators {
+      namespace function {
+	namespace definition {
+	  namespace static_inline {
+	    inline scope* get(usr* u)
+	    {
+	      scope* ps = u->m_scope;
+	      scope::id_t id = ps->m_id;
+	      assert(id != scope::PARAM);
+	      if (id == scope::BLOCK)
+		return &scope::root;
+	      if (id == scope::NAMESPACE) {
+		usr::flag_t flag = u->m_flag;
+		if ((flag & usr::C_SYMBOL) && (flag & usr::INLINE))
+		  return &scope::root;
+	      }
+	      return ps;
+	    }
+	    void skip::check(tac* ptac, chk_t* arg)
+	    {
+	      using namespace std;
+	      ++arg->m_pos;
+	      var* y = ptac->y;
+	      if (!y)
+		return;
+	      usr* u = y->usr_cast();
+	      if (!u)
+		return;
+	      usr::flag_t flag = u->m_flag;
+	      if (!(flag & usr::FUNCTION))
+		return;
+	      usr::flag_t mask = usr::flag_t(usr::STATIC | usr::INLINE);
+	      if (!(flag & mask))
+		return;
 
-    if ((flag & usr::STATIC) && !(flag & usr::INLINE)) {
-      if (u->m_scope->m_id == scope::TAG)
-        return;
-    }
+	      if ((flag & usr::STATIC) && !(flag & usr::INLINE)) {
+		if (u->m_scope->m_id == scope::TAG)
+		  return;
+	      }
 
-    table_t::iterator it = stbl.find(u);
-    if (it != stbl.end()) {
-      info_t* info = it->second;
-      stbl.erase(it);
-      return gencode(info);
-    }
+	      table_t::iterator it = stbl.find(u);
+	      if (it != stbl.end()) {
+		info_t* info = it->second;
+		stbl.erase(it);
+		return gencode(info);
+	      }
 
-    string name = u->m_name;
-    const type* T = u->m_type;
-    it = find_if(begin(stbl), end(stbl),
-	 [name, T](const pair<usr*, info_t*>& p){
-		   usr* u = p.first;
-		   return u->m_name == name && compatible(u->m_type, T); });
-    if (it != stbl.end()) {
-      info_t* info = it->second;
-      stbl.erase(it);
-      return gencode(info);
-    }
+	      string name = u->m_name;
+	      const type* T = u->m_type;
+	      it = find_if(begin(stbl), end(stbl),
+			   [name, T](const pair<usr*, info_t*>& p){
+			     usr* u = p.first;
+			     return u->m_name == name && compatible(u->m_type, T); });
+	      if (it != stbl.end()) {
+		info_t* info = it->second;
+		stbl.erase(it);
+		return gencode(info);
+	      }
 
-    typedef const func_type FT;
-    assert(T->m_id == type::FUNC);
-    FT* ft = static_cast<FT*>(T);
-    const vector<const type*>& param = ft->param();
-    KEY key(make_pair(name, u->m_scope), &param);
-    if (definition::dtbl.find(key) != definition::dtbl.end())
-      return;
+	      typedef const func_type FT;
+	      assert(T->m_id == type::FUNC);
+	      FT* ft = static_cast<FT*>(T);
+	      const vector<const type*>& param = ft->param();
+	      pair<string, scope*> ns(name, get(u));
+	      KEY key(ns, &param);
+	      if (definition::dtbl.find(key) != definition::dtbl.end())
+		return;
 
-    using namespace defer;
-    refs[name].push_back(ref_t(name, flag, u->m_file, ptac->m_file));
-    if (ptac->m_id == tac::ADDR)
-      return;
-    assert(ptac->m_id == tac::CALL);
-    if (!(flag & usr::INLINE))
-      return;
-    arg->m_wait_inline = true;
-    usr* v = arg->m_fundef->m_usr;
-    callers[name].insert(v);
-    positions[v].push_back(arg->m_pos);
-  }
-} } } } } } // end of namespace static_inline, definition, function, declarators, declarations and cxx_compiler
+	      using namespace defer;
+	      refs[ns].push_back(ref_t(name, flag, u->m_file, ptac->m_file));
+	      if (ptac->m_id == tac::ADDR)
+		return;
+	      assert(ptac->m_id == tac::CALL);
+	      if (!(flag & usr::INLINE))
+		return;
+	      arg->m_wait_inline = true;
+	      usr* v = arg->m_fundef->m_usr;
+	      callers[ns].insert(v);
+	      positions[v].push_back(arg->m_pos);
+	    }
+	  } // end of namespace static_inline
+	} // end of namespace definition
+      } // end of namespace function
+    } // end of namespace declarators
+  } // end of namespace declarations
+} // end of namespace cxx_compiler
+
 namespace cxx_compiler { namespace declarations { namespace declarators { namespace function { namespace definition {
   namespace static_inline {
     using namespace std;
     using namespace defer;
     namespace skip {
-      void after_substitute(usr* ucaller, pair<string, info_t*> pcallee)
+      void after_substitute(usr* ucaller,
+			    pair<pair<string, scope*>, info_t*> pcallee)
       {
         map<usr*, vector<int> >::iterator p = positions.find(ucaller);
         assert(p != positions.end());
@@ -982,9 +1008,10 @@ namespace cxx_compiler { namespace declarations { namespace declarators { namesp
             var* y = ptac->y;
             usr* fn = y->usr_cast();
             assert(fn);
-            string name = pcallee.first;
+            pair<string, scope*> ns = pcallee.first;
             info_t* callee = pcallee.second;
-            if (fn->m_name == name) {
+	    scope* ps = get(fn);
+            if (fn->m_name == ns.first && ps == ns.second) {
               int before = vc.size();
               if (!error::counter && !cmdline::no_inline_sub)
                 substitute(vc, n, callee);
@@ -1024,13 +1051,13 @@ namespace cxx_compiler { namespace declarations { namespace declarators { namesp
         if (!f)
           return;
 
-        string callee = u->m_name;
-        map<string, vector<ref_t> >::iterator p = refs.find(callee);
+	pair<string, scope*> ns(u->m_name, get(u));
+        map<pair<string, scope*>, vector<ref_t> >::iterator p = refs.find(ns);
         if (p == refs.end())
           return;
 
         refs.erase(p);
-        map<string, set<usr*> >::iterator q = callers.find(callee);
+        map<pair<string, scope*>, set<usr*> >::iterator q = callers.find(ns);
         if (q == callers.end()) {
           stbl.erase(u);
           return gencode(info);
@@ -1040,7 +1067,7 @@ namespace cxx_compiler { namespace declarations { namespace declarators { namesp
         usr::flag_t flag = u->m_flag;
         assert(flag & usr::INLINE);
         for_each(begin(su), end(su),
-                 bind2nd(ptr_fun(after_substitute),make_pair(callee,info)));
+                 bind2nd(ptr_fun(after_substitute),make_pair(ns,info)));
         callers.erase(q);
       }
     } // end of namespace skip

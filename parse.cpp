@@ -834,10 +834,6 @@ namespace cxx_compiler { namespace parse { namespace block {
   void new_block();
 } } } // end of namespace block, parse and cxx_compiler
 
-namespace cxx_compiler { namespace parse { namespace member_function_body {
-  void save();
-} } } // end of namespace member_function_body, parse and cxx_compiler
-
 void cxx_compiler::parse::block::enter()
 {
   using namespace std;
@@ -864,6 +860,7 @@ void cxx_compiler::parse::block::enter()
       assert(!children.empty());
       scope::current = children.back();
       usr* func = fundef::current->m_usr;
+#ifndef FIX_MEMBER_FUNCTION_DECL_DEF
       if (!T) {
         parameter::decide_dim(), new_block(), parameter::move();
         assert(!(func->m_flag & usr::OVERLOAD));
@@ -872,6 +869,9 @@ void cxx_compiler::parse::block::enter()
 	  return;
         return member_function_body::save();
       }
+#else // FIX_MEMBER_FUNCTION_DECL_DEF
+      assert(T);
+#endif // FIX_MEMBER_FUNCTION_DECL_DEF
       if (!(func->m_flag & usr::STATIC)) {
 	map<string, vector<usr*> >& usrs = scope::current->m_usrs;
 	typedef map<string, vector<usr*> >::const_iterator IT;
@@ -932,33 +932,75 @@ void cxx_compiler::parse::block::leave()
 namespace cxx_compiler { namespace parse { namespace member_function_body {
   std::map<usr*, save_t> stbl;
   save_t* saved;
+#ifdef FIX_MEMBER_FUNCTION_DECL_DEF
+  void save_brace(usr*);
+#else // FIX_MEMBER_FUNCTION_DECL_DEF
   void save_brace();
+#endif // FIX_MEMBER_FUNCTION_DECL_DEF
 } } } // end of namespace parse, member_function_body and cxx_compiler
 
+#ifdef FIX_MEMBER_FUNCTION_DECL_DEF
+void cxx_compiler::parse::member_function_body::save(usr* key)
+#else // FIX_MEMBER_FUNCTION_DECL_DEF
 void cxx_compiler::parse::member_function_body::save()
+#endif // FIX_MEMBER_FUNCTION_DECL_DEF
 {
   using namespace std;
+#ifdef FIX_MEMBER_FUNCTION_DECL_DEF
+  if (key->m_type->m_id != type::FUNC)
+    return;
+  assert(scope::current->m_id == scope::TAG);
+  tag* ptr = static_cast<tag*>(scope::current);
+  const type* T = ptr->m_types.second;
+  assert(!T);
+  vector<scope*>& children = scope::current->m_children;
+  assert(!children.empty());
+  scope::current = children.back();
+  children.pop_back();
+  scope* param = scope::current;
+  assert(param->m_id == scope::PARAM);
+
+  parameter::decide_dim(), block::new_block(), parameter::move();
+  class_or_namespace_name::before.pop_back();
+
+  assert(!(key->m_flag & usr::OVERLOAD));
+  key->m_flag = usr::flag_t(key->m_flag | usr::INLINE);
+
+  stbl[key].m_param = param;
+  stbl[key].m_read.m_token.push_back(make_pair(cxx_compiler_char,position));
   identifier::mode = identifier::new_obj;
+  save_brace(key);
+  identifier::mode = identifier::look;
+  scope::current = ptr;
+#else // FIX_MEMBER_FUNCTION_DECL_DEF
   usr* key = fundef::current->m_usr;
   scope* ptr = scope::current->m_parent;
   assert(ptr->m_id == scope::PARAM);
   stbl[key].m_param = ptr;
   stbl[key].m_read.m_token.push_back(make_pair('{',position));
+  identifier::mode = identifier::new_obj;
   save_brace();
-  g_read.m_token.push_front(make_pair('}',position));
   identifier::mode = identifier::look;
+  g_read.m_token.push_front(make_pair('}',position));
+#endif // FIX_MEMBER_FUNCTION_DECL_DEF
 }
 
+#ifdef FIX_MEMBER_FUNCTION_DECL_DEF
+void cxx_compiler::parse::member_function_body::save_brace(usr* key)
+#else // FIX_MEMBER_FUNCTION_DECL_DEF
 void cxx_compiler::parse::member_function_body::save_brace()
+#endif // FIX_MEMBER_FUNCTION_DECL_DEF
 {
   using namespace std;
+#ifndef FIX_MEMBER_FUNCTION_DECL_DEF
   usr* key = fundef::current->m_usr;
+#endif // FIX_MEMBER_FUNCTION_DECL_DEF
   save_t& tmp = stbl[key];
   list<pair<int, file_t> >& token = tmp.m_read.m_token;
   list<void*>& lval = tmp.m_read.m_lval;
   while (1) {
     int n;
-    if ( !g_read.m_token.empty() ){
+    if (!g_read.m_token.empty()) {
       position = g_read.m_token.front().second;
       n = g_read.m_token.front().first;
       g_read.m_token.pop_front();
@@ -971,8 +1013,13 @@ void cxx_compiler::parse::member_function_body::save_brace()
       save_common(n, lval);
     }
 
+#ifdef FIX_MEMBER_FUNCTION_DECL_DEF
+    if ( n == '{' )
+      save_brace(key);
+#else // FIX_MEMBER_FUNCTION_DECL_DEF
     if ( n == '{' )
       save_brace();
+#endif // FIX_MEMBER_FUNCTION_DECL_DEF
     if ( n == '}' )
       break;
   }

@@ -2238,7 +2238,7 @@ function_definition_begin1
   ;
 
 function_definition_begin2
-  :                    declarator
+  : declarator
     { cxx_compiler::error::not_implemented(); }   
   | decl_specifier_seq declarator
     { cxx_compiler::error::not_implemented(); }   

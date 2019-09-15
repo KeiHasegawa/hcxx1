@@ -1,8 +1,7 @@
 #ifndef _CXX_IMPL_H_
 #define _CXX_IMPL_H_
 
-void
-debug_break3(const std::list<std::pair<int, cxx_compiler::file_t> >& token);
+#define FIX_MEMBER_FUNCTION_DECL_DEF
 
 union YYSTYPE;
 
@@ -104,6 +103,11 @@ namespace parse {
     };
     extern map<usr*, save_t> stbl;
     extern save_t* saved;
+#ifdef FIX_MEMBER_FUNCTION_DECL_DEF
+    extern void save(usr*);
+#else // FIX_MEMBER_FUNCTION_DECL_DEF
+    extern void save();
+#endif // FIX_MEMBER_FUNCTION_DECL_DEF
     extern int get_token();
   } // end of namespace member_function_body
   namespace templ {
@@ -667,10 +671,10 @@ namespace declarations {
                     const file_t& use)
               : m_name(name), m_flag(flag), m_def(def), m_use(use) {}
             };
-            extern map<string, vector<ref_t> > refs;
+            extern map<pair<string, scope*>, vector<ref_t> > refs;
 
             // inline function -> callers
-            extern map<string, set<usr*> > callers;
+            extern map<pair<string, scope*>, set<usr*> > callers;
 
             // caller -> position at caller
             extern map<usr*, vector<int> > positions;
@@ -1264,6 +1268,7 @@ namespace classes {
     extern void begin2(int, tag*);
     extern const type* action();
     extern tag::kind_t get(int);
+    extern void  member_function_definition(pair<usr* const, parse::member_function_body::save_t>&);
   } // end of namespace specifier
   namespace members {
     extern void action(var*, expressions::base*);

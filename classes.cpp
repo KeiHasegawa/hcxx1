@@ -111,16 +111,6 @@ cxx_compiler::classes::specifier::begin2(int keyword, tag* ptr)
   begin(keyword,tmp,0);
 }
 
-namespace cxx_compiler {
-  using namespace std;
-  namespace classes {
-    namespace specifier {
-      using namespace std;
-      void member_function_definition(pair<usr* const, parse::member_function_body::save_t>&);
-    } // end of namespace specifier
-  } // end of namespace classes
-} // end of namespace cxx_compiler
-
 const cxx_compiler::type* cxx_compiler::classes::specifier::action()
 {
   using namespace std;
