@@ -922,6 +922,10 @@ namespace cxx_compiler {
 	      if (!(flag & mask))
 		return;
 
+	      usr::flag_t exclude = usr::flag_t(usr::VIRTUAL | usr::OVERRIDE);
+	      if (flag & exclude)
+		return;
+
 	      if ((flag & usr::STATIC) && !(flag & usr::INLINE)) {
 		if (u->m_scope->m_id == scope::TAG)
 		  return;
