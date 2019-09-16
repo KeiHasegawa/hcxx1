@@ -1,8 +1,6 @@
 #ifndef _CXX_IMPL_H_
 #define _CXX_IMPL_H_
 
-#define FIX_MEMBER_FUNCTION_DECL_DEF
-
 union YYSTYPE;
 
 namespace cxx_compiler {
@@ -103,11 +101,7 @@ namespace parse {
     };
     extern map<usr*, save_t> stbl;
     extern save_t* saved;
-#ifdef FIX_MEMBER_FUNCTION_DECL_DEF
     extern void save(usr*);
-#else // FIX_MEMBER_FUNCTION_DECL_DEF
-    extern void save();
-#endif // FIX_MEMBER_FUNCTION_DECL_DEF
     extern int get_token();
   } // end of namespace member_function_body
   namespace templ {
@@ -596,7 +590,6 @@ namespace declarations {
       void update();
       static stack<info_t*> s_stack;
       static void clear();
-      static bool rare_case;
       info_t(info_t*, specifier*);
       ~info_t();
     };

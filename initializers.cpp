@@ -319,8 +319,11 @@ void cxx_compiler::declarations::initializers::gencode(usr* u)
 	using namespace declarations::declarators::function;
 	using namespace definition::static_inline;
 	skip::table_t::const_iterator p = skip::stbl.find(copy_ctor);
-	if (p != skip::stbl.end())
-	  substitute(code, code.size()-1, p->second);
+	if (p != skip::stbl.end()) {
+	  using definition::static_inline::info_t;
+	  if (info_t* info = p->second)
+	    substitute(code, code.size()-1, info);
+	}
       }
     }
     return;
@@ -1262,10 +1265,13 @@ namespace cxx_compiler {
 	if (!error::counter && !cmdline::no_inline_sub) {
 	  if (flag & usr::INLINE) {
 	    using namespace declarations::declarators::function;
-	    using namespace definition::static_inline::skip;
-	    table_t::const_iterator p = stbl.find(u);
-	    if (p != stbl.end())
-	      substitute(code, n-1, p->second);
+	    using namespace definition::static_inline;
+	    skip::table_t::const_iterator p = skip::stbl.find(u);
+	    if (p != skip::stbl.end()) {
+	      using definition::static_inline::info_t;
+	      if (info_t* info = p->second)
+		substitute(code, n-1, info);
+	    }
 	  }
 	}
 	return true;

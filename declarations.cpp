@@ -497,9 +497,6 @@ void cxx_compiler::declarations::specifier_seq::info_t::update()
 std::stack<cxx_compiler::declarations::specifier_seq::info_t*>
 cxx_compiler::declarations::specifier_seq::info_t::s_stack;
 
-bool
-cxx_compiler::declarations::specifier_seq::info_t::rare_case;
-
 namespace cxx_compiler { namespace declarations {
   void check_installed(usr*, specifier_seq::info_t*);
   usr* exchange(bool installed, usr* new_one, usr* org);

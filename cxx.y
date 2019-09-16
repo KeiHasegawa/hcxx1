@@ -1070,14 +1070,8 @@ member_declaration
   : decl_specifier_seq member_declarator_list ';'
     {
       using namespace cxx_compiler::declarations;
-      if (specifier_seq::info_t::rare_case) {
-	delete specifier_seq::info_t::s_stack.top();
-        specifier_seq::info_t::rare_case = false;
-      }
-      else {
-	if (!specifier_seq::info_t::s_stack.empty())
-	  delete $1;
-      }
+      if (!specifier_seq::info_t::s_stack.empty())
+	delete $1;
       using namespace cxx_compiler::parse;
       identifier::mode = identifier::look;
       context_t::clear();

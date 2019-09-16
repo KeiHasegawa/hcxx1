@@ -430,10 +430,6 @@ function::definition::begin(declarations::specifier_seq::info_t* p, var* v)
     var* ref = ga->m_ref;
     u = ref->usr_cast();
   }
-  if (declarations::specifier_seq::info_t::rare_case) {
-    p = declarations::specifier_seq::info_t::s_stack.top();
-    declarations::specifier_seq::info_t::rare_case = false;
-  }
   if (u->m_flag2 & usr::CONV_OPE)
     p = declarations::specifier_seq::info_t::s_stack.top();
   parse::identifier::mode = parse::identifier::look;
@@ -934,8 +930,11 @@ namespace cxx_compiler {
 	      table_t::iterator it = stbl.find(u);
 	      if (it != stbl.end()) {
 		info_t* info = it->second;
-		stbl.erase(it);
-		return gencode(info);
+		if (info) {
+		  it->second = 0;
+		  gencode(info);
+		}
+		return;
 	      }
 
 	      string name = u->m_name;
@@ -943,11 +942,16 @@ namespace cxx_compiler {
 	      it = find_if(begin(stbl), end(stbl),
 			   [name, T](const pair<usr*, info_t*>& p){
 			     usr* u = p.first;
-			     return u->m_name == name && compatible(u->m_type, T); });
+			     if (u->m_name != name)
+			       return false;
+			     return  compatible(u->m_type, T); });
 	      if (it != stbl.end()) {
 		info_t* info = it->second;
-		stbl.erase(it);
-		return gencode(info);
+		if (info) {
+		  it->second = 0;
+		  gencode(info);
+		}
+		return;
 	      }
 
 	      typedef const func_type FT;
