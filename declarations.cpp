@@ -1286,10 +1286,6 @@ cxx_compiler::tac::tac(id_t id, var* xx, var* yy, var* zz) : m_id(id), x(xx), y(
   }
 }
 
-cxx_compiler::tac::~tac()
-{
-}
-
 bool cxx_compiler::declarations::internal_linkage(usr* u)
 {
   if (u->m_scope != &scope::root)

@@ -1814,7 +1814,7 @@ struct tac {
   file_t m_file;
   tac(id_t, var*, var*, var*);
   virtual tac* new3ac() = 0;
-  virtual ~tac();
+  virtual ~tac(){}
 };
 
 struct assign3ac : tac {
