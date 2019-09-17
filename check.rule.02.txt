@@ -1,5 +1,0 @@
-void h(int n)
-{
-  int& r = n;
-  &r;
-}

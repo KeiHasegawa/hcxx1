@@ -1,5 +1,0 @@
-struct B { void f(); };
-
-void g(void (B::*pf)())
-{
-}

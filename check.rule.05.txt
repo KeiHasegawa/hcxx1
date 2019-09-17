@@ -1,6 +1,0 @@
-typedef int T;
-
-void f(double (T));
-
-
-void g(int (*pf)());

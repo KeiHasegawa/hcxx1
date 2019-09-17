@@ -1,5 +1,0 @@
-struct T { void f(); };
-
-void T::f()
-{
-}
