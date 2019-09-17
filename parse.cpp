@@ -7,6 +7,10 @@
 #include "patch.04.q"
 #include "patch.10.q"
 
+void debug_break()
+{
+}
+
 namespace cxx_compiler {
   namespace parse {
     file_t position;
@@ -28,6 +32,9 @@ namespace cxx_compiler {
 
 int cxx_compiler::parse::identifier::judge(std::string name)
 {
+  if (name == "vector" && position.m_lineno == 15)
+    debug_break();
+
   if (mode == peeking)
     return create(name), PEEKED_NAME_LEX;
 
@@ -88,6 +95,7 @@ int cxx_compiler::parse::identifier::judge(std::string name)
     case TYPEDEF_NAME_LEX:
     case CLASS_NAME_LEX:
     case ENUM_NAME_LEX:
+    case TEMPLATE_NAME_LEX:
       return r;
     }
     // For static x; static x;
@@ -520,6 +528,7 @@ namespace cxx_compiler {
       case DEFAULT_KW:
       case ORIGINAL_NAMESPACE_NAME_LEX:
       case NAMESPACE_ALIAS_LEX:
+      case TEMPLATE_NAME_LEX:
         if (src) {
           assert(!src->empty());
           lval.push_back(src->front());
@@ -599,6 +608,7 @@ namespace cxx_compiler {
         return n;
       case CLASS_NAME_LEX:
       case ENUM_NAME_LEX:
+      case TEMPLATE_NAME_LEX:
         assert(!lval.empty());
         cxx_compiler_lval.m_tag = static_cast<tag*>(lval.front());
         lval.pop_front();
