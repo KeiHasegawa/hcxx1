@@ -1092,3 +1092,17 @@ namespace cxx_compiler {
     } // end of namespace templ
   } // end of namespace parse
 } // end of namespace cxx_compiler
+
+namespace cxx_compiler {
+  namespace parse {
+    // called from debugger command line
+    void debug_read(const read_t& r)
+    {
+      const list<pair<int, file_t> >& ls = r.m_token;
+      for (auto p : ls)
+	cout << p.first << ' ';
+      cout << endl;
+    }
+  } // end of namespace parse
+} // end of namespace cxx_compiler
+

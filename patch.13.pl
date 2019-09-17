@@ -63,6 +63,13 @@ print <<EOF
       using namespace cxx_compiler::parse;
       member_function_body::save(yyvsp[0].m_usr);
       yychar = ';';
+      using namespace std;
+      if (!templ::save_t::s_stack.empty()) {
+        templ::save_t* p = templ::save_t::s_stack.top();
+	assert(p->m_tag);
+        p->m_read.m_token.pop_back();				 
+        p->m_read.m_token.push_back(make_pair(yychar, position));
+      }
       yyn = $aaa + 1;
       goto yyreduce;
     }

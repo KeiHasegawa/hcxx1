@@ -3,10 +3,6 @@
 #include "cxx_impl.h"
 #include "yy.h"
 
-void debug_break()
-{
-}
-
 void cxx_compiler::type_parameter::action(var* v)
 {
   assert(v->usr_cast());
@@ -288,7 +284,6 @@ cxx_compiler::tag*
 cxx_compiler::
 template_tag::instantiate(std::vector<std::pair<var*, const type*>*>* pv)
 {
-  debug_break();
   template_tag_impl::sweeper sweeper(pv);
   const vector<string>& tpss = templ_base::m_tps.second;
   if (!pv) {
