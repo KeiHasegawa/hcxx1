@@ -37,7 +37,7 @@ void cxx_compiler::generator::initialize()
 #else // _MSC_VER
   m_module = dlopen(fn.c_str(),RTLD_LAZY);
 #endif // _MSC_VER
-  if ( !m_module ){
+  if (!m_module) {
     warning::generator::open(fn);
     return;
   }

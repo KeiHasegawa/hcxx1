@@ -5,25 +5,31 @@
 #include "cxx_y.h"
 #include "patch.03.q"
 
-namespace cxx_compiler { namespace subscript_impl {
-  var* size(const type*);
-} } // end of namespace subscript_impl and cxx_compiler
+namespace cxx_compiler {
+  namespace subscript_impl {
+    var* size(const type*);
+  }
+} // end of namespace subscript_impl and cxx_compiler
 
 cxx_compiler::var* cxx_compiler::var::subscripting(var* y)
 {
   using namespace std;
+
+  if (var* ret = var_impl::operator_code('[', this, y))
+    return ret;
+
   var* array = rvalue();
   var* index = y->rvalue();
-  if ( !index->m_type->integer() )
+  if (!index->m_type->integer())
     swap(array,index);
-  if ( !index->m_type->integer() ){
+  if (!index->m_type->integer()) {
     using namespace error::expressions::postfix::subscripting;
     not_integer(parse::position,index);
     return array;
   }
   const type* T = array->m_type;
   T = T->unqualified();
-  if ( T->m_id != type::POINTER ){
+  if (T->m_id != type::POINTER) {
     using namespace error::expressions::postfix::subscripting;
     not_pointer(parse::position,array);
     return array;

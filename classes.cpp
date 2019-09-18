@@ -81,8 +81,10 @@ cxx_compiler::classes::specifier::begin(int keyword, var* v,
   }
 
   tag* ptr = new tag(kind, name, file, bases);
-  if (instantiating)
+  if (instantiating) {
+    ptr->m_instantiated = true;
     template_tag::result = ptr;
+  }
 
   const pair<map<string, tag*>, vector<string> >& tps
     = scope::current->m_tps;
