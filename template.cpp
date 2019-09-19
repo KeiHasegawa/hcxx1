@@ -265,9 +265,18 @@ namespace cxx_compiler {
   namespace template_tag_impl {
     struct sweeper {
       vector<pair<var*, const type*>*>* m_ptr;
-      sweeper(vector<pair<var*, const type*>*>* pv) : m_ptr(pv) {}
+      stack<declarations::specifier_seq::info_t*> m_stack;
+      sweeper(vector<pair<var*, const type*>*>* pv) : m_ptr(pv)
+      {
+	stack<declarations::specifier_seq::info_t*>& x =
+	  declarations::specifier_seq::info_t::s_stack;
+	m_stack = x;
+	while (!x.empty())
+	  x.pop();
+      }
       ~sweeper()
       {
+	declarations::specifier_seq::info_t::s_stack = m_stack;
 	if (m_ptr) {
 	  for (auto p : *m_ptr)
 	    delete p;
