@@ -1536,10 +1536,9 @@ struct template_usr : usr, templ_base {
 };
 
 struct template_tag : templ_base, tag {
-  map<usr*, parse::member_function_body::save_t> m_mem_fun_body;
-  bool m_specified;
+  bool m_specified;  // decide token kind : TEMPLATE_NAME or CLASS_NAME
   static tag* result;
-  static template_tag* current;
+  static template_tag* instantiating;
   template_tag(tag& t, const pair<map<string, tag*>, vector<string> >& tps)
     : tag(t), templ_base(tps), m_specified(false) { m_template = true; }
   tag* instantiate(vector<pair<var*, const type*>*>*);

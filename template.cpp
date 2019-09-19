@@ -277,7 +277,7 @@ namespace cxx_compiler {
     };
   } // end of namespace template_tag_impl
   tag* template_tag::result;
-  template_tag* template_tag::current;
+  template_tag* template_tag::instantiating;
 } // end of namespace cxx_compiler
 
 cxx_compiler::tag*
@@ -312,12 +312,13 @@ template_tag::instantiate(std::vector<std::pair<var*, const type*>*>* pv)
   templ_base tmp = *this;
   template_usr_impl::sweeper sweeper2(m_parent, &tmp, tpsf);
   assert(!template_tag::result);
-  assert(!template_tag::current);
-  template_tag::current = this;
+  assert(!template_tag::instantiating);
+  template_tag::instantiating = this;
   cxx_compiler_parse();
   tag* ret = template_tag::result;
+  assert(ret->m_src == this);
   template_tag::result = 0;
-  template_tag::current = 0;
+  template_tag::instantiating = 0;
   parse::identifier::mode = parse::identifier::new_obj;
   return ret;
 }

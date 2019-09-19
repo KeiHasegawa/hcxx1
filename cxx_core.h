@@ -41,6 +41,7 @@ struct file_t {
 
 struct type;
 struct base;
+struct template_tag;
 
 struct tag : scope {
   enum kind_t { STRUCT, UNION, CLASS, ENUM };
@@ -51,10 +52,10 @@ struct tag : scope {
   static std::string keyword(kind_t);
   std::vector<base*>* m_bases;
   bool m_template;
-  bool m_instantiated;
+  template_tag* m_src;
   tag(kind_t kind, std::string name, const file_t& file, std::vector<base*>* b)
     : scope(TAG), m_kind(kind), m_name(name), m_bases(b), m_template(false),
-    m_instantiated(false)
+    m_src(0)
   {
     m_file.push_back(file);
   }

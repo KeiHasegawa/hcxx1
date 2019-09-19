@@ -446,6 +446,14 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
     tag* ptag = static_cast<tag*>(ptr);
     if (int n = base_lookup::action(name, ptag))
       return n;
+    if (template_tag* src = ptag->m_src) {
+      const map<string, tag*>& tpsf = src->templ_base::m_tps.first;
+      map<string, tag*>::const_iterator p = tpsf.find(name);
+      if (p != tpsf.end()) {
+	cxx_compiler_lval.m_tag = p->second;
+	return CLASS_NAME_LEX;
+      }
+    }
   }
   if (ptr->m_parent)
     return lookup(name,ptr->m_parent);
@@ -606,7 +614,7 @@ namespace cxx_compiler {
         cxx_compiler_lval.m_tag = static_cast<tag*>(lval.front());
         lval.pop_front();
 	if (templ) {
-	  if (cxx_compiler_lval.m_tag == template_tag::current)
+	  if (cxx_compiler_lval.m_tag == template_tag::instantiating)
 	    cxx_compiler_lval.m_tag = template_tag::result;
 	}
         return n;
@@ -684,7 +692,6 @@ int cxx_compiler::parse::get_token()
   }
 
   if (templ::ptr) {
-    const read_t& r = templ::ptr->m_read;
     last_token = templ::get_token();
     if (last_token == COLONCOLON_MK)
       identifier::mode = identifier::look;
@@ -924,7 +931,7 @@ void cxx_compiler::parse::block::leave()
 namespace cxx_compiler { namespace parse { namespace member_function_body {
   std::map<usr*, save_t> stbl;
   save_t* saved;
-  void save_brace(usr*);
+  void save_brace(read_t*);
 } } } // end of namespace parse, member_function_body and cxx_compiler
 
 void cxx_compiler::parse::member_function_body::save(usr* key)
@@ -949,20 +956,29 @@ void cxx_compiler::parse::member_function_body::save(usr* key)
   assert(!(key->m_flag & usr::OVERLOAD));
   key->m_flag = usr::flag_t(key->m_flag | usr::INLINE);
 
-  stbl[key].m_param = param;
-  stbl[key].m_read.m_token.push_back(make_pair(cxx_compiler_char,position));
+  read_t* pr = 0;
+  if (!templ::save_t::s_stack.empty()) {
+    templ::save_t* p = templ::save_t::s_stack.top();
+    assert(p->m_tag);
+    pr = &p->m_read;
+  }
+  else {
+    stbl[key].m_param = param;
+    pr = &stbl[key].m_read;
+    pr->m_token.push_back(make_pair(cxx_compiler_char,position));
+  }
+
   identifier::mode = identifier::new_obj;
-  save_brace(key);
+  save_brace(pr);
   identifier::mode = identifier::look;
   scope::current = ptr;
 }
 
-void cxx_compiler::parse::member_function_body::save_brace(usr* key)
+void cxx_compiler::parse::member_function_body::save_brace(read_t* ptr)
 {
   using namespace std;
-  save_t& tmp = stbl[key];
-  list<pair<int, file_t> >& token = tmp.m_read.m_token;
-  list<void*>& lval = tmp.m_read.m_lval;
+  list<pair<int, file_t> >& token = ptr->m_token;
+  list<void*>& lval = ptr->m_lval;
   while (1) {
     int n;
     if (!g_read.m_token.empty()) {
@@ -971,6 +987,13 @@ void cxx_compiler::parse::member_function_body::save_brace(usr* key)
       g_read.m_token.pop_front();
       token.push_back(make_pair(n,position));
       save_common(n, lval, &g_read.m_lval);
+    }
+    else if (templ::ptr) {
+      position = templ::ptr->m_read.m_token.front().second;
+      n = templ::ptr->m_read.m_token.front().first;
+      templ::ptr->m_read.m_token.pop_front();
+      token.push_back(make_pair(n,position));
+      save_common(n, lval, &templ::ptr->m_read.m_lval);
     }
     else {
       n = cxx_compiler_lex();
@@ -981,7 +1004,7 @@ void cxx_compiler::parse::member_function_body::save_brace(usr* key)
     }
 
     if (n == '{') {
-      save_brace(key);
+      save_brace(ptr);
       break;
     }
     if (n == '}')

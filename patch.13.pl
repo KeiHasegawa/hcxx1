@@ -53,7 +53,6 @@ while ( <> ){
 if ($xxx == 0 || $yyy == 0 || $aaa == 0 || $aax != $aay) {
   print STDERR "Error detected at $0\n";
   exit 1;
-
 }
 
 print <<EOF
@@ -63,13 +62,6 @@ print <<EOF
       using namespace cxx_compiler::parse;
       member_function_body::save(yyvsp[0].m_usr);
       yychar = ';';
-      using namespace std;
-      if (!templ::save_t::s_stack.empty()) {
-        templ::save_t* p = templ::save_t::s_stack.top();
-	assert(p->m_tag);
-        p->m_read.m_token.pop_back();				 
-        p->m_read.m_token.push_back(make_pair(yychar, position));
-      }
       yyn = $aaa + 1;
       goto yyreduce;
     }

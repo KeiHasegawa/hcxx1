@@ -49,7 +49,7 @@ cxx_compiler::classes::specifier::begin(int keyword, var* v,
   const file_t& file = u ? u->m_file : parse::position;
   map<string,tag*>& tags = scope::current->m_tags;
   map<string,tag*>::const_iterator p = tags.find(name);
-  bool instantiating = false;
+  template_tag* tt = 0;
   if (p != tags.end()) {
     tag* prev = p->second;
     if (!prev->m_template) {
@@ -70,19 +70,19 @@ cxx_compiler::classes::specifier::begin(int keyword, var* v,
       declarations::specifier_seq::info_t::clear();
       return;
     }
-    template_tag* tt = static_cast<template_tag*>(prev);
+    tt = static_cast<template_tag*>(prev);
+    assert(tt == template_tag::instantiating);
     const map<string, tag*>& tpsf = tt->templ_base::m_tps.first;
     const vector<string>& tpss = tt->templ_base::m_tps.second;
     name += '<';
     name = accumulate(begin(tpss), end(tpss), name, templ_name(tpsf));
     name.erase(name.size()-1);
     name += '>';
-    instantiating = true;
   }
 
   tag* ptr = new tag(kind, name, file, bases);
-  if (instantiating) {
-    ptr->m_instantiated = true;
+  if (tt) {
+    ptr->m_src = tt;
     template_tag::result = ptr;
   }
 
@@ -126,9 +126,6 @@ const cxx_compiler::type* cxx_compiler::classes::specifier::action()
     template_tag* tt = static_cast<template_tag*>(ptr);
     assert(!tt->m_specified);
     tt->m_specified = true;
-    assert(tt->m_mem_fun_body.empty());
-    tt->m_mem_fun_body = parse::member_function_body::stbl;
-    parse::member_function_body::stbl.clear();
     scope::current = ptr->m_parent;
     return ptr->m_types.first;
   }
@@ -136,7 +133,7 @@ const cxx_compiler::type* cxx_compiler::classes::specifier::action()
   const type* ret = record_type::create(ptr);
   ptr->m_types.second = ret;
   handle_copy_ctor(ptr);
-    
+
   map<usr*, parse::member_function_body::save_t>& tbl =
     parse::member_function_body::stbl;
   if (tbl.empty()) {
