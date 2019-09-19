@@ -255,6 +255,13 @@ cxx_compiler::var* cxx_compiler::expressions::unary::new_expr::gen()
 {
   using namespace std;
   using namespace primary::literal;
+  map<const type*, vector<tac*> >::iterator p =
+    declarations::new_type_id::table.find(m_T);
+  if (p != declarations::new_type_id::table.end()) {
+    vector<tac*>& v = p->second;
+    copy(begin(v), end(v), back_inserter(code));
+    declarations::new_type_id::table.erase(p);
+  }
   vector<var*> new_arg;
   var* whole_sz = m_T->vsize();
   if (!whole_sz) {

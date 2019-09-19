@@ -797,6 +797,7 @@ namespace declarations {
     typedef pair<const type*, vector<expressions::base*>*> LIST_ELEMENT;
     typedef list<LIST_ELEMENT> LIST;
     extern const type* action(type_specifier_seq::info_t*, LIST*);
+    extern map<const type*, vector<tac*> > table;
   } // end of namespace new_type_id
   namespace templ {
     extern void decl_begin();

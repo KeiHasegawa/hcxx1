@@ -1370,7 +1370,8 @@ namespace cxx_compiler {
 	}
 	vector<expressions::base*>* exprs = elem.second;
 	return accumulate(begin(*exprs), end(*exprs), T, calc2);
-      } 
+      }
+      map<const type*, vector<tac*> > table;
     } // end of namespace new_type_id
   } // end of namespace declarations
 } // end of namespace cxx_compiler
@@ -1384,5 +1385,11 @@ action(type_specifier_seq::info_t* p, LIST* q)
   const type* T = p->m_type;
   if (!q)
     return T;
-  return accumulate(begin(*q), end(*q), T, calc);
+  int n = code.size();
+  T = accumulate(begin(*q), end(*q), T, calc);
+  int m = code.size();
+  if (n != m)
+    copy(begin(code)+n, end(code), back_inserter(table[T]));
+  code.resize(n);
+  return T;
 }
