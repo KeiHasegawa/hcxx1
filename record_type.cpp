@@ -665,8 +665,15 @@ namespace cxx_compiler {
           if (it != end(v))
             return *it;
         }
-        usr::flag_t flag = usr::flag_t(usr::FUNCTION | usr::CTOR);
-        usr* body = new usr(bn, T, flag, parse::position, usr::GENED_BY_COMP);
+        usr::flag_t flag;
+	if (tor->m_flag & usr::CTOR)
+	  flag = usr::flag_t(usr::FUNCTION | usr::CTOR);
+	else {
+	  assert(tor->m_flag & usr::DTOR);
+	  flag = usr::flag_t(usr::FUNCTION | usr::DTOR);
+	}
+	usr::flag2_t flag2 = usr::flag2_t(usr::GENED_BY_COMP | usr::TOR_BODY);
+        usr* body = new usr(bn, T, flag, parse::position, flag2);
         body->m_scope = ptr;
         usrs[bn].push_back(body);
         return body;
@@ -701,7 +708,8 @@ namespace cxx_compiler {
         string sn = special_name(tor, exclude);
         const type* T = tor->m_type;
         usr::flag_t flag = usr::flag_t(tor->m_flag | usr::INLINE);
-        usr* scd = new usr(sn, T, flag, parse::position, usr::GENED_BY_COMP);
+        usr* scd = new usr(sn, T, flag, parse::position,
+		   usr::flag2_t(usr::GENED_BY_COMP | usr::EXCLUDE_TOR));
         scope* ps = tor->m_scope;
         assert(ps->m_id == scope::TAG);
         tag* ptr = static_cast<tag*>(ps);

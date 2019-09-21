@@ -52,8 +52,8 @@ cxx_compiler::classes::specifier::begin(int keyword, var* v,
   template_tag* tt = 0;
   if (p != tags.end()) {
     tag* prev = p->second;
-    if (!prev->m_template) {
-      if ( prev->m_kind != kind ){
+    if (prev->m_kind2 != tag::TEMPLATE) {
+      if (prev->m_kind != kind) {
 	using namespace error::classes;
 	redeclaration(parse::position,prev->m_file.back(),name);
 	name = new_name(".tag");
@@ -80,11 +80,13 @@ cxx_compiler::classes::specifier::begin(int keyword, var* v,
     name += '>';
   }
 
-  tag* ptr = new tag(kind, name, file, bases);
+  tag* ptr;
   if (tt) {
-    ptr->m_src = tt;
-    template_tag::result = ptr;
+    ptr = template_tag::result
+      = new instantiated_tag(kind, name, file, bases, tt);
   }
+  else
+    ptr = new tag(kind, name, file, bases);
 
   const pair<map<string, tag*>, vector<string> >& tps
     = scope::current->m_tps;
@@ -122,7 +124,7 @@ const cxx_compiler::type* cxx_compiler::classes::specifier::action()
   scope* ps = ptr->m_parent;
   const map<string, tag*>& tpsf = ps->m_tps.first;
   if (!tpsf.empty()) {
-    assert(ptr->m_template);
+    assert(ptr->m_kind2 == tag::TEMPLATE);
     template_tag* tt = static_cast<template_tag*>(ptr);
     assert(!tt->m_specified);
     tt->m_specified = true;

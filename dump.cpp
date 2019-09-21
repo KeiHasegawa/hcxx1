@@ -115,14 +115,14 @@ tagx(std::pair<std::string, tag*> p, int ntab)
   tag* ptr = p.second;
   int n = ntab;
   while ( n-- ) cout << '\t';
-  if (ptr->m_template)
+  if (ptr->m_kind2 == tag::TEMPLATE)
     cout << "template ";
   cout << tag::keyword(ptr->m_kind);
   string name = ptr->m_name;
   if ( !name.empty() )
     cout << ' ' << name;
   cout << '\n';
-  if (ptr->m_template)
+  if (ptr->m_kind2 == tag::TEMPLATE)
     return;
   scope* org = scope::current;
   scope::current = ptr;

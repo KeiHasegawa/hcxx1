@@ -41,27 +41,34 @@ struct file_t {
 
 struct type;
 struct base;
-struct template_tag;
 
 struct tag : scope {
   enum kind_t { STRUCT, UNION, CLASS, ENUM };
   kind_t m_kind;
+  enum kind2_t { NONE, TEMPLATE, INSTANTIATE };
+  kind2_t m_kind2;
   std::string m_name;
   std::vector<file_t> m_file;
   std::pair<const type*, const type*> m_types;
   static std::string keyword(kind_t);
   std::vector<base*>* m_bases;
-  bool m_template;
-  template_tag* m_src;
   tag(kind_t kind, std::string name, const file_t& file, std::vector<base*>* b)
-    : scope(TAG), m_kind(kind), m_name(name), m_bases(b), m_template(false),
-    m_src(0)
+    : scope(TAG), m_kind(kind), m_kind2(NONE), m_name(name), m_bases(b)
   {
     m_file.push_back(file);
   }
   ~tag();
 };
 
+struct template_tag;
+
+struct instantiated_tag : tag {
+  template_tag* m_src;
+  std::vector<const type*> m_types;
+  instantiated_tag(kind_t kind, std::string name, const file_t& file,
+		   std::vector<base*>* b, template_tag* tt)
+    : tag(kind, name, file, b), m_src(tt) { m_kind2 = INSTANTIATE; }
+};
 
 template<class T> struct constant;
 struct addrof;
@@ -336,8 +343,10 @@ struct usr : var {
     INITIALIZE_FUNCTION = 1 << 7,
     TERMINATE_FUNCTION  = 1 << 8,
     GENED_BY_COMP       = 1 << 9,
-    TEMPLATE            = 1 << 10,
-    INSTANTIATE         = 1 << 11,
+    TOR_BODY            = 1 << 10,
+    EXCLUDE_TOR         = 1 << 11,
+    TEMPLATE            = 1 << 12,
+    INSTANTIATE         = 1 << 13,
   };
   flag2_t m_flag2;
   file_t m_file;

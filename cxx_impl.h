@@ -1538,11 +1538,11 @@ struct template_usr : usr, templ_base {
 
 struct template_tag : templ_base, tag {
   bool m_specified;  // decide token kind : TEMPLATE_NAME or CLASS_NAME
-  static tag* result;
+  static instantiated_tag* result;
   static template_tag* instantiating;
   template_tag(tag& t, const pair<map<string, tag*>, vector<string> >& tps)
-    : tag(t), templ_base(tps), m_specified(false) { m_template = true; }
-  tag* instantiate(vector<pair<var*, const type*>*>*);
+    : tag(t), templ_base(tps), m_specified(false) { m_kind2 = TEMPLATE; }
+  instantiated_tag* instantiate(vector<pair<var*, const type*>*>*);
 };
 
 namespace parse {

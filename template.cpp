@@ -46,7 +46,7 @@ namespace cxx_compiler {
       }
       inline void handle(tag* ptr, const parse::read_t& r)
       {
-	assert(ptr->m_template);
+	assert(ptr->m_kind2 == tag::TEMPLATE);
 	template_tag* tt = static_cast<template_tag*>(ptr);
 	tt->m_read = r;
       }
@@ -252,7 +252,7 @@ namespace cxx_compiler {
       namespace id {
 	tag* action(tag* ptr, vector<pair<var*, const type*>*>* pv)
 	{
-	  assert(ptr->m_template);
+	  assert(ptr->m_kind2 == tag::TEMPLATE);
           template_tag* tt = static_cast<template_tag*>(ptr);
 	  return tt->instantiate(pv);
 	}
@@ -285,11 +285,11 @@ namespace cxx_compiler {
       }
     };
   } // end of namespace template_tag_impl
-  tag* template_tag::result;
+  instantiated_tag* template_tag::result;
   template_tag* template_tag::instantiating;
 } // end of namespace cxx_compiler
 
-cxx_compiler::tag*
+cxx_compiler::instantiated_tag*
 cxx_compiler::
 template_tag::instantiate(std::vector<std::pair<var*, const type*>*>* pv)
 {
@@ -304,6 +304,7 @@ template_tag::instantiate(std::vector<std::pair<var*, const type*>*>* pv)
       error::not_implemented();
   }
 
+  vector<const type*> vt;
   const map<string, tag*>& tpsf = templ_base::m_tps.first;
   if (pv) {
     int n = pv->size();
@@ -314,7 +315,7 @@ template_tag::instantiate(std::vector<std::pair<var*, const type*>*>* pv)
       const type* T = (*pv)[i]->second;
       if (!T)
 	error::not_implemented();
-      ptr->m_types.second = T;
+      vt.push_back(ptr->m_types.second = T);
     }
   }
 
@@ -324,8 +325,9 @@ template_tag::instantiate(std::vector<std::pair<var*, const type*>*>* pv)
   assert(!template_tag::instantiating);
   template_tag::instantiating = this;
   cxx_compiler_parse();
-  tag* ret = template_tag::result;
+  instantiated_tag* ret = template_tag::result;
   assert(ret->m_src == this);
+  ret->m_types = vt;
   template_tag::result = 0;
   template_tag::instantiating = 0;
   parse::identifier::mode = parse::identifier::new_obj;

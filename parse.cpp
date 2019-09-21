@@ -415,7 +415,7 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
     cxx_compiler_lval.m_tag = q->second;
     if (ptag->m_kind == tag::ENUM)
       return ENUM_NAME_LEX;
-    if (!ptag->m_template)
+    if (ptag->m_kind2 != tag::TEMPLATE)
       return CLASS_NAME_LEX;
     template_tag* tt = static_cast<template_tag*>(ptag);
     return tt->m_specified ? TEMPLATE_NAME_LEX : CLASS_NAME_LEX;
@@ -446,7 +446,9 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
     tag* ptag = static_cast<tag*>(ptr);
     if (int n = base_lookup::action(name, ptag))
       return n;
-    if (template_tag* src = ptag->m_src) {
+    if (ptag->m_kind2 == tag::INSTANTIATE) {
+      instantiated_tag* it = static_cast<instantiated_tag*>(ptag);
+      template_tag* src = it->m_src;
       const map<string, tag*>& tpsf = src->templ_base::m_tps.first;
       map<string, tag*>::const_iterator p = tpsf.find(name);
       if (p != tpsf.end()) {
