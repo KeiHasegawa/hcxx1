@@ -208,7 +208,7 @@ declaration_seq
   ;
 
 declaration
-  : block_declaration           { delete $1; }
+  : block_declaration { delete $1; }
   | function_definition
   | template_declaration
   | explicit_instantiation
@@ -226,9 +226,12 @@ declaration
 block_declaration
   : simple_declaration
   | asm_definition
-  | namespace_alias_definition { cxx_compiler::error::not_implemented(); }
-  | using_declaration          { cxx_compiler::error::not_implemented(); }
-  | using_directive            { cxx_compiler::error::not_implemented(); }
+  | namespace_alias_definition
+    { cxx_compiler::error::not_implemented(); }
+  | using_declaration
+    { cxx_compiler::error::not_implemented(); }
+  | using_directive
+    { cxx_compiler::error::not_implemented(); }
   ;
 
 simple_declaration
@@ -239,8 +242,8 @@ simple_declaration
       parse::identifier::mode = parse::identifier::look;
       $$ = $2;
     }
-  |                    init_declarator_list ';'
-  | decl_specifier_seq                      ';'
+  | init_declarator_list ';'
+  | decl_specifier_seq ';'
     {
       using namespace cxx_compiler;
       if ( !$1->m_tag )
@@ -249,15 +252,20 @@ simple_declaration
       parse::identifier::mode = parse::identifier::look;
       $$ = 0;
     }
-  |                                         ';' { $$ = 0; }
+  | ';' { $$ = 0; }
   ;
 
 decl_specifier
-  : storage_class_specifier { $$ = new cxx_compiler::declarations::specifier($1); }
-  | type_specifier          { $$ = new cxx_compiler::declarations::specifier($1); }
-  | function_specifier      { $$ = new cxx_compiler::declarations::specifier($1); }
-  | FRIEND_KW               { $$ = new cxx_compiler::declarations::specifier(FRIEND_KW); }
-  | TYPEDEF_KW              { $$ = new cxx_compiler::declarations::specifier(TYPEDEF_KW); }
+  : storage_class_specifier
+    { $$ = new cxx_compiler::declarations::specifier($1); }
+  | type_specifier
+    { $$ = new cxx_compiler::declarations::specifier($1); }
+  | function_specifier
+    { $$ = new cxx_compiler::declarations::specifier($1); }
+  | FRIEND_KW
+    { $$ = new cxx_compiler::declarations::specifier(FRIEND_KW); }
+  | TYPEDEF_KW
+    { $$ = new cxx_compiler::declarations::specifier(TYPEDEF_KW); }
   ;
 
 decl_specifier_seq
@@ -347,8 +355,8 @@ elaborated_type_specifier
     { cxx_compiler::error::not_implemented(); }
   | class_key IDENTIFIER_LEX
    { $$ = cxx_compiler::declarations::elaborated::action($1,$2); }
-  | class_key COLONCOLON_MK move_to_root nested_name_specifier TEMPLATE_KW
-    template_id
+  | class_key COLONCOLON_MK move_to_root nested_name_specifier
+    TEMPLATE_KW template_id
     { cxx_compiler::error::not_implemented(); }
   | class_key nested_name_specifier TEMPLATE_KW template_id
     { cxx_compiler::error::not_implemented(); }
@@ -376,8 +384,8 @@ elaborated_type_specifier
     { cxx_compiler::error::not_implemented(); }
   | TYPENAME_KW nested_name_specifier IDENTIFIER_LEX
     { cxx_compiler::error::not_implemented(); }
-  | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier TEMPLATE_KW
-    template_id
+  | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier
+    TEMPLATE_KW template_id
     { cxx_compiler::error::not_implemented(); }
   | TYPENAME_KW nested_name_specifier TEMPLATE_KW template_id
     { cxx_compiler::error::not_implemented(); }
@@ -388,14 +396,19 @@ elaborated_type_specifier
   ;
 
 enum_specifier
-  : enum_specifier_begin enumerator_list '}'     { $$ = cxx_compiler::declarations::enumeration::end($1); }
-  | enum_specifier_begin enumerator_list ',' '}' { $$ = cxx_compiler::declarations::enumeration::end($1); }
-  | enum_specifier_begin                 '}'     { $$ = cxx_compiler::declarations::enumeration::end($1); }
+  : enum_specifier_begin enumerator_list '}'
+    { $$ = cxx_compiler::declarations::enumeration::end($1); }
+  | enum_specifier_begin enumerator_list ',' '}'
+   { $$ = cxx_compiler::declarations::enumeration::end($1); }
+  | enum_specifier_begin '}'
+    { $$ = cxx_compiler::declarations::enumeration::end($1); }
   ;
 
 enum_specifier_begin
-  : enum_key IDENTIFIER_LEX '{' { $$ = cxx_compiler::declarations::enumeration::begin($2); }
-  | enum_key                '{' { $$ = cxx_compiler::declarations::enumeration::begin(0); }
+  : enum_key IDENTIFIER_LEX '{'
+    { $$ = cxx_compiler::declarations::enumeration::begin($2); }
+  | enum_key '{'
+    { $$ = cxx_compiler::declarations::enumeration::begin(0); }
   ;
 
 enum_key
@@ -506,13 +519,13 @@ using_declaration
 using_directive
   : USING_KW NAMESPACE_KW COLONCOLON_MK move_to_root nested_name_specifier
     namespace_name ';'
-   { cxx_compiler::error::not_implemented(); }
+    { cxx_compiler::error::not_implemented(); }
   | USING_KW NAMESPACE_KW nested_name_specifier namespace_name ';'
-   { cxx_compiler::error::not_implemented(); }
+    { cxx_compiler::error::not_implemented(); }
   | USING_KW NAMESPACE_KW COLONCOLON_MK move_to_root namespace_name ';'
-   { cxx_compiler::error::not_implemented(); }
+    { cxx_compiler::error::not_implemented(); }
   | USING_KW NAMESPACE_KW namespace_name ';'
-   { cxx_compiler::error::not_implemented(); }
+    { cxx_compiler::error::not_implemented(); }
   ;
 
 asm_definition
@@ -550,13 +563,19 @@ reg_list : string_literal
          ;
 
 linkage_specification
-  : linkage_specification_begin declaration_seq '}' { cxx_compiler::declarations::linkage::braces.pop_back(); }
-  | linkage_specification_begin                 '}' { cxx_compiler::declarations::linkage::braces.pop_back(); }
-  | EXTERN_KW STRING_LITERAL_LEX { cxx_compiler::declarations::linkage::action($2, false); } declaration { cxx_compiler::declarations::linkage::braces.pop_back(); }
+  : linkage_specification_begin declaration_seq '}'
+    { cxx_compiler::declarations::linkage::braces.pop_back(); }
+  | linkage_specification_begin '}'
+    { cxx_compiler::declarations::linkage::braces.pop_back(); }
+  | EXTERN_KW STRING_LITERAL_LEX
+    { cxx_compiler::declarations::linkage::action($2, false); }
+    declaration
+    { cxx_compiler::declarations::linkage::braces.pop_back(); }
   ;
 
 linkage_specification_begin
-  : EXTERN_KW STRING_LITERAL_LEX '{' { cxx_compiler::declarations::linkage::action($2, true); }
+  : EXTERN_KW STRING_LITERAL_LEX '{'
+    { cxx_compiler::declarations::linkage::action($2, true); }
   ;
 
 init_declarator_list
@@ -1423,9 +1442,10 @@ conversion_declarator
 operator_function_id
   : OPERATOR_KW operator
     { $$ = $2; }
-  | OPERATOR_KW operator '<' template_argument_list '>'
+  | OPERATOR_KW operator
+    '<' enter_templ_arg template_argument_list leave_templ_arg '>'
     { cxx_compiler::error::not_implemented(); }
-  | OPERATOR_KW operator '<'                        '>'
+  | OPERATOR_KW operator '<' '>'
     { cxx_compiler::error::not_implemented(); }
   ;
 
@@ -1487,6 +1507,8 @@ enter_templ_param
   : {
       using namespace cxx_compiler;
       parse::identifier::mode = parse::identifier::new_obj;
+      assert(!parse::templ::param);
+      parse::templ::param = true;
     }
   ;
 
@@ -1494,6 +1516,8 @@ leave_templ_param
   : {
       using namespace cxx_compiler;
       parse::identifier::mode = parse::identifier::look;
+      assert(parse::templ::param);
+      parse::templ::param = false;
     }
   ;
 
@@ -1551,10 +1575,26 @@ type_parameter
   ;
 
 template_id
-  : TEMPLATE_NAME_LEX '<' template_argument_list '>'
-    { $$ = cxx_compiler::declarations::templ::id::action($1, $3); }
+  : TEMPLATE_NAME_LEX
+    '<' enter_templ_arg template_argument_list leave_templ_arg '>'
+    { $$ = cxx_compiler::declarations::templ::id::action($1, $4); }
   | TEMPLATE_NAME_LEX '<' '>'
     { $$ = cxx_compiler::declarations::templ::id::action($1, 0); }
+  ;
+
+enter_templ_arg
+  : {
+      using namespace cxx_compiler;
+      ++parse::templ::arg;
+    }
+  ;
+
+leave_templ_arg
+  : {
+      using namespace cxx_compiler;
+      assert(parse::templ::arg > 0);
+      --parse::templ::arg;
+    }
   ;
 
 template_argument_list

@@ -714,17 +714,30 @@ cxx_compiler::declarations::action1(var* v, bool ini)
     u = tmp;
   }
 
-  const pair<map<string, tag*>, vector<string> >& tps = scope::current->m_tps;
-  if (!tps.first.empty()) {
-    using namespace parse::templ;
-    assert(!save_t::s_stack.empty());
-    save_t* p = save_t::s_stack.top();
-    assert(!p->m_usr);
-    p->m_usr = u = new template_usr(*u, tps);
+  if (!parse::templ::param) {
+    const scope::TPS& tps = scope::current->m_tps;
+    if (!tps.first.empty()) {
+      using namespace parse::templ;
+      assert(!save_t::s_stack.empty());
+      save_t* p = save_t::s_stack.top();
+      assert(!p->m_usr);
+      p->m_usr = u = new template_usr(*u, tps);
+    }
   }
 
-  if (!installed)
-    u = action2(u);
+  if (!installed) {
+    if (parse::templ::param) {
+      scope::TPSF& tpsf = scope::current->m_tps.first;
+      scope::TPSF::const_iterator p = tpsf.find(name);
+      if (p != tpsf.end())
+	error::not_implemented();
+      tpsf[name].second = T;
+      vector<string>& tpss = scope::current->m_tps.second;
+      tpss.push_back(name);
+    }
+    else
+      u = action2(u);
+  }
 
   if (!ini) {
     usr::flag_t mask = 

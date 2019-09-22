@@ -153,14 +153,14 @@ function::parameter(specifier_seq::info_t* p, var* v)
   if (u) {
     usr::flag_t flag = u->m_flag = p->m_flag;
     const type* T = u->m_type;
-    if ( PT* pt = T->ptr_gen() )
+    if (PT* pt = T->ptr_gen())
       u->m_type = pt;
     if (flag & mask) {
       using namespace error::declarations::declarators::function;
       parameter::invalid_storage(parse::position,u);
       flag = u->m_flag = p->m_flag = usr::flag_t(flag & ~mask);
     }
-    u = declarations::action1(u,false);
+    u = declarations::action1(u, false);
     T = u->m_type;
     if (PT* pt = T->ptr_gen()) {
       T = u->m_type = pt;

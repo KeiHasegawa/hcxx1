@@ -18,13 +18,13 @@ namespace cxx_compiler {
   namespace classes {
     namespace specifier {
       struct templ_name {
-	const map<string, tag*>& m_tpsf;
-	templ_name(const map<string, tag*>& tpsf) : m_tpsf(tpsf) {}
+	const scope::TPSF& m_tpsf;
+	templ_name(const scope::TPSF& tpsf) : m_tpsf(tpsf) {}
 	string operator()(string name, string pn)
 	{
-	  map<string, tag*>::const_iterator p = m_tpsf.find(pn);
+	  scope::TPSF::const_iterator p = m_tpsf.find(pn);
 	  assert(p != m_tpsf.end());
-	  tag* ptr = p->second;
+	  tag* ptr = p->second.first;
 	  const type* T = ptr->m_types.second;
 	  ostringstream os;
 	  T->decl(os, "");
@@ -41,7 +41,7 @@ cxx_compiler::classes::specifier::begin(int keyword, var* v,
 {
   using namespace std;
   usr* u = static_cast<usr*>(v);
-  const map<string, tag*>& tpsf = scope::current->m_tps.first;
+  const scope::TPSF& tpsf = scope::current->m_tps.first;
   usr* uu = tpsf.empty() ? u : 0;
   auto_ptr<usr> sweeper(uu);
   tag::kind_t kind = get(keyword);
@@ -72,8 +72,8 @@ cxx_compiler::classes::specifier::begin(int keyword, var* v,
     }
     tt = static_cast<template_tag*>(prev);
     assert(tt == template_tag::instantiating);
-    const map<string, tag*>& tpsf = tt->templ_base::m_tps.first;
-    const vector<string>& tpss = tt->templ_base::m_tps.second;
+    const scope::TPSF& tpsf = tt->templ_base::m_tps.first;
+    const scope::TPSS& tpss = tt->templ_base::m_tps.second;
     name += '<';
     name = accumulate(begin(tpss), end(tpss), name, templ_name(tpsf));
     name.erase(name.size()-1);
@@ -88,8 +88,7 @@ cxx_compiler::classes::specifier::begin(int keyword, var* v,
   else
     ptr = new tag(kind, name, file, bases);
 
-  const pair<map<string, tag*>, vector<string> >& tps
-    = scope::current->m_tps;
+  const scope::TPS& tps = scope::current->m_tps;
   if (!tps.first.empty()) {
     using namespace parse::templ;
     assert(!save_t::s_stack.empty());
@@ -122,7 +121,7 @@ const cxx_compiler::type* cxx_compiler::classes::specifier::action()
   assert(scope::current->m_id == scope::TAG);
   tag* ptr = static_cast<tag*>(scope::current);
   scope* ps = ptr->m_parent;
-  const map<string, tag*>& tpsf = ps->m_tps.first;
+  const scope::TPSF& tpsf = ps->m_tps.first;
   if (!tpsf.empty()) {
     assert(ptr->m_kind2 == tag::TEMPLATE);
     template_tag* tt = static_cast<template_tag*>(ptr);

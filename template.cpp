@@ -8,9 +8,8 @@ void cxx_compiler::type_parameter::action(var* v)
   assert(v->usr_cast());
   usr* u = static_cast<usr*>(v);
   string name = u->m_name;
-  map<string, tag*>& tpsf = scope::current->m_tps.first;
-  typedef map<string, tag*>::const_iterator IT;
-  IT p = tpsf.find(name);
+  scope::TPSF& tpsf = scope::current->m_tps.first;
+  scope::TPSF::const_iterator p = tpsf.find(name);
   if (p != tpsf.end())
     error::not_implemented();
   tag* ptr = new tag(tag::CLASS, name, parse::position, 0);
@@ -21,14 +20,14 @@ void cxx_compiler::type_parameter::action(var* v)
   children.push_back(ptr);
   const type* T = template_param_type::create(ptr);
   ptr->m_types.first = T;
-  tpsf[name] = ptr;
+  tpsf[name].first = ptr;
   vector<string>& tpss = scope::current->m_tps.second;
   tpss.push_back(name);
 }
 
 void cxx_compiler::declarations::templ::decl_begin()
 {
-  const map<string, tag*>& tpsf = scope::current->m_tps.first;
+  const scope::TPSF& tpsf = scope::current->m_tps.first;
   if (!tpsf.empty()) {
     using namespace parse::templ;
     save_t::s_stack.push(new save_t);
@@ -56,7 +55,7 @@ namespace cxx_compiler {
 
 void cxx_compiler::declarations::templ::decl_end()
 {
-  map<string, tag*>& tpsf = scope::current->m_tps.first;
+  scope::TPSF& tpsf = scope::current->m_tps.first;
   if (tpsf.empty())
     return;
 
@@ -72,13 +71,14 @@ void cxx_compiler::declarations::templ::decl_end()
 
   vector<scope*>& children = scope::current->m_children;
   for (const auto& p : tpsf) {
-    tag* ptr = p.second;
-    typedef vector<scope*>::reverse_iterator ITx;
-    ITx q = find(rbegin(children), rend(children), ptr);
-    assert(q != rend(children));
-    typedef vector<scope*>::iterator ITy;
-    ITy r = q.base() - 1;
-    children.erase(r);
+    if (tag* ptr = p.second.first) {
+      typedef vector<scope*>::reverse_iterator ITx;
+      ITx q = find(rbegin(children), rend(children), ptr);
+      assert(q != rend(children));
+      typedef vector<scope*>::iterator ITy;
+      ITy r = q.base() - 1;
+      children.erase(r);
+    }
   }
 
   tpsf.clear();
@@ -89,15 +89,16 @@ void cxx_compiler::declarations::templ::decl_end()
 namespace cxx_compiler {
   namespace template_usr_impl {
     struct calc {
-      const map<string, tag*>& m_tpsf;
-      calc(const map<string, tag*>& tpsf) : m_tpsf(tpsf) {}
+      const scope::TPSF& m_tpsf;
+      calc(const scope::TPSF& tpsf) : m_tpsf(tpsf) {}
       bool template_param_case(var* arg, const template_param_type* tp)
       {
 	const type* Ta = arg->result_type();
 	tag* ptr = tp->get_tag();
-	typedef map<string, tag*>::const_iterator IT;
+	typedef scope::TPSF::const_iterator IT;
 	IT p = find_if(begin(m_tpsf), end(m_tpsf),
-		       [ptr](pair<string, tag*> x){ return x.second == ptr; });
+		       [ptr](pair<string, pair<tag*, const type*> > x)
+		       { return x.second.first == ptr; });
 	assert(p != end(m_tpsf));
 	if (ptr->m_types.second)
 	  return ptr->m_types.second == Ta;
@@ -115,30 +116,36 @@ namespace cxx_compiler {
 	return false;
       }
     };
-    inline bool not_decided(pair<string, tag*> p)
+    inline bool not_decided(pair<string, pair<tag*, const type*> > p)
     {
-      tag* ptr = p.second;
+      tag* ptr = p.second.first;
+      if (!ptr)
+	error::not_implemented();
       return !ptr->m_types.second;
     }
     struct decide {
-      const map<string, tag*>& m_tpsf;
-      decide(const map<string, tag*>& tpsf) : m_tpsf(tpsf) {}
+      const scope::TPSF& m_tpsf;
+      decide(const scope::TPSF& tpsf) : m_tpsf(tpsf) {}
       const type* operator()(string name)
       {
-	typedef map<string, tag*>::const_iterator IT;
+	typedef scope::TPSF::const_iterator IT;
 	IT p = m_tpsf.find(name);
 	assert(p != m_tpsf.end());
-	tag* ptr = p->second;
+	tag* ptr = p->second.first;
+	if (!ptr)
+	  error::not_implemented();
 	return ptr->m_types.second;
       }
     };
     struct sweeper_a {
-      const map<string, tag*>& m_tpsf;
-      sweeper_a(const map<string, tag*>& tpsf) : m_tpsf(tpsf) {}
+      const scope::TPSF& m_tpsf;
+      sweeper_a(const scope::TPSF& tpsf) : m_tpsf(tpsf) {}
       ~sweeper_a()
       {
 	for (auto p : m_tpsf) {
-	  tag* ptr = p.second;
+	  tag* ptr = p.second.first;
+	  if (!ptr)
+	    error::not_implemented();
 	  ptr->m_types.second = 0;
 	}
       }
@@ -225,7 +232,7 @@ cxx_compiler::template_usr::instantiate(std::vector<var*>* arg)
   if (ret.first != e1)
     error::not_implemented();
 
-  typedef map<string, tag*>::const_iterator ITz;
+  typedef scope::TPSF::const_iterator ITz;
   ITz pz = find_if(begin(m_tps.first), end(m_tps.first),
 		   template_usr_impl::not_decided);
   if (pz != end(m_tps.first))
@@ -325,13 +332,15 @@ template_tag::instantiate(std::vector<std::pair<var*, const type*>*>* pv)
   }
 
   vector<const type*> key;
-  const map<string, tag*>& tpsf = templ_base::m_tps.first;
+  const scope::TPSF& tpsf = templ_base::m_tps.first;
   if (pv) {
     int n = pv->size();
     for (int i = 0 ; i != n ; ++i) {
-      map<string, tag*>::const_iterator p = tpsf.find(tpss[i]);
+      scope::TPSF::const_iterator p = tpsf.find(tpss[i]);
       assert(p != tpsf.end());
-      tag* ptr = p->second;
+      tag* ptr = p->second.first;
+      if (!ptr)
+	error::not_implemented();
       const type* T = (*pv)[i]->second;
       if (!T)
 	error::not_implemented();

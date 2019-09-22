@@ -112,6 +112,8 @@ namespace parse {
       save_t() : m_usr(0), m_tag(0) {}
       static stack<save_t*> s_stack;
     };
+    extern bool param;
+    extern int arg;
   } // end of namespace templ
 } // end of namespace parse
 
@@ -1521,17 +1523,15 @@ namespace block_impl {
 } // end of namespace block_impl
 
 struct templ_base {
-  pair<map<string, tag*>, vector<string> > m_tps;
+  scope::TPS m_tps;
   parse::read_t m_read;
-  templ_base(const pair<map<string, tag*>, vector<string> >& tps)
-  : m_tps(tps) {}
+  templ_base(const scope::TPS& tps) : m_tps(tps) {}
 };
 
 struct template_usr : usr, templ_base {
   typedef map<vector<const type*>, usr*> table_t;
   table_t m_table;
-  template_usr(usr& u, const pair<map<string, tag*>, vector<string> >& tps)
-    : usr(u), templ_base(tps)
+  template_usr(usr& u, const scope::TPS& tps) : usr(u), templ_base(tps)
   {
     m_flag2 = usr::flag2_t(m_flag2 | usr::TEMPLATE);
   }
@@ -1544,7 +1544,7 @@ struct template_tag : templ_base, tag {
   static template_tag* instantiating;
   typedef map<vector<const type*>, instantiated_tag*> table_t;
   table_t m_table;
-  template_tag(tag& t, const pair<map<string, tag*>, vector<string> >& tps)
+  template_tag(tag& t, const scope::TPS& tps)
     : tag(t), templ_base(tps), m_specified(false) { m_kind2 = TEMPLATE; }
   instantiated_tag* instantiate(vector<pair<var*, const type*>*>*);
 };

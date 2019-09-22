@@ -120,6 +120,27 @@ int cxx_compiler::parse::identifier::create(std::string name, const type* T)
 namespace cxx_compiler {
   namespace parse {
     namespace identifier {
+      inline int templ_param(const pair<tag*, const type*>& x)
+      {
+	if (tag* ptr = x.first) {
+	  cxx_compiler_lval.m_tag = ptr;
+	  return CLASS_NAME_LEX;
+	}
+	using namespace expressions::primary::literal;
+	const type* T = x.second;
+	assert(T);
+	usr* u = integer::create(1);
+	var* v = u->cast(T);
+	assert(v->usr_cast());
+	cxx_compiler_lval.m_usr = static_cast<usr*>(v);
+	if (T->integer())
+	  return INTEGER_LITERAL_LEX;
+	if (T->arithmetic())
+	  return FLOATING_LITERAL_LEX;
+
+	error::not_implemented();
+	return 0;
+      }
       namespace underscore_func {
         int action();
       } // end of namespace underscore_func
@@ -371,12 +392,10 @@ int
 cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
 {
   using namespace std;
-  const map<string, tag*>& tpsf = ptr->m_tps.first;
-  map<string, tag*>::const_iterator r = tpsf.find(name);
-  if (r != tpsf.end()) {
-    cxx_compiler_lval.m_tag = r->second;
-    return CLASS_NAME_LEX;
-  }
+  const scope::TPSF& tpsf = ptr->m_tps.first;
+  scope::TPSF::const_iterator r = tpsf.find(name);
+  if (r != tpsf.end())
+     return templ_param(r->second);
   const map<string, vector<usr*> >& usrs = ptr->m_usrs;
   map<string, vector<usr*> >::const_iterator p = usrs.find(name);
   if (p != usrs.end()) {
@@ -457,12 +476,10 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
     if (ptag->m_kind2 == tag::INSTANTIATE) {
       instantiated_tag* it = static_cast<instantiated_tag*>(ptag);
       template_tag* src = it->m_src;
-      const map<string, tag*>& tpsf = src->templ_base::m_tps.first;
-      map<string, tag*>::const_iterator p = tpsf.find(name);
-      if (p != tpsf.end()) {
-	cxx_compiler_lval.m_tag = p->second;
-	return CLASS_NAME_LEX;
-      }
+      const scope::TPSF& tpsf = src->templ_base::m_tps.first;
+      scope::TPSF::const_iterator p = tpsf.find(name);
+      if (p != tpsf.end())
+	return templ_param(p->second);
     }
   }
   if (ptr->m_parent)
@@ -676,6 +693,8 @@ namespace cxx_compiler {
     }
     namespace templ {
       templ_base* ptr;
+      bool param;
+      int arg;
     } // end of namespac templ
   } // end of namesapce parse
 } // end of namesapce cxx_compiler

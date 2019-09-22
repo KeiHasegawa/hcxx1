@@ -5,6 +5,7 @@ namespace cxx_compiler {
 
 struct usr;
 struct tag;
+struct type;
 
 struct scope {
   enum id_t { NONE, PARAM, BLOCK, TAG, NAMESPACE };
@@ -15,7 +16,10 @@ struct scope {
   std::map<std::string, tag*> m_tags;
 
   // template parameter
-  std::pair<std::map<std::string, tag*>, std::vector<std::string> > m_tps;
+  typedef std::map<std::string, std::pair<tag*, const type*> > TPSF;
+  typedef std::vector<std::string> TPSS;
+  typedef std::pair<TPSF, TPSS> TPS;
+  TPS m_tps;
 
   static scope* current;
   static scope root;
@@ -39,7 +43,6 @@ struct file_t {
   : m_name(name), m_lineno(lineno) {}
 };
 
-struct type;
 struct base;
 
 struct tag : scope {
