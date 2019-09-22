@@ -132,7 +132,18 @@ namespace cxx_compiler {
 	return ptr->m_types.second;
       }
     };
-    struct sweeper {
+    struct sweeper_a {
+      const map<string, tag*>& m_tpsf;
+      sweeper_a(const map<string, tag*>& tpsf) : m_tpsf(tpsf) {}
+      ~sweeper_a()
+      {
+	for (auto p : m_tpsf) {
+	  tag* ptr = p.second;
+	  ptr->m_types.second = 0;
+	}
+      }
+    };
+    struct sweeper_b {
       scope* m_current;
       scope* m_parent;
       scope* m_del;
@@ -141,17 +152,16 @@ namespace cxx_compiler {
       vector<var*> m_garbage;
       vector<tac*> m_code;
       vector<scope*> m_before;
-      const map<string, tag*>& m_tpsf;
       static bool block_or_param(scope* p)
       {
 	scope::id_t id = p->m_id;
 	return id == scope::BLOCK || id == scope::PARAM;
       }
-      sweeper(scope* p, templ_base* q, const map<string, tag*>& tpsf)
+      sweeper_b(scope* p, templ_base* q)
 	: m_current(scope::current), m_parent(scope::current->m_parent),
 	  m_del(scope::current), m_file(parse::position),
 	  m_fundef(fundef::current), m_garbage(garbage), m_code(code),
-	  m_before(class_or_namespace_name::before), m_tpsf(tpsf)
+	  m_before(class_or_namespace_name::before)
       {
 	scope::current = p;
 	fundef::current = 0;
@@ -168,12 +178,8 @@ namespace cxx_compiler {
 	garbage.clear();
 	code.clear();
       } 
-      ~sweeper()
+      ~sweeper_b()
       {
-	for (auto p : m_tpsf) {
-	  tag* ptr = p.second;
-	  ptr->m_types.second = 0;
-	}
 	class_or_namespace_name::before = m_before;
 	code = m_code;
 	garbage = m_garbage;
@@ -187,6 +193,12 @@ namespace cxx_compiler {
 	parse::templ::ptr = 0;
       }
     };
+    bool comp(const vector<const type*>& x, const vector<const type*>& y)
+    {
+      const type* Tx = func_type::create(0, x);
+      const type* Ty = func_type::create(0, y);
+      return compatible(Tx, Ty);
+    }
   } // end of namespace template_usr_impl
 } // end of namespace cxx_compiler
 
@@ -219,15 +231,22 @@ cxx_compiler::template_usr::instantiate(std::vector<var*>* arg)
   if (pz != end(m_tps.first))
     error::not_implemented();
 
+  template_usr_impl::sweeper_a sweeper_a(m_tps.first);
+
   vector<const type*> key;
   transform(begin(m_tps.second), end(m_tps.second), back_inserter(key),
 	    template_usr_impl::decide(m_tps.first));
   table_t::const_iterator it = m_table.find(key);
   if (it != m_table.end())
     return it->second;
+  it = find_if(m_table.begin(), m_table.end(),
+	       [key](const pair<vector<const type*>, usr*>& x)
+	       { return template_usr_impl::comp(key, x.first); });
+  if (it != m_table.end())
+    return m_table[key] = it->second;
 
   templ_base tmp = *this;
-  template_usr_impl::sweeper sweeper(m_scope, &tmp, m_tps.first);
+  template_usr_impl::sweeper_b sweeper_b(m_scope, &tmp);
   cxx_compiler_parse();
 
   map<string, vector<usr*> >& usrs = scope::current->m_usrs;
@@ -276,6 +295,7 @@ namespace cxx_compiler {
       }
       ~sweeper()
       {
+	parse::identifier::mode = parse::identifier::new_obj;
 	declarations::specifier_seq::info_t::s_stack = m_stack;
 	if (m_ptr) {
 	  for (auto p : *m_ptr)
@@ -304,7 +324,7 @@ template_tag::instantiate(std::vector<std::pair<var*, const type*>*>* pv)
       error::not_implemented();
   }
 
-  vector<const type*> vt;
+  vector<const type*> key;
   const map<string, tag*>& tpsf = templ_base::m_tps.first;
   if (pv) {
     int n = pv->size();
@@ -315,21 +335,31 @@ template_tag::instantiate(std::vector<std::pair<var*, const type*>*>* pv)
       const type* T = (*pv)[i]->second;
       if (!T)
 	error::not_implemented();
-      vt.push_back(ptr->m_types.second = T);
+      key.push_back(ptr->m_types.second = T);
     }
   }
 
+  template_usr_impl::sweeper_a sweeper_a(tpsf);
+
+  table_t::const_iterator p = m_table.find(key);
+  if (p != m_table.end())
+    return p->second;
+  p = find_if(m_table.begin(), m_table.end(),
+	      [key](const pair<vector<const type*>, tag*>& x)
+	      { return template_usr_impl::comp(key, x.first); });
+  if (p != m_table.end())
+    return m_table[key] = p->second;
+
   templ_base tmp = *this;
-  template_usr_impl::sweeper sweeper2(m_parent, &tmp, tpsf);
+  template_usr_impl::sweeper_b sweeper_b(m_parent, &tmp);
   assert(!template_tag::result);
   assert(!template_tag::instantiating);
   template_tag::instantiating = this;
   cxx_compiler_parse();
   instantiated_tag* ret = template_tag::result;
   assert(ret->m_src == this);
-  ret->m_types = vt;
+  ret->m_types = key;
   template_tag::result = 0;
   template_tag::instantiating = 0;
-  parse::identifier::mode = parse::identifier::new_obj;
-  return ret;
+  return m_table[key] = ret;
 }

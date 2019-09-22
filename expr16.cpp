@@ -3,6 +3,10 @@
 #include "cxx_core.h"
 #include "cxx_impl.h"
 
+void debug_break()
+{
+}
+
 cxx_compiler::var* cxx_compiler::var::assign(var*)
 {
   using namespace error::expressions::assignment;
@@ -215,6 +219,7 @@ cxx_compiler::var* cxx_compiler::usr::assign(var* op)
   var* y = op->rvalue();
   y->m_type = y->m_type->complete_type();
   bool discard = false;
+  debug_break();
   T = expressions::assignment::valid(T, y, &discard, true, 0);
   if (!T) {
     invalid(parse::position,this,discard);

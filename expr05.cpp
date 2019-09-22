@@ -33,15 +33,17 @@ namespace cxx_compiler { namespace var_impl {
 
   var* operator_code(int op, var* y, var* z)
   {
-    const type* Ty = y->m_type;
-    const type* Tz = z->m_type;
+    const type* Ty = y->result_type();
     usr* op_fun = operator_function(Ty, op);
     if (!op_fun) {
+      const type* Tz = z->result_type();
       op_fun = operator_function(Tz, op);
       if (!op_fun)
 	return 0;
-      y = aggregate_conv(Tz, y);
+      y = aggregate_conv(Tz, y->rvalue());
     }
+    y = y->rvalue();
+    z = z->rvalue();
     usr::flag_t flag = op_fun->m_flag;
     vector<var*> arg;
     scope* p = op_fun->m_scope;

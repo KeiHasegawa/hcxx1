@@ -1277,8 +1277,7 @@ void cxx_compiler::incomplete_tagged_type::decl(std::ostream& os, std::string na
 
 void cxx_compiler::incomplete_tagged_type::encode(std::ostream& os) const
 {
-  os << 1;
-  os << m_tag->m_name;
+  record_impl::encode(os, m_tag);
 }
 
 bool cxx_compiler::incomplete_tagged_type::compatible(const type* T) const

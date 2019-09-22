@@ -1070,7 +1070,7 @@ cxx_compiler::declarations::elaborated::action(int keyword, var* v)
   usr* u = static_cast<usr*>(v);
   auto_ptr<usr> sweeper(u);
   string name = u->m_name;
-  tag* T = lookup(name,scope::current);
+  tag* T = lookup(name, scope::current);
   if (T) {
     const pair<const type*, const type*>& p = T->m_types;
     return p.second ? p.second : p.first;
@@ -1102,6 +1102,21 @@ cxx_compiler::declarations::elaborated::lookup(std::string name, scope* ptr)
     return lookup(name,ptr->m_parent);
   else
     return 0;
+}
+
+const cxx_compiler::type*
+cxx_compiler::declarations::elaborated::action(int keyword, tag* ptr)
+{
+  tag::kind_t x = classes::specifier::get(keyword);
+  tag::kind_t y = ptr->m_kind;
+  if (x != y) 
+    error::not_implemented();
+  const type* T = ptr->m_types.second;
+  if (T)
+    return T;
+  T = ptr->m_types.first;
+  assert(T);
+  return T;
 }
 
 void cxx_compiler::declarations::linkage::action(var* v, bool brace)

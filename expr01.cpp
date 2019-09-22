@@ -1420,8 +1420,10 @@ cxx_compiler::var::member(var* expr, bool dot,
   if (Mt->m_id == type::FUNC) {
     assert(ga);
     bool qualified_func = ga->m_qualified_func;
-    if (rec == mrec)
-      return new member_function(this, member, qualified_func);
+    if (rec == mrec) {
+      var* tmp = dot ? this : rvalue();
+      return new member_function(tmp, member, qualified_func);
+    }
     const type* T = pointer_type::create(mrec);
     if (dot) {
       var* tmp = new var(T);

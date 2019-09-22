@@ -551,6 +551,7 @@ namespace var_impl {
 
 namespace record_impl {
   extern int base_vb(int n, const base* bp);
+  void encode(ostream&, const tag*);
   namespace special_ctor_dtor {
     typedef map<vector<const record_type*>, usr*> VALUE_TYPE;
     extern map<usr*, VALUE_TYPE> scd_tbl;  // key is ctor or dtor
@@ -599,6 +600,7 @@ namespace declarations {
   } // end of namespace specifier_seq
   namespace elaborated {
     const type* action(int, var*);
+    const type* action(int, tag*);
   } // end of namespace elaborated
   namespace linkage {
     extern void action(var*, bool brace);
@@ -1540,6 +1542,8 @@ struct template_tag : templ_base, tag {
   bool m_specified;  // decide token kind : TEMPLATE_NAME or CLASS_NAME
   static instantiated_tag* result;
   static template_tag* instantiating;
+  typedef map<vector<const type*>, instantiated_tag*> table_t;
+  table_t m_table;
   template_tag(tag& t, const pair<map<string, tag*>, vector<string> >& tps)
     : tag(t), templ_base(tps), m_specified(false) { m_kind2 = TEMPLATE; }
   instantiated_tag* instantiate(vector<pair<var*, const type*>*>*);

@@ -62,6 +62,14 @@ int cxx_compiler::parse::identifier::judge(std::string name)
     }
   }
 
+  if (mode == new_obj && peek() == '<') {
+    int r = lookup(name, scope::current);
+    if (r == TEMPLATE_NAME_LEX) {
+      mode = look;
+      return r;
+    }
+  }
+
   if (mode == new_obj || mode == canbe_ctor)
     return create(name);
 

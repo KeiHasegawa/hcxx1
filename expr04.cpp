@@ -9,6 +9,12 @@ namespace cxx_compiler {
   usr* operator_function(const type* T, int op)
   {
     T = T->unqualified();
+    if (T->m_id == type::REFERENCE) {
+      typedef const reference_type RT;
+      RT* rt = static_cast<RT*>(T);
+      T = rt->referenced_type();
+      T = T->unqualified();
+    }
     if (T->m_id != type::RECORD)
       return 0;
     typedef const record_type REC;

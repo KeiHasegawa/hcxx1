@@ -2383,10 +2383,29 @@ void cxx_compiler::record_type::decl(std::ostream& os, std::string name) const
     os << ' ' << name;
 }
 
+void cxx_compiler::record_impl::encode(std::ostream& os, const tag* ptr)
+{
+  string name = ptr->m_name;
+  tag::kind2_t kind2 = ptr->m_kind2;
+  if (kind2 == tag::NONE) {
+    os << name.length() << name;
+    return;
+  }
+  assert(kind2 == tag::INSTANTIATE);
+  const instantiated_tag* it = static_cast<const instantiated_tag*>(ptr);
+  const template_tag* tt = it->m_src;
+  name = tt->m_name;
+  os << name.length() << name;
+  os << 'I';
+  const vector<const type*>& vt = it->m_types;
+  for (auto T : vt)
+    T->encode(os);
+  os << 'E';
+}
+
 void cxx_compiler::record_type::encode(std::ostream& os) const
 {
-  os << 1;
-  os << m_tag->m_name;
+  record_impl::encode(os, m_tag);
 }
 
 bool cxx_compiler::record_type::compatible(const type* T) const

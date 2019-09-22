@@ -341,47 +341,49 @@ type_name
 elaborated_type_specifier
   : class_key COLONCOLON_MK move_to_root nested_name_specifier IDENTIFIER_LEX
     { cxx_compiler::error::not_implemented(); }
-  | class_key               nested_name_specifier IDENTIFIER_LEX
+  | class_key nested_name_specifier IDENTIFIER_LEX
     { cxx_compiler::error::not_implemented(); }
   | class_key COLONCOLON_MK move_to_root IDENTIFIER_LEX
     { cxx_compiler::error::not_implemented(); }
-  | class_key                                     IDENTIFIER_LEX
+  | class_key IDENTIFIER_LEX
    { $$ = cxx_compiler::declarations::elaborated::action($1,$2); }
-  | class_key COLONCOLON_MK move_to_root nested_name_specifier TEMPLATE_KW template_id
+  | class_key COLONCOLON_MK move_to_root nested_name_specifier TEMPLATE_KW
+    template_id
     { cxx_compiler::error::not_implemented(); }
-  | class_key               nested_name_specifier TEMPLATE_KW template_id
+  | class_key nested_name_specifier TEMPLATE_KW template_id
     { cxx_compiler::error::not_implemented(); }
-  | class_key COLONCOLON_MK move_to_root                       TEMPLATE_KW template_id
+  | class_key COLONCOLON_MK move_to_root TEMPLATE_KW template_id
     { cxx_compiler::error::not_implemented(); }
-  | class_key COLONCOLON_MK move_to_root nested_name_specifier             template_id
+  | class_key COLONCOLON_MK move_to_root nested_name_specifier template_id
     { cxx_compiler::error::not_implemented(); }
-  | class_key                                     TEMPLATE_KW template_id
+  | class_key TEMPLATE_KW template_id
     { cxx_compiler::error::not_implemented(); }
-  | class_key COLONCOLON_MK move_to_root                                   template_id
+  | class_key COLONCOLON_MK move_to_root template_id
     { cxx_compiler::error::not_implemented(); }
-  | class_key               nested_name_specifier             template_id
+  | class_key nested_name_specifier template_id
     { cxx_compiler::error::not_implemented(); }
-  | class_key                                                 template_id
-    { cxx_compiler::error::not_implemented(); }
+  | class_key template_id
+    { $$ = cxx_compiler::declarations::elaborated::action($1,$2); }
   | enum_key COLONCOLON_MK move_to_root nested_name_specifier IDENTIFIER_LEX
     { cxx_compiler::error::not_implemented(); }
-  | enum_key               nested_name_specifier IDENTIFIER_LEX
+  | enum_key nested_name_specifier IDENTIFIER_LEX
     { cxx_compiler::error::not_implemented(); }
-  | enum_key COLONCOLON_MK move_to_root                       IDENTIFIER_LEX
+  | enum_key COLONCOLON_MK move_to_root IDENTIFIER_LEX
     { cxx_compiler::error::not_implemented(); }
-  | enum_key                                     IDENTIFIER_LEX
+  | enum_key IDENTIFIER_LEX
     { $$ = cxx_compiler::declarations::elaborated::action($1,$2); }
   | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier IDENTIFIER_LEX
     { cxx_compiler::error::not_implemented(); }
-  | TYPENAME_KW               nested_name_specifier IDENTIFIER_LEX
+  | TYPENAME_KW nested_name_specifier IDENTIFIER_LEX
     { cxx_compiler::error::not_implemented(); }
-  | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier TEMPLATE_KW template_id
+  | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier TEMPLATE_KW
+    template_id
     { cxx_compiler::error::not_implemented(); }
-  | TYPENAME_KW               nested_name_specifier TEMPLATE_KW template_id
+  | TYPENAME_KW nested_name_specifier TEMPLATE_KW template_id
     { cxx_compiler::error::not_implemented(); }
-  | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier             template_id
+  | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier template_id
     { cxx_compiler::error::not_implemented(); }
-  | TYPENAME_KW               nested_name_specifier             template_id
+  | TYPENAME_KW nested_name_specifier template_id
     { cxx_compiler::error::not_implemented(); }
   ;
 
