@@ -16,10 +16,7 @@ struct scope {
   std::map<std::string, tag*> m_tags;
 
   // template parameter
-  struct TPSFVS {
-    const type* m_type; usr* m_usr; int m_lex;
-    TPSFVS(const type* T) : m_type(T), m_usr(0), m_lex(0) {}
-  };
+  typedef std::pair<const type*, usr*> TPSFVS;
   typedef std::pair<tag*,TPSFVS*> TPSFV;
   typedef std::map<std::string, TPSFV> TPSF;
   typedef std::vector<std::string> TPSS;
@@ -356,6 +353,7 @@ struct usr : var {
     EXCLUDE_TOR         = 1 << 11,
     TEMPLATE            = 1 << 12,
     INSTANTIATE         = 1 << 13,
+    TEMPL_PARAM         = 1 << 14,
   };
   flag2_t m_flag2;
   file_t m_file;

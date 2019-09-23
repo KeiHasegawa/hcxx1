@@ -114,7 +114,6 @@ namespace parse {
     };
     extern bool param;
     extern int arg;
-    extern int lex(const type*);
   } // end of namespace templ
 } // end of namespace parse
 

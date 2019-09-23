@@ -124,8 +124,8 @@ namespace cxx_compiler {
 	return !ptr->m_types.second;
       scope::TPSFVS* y = x.second;
       assert(y);
-      assert(y->m_type);
-      return !y->m_usr;
+      assert(y->first);
+      return !y->second;
     }
     struct decide {
       const scope::TPSF& m_tpsf;
@@ -142,8 +142,8 @@ namespace cxx_compiler {
 	}
 	scope::TPSFVS* y = x.second;
 	assert(y);
-	assert(y->m_type);
-	return make_pair((const type*)0, y->m_usr);
+	assert(y->first);
+	return make_pair((const type*)0, y->second);
       }
     };
     struct sweeper_a {
@@ -157,8 +157,7 @@ namespace cxx_compiler {
 	    ptr->m_types.second = 0;
 	  else {
 	    scope::TPSFVS* y = x.second;
-	    y->m_usr = 0;
-	    y->m_lex = 0;
+	    y->second = 0;
 	  }
 	}
       }
@@ -361,7 +360,7 @@ namespace cxx_compiler {
 	}
 	scope::TPSFVS* y = x.second;
 	assert(y);
-	const type* T = y->m_type;
+	const type* T = y->first;
 	assert(T);
 	var* v = p->first;
 	assert(v);
@@ -372,10 +371,8 @@ namespace cxx_compiler {
 	usr* u = v->usr_cast();
 	if (!u)
 	  error::not_implemented();
-	assert(!y->m_usr);
-	y->m_usr = u;
-	assert(!y->m_lex);
-	y->m_lex = parse::templ::lex(T);
+	assert(!y->second);
+	y->second = u;
 	return make_pair((const type*)0,u);
       }
     };

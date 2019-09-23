@@ -7,10 +7,6 @@
 #include "patch.04.q"
 #include "patch.10.q"
 
-void debug_break()
-{
-}
-
 namespace cxx_compiler {
   namespace parse {
     file_t position;
@@ -124,7 +120,16 @@ int cxx_compiler::parse::identifier::create(std::string name, const type* T)
 namespace cxx_compiler {
   namespace parse {
     namespace identifier {
-      inline int templ_param(const pair<tag*, scope::TPSFVS*>& x)
+      struct templ_param : usr {
+	templ_param(string name, const type* T, flag_t flag,
+		    const file_t& file, flag2_t flag2)
+	  : usr(name, T, flag, file, flag2) {}
+	bool isconstant(bool) const { return true; }
+	__int64 value() const { return 1; }
+      };
+      inline int templ_param_lex(string name,
+				 const pair<tag*, scope::TPSFVS*>& x,
+				 bool instantiate)
       {
 	if (tag* ptr = x.first) {
 	  cxx_compiler_lval.m_tag = ptr;
@@ -132,18 +137,26 @@ namespace cxx_compiler {
 	}
 	scope::TPSFVS* y = x.second;
 	assert(y);
-	const type* T = y->m_type;
+	const type* T = y->first;
 	assert(T);
-	usr* u = y->m_usr;
-	assert(!u);
-	int lex = y->m_lex;
-	assert(!lex);
-	using namespace expressions::primary::literal;
-	u = integer::create(1);
-	var* v = u->cast(T);
-	assert(v->usr_cast());
-	cxx_compiler_lval.m_usr = static_cast<usr*>(v);
-	return templ::lex(T);
+	usr* u = y->second;
+	if (!u) {
+	  assert(!instantiate);
+	  usr::flag2_t flag2 = usr::TEMPL_PARAM;
+	  u = new templ_param(name, T, usr::NONE, parse::position, flag2);
+	  cxx_compiler_lval.m_usr = u;
+	  return IDENTIFIER_LEX;
+	}
+	assert(instantiate);
+	if (!u->isconstant())
+	  error::not_implemented();
+	cxx_compiler_lval.m_usr = u;
+	if (T->integer())
+	  return INTEGER_LITERAL_LEX;
+	if (T->arithmetic())
+	  return FLOATING_LITERAL_LEX;
+	error::not_implemented();
+	return IDENTIFIER_LEX;
       }
       namespace underscore_func {
         int action();
@@ -399,7 +412,7 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
   const scope::TPSF& tpsf = ptr->m_tps.first;
   scope::TPSF::const_iterator r = tpsf.find(name);
   if (r != tpsf.end())
-     return templ_param(r->second);
+    return templ_param_lex(name, r->second, false);
   const map<string, vector<usr*> >& usrs = ptr->m_usrs;
   map<string, vector<usr*> >::const_iterator p = usrs.find(name);
   if (p != usrs.end()) {
@@ -483,7 +496,7 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
       const scope::TPSF& tpsf = src->templ_base::m_tps.first;
       scope::TPSF::const_iterator p = tpsf.find(name);
       if (p != tpsf.end())
-	return templ_param(p->second);
+	return templ_param_lex(name, p->second, true);
     }
   }
   if (ptr->m_parent)
@@ -699,16 +712,6 @@ namespace cxx_compiler {
       templ_base* ptr;
       bool param;
       int arg;
-      int lex(const type* T)
-      {
-	debug_break();
-	if (T->integer())
-	  return INTEGER_LITERAL_LEX;
-	if (T->arithmetic())
-	  return FLOATING_LITERAL_LEX;
-	error::not_implemented();
-	return IDENTIFIER_LEX;
-      }
     } // end of namespac templ
   } // end of namesapce parse
 } // end of namesapce cxx_compiler
