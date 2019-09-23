@@ -97,7 +97,7 @@ namespace cxx_compiler {
 	tag* ptr = tp->get_tag();
 	typedef scope::TPSF::const_iterator IT;
 	IT p = find_if(begin(m_tpsf), end(m_tpsf),
-		       [ptr](pair<string, pair<tag*, const type*> > x)
+		       [ptr](const pair<string, scope::TPSFV>& x)
 		       { return x.second.first == ptr; });
 	assert(p != end(m_tpsf));
 	if (ptr->m_types.second)
@@ -116,25 +116,34 @@ namespace cxx_compiler {
 	return false;
       }
     };
-    inline bool not_decided(pair<string, pair<tag*, const type*> > p)
+    inline bool not_decided(const pair<string, pair<tag*, scope::TPSFVS*> >& p)
     {
-      tag* ptr = p.second.first;
-      if (!ptr)
-	error::not_implemented();
-      return !ptr->m_types.second;
+      const pair<tag*, scope::TPSFVS*>& x = p.second;
+      tag* ptr = x.first;
+      if (ptr)
+	return !ptr->m_types.second;
+      scope::TPSFVS* y = x.second;
+      assert(y);
+      assert(y->m_type);
+      return !y->m_usr;
     }
     struct decide {
       const scope::TPSF& m_tpsf;
       decide(const scope::TPSF& tpsf) : m_tpsf(tpsf) {}
-      const type* operator()(string name)
+      pair<const type*, usr*> operator()(string name)
       {
 	typedef scope::TPSF::const_iterator IT;
 	IT p = m_tpsf.find(name);
 	assert(p != m_tpsf.end());
-	tag* ptr = p->second.first;
-	if (!ptr)
-	  error::not_implemented();
-	return ptr->m_types.second;
+	const pair<tag*, scope::TPSFVS*>& x = p->second;
+	if (tag* ptr = x.first) {
+	  const type* T = ptr->m_types.second;
+	  return make_pair(T, (usr*)0);
+	}
+	scope::TPSFVS* y = x.second;
+	assert(y);
+	assert(y->m_type);
+	return make_pair((const type*)0, y->m_usr);
       }
     };
     struct sweeper_a {
@@ -143,10 +152,14 @@ namespace cxx_compiler {
       ~sweeper_a()
       {
 	for (auto p : m_tpsf) {
-	  tag* ptr = p.second.first;
-	  if (!ptr)
-	    error::not_implemented();
-	  ptr->m_types.second = 0;
+	  scope::TPSFV& x = p.second;
+	  if (tag* ptr = x.first)
+	    ptr->m_types.second = 0;
+	  else {
+	    scope::TPSFVS* y = x.second;
+	    y->m_usr = 0;
+	    y->m_lex = 0;
+	  }
 	}
       }
     };
@@ -200,11 +213,31 @@ namespace cxx_compiler {
 	parse::templ::ptr = 0;
       }
     };
-    bool comp(const vector<const type*>& x, const vector<const type*>& y)
+    bool comp(const pair<const type*, usr*>& x,
+              const pair<const type*, usr*>& y)
     {
-      const type* Tx = func_type::create(0, x);
-      const type* Ty = func_type::create(0, y);
-      return compatible(Tx, Ty);
+      if (const type* Tx = x.first) {
+	const type* Ty = y.first;
+	assert(Ty);
+	return compatible(Tx, Ty);
+      }
+
+      usr* ux = x.second;
+      assert(ux);
+      usr* uy = y.second;
+      assert(uy);
+      if (ux == uy)
+	return true;
+      if (!ux->isconstant() || !uy->isconstant())
+	return false;
+      return ux->value() == uy->value();
+    }
+    bool match(const templ_base::KEY& x, const templ_base::KEY& y)
+    {
+      assert(x.size() == y.size());
+      typedef templ_base::KEY::const_iterator IT;
+      pair<IT, IT> ret = mismatch(begin(x), end(x), begin(y), comp);
+      return ret == make_pair(end(x), end(y));
     }
   } // end of namespace template_usr_impl
 } // end of namespace cxx_compiler
@@ -240,15 +273,15 @@ cxx_compiler::template_usr::instantiate(std::vector<var*>* arg)
 
   template_usr_impl::sweeper_a sweeper_a(m_tps.first);
 
-  vector<const type*> key;
+  KEY key;
   transform(begin(m_tps.second), end(m_tps.second), back_inserter(key),
 	    template_usr_impl::decide(m_tps.first));
   table_t::const_iterator it = m_table.find(key);
   if (it != m_table.end())
     return it->second;
   it = find_if(m_table.begin(), m_table.end(),
-	       [key](const pair<vector<const type*>, usr*>& x)
-	       { return template_usr_impl::comp(key, x.first); });
+	       [key](const pair<KEY, usr*>& x)
+	       { return template_usr_impl::match(key, x.first); });
   if (it != m_table.end())
     return m_table[key] = it->second;
 
@@ -311,6 +344,41 @@ namespace cxx_compiler {
 	}
       }
     };
+    struct xxx {
+      const scope::TPSF& m_tpsf;
+      xxx(const scope::TPSF& tpsf) : m_tpsf(tpsf) {}
+      pair<const type*, usr*>
+      operator()(pair<var*, const type*>* p, string name)
+      {
+	scope::TPSF::const_iterator it = m_tpsf.find(name);
+	assert(it != m_tpsf.end());
+	const pair<tag*, scope::TPSFVS*>& x = it->second;
+	if (tag* ptr = x.first) {
+	  const type* T = p->second;
+	  assert(T);
+	  ptr->m_types.second = T;
+	  return make_pair(T, (usr*)0);
+	}
+	scope::TPSFVS* y = x.second;
+	assert(y);
+	const type* T = y->m_type;
+	assert(T);
+	var* v = p->first;
+	assert(v);
+	bool discard = false;
+	using namespace expressions;
+	if (!assignment::valid(T, v, &discard, true, 0))
+	  error::not_implemented();
+	usr* u = v->usr_cast();
+	if (!u)
+	  error::not_implemented();
+	assert(!y->m_usr);
+	y->m_usr = u;
+	assert(!y->m_lex);
+	y->m_lex = parse::templ::lex(T);
+	return make_pair((const type*)0,u);
+      }
+    };
   } // end of namespace template_tag_impl
   instantiated_tag* template_tag::result;
   template_tag* template_tag::instantiating;
@@ -331,21 +399,11 @@ template_tag::instantiate(std::vector<std::pair<var*, const type*>*>* pv)
       error::not_implemented();
   }
 
-  vector<const type*> key;
+  KEY key;
   const scope::TPSF& tpsf = templ_base::m_tps.first;
   if (pv) {
-    int n = pv->size();
-    for (int i = 0 ; i != n ; ++i) {
-      scope::TPSF::const_iterator p = tpsf.find(tpss[i]);
-      assert(p != tpsf.end());
-      tag* ptr = p->second.first;
-      if (!ptr)
-	error::not_implemented();
-      const type* T = (*pv)[i]->second;
-      if (!T)
-	error::not_implemented();
-      key.push_back(ptr->m_types.second = T);
-    }
+    transform(begin(*pv), end(*pv), begin(tpss), back_inserter(key),
+	      template_tag_impl::xxx(tpsf));
   }
 
   template_usr_impl::sweeper_a sweeper_a(tpsf);
@@ -354,8 +412,8 @@ template_tag::instantiate(std::vector<std::pair<var*, const type*>*>* pv)
   if (p != m_table.end())
     return p->second;
   p = find_if(m_table.begin(), m_table.end(),
-	      [key](const pair<vector<const type*>, tag*>& x)
-	      { return template_usr_impl::comp(key, x.first); });
+	      [key](const pair<vector<pair<const type*, usr*> >, tag*>& x)
+	      { return template_usr_impl::match(key, x.first); });
   if (p != m_table.end())
     return m_table[key] = p->second;
 
@@ -367,7 +425,7 @@ template_tag::instantiate(std::vector<std::pair<var*, const type*>*>* pv)
   cxx_compiler_parse();
   instantiated_tag* ret = template_tag::result;
   assert(ret->m_src == this);
-  ret->m_types = key;
+  ret->m_seed = key;
   template_tag::result = 0;
   template_tag::instantiating = 0;
   return m_table[key] = ret;

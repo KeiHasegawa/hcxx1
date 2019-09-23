@@ -114,6 +114,7 @@ namespace parse {
     };
     extern bool param;
     extern int arg;
+    extern int lex(const type*);
   } // end of namespace templ
 } // end of namespace parse
 
@@ -1526,10 +1527,11 @@ struct templ_base {
   scope::TPS m_tps;
   parse::read_t m_read;
   templ_base(const scope::TPS& tps) : m_tps(tps) {}
+  typedef instantiated_tag::SEED KEY;
 };
 
 struct template_usr : usr, templ_base {
-  typedef map<vector<const type*>, usr*> table_t;
+  typedef map<KEY, usr*> table_t;
   table_t m_table;
   template_usr(usr& u, const scope::TPS& tps) : usr(u), templ_base(tps)
   {
@@ -1542,7 +1544,7 @@ struct template_tag : templ_base, tag {
   bool m_specified;  // decide token kind : TEMPLATE_NAME or CLASS_NAME
   static instantiated_tag* result;
   static template_tag* instantiating;
-  typedef map<vector<const type*>, instantiated_tag*> table_t;
+  typedef map<KEY, instantiated_tag*> table_t;
   table_t m_table;
   template_tag(tag& t, const scope::TPS& tps)
     : tag(t), templ_base(tps), m_specified(false) { m_kind2 = TEMPLATE; }

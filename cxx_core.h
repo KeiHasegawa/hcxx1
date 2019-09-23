@@ -16,7 +16,12 @@ struct scope {
   std::map<std::string, tag*> m_tags;
 
   // template parameter
-  typedef std::map<std::string, std::pair<tag*, const type*> > TPSF;
+  struct TPSFVS {
+    const type* m_type; usr* m_usr; int m_lex;
+    TPSFVS(const type* T) : m_type(T), m_usr(0), m_lex(0) {}
+  };
+  typedef std::pair<tag*,TPSFVS*> TPSFV;
+  typedef std::map<std::string, TPSFV> TPSF;
   typedef std::vector<std::string> TPSS;
   typedef std::pair<TPSF, TPSS> TPS;
   TPS m_tps;
@@ -67,7 +72,8 @@ struct template_tag;
 
 struct instantiated_tag : tag {
   template_tag* m_src;
-  std::vector<const type*> m_types;
+  typedef std::vector<std::pair<const type*, usr*> > SEED;
+  SEED m_seed;
   instantiated_tag(kind_t kind, std::string name, const file_t& file,
 		   std::vector<base*>* b, template_tag* tt)
     : tag(kind, name, file, b), m_src(tt) { m_kind2 = INSTANTIATE; }

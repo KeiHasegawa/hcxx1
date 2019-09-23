@@ -7,6 +7,10 @@
 #include "patch.04.q"
 #include "patch.10.q"
 
+void debug_break()
+{
+}
+
 namespace cxx_compiler {
   namespace parse {
     file_t position;
@@ -120,26 +124,26 @@ int cxx_compiler::parse::identifier::create(std::string name, const type* T)
 namespace cxx_compiler {
   namespace parse {
     namespace identifier {
-      inline int templ_param(const pair<tag*, const type*>& x)
+      inline int templ_param(const pair<tag*, scope::TPSFVS*>& x)
       {
 	if (tag* ptr = x.first) {
 	  cxx_compiler_lval.m_tag = ptr;
 	  return CLASS_NAME_LEX;
 	}
-	using namespace expressions::primary::literal;
-	const type* T = x.second;
+	scope::TPSFVS* y = x.second;
+	assert(y);
+	const type* T = y->m_type;
 	assert(T);
-	usr* u = integer::create(1);
+	usr* u = y->m_usr;
+	assert(!u);
+	int lex = y->m_lex;
+	assert(!lex);
+	using namespace expressions::primary::literal;
+	u = integer::create(1);
 	var* v = u->cast(T);
 	assert(v->usr_cast());
 	cxx_compiler_lval.m_usr = static_cast<usr*>(v);
-	if (T->integer())
-	  return INTEGER_LITERAL_LEX;
-	if (T->arithmetic())
-	  return FLOATING_LITERAL_LEX;
-
-	error::not_implemented();
-	return 0;
+	return templ::lex(T);
       }
       namespace underscore_func {
         int action();
@@ -695,6 +699,16 @@ namespace cxx_compiler {
       templ_base* ptr;
       bool param;
       int arg;
+      int lex(const type* T)
+      {
+	debug_break();
+	if (T->integer())
+	  return INTEGER_LITERAL_LEX;
+	if (T->arithmetic())
+	  return FLOATING_LITERAL_LEX;
+	error::not_implemented();
+	return IDENTIFIER_LEX;
+      }
     } // end of namespac templ
   } // end of namesapce parse
 } // end of namesapce cxx_compiler

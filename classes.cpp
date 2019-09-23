@@ -4,6 +4,8 @@
 #include "yy.h"
 #include "cxx_y.h"
 
+extern void debug_break();
+
 cxx_compiler::tag::kind_t cxx_compiler::classes::specifier::get(int keyword)
 {
   switch (keyword) {
@@ -17,18 +19,25 @@ cxx_compiler::tag::kind_t cxx_compiler::classes::specifier::get(int keyword)
 namespace cxx_compiler {
   namespace classes {
     namespace specifier {
-      struct templ_name {
+      struct instantiated_name {
 	const scope::TPSF& m_tpsf;
-	templ_name(const scope::TPSF& tpsf) : m_tpsf(tpsf) {}
+	instantiated_name(const scope::TPSF& tpsf) : m_tpsf(tpsf) {}
 	string operator()(string name, string pn)
 	{
 	  scope::TPSF::const_iterator p = m_tpsf.find(pn);
 	  assert(p != m_tpsf.end());
-	  tag* ptr = p->second.first;
-	  const type* T = ptr->m_types.second;
-	  ostringstream os;
-	  T->decl(os, "");
-	  return name + os.str() + ',';
+	  const pair<tag*, scope::TPSFVS*>& x = p->second;
+	  if (tag* ptr = x.first) {
+	    const type* T = ptr->m_types.second;
+	    ostringstream os;
+	    T->decl(os, "");
+	    return name + os.str() + ',';
+	  }
+	  const scope::TPSFVS* y = x.second;
+	  assert(y);
+	  assert(y->m_type);
+	  usr* u = y->m_usr;
+	  return name + u->m_name + ',';
 	}
       };
     } // end of namespace specifier
@@ -75,7 +84,7 @@ cxx_compiler::classes::specifier::begin(int keyword, var* v,
     const scope::TPSF& tpsf = tt->templ_base::m_tps.first;
     const scope::TPSS& tpss = tt->templ_base::m_tps.second;
     name += '<';
-    name = accumulate(begin(tpss), end(tpss), name, templ_name(tpsf));
+    name = accumulate(begin(tpss), end(tpss), name, instantiated_name(tpsf));
     name.erase(name.size()-1);
     name += '>';
   }

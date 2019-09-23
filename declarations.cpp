@@ -731,7 +731,7 @@ cxx_compiler::declarations::action1(var* v, bool ini)
       scope::TPSF::const_iterator p = tpsf.find(name);
       if (p != tpsf.end())
 	error::not_implemented();
-      tpsf[name].second = T;
+      tpsf[name].second = new scope::TPSFVS(T);
       vector<string>& tpss = scope::current->m_tps.second;
       tpss.push_back(name);
     }
