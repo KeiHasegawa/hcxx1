@@ -116,7 +116,7 @@ print <<EOF_2
     using namespace cxx_compiler::parse;
     switch (yychar) {
     case '(': case '[': case '=': case ';': case ')': case '{':
-    case ',': case ':': case THROW_KW:
+    case ',': case ':': case '>': case THROW_KW:
       break; 
     default:
       if (!context_t::all.empty()) {

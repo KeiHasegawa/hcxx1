@@ -6,6 +6,7 @@ namespace cxx_compiler {
 struct usr;
 struct tag;
 struct type;
+struct var;
 
 struct scope {
   enum id_t { NONE, PARAM, BLOCK, TAG, NAMESPACE };
@@ -16,8 +17,8 @@ struct scope {
   std::map<std::string, tag*> m_tags;
 
   // template parameter
-  typedef std::pair<const type*, usr*> TPSFVS;
-  typedef std::pair<tag*,TPSFVS*> TPSFV;
+  typedef std::pair<const type*, var*> TPSFVS;
+  typedef std::pair<tag*, TPSFVS*> TPSFV;
   typedef std::map<std::string, TPSFV> TPSF;
   typedef std::vector<std::string> TPSS;
   typedef std::pair<TPSF, TPSS> TPS;
@@ -29,8 +30,6 @@ struct scope {
   scope(id_t id);
   virtual ~scope();
 };
-
-struct var;
 
 struct block : scope {
   std::vector<var*> m_vars;
@@ -69,7 +68,7 @@ struct template_tag;
 
 struct instantiated_tag : tag {
   template_tag* m_src;
-  typedef std::vector<std::pair<const type*, usr*> > SEED;
+  typedef std::vector<scope::TPSFVS> SEED;
   SEED m_seed;
   instantiated_tag(kind_t kind, std::string name, const file_t& file,
 		   std::vector<base*>* b, template_tag* tt)

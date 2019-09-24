@@ -139,23 +139,30 @@ namespace cxx_compiler {
 	assert(y);
 	const type* T = y->first;
 	assert(T);
-	usr* u = y->second;
-	if (!u) {
+	var* v = y->second;
+	if (!v) {
 	  assert(!instantiate);
 	  usr::flag2_t flag2 = usr::TEMPL_PARAM;
-	  u = new templ_param(name, T, usr::NONE, parse::position, flag2);
+	  usr* u = new templ_param(name, T, usr::NONE, parse::position, flag2);
 	  cxx_compiler_lval.m_usr = u;
 	  return IDENTIFIER_LEX;
 	}
 	assert(instantiate);
-	if (!u->isconstant())
+	if (!v->isconstant(true))
 	  error::not_implemented();
-	cxx_compiler_lval.m_usr = u;
-	if (T->integer())
+	if (T->integer()) {
+	  assert(v->usr_cast());
+	  usr* u = static_cast<usr*>(v);
+	  cxx_compiler_lval.m_usr = u;
 	  return INTEGER_LITERAL_LEX;
-	if (T->arithmetic())
+	}
+	if (T->arithmetic()) {
+	  assert(v->usr_cast());
+	  usr* u = static_cast<usr*>(v);
+	  cxx_compiler_lval.m_usr = u;
 	  return FLOATING_LITERAL_LEX;
-	error::not_implemented();
+	}
+	cxx_compiler_lval.m_var = v;
 	return IDENTIFIER_LEX;
       }
       namespace underscore_func {

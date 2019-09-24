@@ -130,7 +130,7 @@ namespace cxx_compiler {
     struct decide {
       const scope::TPSF& m_tpsf;
       decide(const scope::TPSF& tpsf) : m_tpsf(tpsf) {}
-      pair<const type*, usr*> operator()(string name)
+      pair<const type*, var*> operator()(string name)
       {
 	typedef scope::TPSF::const_iterator IT;
 	IT p = m_tpsf.find(name);
@@ -212,8 +212,7 @@ namespace cxx_compiler {
 	parse::templ::ptr = 0;
       }
     };
-    bool comp(const pair<const type*, usr*>& x,
-              const pair<const type*, usr*>& y)
+    bool comp(const scope::TPSFVS& x, const scope::TPSFVS& y)
     {
       if (const type* Tx = x.first) {
 	const type* Ty = y.first;
@@ -221,15 +220,27 @@ namespace cxx_compiler {
 	return compatible(Tx, Ty);
       }
 
-      usr* ux = x.second;
-      assert(ux);
-      usr* uy = y.second;
-      assert(uy);
-      if (ux == uy)
+      var* vx = x.second;
+      assert(vx);
+      var* vy = y.second;
+      assert(vy);
+      if (vx == vy)
 	return true;
-      if (!ux->isconstant() || !uy->isconstant())
+      if (!vx->isconstant(true) || !vy->isconstant(true))
 	return false;
-      return ux->value() == uy->value();
+      if (vx->isconstant()) {
+	assert(vy->isconstant());
+	assert(vx->usr_cast());
+	assert(vy->usr_cast());
+	return vx->value() == vy->value();
+      }
+      addrof* ax = vx->addrof_cast();
+      addrof* ay = vy->addrof_cast();
+      assert(ax);
+      assert(!ax->m_offset);
+      assert(ay);
+      assert(!ay->m_offset);
+      return ax->m_ref == ay->m_ref;
     }
     bool match(const templ_base::KEY& x, const templ_base::KEY& y)
     {
@@ -343,10 +354,10 @@ namespace cxx_compiler {
 	}
       }
     };
-    struct xxx {
+    struct calc_key {
       const scope::TPSF& m_tpsf;
-      xxx(const scope::TPSF& tpsf) : m_tpsf(tpsf) {}
-      pair<const type*, usr*>
+      calc_key(const scope::TPSF& tpsf) : m_tpsf(tpsf) {}
+      pair<const type*, var*>
       operator()(pair<var*, const type*>* p, string name)
       {
 	scope::TPSF::const_iterator it = m_tpsf.find(name);
@@ -368,12 +379,15 @@ namespace cxx_compiler {
 	using namespace expressions;
 	if (!assignment::valid(T, v, &discard, true, 0))
 	  error::not_implemented();
-	usr* u = v->usr_cast();
-	if (!u)
-	  error::not_implemented();
-	assert(!y->second);
-	y->second = u;
-	return make_pair((const type*)0,u);
+	y->second = v;
+	if (v->addrof_cast()) {
+	  typedef vector<var*>::reverse_iterator IT;
+	  IT p = find(rbegin(garbage), rend(garbage), v);
+	  assert(p != rend(garbage));
+	  vector<var*>::iterator q = p.base() - 1;
+	  garbage.erase(q);
+	}
+	return make_pair((const type*)0, v);
       }
     };
   } // end of namespace template_tag_impl
@@ -400,7 +414,7 @@ template_tag::instantiate(std::vector<std::pair<var*, const type*>*>* pv)
   const scope::TPSF& tpsf = templ_base::m_tps.first;
   if (pv) {
     transform(begin(*pv), end(*pv), begin(tpss), back_inserter(key),
-	      template_tag_impl::xxx(tpsf));
+	      template_tag_impl::calc_key(tpsf));
   }
 
   template_usr_impl::sweeper_a sweeper_a(tpsf);
@@ -409,7 +423,7 @@ template_tag::instantiate(std::vector<std::pair<var*, const type*>*>* pv)
   if (p != m_table.end())
     return p->second;
   p = find_if(m_table.begin(), m_table.end(),
-	      [key](const pair<vector<pair<const type*, usr*> >, tag*>& x)
+	      [key](const pair<KEY, tag*>& x)
 	      { return template_usr_impl::match(key, x.first); });
   if (p != m_table.end())
     return m_table[key] = p->second;

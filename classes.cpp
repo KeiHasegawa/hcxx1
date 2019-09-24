@@ -34,12 +34,21 @@ namespace cxx_compiler {
 	  const scope::TPSFVS* y = x.second;
 	  assert(y);
 	  assert(y->first);
-	  usr* u = y->second;
-	  if (!u->isconstant())
+	  var* v = y->second;
+	  if (!v->isconstant(true))
 	    error::not_implemented();
 	  ostringstream os;
-	  os << u->value();
-	  return name + os.str() + ',';
+	  if (v->isconstant()) {
+	    assert(v->usr_cast());
+	    os << v->value();
+	    return name + os.str() + ',';
+	  }
+	  addrof* a = v->addrof_cast();
+	  assert(a);
+	  assert(!a->m_offset);
+	  v = a->m_ref;
+	  usr* u = v->usr_cast();
+	  return name + u->m_name + ',';
 	}
       };
     } // end of namespace specifier

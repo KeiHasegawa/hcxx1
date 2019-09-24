@@ -2397,7 +2397,7 @@ void cxx_compiler::record_impl::encode(std::ostream& os, const tag* ptr)
   name = tt->m_name;
   os << name.length() << name;
   os << 'I';
-  const vector<pair<const type*, usr*> >& seed = it->m_seed;
+  const vector<scope::TPSFVS>& seed = it->m_seed;
   for (auto p : seed) {
     if (const type* T = p.first)
       T->encode(os);
