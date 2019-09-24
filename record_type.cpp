@@ -2374,13 +2374,19 @@ bool cxx_compiler::record_impl::base_modifiable(base* bp, bool partially)
 
 namespace cxx_compiler {
   record_type::table_t record_type::tmp_tbl;
+  namespace record_impl {
+    void decl(ostream& os, string name, const tag* ptr)
+    {
+      os << tag::keyword(ptr->m_kind) << ' ' << ptr->m_name;
+      if ( !name.empty() )
+	os << ' ' << name;
+    }
+  } // end of namespace record_impl
 } // end of namespace cxx_compiler
 
 void cxx_compiler::record_type::decl(std::ostream& os, std::string name) const
 {
-  os << tag::keyword(m_tag->m_kind) << ' ' << m_tag->m_name;
-  if ( !name.empty() )
-    os << ' ' << name;
+  record_impl::decl(os, name, m_tag);
 }
 
 void cxx_compiler::record_impl::encode(std::ostream& os, const tag* ptr)

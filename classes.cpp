@@ -105,16 +105,16 @@ cxx_compiler::classes::specifier::begin(int keyword, var* v,
     ptr = template_tag::result
       = new instantiated_tag(kind, name, file, bases, tt);
   }
-  else
+  else {
     ptr = new tag(kind, name, file, bases);
-
-  const scope::TPS& tps = scope::current->m_tps;
-  if (!tps.first.empty()) {
-    using namespace parse::templ;
-    assert(!save_t::s_stack.empty());
-    save_t* p = save_t::s_stack.top();
-    assert(!p->m_tag);
-    p->m_tag = ptr = new template_tag(*ptr, tps);
+    const scope::TPS& tps = scope::current->m_tps;
+    if (!tps.first.empty()) {
+      using namespace parse::templ;
+      assert(!save_t::s_stack.empty());
+      save_t* p = save_t::s_stack.top();
+      assert(!p->m_tag);
+      p->m_tag = ptr = new template_tag(*ptr, tps);
+    }
   }
 
   ptr->m_parent = scope::current;
@@ -143,12 +143,13 @@ const cxx_compiler::type* cxx_compiler::classes::specifier::action()
   scope* ps = ptr->m_parent;
   const scope::TPSF& tpsf = ps->m_tps.first;
   if (!tpsf.empty()) {
-    assert(ptr->m_kind2 == tag::TEMPLATE);
-    template_tag* tt = static_cast<template_tag*>(ptr);
-    assert(!tt->m_specified);
-    tt->m_specified = true;
-    scope::current = ptr->m_parent;
-    return ptr->m_types.first;
+    if (ptr->m_kind2 == tag::TEMPLATE) {
+      template_tag* tt = static_cast<template_tag*>(ptr);
+      assert(!tt->m_specified);
+      tt->m_specified = true;
+      scope::current = ptr->m_parent;
+      return ptr->m_types.first;
+    }
   }
 
   const type* ret = record_type::create(ptr);

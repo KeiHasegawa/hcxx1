@@ -553,6 +553,7 @@ namespace var_impl {
 
 namespace record_impl {
   extern int base_vb(int n, const base* bp);
+  void decl(ostream&, string, const tag*);
   void encode(ostream&, const tag*);
   namespace special_ctor_dtor {
     typedef map<vector<const record_type*>, usr*> VALUE_TYPE;

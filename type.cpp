@@ -1268,11 +1268,10 @@ namespace cxx_compiler {
   incomplete_tagged_type::table_t incomplete_tagged_type::tmp_tbl;
 } // end of namespace cxx_compiler
 
-void cxx_compiler::incomplete_tagged_type::decl(std::ostream& os, std::string name) const
+void cxx_compiler::
+incomplete_tagged_type::decl(std::ostream& os, std::string name) const
 {
-  os << tag::keyword(m_tag->m_kind) << ' ' << m_tag->m_name;
-  if ( !name.empty() )
-    os << ' ' << name;
+  record_impl::decl(os, name, m_tag);
 }
 
 void cxx_compiler::incomplete_tagged_type::encode(std::ostream& os) const
@@ -1376,15 +1375,12 @@ const cxx_compiler::incomplete_tagged_type* cxx_compiler::incomplete_tagged_type
 
 void cxx_compiler::enum_type::decl(std::ostream& os, std::string name) const
 {
-  os << tag::keyword(m_tag->m_kind) << ' ' << m_tag->m_name;
-  if ( !name.empty() )
-    os << ' ' << name;
+  record_impl::decl(os, name, m_tag);
 }
 
 void cxx_compiler::enum_type::encode(std::ostream& os) const
 {
-  os << 1;
-  os << m_tag->m_name;
+  record_impl::encode(os, m_tag);
 }
 
 bool cxx_compiler::enum_type::compatible(const type* T) const
@@ -1771,7 +1767,10 @@ cxx_compiler::pointer_member_type::collect_tmp(std::vector<const type*>& vt)
 }
 
 void cxx_compiler::
-template_param_type::decl(std::ostream&, std::string) const { assert(0); }
+template_param_type::decl(std::ostream& os, std::string name) const
+{
+  record_impl::decl(os, name, m_tag);
+}
 
 void cxx_compiler::
 template_param_type::encode(std::ostream& os) const { assert(0); }
