@@ -565,8 +565,18 @@ int cxx_compiler::parse::peek()
 namespace cxx_compiler {
   namespace parse {
     using namespace std;
+    inline void save(genaddr* ga)
+    {
+      typedef vector<var*>::reverse_iterator IT;
+      IT p = find(rbegin(garbage), rend(garbage), ga);
+      assert(p != rend(garbage));
+      vector<var*>::iterator q = p.base() - 1;
+      garbage.erase(q);
+      assert(!ga->m_code_copied);
+      ga->m_code_copied = true;
+    }
     void save_common(int n, list<void*>& lval, list<void*>* src = 0,
-		     bool genaddr_erase = false)
+		     bool save_genaddr = false)
     {
       switch (n) {
       case IDENTIFIER_LEX:
@@ -589,15 +599,10 @@ namespace cxx_compiler {
         }
         else {
 	  var* v = cxx_compiler_lval.m_var;
-	  if (genaddr_erase) {
-	    if (n == IDENTIFIER_LEX) {
-	      if (v->genaddr_cast()) {
-		typedef vector<var*>::reverse_iterator IT;
-		IT p = find(rbegin(garbage), rend(garbage), v);
-		assert(p != rend(garbage));
-		vector<var*>::iterator q = p.base() - 1;
-		garbage.erase(q);
-	      }
+	  if (save_genaddr) {
+	    if (n == IDENTIFIER_LEX || n == STRING_LITERAL_LEX) {
+	      if (genaddr* ga = v->genaddr_cast())
+		save(ga);
 	    }
 	  }
 	  lval.push_back(v);
