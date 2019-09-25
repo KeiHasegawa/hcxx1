@@ -565,7 +565,8 @@ int cxx_compiler::parse::peek()
 namespace cxx_compiler {
   namespace parse {
     using namespace std;
-    void save_common(int n, list<void*>& lval, list<void*>* src = 0)
+    void save_common(int n, list<void*>& lval, list<void*>* src = 0,
+		     bool genaddr_erase = false)
     {
       switch (n) {
       case IDENTIFIER_LEX:
@@ -586,8 +587,21 @@ namespace cxx_compiler {
           lval.push_back(src->front());
           src->pop_front();
         }
-        else
-          lval.push_back(cxx_compiler_lval.m_var);
+        else {
+	  var* v = cxx_compiler_lval.m_var;
+	  if (genaddr_erase) {
+	    if (n == IDENTIFIER_LEX) {
+	      if (v->genaddr_cast()) {
+		typedef vector<var*>::reverse_iterator IT;
+		IT p = find(rbegin(garbage), rend(garbage), v);
+		assert(p != rend(garbage));
+		vector<var*>::iterator q = p.base() - 1;
+		garbage.erase(q);
+	      }
+	    }
+	  }
+	  lval.push_back(v);
+	}
         break;
       }
     }
@@ -629,6 +643,8 @@ namespace cxx_compiler {
           return get_id_from_mem_fun_body(n);
 	if (templ) {
 	  var* v = cxx_compiler_lval.m_var;
+	  if (genaddr* ga = v->genaddr_cast())
+	    v = ga->m_ref;
 	  assert(v->usr_cast());
           usr* u = static_cast<usr*>(v);
           string name = u->m_name;
@@ -711,7 +727,7 @@ namespace cxx_compiler {
 	templ::save_t* p = templ::save_t::s_stack.top();
 	read_t& r = p->m_read;
 	r.m_token.push_back(make_pair(last_token, parse::position));
-	save_common(last_token, r.m_lval);
+	save_common(last_token, r.m_lval, 0, true);
       }
       return last_token;
     }
@@ -981,11 +997,28 @@ void cxx_compiler::parse::block::leave()
   }
 }
 
-namespace cxx_compiler { namespace parse { namespace member_function_body {
-  std::map<usr*, save_t> stbl;
-  save_t* saved;
-  void save_brace(read_t*);
-} } } // end of namespace parse, member_function_body and cxx_compiler
+namespace cxx_compiler {
+  namespace parse {
+    namespace member_function_body {
+      std::map<usr*, save_t> stbl;
+      save_t* saved;
+      void save_brace(read_t*);
+      inline read_t* get(usr* key, scope* param)
+      {
+	if (!templ::save_t::s_stack.empty()) {
+	  templ::save_t* p = templ::save_t::s_stack.top();
+	  if (p->m_tag)
+	    return &p->m_read;
+	}
+
+	stbl[key].m_param = param;
+	read_t* pr = &stbl[key].m_read;
+	pr->m_token.push_back(make_pair(cxx_compiler_char,position));
+	return pr;
+      }
+    } // end of namespace member_function_body
+  } // end of namespace parse
+} // end of namespace cxx_compiler
 
 void cxx_compiler::parse::member_function_body::save(usr* key)
 {
@@ -1009,17 +1042,7 @@ void cxx_compiler::parse::member_function_body::save(usr* key)
   assert(!(key->m_flag & usr::OVERLOAD));
   key->m_flag = usr::flag_t(key->m_flag | usr::INLINE);
 
-  read_t* pr = 0;
-  if (!templ::save_t::s_stack.empty()) {
-    templ::save_t* p = templ::save_t::s_stack.top();
-    assert(p->m_tag);
-    pr = &p->m_read;
-  }
-  else {
-    stbl[key].m_param = param;
-    pr = &stbl[key].m_read;
-    pr->m_token.push_back(make_pair(cxx_compiler_char,position));
-  }
+  read_t* pr = get(key, param);
 
   identifier::mode = identifier::new_obj;
   save_brace(pr);

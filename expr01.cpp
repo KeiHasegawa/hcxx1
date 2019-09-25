@@ -106,8 +106,10 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::call::gen()
   using namespace std;
   var* func = m_func->gen();
   vector<var*> arg;
-  if ( m_arg )
-    transform(m_arg->begin(),m_arg->end(),back_inserter(arg),mem_fun(&base::gen));
+  if (m_arg) {
+    transform(begin(*m_arg), end(*m_arg), back_inserter(arg),
+	      mem_fun(&base::gen));
+  }
   return func->call(&arg);
 }
 

@@ -91,9 +91,8 @@ namespace cxx_compiler {
     struct calc {
       const scope::TPSF& m_tpsf;
       calc(const scope::TPSF& tpsf) : m_tpsf(tpsf) {}
-      bool template_param_case(var* arg, const template_param_type* tp)
+      bool template_param_case(const template_param_type* tp, const type* Ty)
       {
-	const type* Ta = arg->result_type();
 	tag* ptr = tp->get_tag();
 	typedef scope::TPSF::const_iterator IT;
 	IT p = find_if(begin(m_tpsf), end(m_tpsf),
@@ -101,16 +100,75 @@ namespace cxx_compiler {
 		       { return x.second.first == ptr; });
 	assert(p != end(m_tpsf));
 	if (ptr->m_types.second)
-	  return ptr->m_types.second == Ta;
-	ptr->m_types.second = Ta;
+	  return ptr->m_types.second == Ty;
+	ptr->m_types.second = Ty;
 	return true;
+      }
+      struct helper {
+	const scope::TPSF& m_tpsf;
+	helper(const scope::TPSF& tpsf) : m_tpsf(tpsf) {}
+	bool operator()(const scope::TPSFVS& x, const scope::TPSFVS& y)
+	{
+	  if (x.second) {
+	    assert(y.second);
+	    return true;
+	  }
+	  const type* Tx = x.first;
+	  const type* Ty = y.first;
+	  if (Tx->m_id == type::TEMPLATE_PARAM) {
+	    typedef const template_param_type TP;
+	    TP* tp = static_cast<TP*>(Tx);
+	    calc tmp(m_tpsf);
+	    return tmp.template_param_case(tp, Ty);
+	  }
+	  error::not_implemented();
+	  return false;
+	}
+      };
+      bool record_case(const record_type* xrec, const type* Ty)
+      {
+	if (Ty->m_id == type::REFERENCE) {
+	  typedef const reference_type RT;
+	  RT* rt = static_cast<RT*>(Ty);
+	  Ty = rt->referenced_type();
+	}
+	if (Ty->m_id != type::RECORD)
+	  return false;
+
+	typedef const record_type REC;
+	REC* yrec = static_cast<REC*>(Ty);
+	tag* xtag = xrec->get_tag();
+	tag* ytag = yrec->get_tag();
+	if (xtag->m_kind2 != tag::INSTANTIATE)
+	  return false;
+	if (ytag->m_kind2 != tag::INSTANTIATE)
+	  return false;
+	instantiated_tag* xit = static_cast<instantiated_tag*>(xtag);
+	instantiated_tag* yit = static_cast<instantiated_tag*>(ytag);
+	if (xit->m_src != yit->m_src)
+	  return false;
+	typedef instantiated_tag::SEED SEED;
+	const SEED& xseed = xit->m_seed;
+	const SEED& yseed = yit->m_seed;
+	assert(xseed.size() == yseed.size());
+	typedef SEED::const_iterator IT;
+	pair<IT, IT> ret = mismatch(begin(xseed), end(xseed), begin(yseed),
+				    helper(m_tpsf));
+	return ret == make_pair(end(xseed), end(yseed));
       }
       bool operator()(var* arg, const type* T)
       {
+	using namespace expressions;
+	const type* Ty = arg->result_type();
 	if (T->m_id == type::TEMPLATE_PARAM) {
 	  typedef const template_param_type TP;
 	  TP* tp = static_cast<TP*>(T);
-	  return template_param_case(arg, tp);
+	  return template_param_case(tp, Ty);
+	}
+	if (T->m_id == type::RECORD) {
+	  typedef const record_type REC;
+	  REC* rec = static_cast<REC*>(T);
+	  return record_case(rec, Ty);
 	}
 	error::not_implemented();
 	return false;
@@ -171,6 +229,7 @@ namespace cxx_compiler {
       vector<var*> m_garbage;
       vector<tac*> m_code;
       vector<scope*> m_before;
+      stack<parse::templ::save_t*> m_stack;
       static bool block_or_param(scope* p)
       {
 	scope::id_t id = p->m_id;
@@ -196,9 +255,13 @@ namespace cxx_compiler {
 	}
 	garbage.clear();
 	code.clear();
+	m_stack = parse::templ::save_t::s_stack;
+	while (!parse::templ::save_t::s_stack.empty())
+	  parse::templ::save_t::s_stack.pop();
       } 
       ~sweeper_b()
       {
+	parse::templ::save_t::s_stack = m_stack;
 	class_or_namespace_name::before = m_before;
 	code = m_code;
 	garbage = m_garbage;
