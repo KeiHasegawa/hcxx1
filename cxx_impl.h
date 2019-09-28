@@ -1299,6 +1299,7 @@ namespace cast_impl {
 
 struct genaddr : generated, addrof {
   bool m_qualified_func;
+  bool m_appear_templ;
   genaddr(const pointer_type*, const type*, var*, int);
   var* rvalue();
   var* subscripting(var*);

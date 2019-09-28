@@ -1773,7 +1773,10 @@ template_param_type::decl(std::ostream& os, std::string name) const
 }
 
 void cxx_compiler::
-template_param_type::encode(std::ostream& os) const { assert(0); }
+template_param_type::encode(std::ostream& os) const
+{
+  assert(0);
+}
 
 int cxx_compiler::template_param_type::size() const { return 1; }
 

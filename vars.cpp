@@ -38,8 +38,10 @@ cxx_compiler::usr::~usr()
 cxx_compiler::addrof::addrof(const type* T, var* ref, int offset)
   : var(T), m_ref(ref), m_offset(offset) {}
 
-cxx_compiler::genaddr::genaddr(const pointer_type* G, const type* T, var* ref, int offset)
+cxx_compiler::genaddr::genaddr(const pointer_type* G, const type* T,
+			       var* ref, int offset)
   : var(G), generated(G,T), addrof(G,ref,offset), m_qualified_func(false)
+  , m_appear_templ(false)
 {
   using namespace std;
   m_code.push_back(new addr3ac(this,m_ref));
@@ -80,9 +82,34 @@ cxx_compiler::var* cxx_compiler::with_initial::rvalue()
   return p->second;
 }
 
+namespace cxx_compiler {
+  namespace genaddr_impl {
+    var* appear_templ_case(genaddr* ga)
+    {
+      assert(scope::current->m_id == scope::BLOCK);
+      block* b = static_cast<block*>(scope::current);
+      genaddr* copied = new genaddr(*ga);
+      b->m_vars.push_back(copied);
+      assert(!ga->m_code.empty());
+      tac* ptr = ga->m_code[0];
+      ptr = ptr->new3ac();
+      ptr->x = copied;
+      if (!expressions::constant_flag) {
+	code.push_back(ptr);
+	transform(ga->m_code.begin()+1, ga->m_code.end(), back_inserter(code),
+		  [](tac* p){ return p->new3ac(); });
+      }
+      return copied;
+    }
+  } // end of namespace genaddr_impl
+} // end of namespace cxx_compiler
+
 cxx_compiler::var* cxx_compiler::genaddr::rvalue()
 {
   using namespace std;
+  if (m_appear_templ)
+    return genaddr_impl::appear_templ_case(this);
+
   block* b = 0;
   if (m_scope->m_id == scope::BLOCK)
     b = static_cast<block*>(m_scope);
@@ -108,6 +135,7 @@ cxx_compiler::var* cxx_compiler::genaddr::rvalue()
 		[](tac* p){ return p->new3ac(); });
     }
   }
+
   return this;
 }
 

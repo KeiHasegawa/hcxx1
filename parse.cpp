@@ -574,6 +574,8 @@ namespace cxx_compiler {
       garbage.erase(q);
       assert(!ga->m_code_copied);
       ga->m_code_copied = true;
+      assert(!ga->m_appear_templ);
+      ga->m_appear_templ = true;
     }
     void save_common(int n, list<void*>& lval, list<void*>* src = 0,
 		     bool save_genaddr = false)
