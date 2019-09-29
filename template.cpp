@@ -239,7 +239,8 @@ namespace cxx_compiler {
 	: m_current(scope::current), m_parent(scope::current->m_parent),
 	  m_del(scope::current), m_file(parse::position),
 	  m_fundef(fundef::current), m_garbage(garbage), m_code(code),
-	  m_before(class_or_namespace_name::before)
+	  m_before(class_or_namespace_name::before),
+	  m_stack(parse::templ::save_t::s_stack)
       {
 	scope::current = p;
 	fundef::current = 0;
@@ -255,7 +256,16 @@ namespace cxx_compiler {
 	}
 	garbage.clear();
 	code.clear();
-	m_stack = parse::templ::save_t::s_stack;
+	class_or_namespace_name::before.clear();
+
+	vector<scope*> tmp;
+	while (p) {
+	  tmp.push_back(p);
+	  p = p->m_parent;
+	}
+	copy(rbegin(tmp), rend(tmp),
+	     back_inserter(class_or_namespace_name::before));
+
 	while (!parse::templ::save_t::s_stack.empty())
 	  parse::templ::save_t::s_stack.pop();
       } 
