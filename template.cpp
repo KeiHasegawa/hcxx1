@@ -230,6 +230,7 @@ namespace cxx_compiler {
       vector<tac*> m_code;
       vector<scope*> m_before;
       stack<parse::templ::save_t*> m_stack;
+      int m_yychar;
       static bool block_or_param(scope* p)
       {
 	scope::id_t id = p->m_id;
@@ -240,7 +241,7 @@ namespace cxx_compiler {
 	  m_del(scope::current), m_file(parse::position),
 	  m_fundef(fundef::current), m_garbage(garbage), m_code(code),
 	  m_before(class_or_namespace_name::before),
-	  m_stack(parse::templ::save_t::s_stack)
+	  m_stack(parse::templ::save_t::s_stack), m_yychar(cxx_compiler_char)
       {
 	scope::current = p;
 	fundef::current = 0;
@@ -268,9 +269,11 @@ namespace cxx_compiler {
 
 	while (!parse::templ::save_t::s_stack.empty())
 	  parse::templ::save_t::s_stack.pop();
+	cxx_compiler_char = 0;
       } 
       ~sweeper_b()
       {
+	cxx_compiler_char = m_yychar;
 	parse::templ::save_t::s_stack = m_stack;
 	class_or_namespace_name::before = m_before;
 	code = m_code;
