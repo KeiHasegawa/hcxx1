@@ -988,8 +988,16 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
     {
       usr::flag_t a = prev->m_flag;
       usr::flag_t b = curr->m_flag;
-      if (a & usr::STATIC)
-	curr->m_flag = usr::flag_t(b | usr::STATIC_DEF);
+      if (a & usr::STATIC) {
+	if (a & usr::FUNCTION) {
+	  assert(b & usr::FUNCTION);
+	  curr->m_flag = usr::flag_t(b | usr::STATIC);
+	}
+	else {
+	  assert(!(b & usr::FUNCTION));
+	  curr->m_flag = usr::flag_t(b | usr::STATIC_DEF);
+	}
+      }
     }
     break;
   }

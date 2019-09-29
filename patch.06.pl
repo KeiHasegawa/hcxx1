@@ -31,8 +31,11 @@ exit 1;
 
 label:
 print <<EOF
-  if (yystate == $xxx && cxx_compiler::parse::peek() == COLONCOLON_MK) {
-    YYDPRINTF((stderr, "patch.06 is applied\\n"));
-    yyn = $zzz + 1;
+  if (yystate == $xxx) {
+    int n = cxx_compiler::parse::peek();
+    if (n == COLONCOLON_MK || cxx_compiler_char == COLONCOLON_MK) {
+      YYDPRINTF((stderr, "patch.06 is applied\\n"));
+      yyn = $zzz + 1;
+    }
   }
 EOF

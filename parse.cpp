@@ -520,8 +520,8 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
     return create(name);
   if (last_token == NAMESPACE_KW)
     return create(name);
-  error::undeclared(parse::position,name);
-  int ret = create(name,int_type::create());
+  error::undeclared(parse::position, name);
+  int ret = create(name, int_type::create());
   usr* u = cxx_compiler_lval.m_usr;
   scope::current->m_usrs[name].push_back(u);
   return ret;
