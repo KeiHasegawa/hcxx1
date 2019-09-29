@@ -381,6 +381,7 @@ cxx_compiler::template_usr::instantiate(std::vector<var*>* arg)
   assert(pw != usrs.end());
   vector<usr*>& v = pw->second;
   usr* ins = v.back();
+  assert(ins->m_flag2 & usr::INSTANTIATE);
   v.pop_back();
   assert(!v.empty());
   usr* templ = v.back();
