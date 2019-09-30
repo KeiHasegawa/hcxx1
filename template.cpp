@@ -156,6 +156,17 @@ namespace cxx_compiler {
 				    helper(m_tpsf));
 	return ret == make_pair(end(xseed), end(yseed));
       }
+      bool reference_case(const reference_type* xrt, const type* Ty)
+      {
+	if (Ty->m_id == type::REFERENCE) {
+	  typedef const reference_type RT;
+	  RT* rt = static_cast<RT*>(Ty);
+	  Ty = rt->referenced_type();
+	}
+	const type* Tx = xrt->referenced_type();
+	var tmp(Ty);
+	return operator()(&tmp, Tx);
+      }
       bool operator()(var* arg, const type* T)
       {
 	using namespace expressions;
@@ -169,6 +180,11 @@ namespace cxx_compiler {
 	  typedef const record_type REC;
 	  REC* rec = static_cast<REC*>(T);
 	  return record_case(rec, Ty);
+	}
+	if (T->m_id == type::REFERENCE) {
+	  typedef const reference_type RT;
+	  RT* rt = static_cast<RT*>(T);
+	  return reference_case(rt, Ty);
 	}
 	error::not_implemented();
 	return false;
@@ -328,6 +344,32 @@ namespace cxx_compiler {
   } // end of namespace template_usr_impl
 } // end of namespace cxx_compiler
 
+namespace cxx_compiler {
+  namespace templ_impl {
+    usr* install(map<string, vector<usr*> >& usrs, string name,
+		 const templ_base::KEY& key)
+    {
+      typedef map<string, vector<usr*> >::iterator ITw;
+      ITw pw = usrs.find(name);
+      assert(pw != usrs.end());
+      vector<usr*>& v = pw->second;
+      usr* ins = v.back();
+      usr::flag2_t flag2 = ins->m_flag2;
+      assert((flag2 & usr::INSTANTIATE) || (flag2 & usr::SPECIAL_VER));
+      v.pop_back();
+      assert(!v.empty());
+      usr* templ = v.back();
+      assert(templ->m_flag2 & usr::TEMPLATE);
+      template_usr* tu = static_cast<template_usr*>(templ);
+      template_usr::table_t& table = tu->m_table;
+      v.pop_back();
+      v.push_back(ins);
+      v.push_back(templ);
+      return table[key] = ins;
+    }
+  } // end of namespace templ_impl
+} // end of namespace cxx_compiler
+
 cxx_compiler::usr*
 cxx_compiler::template_usr::instantiate(std::vector<var*>* arg)
 {
@@ -376,6 +418,7 @@ cxx_compiler::template_usr::instantiate(std::vector<var*>* arg)
   cxx_compiler_parse();
 
   map<string, vector<usr*> >& usrs = scope::current->m_usrs;
+#if 0
   typedef map<string, vector<usr*> >::iterator ITw;
   ITw pw = usrs.find(m_name);
   assert(pw != usrs.end());
@@ -390,6 +433,9 @@ cxx_compiler::template_usr::instantiate(std::vector<var*>* arg)
   v.push_back(ins);
   v.push_back(templ);
   return m_table[key] = ins;
+#else
+  return templ_impl::install(usrs, m_name, key);
+#endif
 }
 
 namespace cxx_compiler {

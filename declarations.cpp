@@ -876,6 +876,11 @@ cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr)
     }
   }
   class_or_namespace_name::last = 0;
+
+  if (curr->m_flag2 & usr::SPECIAL_VER) {
+    special_ver* sv = static_cast<special_ver*>(curr);
+    curr = templ_impl::install(usrs, name, sv->m_key);
+  }
   return curr;
 }
 
@@ -965,6 +970,38 @@ bool cxx_compiler::declarations::conflict(const type* prev, const type* curr)
   return !fp->overloadable(fc);
 }
 
+namespace cxx_compiler {
+  namespace declarations {
+    scope::TPSFVS xxx(const type* x, const type* y)
+    {
+      // vvv just debug vvv
+      const type* T = pointer_type::create(char_type::create());
+      return make_pair(T, (var*)0);
+      // ^^^ just debug ^^^
+    }
+    bool instance_of(usr* templ, usr* ins, templ_base::KEY& key)
+    {
+      assert(templ->m_flag2 & usr::TEMPLATE);
+      const type* Tt = templ->m_type;
+      if (Tt->m_id != type::FUNC)
+	return false;
+      const type* Ti = ins->m_type;
+      if (Ti->m_id != type::FUNC)
+	return false;
+      typedef const func_type FT;
+      FT* ftt = static_cast<FT*>(Tt);
+      FT* fti = static_cast<FT*>(Ti);
+      const vector<const type*>& vt = ftt->param();
+      const vector<const type*>& vi = fti->param();
+      if (vt.size() != vi.size())
+	return false;
+      transform(begin(vt), end(vt), begin(vi), back_inserter(key),
+		xxx);
+      return true;
+    }
+  } // end of namespace declarations
+} // end of namespace cxx_compiler
+
 cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
 {
   using namespace std;
@@ -1013,8 +1050,14 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
 
   usr::flag2_t flag2 = prev->m_flag2;
   if (flag2 & usr::TEMPLATE) {
-    curr->m_flag2 = usr::flag2_t(curr->m_flag2 | usr::INSTANTIATE);
-    return curr;
+    if (parse::templ::ptr) {
+      curr->m_flag2 = usr::flag2_t(curr->m_flag2 | usr::INSTANTIATE);
+      return curr;
+    }
+    templ_base::KEY key;
+    if (instance_of(prev, curr, key))
+      return new special_ver(*curr, key);
+    error::not_implemented();
   }
 
   string name = curr->m_name;

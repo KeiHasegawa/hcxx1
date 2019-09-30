@@ -1559,6 +1559,20 @@ namespace parse {
   } // end of namespace templp
 } // end of namespace parse
 
+struct special_ver : usr {
+  templ_base::KEY m_key;
+  special_ver(const usr& u, const templ_base::KEY& key)
+    : usr(u), m_key(key)
+  {
+    m_flag2 = usr::flag2_t(m_flag2 | usr::SPECIAL_VER);
+  }
+};
+
+namespace templ_impl {
+  usr* install(map<string, vector<usr*> >& usrs, string name,
+	       const templ_base::KEY& key);
+} // end of namespace templ_impl
+
 } // end of namespace cxx_compiler
 
 #endif // _CXX_IMPL_H_

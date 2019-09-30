@@ -353,6 +353,7 @@ struct usr : var {
     TEMPLATE            = 1 << 12,
     INSTANTIATE         = 1 << 13,
     TEMPL_PARAM         = 1 << 14,
+    SPECIAL_VER         = 1 << 15,
   };
   flag2_t m_flag2;
   file_t m_file;
