@@ -431,10 +431,27 @@ namespace cxx_compiler {
   namespace declarations {
     namespace templ {
       namespace id {
+	struct sweeper {
+	  parse::read_t m_org;
+	  sweeper()
+	  {
+	    m_org = parse::g_read;
+	    parse::g_read.m_token.clear();
+	    parse::g_read.m_lval.clear();
+	  }
+	  ~sweeper()
+	  {
+	    parse::g_read = m_org;
+	  }
+	};
 	tag* action(tag* ptr, vector<pair<var*, const type*>*>* pv)
 	{
 	  assert(ptr->m_kind2 == tag::TEMPLATE);
           template_tag* tt = static_cast<template_tag*>(ptr);
+	  int c = parse::peek();
+	  if (c == '{' || c == ':')
+	    return tt->special_ver(pv);
+	  sweeper sweeper;
 	  return tt->instantiate(pv);
 	}
       } // end of namespace id
@@ -505,11 +522,54 @@ namespace cxx_compiler {
   } // end of namespace template_tag_impl
   instantiated_tag* template_tag::result;
   template_tag* template_tag::instantiating;
+
+
+  string instantiated_name::operator()(string name, string pn)
+  {
+    scope::TPSF::const_iterator p = m_tpsf.find(pn);
+    assert(p != m_tpsf.end());
+    const pair<tag*, scope::TPSFVS*>& x = p->second;
+    if (tag* ptr = x.first) {
+      const type* T = ptr->m_types.second;
+      ostringstream os;
+      T->decl(os, "");
+      return name + os.str() + ',';
+    }
+    const scope::TPSFVS* y = x.second;
+    assert(y);
+    assert(y->first);
+    var* v = y->second;
+    if (!v->isconstant(true))
+      error::not_implemented();
+    ostringstream os;
+    if (v->isconstant()) {
+      assert(v->usr_cast());
+      os << v->value();
+      return name + os.str() + ',';
+    }
+    addrof* a = v->addrof_cast();
+    assert(a);
+    assert(!a->m_offset);
+    v = a->m_ref;
+    usr* u = v->usr_cast();
+    return name + u->m_name + ',';
+  }
+
+  struct special_ver_tag : tag {
+    template_tag* m_src;
+    template_tag::KEY m_key;
+    special_ver_tag(string name, template_tag* src,
+		    const template_tag::KEY& key)
+      : tag(src->m_kind, name, parse::position, 0), m_src(src), m_key(key)
+    { m_kind2 = SPECIAL_VER; }
+  };
+
 } // end of namespace cxx_compiler
 
-cxx_compiler::instantiated_tag*
+cxx_compiler::tag*
 cxx_compiler::
-template_tag::instantiate(std::vector<std::pair<var*, const type*>*>* pv)
+template_tag::common(std::vector<std::pair<var*, const type*>*>* pv,
+		     bool special_ver)
 {
   template_tag_impl::sweeper sweeper(pv);
   const vector<string>& tpss = templ_base::m_tps.second;
@@ -522,14 +582,13 @@ template_tag::instantiate(std::vector<std::pair<var*, const type*>*>* pv)
       error::not_implemented();
   }
 
-  KEY key;
   const scope::TPSF& tpsf = templ_base::m_tps.first;
+  template_usr_impl::sweeper_a sweeper_a(tpsf);
+  KEY key;
   if (pv) {
     transform(begin(*pv), end(*pv), begin(tpss), back_inserter(key),
 	      template_tag_impl::calc_key(tpsf));
   }
-
-  template_usr_impl::sweeper_a sweeper_a(tpsf);
 
   table_t::const_iterator p = m_table.find(key);
   if (p != m_table.end())
@@ -539,6 +598,17 @@ template_tag::instantiate(std::vector<std::pair<var*, const type*>*>* pv)
 	      { return template_usr_impl::match(key, x.first); });
   if (p != m_table.end())
     return m_table[key] = p->second;
+
+  if (special_ver) {
+    const scope::TPSF& tpsf = templ_base::m_tps.first;
+    const scope::TPSS& tpss = templ_base::m_tps.second;
+    string name = m_name;
+    name += '<';
+    name = accumulate(begin(tpss), end(tpss), name, instantiated_name(tpsf));
+    name.erase(name.size()-1);
+    name += '>';
+    return m_table[key] = new special_ver_tag(name, this, key);
+  }
 
   templ_base tmp = *this;
   template_usr_impl::sweeper_b sweeper_b(m_parent, &tmp);
@@ -592,3 +662,4 @@ bool cxx_compiler::instance_of(usr* templ, usr* ins, templ_base::KEY& key)
 	    template_usr_impl::decide(tpsf));
   return true;
 }
+

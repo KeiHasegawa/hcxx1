@@ -49,7 +49,7 @@ struct base;
 struct tag : scope {
   enum kind_t { STRUCT, UNION, CLASS, ENUM };
   kind_t m_kind;
-  enum kind2_t { NONE, TEMPLATE, INSTANTIATE };
+  enum kind2_t { NONE, TEMPLATE, INSTANTIATE, SPECIAL_VER };
   kind2_t m_kind2;
   std::string m_name;
   std::vector<file_t> m_file;

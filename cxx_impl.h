@@ -1541,15 +1541,25 @@ struct template_usr : usr, templ_base {
   usr* instantiate(vector<var*>* arg);
 };
 
+struct instantiated_name {
+  const scope::TPSF& m_tpsf;
+  instantiated_name(const scope::TPSF& tpsf) : m_tpsf(tpsf) {}
+  string operator()(string name, string pn);
+};
+
 struct template_tag : templ_base, tag {
   bool m_specified;  // decide token kind : TEMPLATE_NAME or CLASS_NAME
   static instantiated_tag* result;
   static template_tag* instantiating;
-  typedef map<KEY, instantiated_tag*> table_t;
+  typedef map<KEY, tag*> table_t;
   table_t m_table;
   template_tag(tag& t, const scope::TPS& tps)
     : tag(t), templ_base(tps), m_specified(false) { m_kind2 = TEMPLATE; }
-  instantiated_tag* instantiate(vector<pair<var*, const type*>*>*);
+  tag* common(vector<pair<var*, const type*>*>*, bool);
+  tag* instantiate(vector<pair<var*, const type*>*>* pv)
+  { return common(pv, false); }
+  tag* special_ver(vector<pair<var*, const type*>*>* pv)
+  { return common(pv, true); }
 };
 
 namespace parse {

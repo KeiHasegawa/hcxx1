@@ -14,47 +14,6 @@ cxx_compiler::tag::kind_t cxx_compiler::classes::specifier::get(int keyword)
   }
 }
 
-namespace cxx_compiler {
-  namespace classes {
-    namespace specifier {
-      struct instantiated_name {
-	const scope::TPSF& m_tpsf;
-	instantiated_name(const scope::TPSF& tpsf) : m_tpsf(tpsf) {}
-	string operator()(string name, string pn)
-	{
-	  scope::TPSF::const_iterator p = m_tpsf.find(pn);
-	  assert(p != m_tpsf.end());
-	  const pair<tag*, scope::TPSFVS*>& x = p->second;
-	  if (tag* ptr = x.first) {
-	    const type* T = ptr->m_types.second;
-	    ostringstream os;
-	    T->decl(os, "");
-	    return name + os.str() + ',';
-	  }
-	  const scope::TPSFVS* y = x.second;
-	  assert(y);
-	  assert(y->first);
-	  var* v = y->second;
-	  if (!v->isconstant(true))
-	    error::not_implemented();
-	  ostringstream os;
-	  if (v->isconstant()) {
-	    assert(v->usr_cast());
-	    os << v->value();
-	    return name + os.str() + ',';
-	  }
-	  addrof* a = v->addrof_cast();
-	  assert(a);
-	  assert(!a->m_offset);
-	  v = a->m_ref;
-	  usr* u = v->usr_cast();
-	  return name + u->m_name + ',';
-	}
-      };
-    } // end of namespace specifier
-  } // end of namespace classes
-} // end of namespace cxx_compiler
-
 void
 cxx_compiler::classes::specifier::begin(int keyword, var* v,
 					std::vector<base*>* bases)

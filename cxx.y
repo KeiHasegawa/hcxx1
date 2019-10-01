@@ -1061,23 +1061,26 @@ class_specifier
   ;
 
 class_specifier_begin
-  : class_head '{'
+  : class_key '{'
+    { cxx_compiler::classes::specifier::begin($1,0,0); }
+  | class_key base_clause '{'
+    { cxx_compiler::classes::specifier::begin($1,0,$2); }
   | class_key IDENTIFIER_LEX '{'
     { cxx_compiler::classes::specifier::begin($1,$2,0); }
-  ;
-
-class_head
-  : class_key IDENTIFIER_LEX base_clause
+  | class_key IDENTIFIER_LEX base_clause '{'
     { cxx_compiler::classes::specifier::begin($1,$2,$3); }
-  | class_key base_clause
-    { cxx_compiler::classes::specifier::begin($1,0,$2); }
-  | class_key
-    { cxx_compiler::classes::specifier::begin($1,0,0); }
-  | class_key nested_name_specifier IDENTIFIER_LEX base_clause
-  | class_key nested_name_specifier CLASS_NAME_LEX
+  | class_key nested_name_specifier CLASS_NAME_LEX '{'
     { cxx_compiler::classes::specifier::begin2($1,$3); }
-  | class_key nested_name_specifier template_id base_clause
-  | class_key template_id base_clause
+  | class_key nested_name_specifier CLASS_NAME_LEX base_clause '{'
+    { cxx_compiler::error::not_implemented(); }
+  | class_key template_id '{'
+    { cxx_compiler::classes::specifier::begin2($1,$2); }
+  | class_key template_id base_clause '{'
+    { cxx_compiler::error::not_implemented(); }
+  | class_key nested_name_specifier template_id '{'
+    { cxx_compiler::error::not_implemented(); }
+  | class_key nested_name_specifier template_id base_clause '{'
+    { cxx_compiler::error::not_implemented(); }
   ;
 
 member_specification
