@@ -85,12 +85,32 @@ cxx_compiler::classes::specifier::begin(int keyword, var* v,
 }
 
 void
-cxx_compiler::classes::specifier::begin2(int keyword, tag* ptr)
+cxx_compiler::classes::
+specifier::begin2(int keyword, tag* ptr, std::vector<base*>* bases)
 {
   using namespace std;
   string name = ptr->m_name;
   usr* tmp = new usr(name,0,usr::NONE,file_t(),usr::NONE2);
-  begin(keyword,tmp,0);
+  begin(keyword,tmp,bases);
+}
+
+void
+cxx_compiler::classes::
+specifier::begin3(int keyword, tag* ptr, std::vector<base*>* bases)
+{
+  using namespace std;
+  string name = ptr->m_name;
+  map<string,tag*>& tags = scope::current->m_tags;
+  map<string,tag*>::const_iterator p = tags.find(name);
+  if (p != tags.end())
+    error::not_implemented();
+
+  ptr->m_parent = scope::current;
+  ptr->m_parent->m_children.push_back(ptr);
+  ptr->m_types.first = incomplete_tagged_type::create(ptr);
+  tags[name] = ptr;
+  scope::current = ptr;
+  declarations::specifier_seq::info_t::clear();
 }
 
 const cxx_compiler::type* cxx_compiler::classes::specifier::action()

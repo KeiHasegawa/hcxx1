@@ -1264,7 +1264,8 @@ namespace statements {
 namespace classes {
   namespace specifier {
     extern void begin(int, var*, vector<base*>*);
-    extern void begin2(int, tag*);
+    extern void begin2(int, tag*, vector<base*>*);
+    extern void begin3(int, tag*, vector<base*>*);
     extern const type* action();
     extern tag::kind_t get(int);
     extern void  member_function_definition(pair<usr* const, parse::member_function_body::save_t>&);

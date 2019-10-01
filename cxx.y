@@ -1070,13 +1070,13 @@ class_specifier_begin
   | class_key IDENTIFIER_LEX base_clause '{'
     { cxx_compiler::classes::specifier::begin($1,$2,$3); }
   | class_key nested_name_specifier CLASS_NAME_LEX '{'
-    { cxx_compiler::classes::specifier::begin2($1,$3); }
+    { cxx_compiler::classes::specifier::begin2($1,$3,0); }
   | class_key nested_name_specifier CLASS_NAME_LEX base_clause '{'
-    { cxx_compiler::error::not_implemented(); }
+    { cxx_compiler::classes::specifier::begin2($1,$3,$4); }
   | class_key template_id '{'
-    { cxx_compiler::classes::specifier::begin2($1,$2); }
+    { cxx_compiler::classes::specifier::begin3($1,$2,0); }
   | class_key template_id base_clause '{'
-    { cxx_compiler::error::not_implemented(); }
+    { cxx_compiler::classes::specifier::begin3($1,$2,$3); }
   | class_key nested_name_specifier template_id '{'
     { cxx_compiler::error::not_implemented(); }
   | class_key nested_name_specifier template_id base_clause '{'
