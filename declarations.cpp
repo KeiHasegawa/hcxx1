@@ -970,38 +970,6 @@ bool cxx_compiler::declarations::conflict(const type* prev, const type* curr)
   return !fp->overloadable(fc);
 }
 
-namespace cxx_compiler {
-  namespace declarations {
-    scope::TPSFVS xxx(const type* x, const type* y)
-    {
-      // vvv just debug vvv
-      const type* T = pointer_type::create(char_type::create());
-      return make_pair(T, (var*)0);
-      // ^^^ just debug ^^^
-    }
-    bool instance_of(usr* templ, usr* ins, templ_base::KEY& key)
-    {
-      assert(templ->m_flag2 & usr::TEMPLATE);
-      const type* Tt = templ->m_type;
-      if (Tt->m_id != type::FUNC)
-	return false;
-      const type* Ti = ins->m_type;
-      if (Ti->m_id != type::FUNC)
-	return false;
-      typedef const func_type FT;
-      FT* ftt = static_cast<FT*>(Tt);
-      FT* fti = static_cast<FT*>(Ti);
-      const vector<const type*>& vt = ftt->param();
-      const vector<const type*>& vi = fti->param();
-      if (vt.size() != vi.size())
-	return false;
-      transform(begin(vt), end(vt), begin(vi), back_inserter(key),
-		xxx);
-      return true;
-    }
-  } // end of namespace declarations
-} // end of namespace cxx_compiler
-
 cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
 {
   using namespace std;

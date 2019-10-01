@@ -389,25 +389,27 @@ cxx_compiler::template_usr::instantiate(std::vector<var*>* arg)
   int b = param.size();
   int n = min(a, b);
 
+  const scope::TPSF& tpsf = m_tps.first;
+  template_usr_impl::sweeper_a sweeper_a(tpsf);
+
   typedef vector<const type*>::const_iterator ITx;
   ITx bn = begin(param);
   ITx ed = bn + n;
   pair<ITx, ITx> ret = mismatch(bn, ed, begin(atype),
-				template_usr_impl::calc(m_tps.first));
+				template_usr_impl::calc(tpsf));
   if (ret.first != ed)
     error::not_implemented();
 
   typedef scope::TPSF::const_iterator ITy;
-  ITy pz = find_if(begin(m_tps.first), end(m_tps.first),
+  ITy py = find_if(begin(tpsf), end(tpsf),
 		   template_usr_impl::not_decided);
-  if (pz != end(m_tps.first))
+  if (py != end(tpsf))
     error::not_implemented();
 
-  template_usr_impl::sweeper_a sweeper_a(m_tps.first);
-
   KEY key;
-  transform(begin(m_tps.second), end(m_tps.second), back_inserter(key),
-	    template_usr_impl::decide(m_tps.first));
+  const scope::TPSS& tpss = m_tps.second;
+  transform(begin(tpss), end(tpss), back_inserter(key),
+	    template_usr_impl::decide(tpsf));
   table_t::const_iterator it = m_table.find(key);
   if (it != m_table.end())
     return it->second;
@@ -550,4 +552,43 @@ template_tag::instantiate(std::vector<std::pair<var*, const type*>*>* pv)
   template_tag::result = 0;
   template_tag::instantiating = 0;
   return m_table[key] = ret;
+}
+
+bool cxx_compiler::instance_of(usr* templ, usr* ins, templ_base::KEY& key)
+{
+  assert(templ->m_flag2 & usr::TEMPLATE);
+  template_usr* tu = static_cast<template_usr*>(templ);
+  const type* Tt = tu->m_type;
+  if (Tt->m_id != type::FUNC)
+    return false;
+  const type* Ti = ins->m_type;
+  if (Ti->m_id != type::FUNC)
+    return false;
+  typedef const func_type FT;
+  FT* ftt = static_cast<FT*>(Tt);
+  FT* fti = static_cast<FT*>(Ti);
+  const vector<const type*>& vt = ftt->param();
+  const vector<const type*>& vi = fti->param();
+  if (vt.size() != vi.size())
+    return false;
+
+  const scope::TPSF& tpsf = tu->m_tps.first;
+  template_usr_impl::sweeper_a sweeper_a(tpsf);
+
+  typedef vector<const type*>::const_iterator ITx;
+  pair<ITx, ITx> ret = mismatch(begin(vt), end(vt), begin(vi),
+				template_usr_impl::calc(tpsf));
+  if (ret != make_pair(end(vt), end(vi)))
+    return false;
+
+  typedef scope::TPSF::const_iterator ITy;
+  ITy py = find_if(begin(tpsf), end(tpsf),
+		   template_usr_impl::not_decided);
+  if (py != end(tpsf))
+    return false;
+
+  const scope::TPSS& tpss = tu->m_tps.second;
+  transform(begin(tpss), end(tpss), back_inserter(key),
+	    template_usr_impl::decide(tpsf));
+  return true;
 }

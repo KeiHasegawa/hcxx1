@@ -1573,6 +1573,8 @@ namespace templ_impl {
 	       const templ_base::KEY& key);
 } // end of namespace templ_impl
 
+bool instance_of(usr* templ, usr* ins, templ_base::KEY& key);
+
 } // end of namespace cxx_compiler
 
 #endif // _CXX_IMPL_H_
