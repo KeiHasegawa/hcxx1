@@ -3,6 +3,8 @@
 #include "cxx_impl.h"
 #include "yy.h"
 
+#define FIX_CALC_10_01
+
 void cxx_compiler::type_parameter::action(var* v)
 {
   assert(v->usr_cast());
@@ -88,6 +90,112 @@ void cxx_compiler::declarations::templ::decl_end()
 
 namespace cxx_compiler {
   namespace template_usr_impl {
+#ifdef FIX_CALC_10_01
+    struct calc {
+      const scope::TPSF& m_tpsf;
+      calc(const scope::TPSF& tpsf) : m_tpsf(tpsf) {}
+      bool operator()(const type* Tx, const type* Ty);
+    };
+    namespace calc_impl {
+      typedef bool FUNC(const type*, const type*, const scope::TPSF&);
+      bool template_param_case(const type* Tx, const type* Ty,
+			       const scope::TPSF& tpsf)
+      {
+	assert(Tx->m_id == type::TEMPLATE_PARAM);
+	typedef const template_param_type TP;
+	TP* tp = static_cast<TP*>(Tx);
+	tag* ptr = tp->get_tag();
+	typedef scope::TPSF::const_iterator IT;
+	IT p = find_if(begin(tpsf), end(tpsf),
+		       [ptr](const pair<string, scope::TPSFV>& x)
+		       { return x.second.first == ptr; });
+	assert(p != end(tpsf));
+	if (ptr->m_types.second)
+	  return ptr->m_types.second == Ty;
+	ptr->m_types.second = Ty;
+	return true;
+      }
+      struct helper {
+	const scope::TPSF& m_tpsf;
+	helper(const scope::TPSF& tpsf) : m_tpsf(tpsf) {}
+	bool operator()(const scope::TPSFVS& x, const scope::TPSFVS& y)
+	{
+	  if (x.second) {
+	    assert(y.second);
+	    return true;
+	  }
+	  const type* Tx = x.first;
+	  const type* Ty = y.first;
+	  calc tmp(m_tpsf);
+	  return tmp(Tx, Ty);
+	}
+      };
+      bool record_case(const type* Tx, const type* Ty,
+		       const scope::TPSF& tpsf)
+      {
+	assert(Tx->m_id == type::RECORD);
+	typedef const record_type REC;
+	REC* xrec = static_cast<REC*>(Tx);
+	if (Ty->m_id == type::REFERENCE) {
+	  typedef const reference_type RT;
+	  RT* rt = static_cast<RT*>(Ty);
+	  Ty = rt->referenced_type();
+	}
+	if (Ty->m_id != type::RECORD)
+	  return false;
+
+	typedef const record_type REC;
+	REC* yrec = static_cast<REC*>(Ty);
+	tag* xtag = xrec->get_tag();
+	tag* ytag = yrec->get_tag();
+	if (xtag->m_kind2 != tag::INSTANTIATE)
+	  return false;
+	if (ytag->m_kind2 != tag::INSTANTIATE)
+	  return false;
+	instantiated_tag* xit = static_cast<instantiated_tag*>(xtag);
+	instantiated_tag* yit = static_cast<instantiated_tag*>(ytag);
+	if (xit->m_src != yit->m_src)
+	  return false;
+	typedef instantiated_tag::SEED SEED;
+	const SEED& xseed = xit->m_seed;
+	const SEED& yseed = yit->m_seed;
+	assert(xseed.size() == yseed.size());
+	typedef SEED::const_iterator IT;
+	pair<IT, IT> ret = mismatch(begin(xseed), end(xseed), begin(yseed),
+				    helper(tpsf));
+	return ret == make_pair(end(xseed), end(yseed));
+      }
+      bool reference_case(const type* Tx, const type* Ty,
+			  const scope::TPSF& tpsf)
+      {
+	assert(Tx->m_id == type::REFERENCE);
+	typedef const reference_type RT;
+	RT* xrt = static_cast<RT*>(Tx);
+	if (Ty->m_id == type::REFERENCE) {
+	  RT* rt = static_cast<RT*>(Ty);
+	  Ty = rt->referenced_type();
+	}
+	Tx = xrt->referenced_type();
+	calc tmp(tpsf);
+	return tmp(Tx, Ty);
+      }
+      struct table_t : map<type::id_t, FUNC*> {
+	table_t()
+	{
+	  (*this)[type::TEMPLATE_PARAM] = template_param_case;
+	  (*this)[type::RECORD] = record_case;
+	  (*this)[type::REFERENCE] = reference_case;
+	}
+      } table;
+    } // end of namespace calc_impl
+    bool calc::operator()(const type* Tx, const type* Ty)
+    {
+      calc_impl::table_t::const_iterator p =
+	calc_impl::table.find(Tx->m_id);
+      assert(p != calc_impl::table.end());
+      return (p->second)(Tx, Ty, m_tpsf);
+    }
+#else // FIX_CALC_10_01
     struct calc {
       const scope::TPSF& m_tpsf;
       calc(const scope::TPSF& tpsf) : m_tpsf(tpsf) {}
@@ -164,32 +272,31 @@ namespace cxx_compiler {
 	  Ty = rt->referenced_type();
 	}
 	const type* Tx = xrt->referenced_type();
-	var tmp(Ty);
-	return operator()(&tmp, Tx);
+	return operator()(Tx, Ty);
       }
-      bool operator()(var* arg, const type* T)
+      bool operator()(const type* Tx, const type* Ty)
       {
 	using namespace expressions;
-	const type* Ty = arg->result_type();
-	if (T->m_id == type::TEMPLATE_PARAM) {
+	if (Tx->m_id == type::TEMPLATE_PARAM) {
 	  typedef const template_param_type TP;
-	  TP* tp = static_cast<TP*>(T);
+	  TP* tp = static_cast<TP*>(Tx);
 	  return template_param_case(tp, Ty);
 	}
-	if (T->m_id == type::RECORD) {
+	if (Tx->m_id == type::RECORD) {
 	  typedef const record_type REC;
-	  REC* rec = static_cast<REC*>(T);
+	  REC* rec = static_cast<REC*>(Tx);
 	  return record_case(rec, Ty);
 	}
-	if (T->m_id == type::REFERENCE) {
+	if (Tx->m_id == type::REFERENCE) {
 	  typedef const reference_type RT;
-	  RT* rt = static_cast<RT*>(T);
+	  RT* rt = static_cast<RT*>(Tx);
 	  return reference_case(rt, Ty);
 	}
 	error::not_implemented();
 	return false;
       }
     };
+#endif // FIX_CALC_10_01
     inline bool not_decided(const pair<string, pair<tag*, scope::TPSFVS*> >& p)
     {
       const pair<tag*, scope::TPSFVS*>& x = p.second;
@@ -375,26 +482,28 @@ cxx_compiler::template_usr::instantiate(std::vector<var*>* arg)
 {
   if (!arg)
     error::not_implemented();
+  vector<const type*> atype;
+  transform(begin(*arg), end(*arg), back_inserter(atype),
+	    [](var* v){ return v->result_type(); });
+
   assert(m_type->m_id == type::FUNC);
   typedef const func_type FT;
   FT* ft = static_cast<FT*>(m_type);
   const vector<const type*>& param = ft->param();
-  int a = arg->size();
+  int a = atype.size();
   int b = param.size();
   int n = min(a, b);
 
-  typedef vector<var*>::const_iterator ITx;
-  typedef vector<const type*>::const_iterator ITy;
-  ITx b1 = begin(*arg);
-  ITx e1 = begin(*arg) + n;
-
-  pair<ITx, ITy> ret = mismatch(b1, e1, begin(param),
+  typedef vector<const type*>::const_iterator ITx;
+  ITx bn = begin(param);
+  ITx ed = bn + n;
+  pair<ITx, ITx> ret = mismatch(bn, ed, begin(atype),
 				template_usr_impl::calc(m_tps.first));
-  if (ret.first != e1)
+  if (ret.first != ed)
     error::not_implemented();
 
-  typedef scope::TPSF::const_iterator ITz;
-  ITz pz = find_if(begin(m_tps.first), end(m_tps.first),
+  typedef scope::TPSF::const_iterator ITy;
+  ITy pz = find_if(begin(m_tps.first), end(m_tps.first),
 		   template_usr_impl::not_decided);
   if (pz != end(m_tps.first))
     error::not_implemented();
@@ -418,24 +527,7 @@ cxx_compiler::template_usr::instantiate(std::vector<var*>* arg)
   cxx_compiler_parse();
 
   map<string, vector<usr*> >& usrs = scope::current->m_usrs;
-#if 0
-  typedef map<string, vector<usr*> >::iterator ITw;
-  ITw pw = usrs.find(m_name);
-  assert(pw != usrs.end());
-  vector<usr*>& v = pw->second;
-  usr* ins = v.back();
-  assert(ins->m_flag2 & usr::INSTANTIATE);
-  v.pop_back();
-  assert(!v.empty());
-  usr* templ = v.back();
-  assert(templ->m_flag2 & usr::TEMPLATE);
-  v.pop_back();
-  v.push_back(ins);
-  v.push_back(templ);
-  return m_table[key] = ins;
-#else
   return templ_impl::install(usrs, m_name, key);
-#endif
 }
 
 namespace cxx_compiler {
