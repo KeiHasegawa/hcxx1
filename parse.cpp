@@ -1051,7 +1051,7 @@ void cxx_compiler::parse::member_function_body::save(usr* key)
 
   read_t* pr = get(key, param);
 
-  identifier::mode = identifier::new_obj;
+  identifier::mode = identifier::peeking;
   save_brace(pr);
   identifier::mode = identifier::look;
   scope::current = ptr;
