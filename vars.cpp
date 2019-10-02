@@ -149,8 +149,8 @@ cxx_compiler::generated::~generated()
 cxx_compiler::ref::ref(const pointer_type* pt)
   : var(pt), m_result(pt->referenced_type()) {}
 
-cxx_compiler::ref::ref(const reference_type* pt)
-  : var(pt), m_result(pt->referenced_type()) {}
+cxx_compiler::ref::ref(const reference_type* rt)
+  : var(rt), m_result(rt->referenced_type()) {}
 
 cxx_compiler::var* cxx_compiler::ref::rvalue()
 {
@@ -246,6 +246,13 @@ cxx_compiler::var * cxx_compiler::refaddr::rvalue()
     ret = tmp;
   } 
   return ret;
+}
+
+bool cxx_compiler::refaddr::lvalue() const
+{
+  if (m_addrof.m_ref->lvalue())
+    return true;
+  return m_type->m_id == type::REFERENCE;
 }
 
 cxx_compiler::usr* cxx_compiler::refbit::mask(int n)
