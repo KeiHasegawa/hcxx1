@@ -1412,8 +1412,8 @@ namespace cxx_compiler {
       {
 	const type* Tx = elem.first;
 	if (Tx) {
-	  error::not_implemented();
-	  return T;
+	  assert(Tx->backpatch());
+	  return Tx->patch(T, 0);
 	}
 	vector<expressions::base*>* exprs = elem.second;
 	return accumulate(begin(*exprs), end(*exprs), T, calc2);

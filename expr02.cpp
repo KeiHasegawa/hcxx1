@@ -746,14 +746,30 @@ cxx_compiler::var* cxx_compiler::refaddr::address()
     }
     return ret;
   }
+
+  typedef const pointer_type PT;
+  typedef const reference_type RT;
+  PT* pt = 0;
+  RT* rt = 0;
+  if (m_type->m_id == type::POINTER)
+    pt = static_cast<PT*>(m_type);
   else {
-    typedef const pointer_type PT;
-    PT* pt = static_cast<PT*>(m_type);
-    usr* u = static_cast<usr*>(m_addrof.m_ref);
-    var* ret = new addrof(pt,u,m_addrof.m_offset);
-    garbage.push_back(ret);
-    return ret;
+    assert(m_type->m_id == type::REFERENCE);
+    rt = static_cast<RT*>(m_type);
   }
+
+  var* v = m_addrof.m_ref;
+  assert(v->usr_cast());
+  usr* u = static_cast<usr*>(v);
+
+  var* ret = 0;
+  if (m_type->m_id == type::POINTER)
+    ret = new addrof(pt,u,m_addrof.m_offset);
+  else
+    ret = new addrof(rt,u,m_addrof.m_offset);
+
+  garbage.push_back(ret);
+  return ret;
 }
 
 cxx_compiler::var* cxx_compiler::refsomewhere::address()
