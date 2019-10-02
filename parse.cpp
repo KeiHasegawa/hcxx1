@@ -1215,3 +1215,4 @@ namespace cxx_compiler {
   } // end of namespace parse
 } // end of namespace cxx_compiler
 
+bool cxx_compiler::parse::base_clause;

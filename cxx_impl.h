@@ -115,6 +115,7 @@ namespace parse {
     extern bool param;
     extern int arg;
   } // end of namespace templ
+  extern bool base_clause;
 } // end of namespace parse
 
 typedef pair<const fundef*, vector<tac*> > FUNCS_ELEMENT_TYPE;

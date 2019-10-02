@@ -1199,8 +1199,14 @@ base_clause
     {
       using namespace cxx_compiler::parse;
       identifier::mode = identifier::look;
+      base_clause = true;
     }
-    base_specifier_list { $$ = $3; }
+    base_specifier_list
+    {
+      $$ = $3;
+      using namespace cxx_compiler::parse;
+      base_clause = false;
+    }
   ;
 
 base_specifier_list

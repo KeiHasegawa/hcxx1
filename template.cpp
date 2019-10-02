@@ -448,9 +448,11 @@ namespace cxx_compiler {
 	{
 	  assert(ptr->m_kind2 == tag::TEMPLATE);
           template_tag* tt = static_cast<template_tag*>(ptr);
-	  int c = parse::peek();
-	  if (c == '{' || c == ':')
-	    return tt->special_ver(pv);
+	  if (!parse::base_clause) {
+	    int c = parse::peek();
+	    if (c == '{' || c == ':')
+	      return tt->special_ver(pv);
+	  }
 	  sweeper sweeper;
 	  return tt->instantiate(pv);
 	}
