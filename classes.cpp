@@ -50,7 +50,8 @@ cxx_compiler::classes::specifier::begin(int keyword, var* v,
       return;
     }
     tt = static_cast<template_tag*>(prev);
-    assert(tt == template_tag::instantiating);
+    assert(!template_tag::s_stack.empty());
+    assert(tt == template_tag::s_stack.top().first);
     const scope::TPSF& tpsf = tt->templ_base::m_tps.first;
     const scope::TPSS& tpss = tt->templ_base::m_tps.second;
     name += '<';
@@ -61,7 +62,9 @@ cxx_compiler::classes::specifier::begin(int keyword, var* v,
 
   tag* ptr;
   if (tt) {
-    ptr = template_tag::result
+    assert(!template_tag::s_stack.empty());
+    assert(!template_tag::s_stack.top().second);
+    ptr = template_tag::s_stack.top().second
       = new instantiated_tag(kind, name, file, bases, tt);
   }
   else {

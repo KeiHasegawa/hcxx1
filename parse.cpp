@@ -688,8 +688,10 @@ namespace cxx_compiler {
         cxx_compiler_lval.m_tag = static_cast<tag*>(lval.front());
         lval.pop_front();
 	if (templ) {
-	  if (cxx_compiler_lval.m_tag == template_tag::instantiating)
-	    cxx_compiler_lval.m_tag = template_tag::result;
+	  if (!template_tag::s_stack.empty()) {
+	    if (cxx_compiler_lval.m_tag == template_tag::s_stack.top().first)
+	      cxx_compiler_lval.m_tag = template_tag::s_stack.top().second;
+	  }
 	}
         return n;
       case DEFAULT_KW:

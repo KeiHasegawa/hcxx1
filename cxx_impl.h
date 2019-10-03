@@ -1551,8 +1551,7 @@ struct instantiated_name {
 
 struct template_tag : templ_base, tag {
   bool m_specified;  // decide token kind : TEMPLATE_NAME or CLASS_NAME
-  static instantiated_tag* result;
-  static template_tag* instantiating;
+  static stack<pair<template_tag*, instantiated_tag*> > s_stack;
   typedef map<KEY, tag*> table_t;
   table_t m_table;
   template_tag(tag& t, const scope::TPS& tps)

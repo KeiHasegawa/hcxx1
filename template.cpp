@@ -522,9 +522,7 @@ namespace cxx_compiler {
       }
     };
   } // end of namespace template_tag_impl
-  instantiated_tag* template_tag::result;
-  template_tag* template_tag::instantiating;
-
+  stack<pair<template_tag*, instantiated_tag*> > template_tag::s_stack;
 
   string instantiated_name::operator()(string name, string pn)
   {
@@ -614,15 +612,12 @@ template_tag::common(std::vector<std::pair<var*, const type*>*>* pv,
 
   templ_base tmp = *this;
   template_usr_impl::sweeper_b sweeper_b(m_parent, &tmp);
-  assert(!template_tag::result);
-  assert(!template_tag::instantiating);
-  template_tag::instantiating = this;
+  s_stack.push(make_pair(this,(instantiated_tag*)0));
   cxx_compiler_parse();
-  instantiated_tag* ret = template_tag::result;
+  instantiated_tag* ret = s_stack.top().second;
+  s_stack.pop();
   assert(ret->m_src == this);
   ret->m_seed = key;
-  template_tag::result = 0;
-  template_tag::instantiating = 0;
   return m_table[key] = ret;
 }
 
