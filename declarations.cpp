@@ -4,6 +4,10 @@
 #include "yy.h"
 #include "cxx_y.h"
 
+void debug_break()
+{
+}
+
 void cxx_compiler::declarations::destroy()
 {
   using namespace std;
@@ -497,21 +501,23 @@ void cxx_compiler::declarations::specifier_seq::info_t::update()
 std::stack<cxx_compiler::declarations::specifier_seq::info_t*>
 cxx_compiler::declarations::specifier_seq::info_t::s_stack;
 
-namespace cxx_compiler { namespace declarations {
-  void check_installed(usr*, specifier_seq::info_t*);
-  usr* exchange(bool installed, usr* new_one, usr* org);
-  usr* action2(usr*);
-  inline bool just_static_member_decl(usr* u)
-  {
-    scope* p = u->m_scope;
-    if (p->m_id != scope::TAG)
-      return false;
-    usr::flag_t flag = u->m_flag;
-    if (!(flag & usr::STATIC))
-      return false;
-    return !(flag & usr::STATIC_DEF);
-  }
-} } // end of namespace declarations ans cxx_compiler
+namespace cxx_compiler {
+  namespace declarations {
+    void check_installed(usr*, specifier_seq::info_t*);
+    usr* exchange(bool installed, usr* new_one, usr* org);
+    usr* action2(usr*);
+    inline bool just_static_member_decl(usr* u)
+    {
+      scope* p = u->m_scope;
+      if (p->m_id != scope::TAG)
+	return false;
+      usr::flag_t flag = u->m_flag;
+      if (!(flag & usr::STATIC))
+	return false;
+      return !(flag & usr::STATIC_DEF);
+    }
+  } // end of namespace declarations
+} // end of namespace cxx_compiler
 
 cxx_compiler::usr*
 cxx_compiler::declarations::action1(var* v, bool ini)
@@ -714,8 +720,13 @@ cxx_compiler::declarations::action1(var* v, bool ini)
     u = tmp;
   }
 
+  if (u->m_name == "f")
+    debug_break();
+
   if (!parse::templ::param) {
-    const scope::TPS& tps = scope::current->m_tps;
+    assert(!class_or_namespace_name::before.empty());
+    scope* ptr = class_or_namespace_name::before.back();
+    const scope::TPS& tps = ptr->m_tps;
     if (!tps.first.empty()) {
       using namespace parse::templ;
       assert(!save_t::s_stack.empty());
