@@ -248,13 +248,6 @@ cxx_compiler::var * cxx_compiler::refaddr::rvalue()
   return ret;
 }
 
-bool cxx_compiler::refaddr::lvalue() const
-{
-  if (m_addrof.m_ref->lvalue())
-    return true;
-  return m_type->m_id == type::REFERENCE;
-}
-
 cxx_compiler::usr* cxx_compiler::refbit::mask(int n)
 {
   return expressions::primary::literal::integer::create(~(~0 << n));

@@ -1333,7 +1333,7 @@ struct refaddr : ref {
   refaddr(const reference_type* rt, var* v, int offset)
     : ref(rt), m_addrof(rt,v,offset) {}
   var* rvalue();
-  bool lvalue() const;
+  bool lvalue() const { return m_addrof.m_ref->lvalue(); }
   var* assign(var*);
   var* address();
   var* offref(const type*, var*);

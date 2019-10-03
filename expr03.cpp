@@ -11,8 +11,15 @@ namespace cxx_compiler { namespace expressions { namespace cast {
 cxx_compiler::var* cxx_compiler::expressions::cast::info_t::gen()
 {
   var* expr = m_expr->gen();
-  expr = expr->rvalue();
   const type* T = m_type->unqualified();
+  if (T->m_id == type::REFERENCE) {
+    const type* Ty = expr->m_type;
+    if (Ty->m_id == type::REFERENCE) {
+      const type* res = valid(T, expr);
+      return expr->cast(T);
+    }
+  }
+  expr = expr->rvalue();
   if (T->m_id == type::VOID) {
     var* ret = new var(T);
     garbage.push_back(ret);
