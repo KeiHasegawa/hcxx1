@@ -244,6 +244,7 @@ namespace cxx_compiler {
       scope* m_del;
       file_t m_file;
       fundef* m_fundef;
+      templ_base* m_ptr;
       vector<var*> m_garbage;
       vector<tac*> m_code;
       vector<scope*> m_before;
@@ -257,7 +258,8 @@ namespace cxx_compiler {
       sweeper_b(scope* p, templ_base* q)
 	: m_current(scope::current), m_parent(scope::current->m_parent),
 	  m_del(scope::current), m_file(parse::position),
-	  m_fundef(fundef::current), m_garbage(garbage), m_code(code),
+	  m_fundef(fundef::current), m_ptr(parse::templ::ptr),
+	  m_garbage(garbage), m_code(code),
 	  m_before(class_or_namespace_name::before),
 	  m_stack(parse::templ::save_t::s_stack), m_yychar(cxx_compiler_char)
       {
@@ -296,6 +298,7 @@ namespace cxx_compiler {
 	class_or_namespace_name::before = m_before;
 	code = m_code;
 	garbage = m_garbage;
+	parse::templ::ptr = m_ptr;
 	fundef::current = m_fundef;
 	parse::position = m_file;
 	if (m_parent) {
@@ -303,7 +306,6 @@ namespace cxx_compiler {
 	  children.push_back(m_del);
 	}
 	scope::current = m_current;
-	parse::templ::ptr = 0;
       }
     };
     bool comp(const scope::TPSFVS& x, const scope::TPSFVS& y)
