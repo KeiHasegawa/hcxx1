@@ -1437,6 +1437,7 @@ struct member_function : var {
   member_function(var* obj, var* fun, var* vftbl_off)
     : var(0), m_obj(obj), m_fun(fun), m_qualified_func(false),
     m_vftbl_off(vftbl_off) {}
+  void instantiate_if();
   var* call(vector<var*>*);
   var* rvalue();
 };
@@ -1541,6 +1542,7 @@ struct template_usr : usr, templ_base {
     m_flag2 = usr::flag2_t(m_flag2 | usr::TEMPLATE);
   }
   usr* instantiate(vector<var*>* arg);
+  void instantiate(const KEY&);
 };
 
 struct instantiated_name {

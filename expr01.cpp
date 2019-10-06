@@ -239,6 +239,7 @@ cxx_compiler::member_function::call(std::vector<var*>* arg)
       }
     }
   }
+  instantiate_if();
   return ret;
 }
 
@@ -298,7 +299,67 @@ cxx_compiler::member_function::rvalue()
   tag* ptr = static_cast<tag*>(p);
   assert(m_fun->usr_cast());
   usr* fun = static_cast<usr*>(m_fun);
-  return fun_ptr_mem(ptr, fun);
+  var* ret = fun_ptr_mem(ptr, fun);
+  instantiate_if();
+  return ret;
+}
+
+namespace cxx_compiler {
+  namespace member_function_impl {
+    inline bool template_param(const scope::TPSFVS& x)
+    {
+      const type* T = x.first;
+      if (!T)
+	error::not_implemented();
+      return T->m_id == type::TEMPLATE_PARAM;
+    }
+    template_usr* has_templ(const pair<template_tag::KEY, tag*>& x, usr* fun)
+    {
+      const template_tag::KEY& key = x.first;
+      template_tag::KEY::const_iterator p =
+	find_if(begin(key), end(key), not1(ptr_fun(template_param)));
+      if (p != end(key))
+	return 0;
+      tag* ptr = x.second;
+      map<string, vector<usr*> >& usrs = ptr->m_usrs;
+      string name = fun->m_name;
+      map<string, vector<usr*> >::const_iterator q = usrs.find(name);
+      assert(q != usrs.end());
+      const vector<usr*>& v = q->second;
+      usr* u = v.back();
+      usr::flag2_t flag2 = u->m_flag2;
+      if (!(flag2 & usr::TEMPLATE))
+	return 0;
+      return static_cast<template_usr*>(u);
+    }
+  } // end of namespace member_function_impl
+} // end of namespace cxx_compiler
+
+void cxx_compiler::member_function::instantiate_if()
+{
+  usr* fun = m_fun->usr_cast();
+  if (!fun)
+    return;
+  scope* ps = m_fun->m_scope;
+  assert(ps->m_id == scope::TAG);
+  tag* ptr = static_cast<tag*>(ps);
+  if (ptr->m_kind2 != tag::INSTANTIATE)
+    return;
+  instantiated_tag* it = static_cast<instantiated_tag*>(ptr);
+  template_tag* tt = it->m_src;
+  const template_tag::table_t& tbl = tt->m_table;
+  typedef template_tag::table_t::const_iterator IT;
+  using namespace member_function_impl;
+  template_usr* tu = 0;
+  IT p = find_if(begin(tbl), end(tbl),
+		 [fun, &tu](const pair<template_tag::KEY, tag*>& x)
+		 { return tu = has_templ(x, fun); } );
+  if (p == end(tbl))
+    return;
+  tag* ptr2 = p->second;
+  assert(find_if(++p, end(tbl), [fun](const pair<template_tag::KEY, tag*>& x)
+		 { return has_templ(x,fun); } ) == end(tbl));
+  tu->instantiate(it->m_seed);
 }
 
 namespace cxx_compiler {

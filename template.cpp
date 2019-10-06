@@ -429,6 +429,11 @@ cxx_compiler::template_usr::instantiate(std::vector<var*>* arg)
   return templ_impl::install(usrs, m_name, key);
 }
 
+void cxx_compiler::template_usr::instantiate(const KEY& key)
+{
+  error::not_implemented();
+}
+
 namespace cxx_compiler {
   namespace declarations {
     namespace templ {

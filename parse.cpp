@@ -752,9 +752,16 @@ int cxx_compiler::parse::get_token()
 {
   if (!g_read.m_token.empty()) {
     position = g_read.m_token.front().second;
+    int prev = last_token;
     last_token = g_read.m_token.front().first;
     g_read.m_token.pop_front();
-    get_common(last_token, g_read.m_lval, false, false);
+    if (prev == COLONCOLON_MK && last_token == PEEKED_NAME_LEX) {
+      int n = last_token;
+      last_token = prev;
+      get_common(n, g_read.m_lval, false, false);
+    }
+    else
+      get_common(last_token, g_read.m_lval, false, false);
     if (last_token == COLONCOLON_MK) {
       if (scope::current->m_id != scope::TAG && peek() != '*')
         identifier::mode = identifier::look;

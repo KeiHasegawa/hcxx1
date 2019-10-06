@@ -4,10 +4,6 @@
 #include "yy.h"
 #include "cxx_y.h"
 
-void debug_break()
-{
-}
-
 void cxx_compiler::declarations::destroy()
 {
   using namespace std;
@@ -503,7 +499,7 @@ cxx_compiler::declarations::specifier_seq::info_t::s_stack;
 
 namespace cxx_compiler {
   namespace declarations {
-    void check_installed(usr*, specifier_seq::info_t*);
+    usr* check_installed(usr*, specifier_seq::info_t*, bool*);
     usr* exchange(bool installed, usr* new_one, usr* org);
     usr* action2(usr*);
     inline bool just_static_member_decl(usr* u)
@@ -524,6 +520,8 @@ cxx_compiler::declarations::action1(var* v, bool ini)
 {
   using namespace std;
   using namespace error::declarations::specifier_seq::type;
+  if (genaddr* ga = v->genaddr_cast())
+    v = ga->m_ref;
   assert(v->usr_cast());
   usr* u = static_cast<usr*>(v);
   const type* T = u->m_type;
@@ -563,7 +561,7 @@ cxx_compiler::declarations::action1(var* v, bool ini)
       p->m_type = int_type::create();
     }
     if (installed)
-      check_installed(u, p);
+      u = check_installed(u, p, &installed);
     else {
       u->m_flag = flag = usr::flag_t(flag | p->m_flag);
       u->m_type = T = T->patch(p->m_type,u);
@@ -719,9 +717,6 @@ cxx_compiler::declarations::action1(var* v, bool ini)
     usrs[name].push_back(tmp);
     u = tmp;
   }
-
-  if (u->m_name == "f")
-    debug_break();
 
   if (!parse::templ::param) {
     assert(!class_or_namespace_name::before.empty());
@@ -1067,14 +1062,22 @@ namespace cxx_compiler {
   }
 } // end of namespace cxx_compiler
 
-void
-cxx_compiler::declarations::check_installed(usr* u, specifier_seq::info_t* p)
+cxx_compiler::usr*
+cxx_compiler::declarations::
+check_installed(usr* u, specifier_seq::info_t* p, bool* installed)
 {
   usr::flag_t flag = u->m_flag;
+  if ((flag & usr::EXTERN) && !(p->m_flag & usr::EXTERN)) {
+    usr* ret = new usr(*u);
+    ret->m_flag = usr::flag_t((flag & ~usr::EXTERN) | p->m_flag);
+    ret->m_file = parse::position;
+    *installed = false;
+    return ret;
+  }
   u->m_flag = flag = usr::flag_t(flag | p->m_flag);
   const type* Tu = u->m_type;
   if (flag & usr::OVERLOAD)
-    return;
+    return u;
   assert(!Tu->backpatch());
   if (Tu->m_id == type::FUNC) {
     typedef const func_type FT;
@@ -1084,6 +1087,7 @@ cxx_compiler::declarations::check_installed(usr* u, specifier_seq::info_t* p)
     if (!compatible(T, Tp))
       error::not_implemented();
   }
+  return u;
 }
 
 cxx_compiler::usr*
