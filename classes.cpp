@@ -75,7 +75,10 @@ cxx_compiler::classes::specifier::begin(int keyword, var* v,
       assert(!save_t::s_stack.empty());
       save_t* p = save_t::s_stack.top();
       assert(!p->m_tag);
+      assert(!class_or_namespace_name::before.empty());
+      assert(class_or_namespace_name::before.back() == ptr);
       p->m_tag = ptr = new template_tag(*ptr, tps);
+      class_or_namespace_name::before.back() = ptr;
     }
   }
 

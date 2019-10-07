@@ -238,8 +238,8 @@ cxx_compiler::member_function::call(std::vector<var*>* arg)
 	}
       }
     }
+    instantiate_if(u);
   }
-  instantiate_if();
   return ret;
 }
 
@@ -300,7 +300,7 @@ cxx_compiler::member_function::rvalue()
   assert(m_fun->usr_cast());
   usr* fun = static_cast<usr*>(m_fun);
   var* ret = fun_ptr_mem(ptr, fun);
-  instantiate_if();
+  instantiate_if(fun);
   return ret;
 }
 
@@ -335,13 +335,13 @@ namespace cxx_compiler {
   } // end of namespace member_function_impl
 } // end of namespace cxx_compiler
 
-void cxx_compiler::member_function::instantiate_if()
+void cxx_compiler::instantiate_if(usr* fun)
 {
-  usr* fun = m_fun->usr_cast();
   if (!fun)
     return;
-  scope* ps = m_fun->m_scope;
-  assert(ps->m_id == scope::TAG);
+  scope* ps = fun->m_scope;
+  if (ps->m_id != scope::TAG)
+    return;
   tag* ptr = static_cast<tag*>(ps);
   if (ptr->m_kind2 != tag::INSTANTIATE)
     return;

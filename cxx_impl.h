@@ -1437,10 +1437,11 @@ struct member_function : var {
   member_function(var* obj, var* fun, var* vftbl_off)
     : var(0), m_obj(obj), m_fun(fun), m_qualified_func(false),
     m_vftbl_off(vftbl_off) {}
-  void instantiate_if();
   var* call(vector<var*>*);
   var* rvalue();
 };
+
+void instantiate_if(usr*);
 
 var* fun_ptr_mem(tag* ptr, usr* fun);
 

@@ -1456,8 +1456,11 @@ cxx_compiler::unqualified_id::operator_function_id(int op)
   const stack<INFO*>& s = INFO::s_stack;
   string opn = operator_name(op);
   if (!s.empty() && s.top()) {
-    const type* bp = backpatch_type::create();
-    return new usr(opn, bp, usr::NONE, parse::position, usr::OPERATOR);
+    assert(!class_or_namespace_name::before.empty());
+    if (scope::current == class_or_namespace_name::before.back()) {
+      const type* bp = backpatch_type::create();
+      return new usr(opn, bp, usr::NONE, parse::position, usr::OPERATOR);
+    }
   }
   parse::identifier::mode_t morg = parse::identifier::mode;
   parse::identifier::mode = parse::identifier::no_err;
