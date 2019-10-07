@@ -708,16 +708,6 @@ cxx_compiler::declarations::action1(var* v, bool ini)
     }
   }
 
-  if (installed && u->m_scope->m_id == scope::TAG && (flag & usr::STATIC)
-      && T->size()) {
-    usr* tmp = new usr(*u);
-    tmp->m_flag = usr::flag_t(tmp->m_flag | usr::STATIC_DEF);
-    tmp->m_file = parse::position;
-    map<string, vector<usr*> >& usrs = tmp->m_scope->m_usrs;
-    usrs[name].push_back(tmp);
-    u = tmp;
-  }
-
   if (!parse::templ::param) {
     assert(!class_or_namespace_name::before.empty());
     scope* ptr = class_or_namespace_name::before.back();
@@ -1074,8 +1064,21 @@ check_installed(usr* u, specifier_seq::info_t* p, bool* installed)
     *installed = false;
     return ret;
   }
-  u->m_flag = flag = usr::flag_t(flag | p->m_flag);
+
+  scope* ps = u->m_scope;
   const type* Tu = u->m_type;
+  if (Tu)
+    Tu = Tu->complete_type();
+  if (ps->m_id == scope::TAG && (flag & usr::STATIC) && Tu && Tu->size()) {
+    usr* ret = new usr(*u);
+    ret->m_flag = usr::flag_t(flag | p->m_flag | usr::STATIC_DEF);
+    ret->m_file = parse::position;
+    map<string, vector<usr*> >& usrs = ps->m_usrs;
+    string name = u->m_name;
+    usrs[name].push_back(ret);
+    return ret;
+  }
+  u->m_flag = flag = usr::flag_t(flag | p->m_flag);
   if (flag & usr::OVERLOAD)
     return u;
   assert(!Tu->backpatch());
@@ -1087,7 +1090,10 @@ check_installed(usr* u, specifier_seq::info_t* p, bool* installed)
     if (!compatible(T, Tp))
       error::not_implemented();
   }
-  return u;
+  usr* ret = new usr(*u);
+  ret->m_file = parse::position;
+  *installed = false;
+  return ret;
 }
 
 cxx_compiler::usr*
