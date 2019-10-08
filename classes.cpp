@@ -431,6 +431,11 @@ namespace cxx_compiler {
 	    {
               using namespace expressions::primary::literal;
 	      string name = ptr->m_name;
+	      if (ptr->m_kind2 == tag::INSTANTIATE) {
+		instantiated_tag* it = static_cast<instantiated_tag*>(ptr);
+		template_tag* tt = it->m_src;
+		name = tt->m_name;
+	      }
 	      typedef map<string, vector<usr*> >::const_iterator IT;
 	      IT p = ptr->m_usrs.find(name);
 	      if (p == ptr->m_usrs.end())

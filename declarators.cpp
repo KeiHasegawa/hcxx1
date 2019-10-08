@@ -1282,6 +1282,10 @@ namespace cxx_compiler {
         typedef const incomplete_tagged_type ITT;
         ITT* itt = static_cast<ITT*>(T);
         tag* ptr = itt->get_tag();
+	if (ptr->m_kind2 == tag::INSTANTIATE) {
+	  instantiated_tag* it = static_cast<instantiated_tag*>(ptr);
+	  ptr = it->m_src;
+	}
         string name = ptr->m_name;
         T = backpatch_type::create();
         return new usr(name, T, flag, parse::position, usr::NONE2);
@@ -1296,6 +1300,10 @@ namespace cxx_compiler {
         typedef const record_type REC;
         REC* rec = static_cast<REC*>(T);
         tag* ptr = rec->get_tag();
+	if (ptr->m_kind2 == tag::INSTANTIATE) {
+	  instantiated_tag* it = static_cast<instantiated_tag*>(ptr);
+	  ptr = it->m_src;
+	}
         string name = ptr->m_name;
         T = backpatch_type::create();
         return new usr(name, T, usr::CTOR, parse::position, usr::NONE2);

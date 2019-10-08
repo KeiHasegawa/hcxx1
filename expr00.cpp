@@ -1322,6 +1322,10 @@ cxx_compiler::block* cxx_compiler::expressions::primary::get_block()
 cxx_compiler::var* cxx_compiler::unqualified_id::dtor(tag* ptr)
 {
   using namespace std;
+  if (ptr->m_kind2 == tag::INSTANTIATE) {
+    instantiated_tag* it = static_cast<instantiated_tag*>(ptr);
+    ptr = it->m_src;
+  }
   string name = "~" + ptr->m_name;
   const type* T = backpatch_type::create();
   return new usr(name, T, usr::DTOR, parse::position, usr::NONE2);

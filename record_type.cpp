@@ -2971,6 +2971,11 @@ void cxx_compiler::call_default_ctor(var* v)
   REC* rec = static_cast<REC*>(T);
   tag* ptr = rec->get_tag();
   string name = ptr->m_name;
+  if (ptr->m_kind2 == tag::INSTANTIATE) {
+    instantiated_tag* it = static_cast<instantiated_tag*>(ptr);
+    template_tag* tt = it->m_src;
+    name = tt->m_name;
+  }
   const map<string, vector<usr*> >& usrs = ptr->m_usrs;
   map<string, vector<usr*> >::const_iterator p = usrs.find(name);
   if (p == usrs.end())
