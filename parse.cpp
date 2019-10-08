@@ -439,15 +439,23 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
       tdef->m_refed.push_back(parse::position);
       return TYPEDEF_NAME_LEX;
     }
-    if (flag & usr::CTOR)
+    if (flag & usr::CTOR) {
+      assert(ptr->m_id == scope::TAG);
+      tag* ptag = static_cast<tag*>(ptr);
+      name = tor_name(ptag);
       return lookup(name, ptr->m_parent);
+    }
     if (flag & usr::OVERLOAD) {
       overload* ovl = static_cast<overload*>(u);
       const vector<usr*>& v = ovl->m_candidacy;
       assert(!v.empty());
       usr* uu = v.back();
-      if (uu->m_flag & usr::CTOR)
+      if (uu->m_flag & usr::CTOR) {
+	assert(ptr->m_id == scope::TAG);
+	tag* ptag = static_cast<tag*>(ptr);
+	name = tor_name(ptag);
 	return lookup(name, ptr->m_parent);
+      }
       return IDENTIFIER_LEX;
     }
     if (flag & usr::NAMESPACE) {

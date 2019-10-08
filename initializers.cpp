@@ -381,12 +381,7 @@ expr_list(std::vector<expressions::base*>* exprs, argument* arg)
   typedef const record_type REC;
   REC* rec = static_cast<REC*>(T);
   tag* ptr = rec->get_tag();
-  string name = ptr->m_name;
-  if (ptr->m_kind2 == tag::INSTANTIATE) {
-    instantiated_tag* it = static_cast<instantiated_tag*>(ptr);
-    template_tag* tt = it->m_src;
-    name = tt->m_name;
-  }
+  string name = tor_name(ptr);
   typedef map<string, vector<usr*> >::const_iterator IT;
   IT p = ptr->m_usrs.find(name);
   if (p == ptr->m_usrs.end()) {

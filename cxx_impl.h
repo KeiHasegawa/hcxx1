@@ -1569,6 +1569,15 @@ struct template_tag : templ_base, tag {
   { return common(pv, true); }
 };
 
+inline string tor_name(tag* ptr)
+{
+  if (ptr->m_kind2 == tag::INSTANTIATE) {
+    instantiated_tag* it = static_cast<instantiated_tag*>(ptr);
+    ptr = it->m_src;
+  }
+  return ptr->m_name;
+}
+
 namespace parse {
   namespace templ {
     extern templ_base* ptr;
