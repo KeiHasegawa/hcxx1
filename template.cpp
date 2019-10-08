@@ -412,6 +412,7 @@ cxx_compiler::template_usr::instantiate(std::vector<var*>* arg)
   const scope::TPSS& tpss = m_tps.second;
   transform(begin(tpss), end(tpss), back_inserter(key),
 	    template_usr_impl::decide(tpsf));
+
   table_t::const_iterator it = m_table.find(key);
   if (it != m_table.end())
     return it->second;
@@ -429,10 +430,81 @@ cxx_compiler::template_usr::instantiate(std::vector<var*>* arg)
   return templ_impl::install(usrs, m_name, key);
 }
 
-void cxx_compiler::template_usr::instantiate(const KEY& key)
+void cxx_compiler::template_usr::mark(const KEY& key)
 {
-  error::not_implemented();
+  marked.push_back(make_pair(this, key));
 }
+
+namespace cxx_compiler {
+  namespace template_usr_impl {
+    struct sweeper_c : sweeper_a {
+      struct helper {
+	const scope::TPSF& m_tpsf;
+	helper(const scope::TPSF& tpsf) : m_tpsf(tpsf) {}
+	bool operator()(string name, const pair<const type*, var*>& x)
+	{
+	  scope::TPSF::const_iterator p = m_tpsf.find(name);
+	  assert(p != m_tpsf.end());
+	  const scope::TPSFV& tpsfv = p->second;
+	  if (tag* ptr = tpsfv.first) {
+	    const type* T = x.first;
+	    assert(T);
+	    ptr->m_types.second = T;
+	  }
+	  else {
+	    scope::TPSFVS* y = tpsfv.second;
+	    var* v = x.second;
+	    assert(v);
+	    y->second = v;
+	  }
+	  return true;
+	}
+      };
+      sweeper_c(const scope::TPS& tps, const template_usr::KEY& key)
+	: sweeper_a(tps.first)
+      {
+	const scope::TPSF& tpsf = tps.first;
+	const vector<string>& v = tps.second;
+	assert(v.size() == key.size());
+	mismatch(begin(v), end(v), begin(key), helper(tpsf));
+      }
+    };
+  } // end of namespace template_usr_impl
+} // end of namespace cxx_compiler
+
+cxx_compiler::usr* cxx_compiler::template_usr::instantiate(const KEY& key)
+{
+  table_t::const_iterator it = m_table.find(key);
+  if (it != m_table.end())
+    return it->second;
+  it = find_if(m_table.begin(), m_table.end(),
+	       [key](const pair<KEY, usr*>& x)
+	       { return template_usr_impl::match(key, x.first); });
+  if (it != m_table.end())
+    return it->second;
+
+  template_usr_impl::sweeper_c sweeper_c(m_tps, key);
+
+  templ_base tmp = *this;
+  template_usr_impl::sweeper_b sweeper_b(m_scope, &tmp);
+  cxx_compiler_parse();
+
+
+  map<string, vector<usr*> >& usrs = scope::current->m_usrs;
+  return templ_impl::install(usrs, m_name, key);
+}
+
+namespace cxx_compiler {
+  using namespace std;
+  vector<pair<template_usr*, template_usr::KEY> > template_usr::marked; 
+  void template_usr::gen()
+  {
+    for_each(begin(marked), end(marked),
+	     [](const pair<template_usr*, template_usr::KEY>& x)
+	     { x.first->instantiate(x.second); });
+    marked.clear();
+  }
+} // end of namepsace cxx_compiler
 
 namespace cxx_compiler {
   namespace declarations {
