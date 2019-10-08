@@ -1008,6 +1008,8 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
     const type* y = curr->m_type;
     if (const type* z = composite(x, y)) {
       curr->m_type = z;
+      if (parse::templ::ptr)
+	curr->m_flag2 = usr::flag2_t(curr->m_flag2 | usr::INSTANTIATE);
       return curr;
     }
   }

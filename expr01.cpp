@@ -359,7 +359,7 @@ void cxx_compiler::instantiate_if(usr* fun)
   tag* ptr2 = p->second;
   assert(find_if(++p, end(tbl), [fun](const pair<template_tag::KEY, tag*>& x)
 		 { return has_templ(x,fun); } ) == end(tbl));
-  tu->mark(it->m_seed);
+  tu->mark(it);
 }
 
 namespace cxx_compiler {

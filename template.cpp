@@ -430,9 +430,9 @@ cxx_compiler::template_usr::instantiate(std::vector<var*>* arg)
   return templ_impl::install(usrs, m_name, key);
 }
 
-void cxx_compiler::template_usr::mark(const KEY& key)
+void cxx_compiler::template_usr::mark(instantiated_tag* it)
 {
-  marked.push_back(make_pair(this, key));
+  marked.push_back(make_pair(this, it));
 }
 
 namespace cxx_compiler {
@@ -472,35 +472,41 @@ namespace cxx_compiler {
   } // end of namespace template_usr_impl
 } // end of namespace cxx_compiler
 
-cxx_compiler::usr* cxx_compiler::template_usr::instantiate(const KEY& key)
+cxx_compiler::usr*
+cxx_compiler::template_usr::instantiate(instantiated_tag* it)
 {
-  table_t::const_iterator it = m_table.find(key);
-  if (it != m_table.end())
-    return it->second;
-  it = find_if(m_table.begin(), m_table.end(),
-	       [key](const pair<KEY, usr*>& x)
+  const KEY& key = it->m_seed;
+  table_t::const_iterator p = m_table.find(key);
+  if (p != m_table.end())
+    return p->second;
+  p = find_if(m_table.begin(), m_table.end(),
+	      [key](const pair<KEY, usr*>& x)
 	       { return template_usr_impl::match(key, x.first); });
-  if (it != m_table.end())
-    return it->second;
+  if (p != m_table.end())
+    return p->second;
 
   template_usr_impl::sweeper_c sweeper_c(m_tps, key);
 
   templ_base tmp = *this;
-  template_usr_impl::sweeper_b sweeper_b(m_scope, &tmp);
+  template_usr_impl::sweeper_b sweeper_b(scope::current, &tmp);
   cxx_compiler_parse();
 
-
-  map<string, vector<usr*> >& usrs = scope::current->m_usrs;
-  return templ_impl::install(usrs, m_name, key);
+  const map<string, vector<usr*> >& usrs = it->m_usrs;
+  map<string, vector<usr*> >::const_iterator q = usrs.find(m_name);
+  assert(q != usrs.end());
+  const vector<usr*>& v = q->second;
+  usr* ins = v.back();
+  assert(ins->m_flag2 & usr::INSTANTIATE);
+  return m_table[key] = ins;
 }
 
 namespace cxx_compiler {
   using namespace std;
-  vector<pair<template_usr*, template_usr::KEY> > template_usr::marked; 
+  vector<pair<template_usr*, instantiated_tag*> > template_usr::marked; 
   void template_usr::gen()
   {
     for_each(begin(marked), end(marked),
-	     [](const pair<template_usr*, template_usr::KEY>& x)
+	     [](const pair<template_usr*, instantiated_tag*>& x)
 	     { x.first->instantiate(x.second); });
     marked.clear();
   }
