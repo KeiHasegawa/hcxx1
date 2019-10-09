@@ -57,9 +57,11 @@ namespace parse {
     vector<void*> m_stack1;
     int m_char;
     read_t m_read;
+    scope* m_scope;
+    vector<scope*> m_before;
+    scope* m_last;
     context_t(int state, const vector<short>& vs, const vector<void*>& vv,
-              int c)
-    : m_state(state), m_stack0(vs), m_stack1(vv), m_char(c) {}
+              int c);
     static vector<context_t> all;
     static map<int, bool> retry;
     static void clear(){ all.clear(); retry.clear(); }

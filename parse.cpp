@@ -6,6 +6,7 @@
 #include "patch.03.q"
 #include "patch.04.q"
 #include "patch.10.q"
+#include "patch.15.q"
 
 namespace cxx_compiler {
   namespace parse {
@@ -664,7 +665,8 @@ namespace cxx_compiler {
 	  last_token = identifier::judge(name);
 	}
         else if (context_t::retry[DECL_FCAST_CONFLICT_STATE] ||
-		 context_t::retry[TYPE_NAME_CONFLICT_STATE]) {
+		 context_t::retry[TYPE_NAME_CONFLICT_STATE] ||
+		 context_t::retry[NESTED_TYPE_NAME_CONFLICT_STATE]) {
           usr* u = static_cast<usr*>(cxx_compiler_lval.m_var);
           assert(u->m_type->backpatch());
           string name = u->m_name;
@@ -1163,6 +1165,11 @@ std::string cxx_compiler::ucn::conv(std::string name)
 
 namespace cxx_compiler {
   namespace parse {
+    context_t::context_t(int state, const vector<short>& vs,
+			 const vector<void*>& vv, int c)
+    : m_state(state), m_stack0(vs), m_stack1(vv), m_char(c),
+      m_scope(scope::current), m_before(class_or_namespace_name::before),
+      m_last(class_or_namespace_name::last) {}
     vector<context_t> context_t::all;
     map<int, bool> context_t::retry;
     void save(int state, short* b0, short* t0, YYSTYPE* b1, YYSTYPE* t1)
@@ -1194,6 +1201,9 @@ namespace cxx_compiler {
       cxx_compiler_char = x.m_char;
       read_t tmp = g_read;
       g_read = x.m_read;
+      scope::current = x.m_scope;
+      class_or_namespace_name::before = x.m_before;
+      class_or_namespace_name::last = x.m_last;
       copy(begin(tmp.m_token), end(tmp.m_token),
 	   back_inserter(g_read.m_token));
       copy(begin(tmp.m_lval), end(tmp.m_lval), back_inserter(g_read.m_lval));

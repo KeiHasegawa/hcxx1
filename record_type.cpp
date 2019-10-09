@@ -2982,6 +2982,7 @@ void cxx_compiler::call_default_ctor(var* v)
     return;
   usr* ctor = *q;
   call_impl::wrapper(ctor, 0, v);
+  instantiate_if(ctor);
 }
 
 namespace cxx_compiler {

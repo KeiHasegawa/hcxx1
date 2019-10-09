@@ -326,7 +326,7 @@ void cxx_compiler::declarations::initializers::gencode(usr* u)
 	}
       }
     }
-    return;
+    return instantiate_if(copy_ctor);
   }
 
   if (compatible(Tx, Ty)) {
@@ -443,6 +443,7 @@ expr_list(std::vector<expressions::base*>* exprs, argument* arg)
   copy(begin(code)+n, end(code), back_inserter(c));
   code.resize(n);
 
+  instantiate_if(ctor);
   return 0;
 }
 

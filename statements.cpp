@@ -268,8 +268,7 @@ void cxx_compiler::call_dtor(var* v)
   typedef const record_type REC;
   REC* rec = static_cast<REC*>(T);
   tag* ptr = rec->get_tag();
-  string name = ptr->m_name;
-  name = "~" + name;
+  string name = '~' + tor_name(ptr); 
   const map<string, vector<usr*> >& usrs = ptr->m_usrs;
   map<string, vector<usr*> >::const_iterator p = usrs.find(name);
   if ( p == usrs.end() )
@@ -277,6 +276,7 @@ void cxx_compiler::call_dtor(var* v)
   const vector<usr*>& vu = p->second;
   usr* dtor = vu.back();
   call_impl::wrapper(dtor, 0, v);
+  instantiate_if(dtor);
 }
 
 cxx_compiler::statements::compound::info_t::~info_t()
