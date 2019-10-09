@@ -1603,6 +1603,14 @@ namespace templ_impl {
 
 bool instance_of(usr* templ, usr* ins, templ_base::KEY& key);
 
+inline bool template_param(const scope::TPSFVS& x)
+{
+  const type* T = x.first;
+  if (!T)
+    error::not_implemented();
+  return T->m_id == type::TEMPLATE_PARAM;
+}
+
 } // end of namespace cxx_compiler
 
 #endif // _CXX_IMPL_H_

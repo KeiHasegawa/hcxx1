@@ -75,9 +75,9 @@ OBJS = $(SRCS:.cpp=.o)
 PATCHS = patch.00.p patch.01.p patch.02.p patch.03.p patch.04.p patch.04.p2 \
 	 patch.05.p patch.05.2.p patch.06.p patch.07.p patch.08.p \
 	 patch.09.p patch.10.p patch.10.p2 patch.11.p patch.12.p patch.13.p \
-	 patch.14.p patch.15.p patch.15.p2
+	 patch.14.p
 
-PATCHS_HEADER = patch.03.q patch.04.q patch.10.q patch.15.q
+PATCHS_HEADER = patch.03.q patch.04.q patch.10.q
 
 parse.o : $(PATCHS_HEADER)
 expr01.o : $(PATCHS_HEADER)

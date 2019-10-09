@@ -6,7 +6,6 @@
 #include "patch.03.q"
 #include "patch.04.q"
 #include "patch.10.q"
-#include "patch.15.q"
 
 namespace cxx_compiler {
   namespace parse {
@@ -665,8 +664,7 @@ namespace cxx_compiler {
 	  last_token = identifier::judge(name);
 	}
         else if (context_t::retry[DECL_FCAST_CONFLICT_STATE] ||
-		 context_t::retry[TYPE_NAME_CONFLICT_STATE] ||
-		 context_t::retry[NESTED_TYPE_NAME_CONFLICT_STATE]) {
+		 context_t::retry[TYPE_NAME_CONFLICT_STATE] ) {
           usr* u = static_cast<usr*>(cxx_compiler_lval.m_var);
           assert(u->m_type->backpatch());
           string name = u->m_name;
@@ -690,7 +688,32 @@ namespace cxx_compiler {
 	  cxx_compiler_lval.m_var->m_scope = scope::current;
         return n;
       case CLASS_NAME_LEX:
+        assert(!lval.empty());
+        cxx_compiler_lval.m_tag = static_cast<tag*>(lval.front());
+        lval.pop_front();
+	if (templ) {
+	  tag* ptr = cxx_compiler_lval.m_tag;
+	  if (ptr->m_kind2 == tag::INSTANTIATE) {
+	    instantiated_tag* it = static_cast<instantiated_tag*>(ptr);
+	    const instantiated_tag::SEED& seed = it->m_seed;
+	    typedef instantiated_tag::SEED::const_iterator IT;
+	    IT p = find_if(begin(seed), end(seed),
+			   not1(ptr_fun(template_param)));
+	    if (p == end(seed)) {
+	      template_tag* tt = it->m_src;
+	      string name = tt->m_name;
+	      int r = identifier::lookup(name, scope::current);
+	      assert(r == CLASS_NAME_LEX);
+	      return r;
+	    }
+	  }
+	}
+	return n;
       case ENUM_NAME_LEX:
+        assert(!lval.empty());
+        cxx_compiler_lval.m_tag = static_cast<tag*>(lval.front());
+        lval.pop_front();
+	return n;
       case TEMPLATE_NAME_LEX:
         assert(!lval.empty());
         cxx_compiler_lval.m_tag = static_cast<tag*>(lval.front());

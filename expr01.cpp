@@ -306,13 +306,6 @@ cxx_compiler::member_function::rvalue()
 
 namespace cxx_compiler {
   namespace member_function_impl {
-    inline bool template_param(const scope::TPSFVS& x)
-    {
-      const type* T = x.first;
-      if (!T)
-	error::not_implemented();
-      return T->m_id == type::TEMPLATE_PARAM;
-    }
     template_usr* has_templ(const pair<template_tag::KEY, tag*>& x, usr* fun)
     {
       const template_tag::KEY& key = x.first;

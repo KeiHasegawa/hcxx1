@@ -7,8 +7,6 @@ end
 perl patch.03.pl -h cxx_y.output > patch.03.q
 perl patch.04.pl -h cxx_y.output > patch.04.q
 perl patch.10.pl -h cxx_y.output > patch.10.q
-perl patch.15.pl -h cxx_y.output > patch.15.q
 
 perl patch.04.pl -2 cxx_y.output > patch.04.p2
 perl patch.10.pl -2 cxx_y.output > patch.10.p2
-perl patch.15.pl -2 cxx_y.output > patch.15.p2

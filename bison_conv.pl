@@ -14,14 +14,12 @@ while ( <> ){
   if ( /yychar = yylex \(\);/ ){
     print "      yychar = cxx_compiler::parse::get_token();\n";
     print "#include \"patch.04.p2\"\n";
-    print "#include \"patch.15.p2\"\n";
     ++$yychar_converted;
     next;
   }
   if ( /yychar = YYLEX;/ ){
     print "      yychar = cxx_compiler::parse::get_token();\n";
     print "#include \"patch.04.p2\"\n";
-    print "#include \"patch.15.p2\"\n";
     ++$yychar_converted;
     next;
   }
@@ -37,7 +35,6 @@ while ( <> ){
   {
 #include "patch.04.p"
 #include "patch.10.p2"
-#include "patch.15.p"
     goto yydefault;
   }
 #include "patch.03.p"
