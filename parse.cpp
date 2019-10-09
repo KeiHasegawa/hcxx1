@@ -1125,7 +1125,7 @@ void cxx_compiler::parse::member_function_body::save_brace(read_t* ptr)
       if (n == 0) // YYEOF
 	break;
       token.push_back(make_pair(n,position));
-      save_common(n, lval);
+      save_common(n, lval, 0, !templ::save_t::s_stack.empty());
     }
 
     if (n == '{') {
