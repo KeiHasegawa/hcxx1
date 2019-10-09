@@ -442,8 +442,7 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
     if (flag & usr::CTOR) {
       assert(ptr->m_id == scope::TAG);
       tag* ptag = static_cast<tag*>(ptr);
-      name = tor_name(ptag);
-      return lookup(name, ptr->m_parent);
+      return lookup(ptag->m_name, ptr->m_parent);
     }
     if (flag & usr::OVERLOAD) {
       overload* ovl = static_cast<overload*>(u);
@@ -453,8 +452,7 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
       if (uu->m_flag & usr::CTOR) {
 	assert(ptr->m_id == scope::TAG);
 	tag* ptag = static_cast<tag*>(ptr);
-	name = tor_name(ptag);
-	return lookup(name, ptr->m_parent);
+	return lookup(ptag->m_name, ptr->m_parent);
       }
       return IDENTIFIER_LEX;
     }
@@ -471,7 +469,7 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
   map<string, tag*>::const_iterator q = tags.find(name);
   if (q != tags.end()) {
     tag* ptag = q->second;
-    cxx_compiler_lval.m_tag = q->second;
+    cxx_compiler_lval.m_tag = ptag;
     if (ptag->m_kind == tag::ENUM)
       return ENUM_NAME_LEX;
     if (ptag->m_kind2 != tag::TEMPLATE)

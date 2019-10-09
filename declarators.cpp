@@ -810,6 +810,7 @@ function::definition::action(fundef* fdef, std::vector<tac*>& vc)
     vector<scope*>& children = param->m_parent->m_children;
     assert(children.back() == param);
     children.pop_back();
+    class_or_namespace_name::pop(param);
     return;
   }
   if (!error::counter && cmdline::optimize_level >= 1)
