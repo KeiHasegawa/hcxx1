@@ -503,13 +503,15 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
     tag* ptag = static_cast<tag*>(ptr);
     if (int n = base_lookup::action(name, ptag))
       return n;
-    if (ptag->m_kind2 == tag::INSTANTIATE) {
-      instantiated_tag* it = static_cast<instantiated_tag*>(ptag);
-      template_tag* src = it->m_src;
-      const scope::TPSF& tpsf = src->templ_base::m_tps.first;
-      scope::TPSF::const_iterator p = tpsf.find(name);
-      if (p != tpsf.end())
-	return templ_param_lex(name, p->second, true);
+    if (parse::templ::ptr) {
+      if (ptag->m_kind2 == tag::INSTANTIATE) {
+	instantiated_tag* it = static_cast<instantiated_tag*>(ptag);
+	template_tag* src = it->m_src;
+	const scope::TPSF& tpsf = src->templ_base::m_tps.first;
+	scope::TPSF::const_iterator p = tpsf.find(name);
+	if (p != tpsf.end())
+	  return templ_param_lex(name, p->second, true);
+      }
     }
   }
   if (ptr->m_parent)
