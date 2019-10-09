@@ -2841,7 +2841,7 @@ cxx_compiler::usr* cxx_compiler::get_copy_ctor(const type* T)
 
 cxx_compiler::usr* cxx_compiler::has_ctor_dtor(tag* ptr, bool is_dtor)
 {
-  string tgn = ptr->m_name;
+  string tgn = tor_name(ptr);
   if (is_dtor)
     tgn = '~' + tgn;
   const map<string, vector<usr*> >& usrs = ptr->m_usrs;
