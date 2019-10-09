@@ -442,6 +442,8 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
     if (flag & usr::CTOR) {
       assert(ptr->m_id == scope::TAG);
       tag* ptag = static_cast<tag*>(ptr);
+      if (ptag->m_kind2 == tag::INSTANTIATE && peek() == '<')
+	return lookup(name, ptr->m_parent);
       return lookup(ptag->m_name, ptr->m_parent);
     }
     if (flag & usr::OVERLOAD) {
