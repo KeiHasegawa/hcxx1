@@ -1558,12 +1558,11 @@ struct instantiated_name {
 };
 
 struct template_tag : templ_base, tag {
-  bool m_specified;  // decide token kind : TEMPLATE_NAME or CLASS_NAME
   static stack<pair<template_tag*, instantiated_tag*> > s_stack;
   typedef map<KEY, tag*> table_t;
   table_t m_table;
   template_tag(tag& t, const scope::TPS& tps)
-    : tag(t), templ_base(tps), m_specified(false) { m_kind2 = TEMPLATE; }
+    : tag(t), templ_base(tps) { m_kind2 = TEMPLATE; }
   tag* common(vector<pair<var*, const type*>*>*, bool);
   tag* instantiate(vector<pair<var*, const type*>*>* pv)
   { return common(pv, false); }

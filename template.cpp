@@ -531,7 +531,8 @@ namespace cxx_compiler {
 	};
 	tag* action(tag* ptr, vector<pair<var*, const type*>*>* pv)
 	{
-	  assert(ptr->m_kind2 == tag::TEMPLATE);
+	  if (ptr->m_kind2 != tag::TEMPLATE)
+	    return ptr;
           template_tag* tt = static_cast<template_tag*>(ptr);
 	  if (!parse::base_clause) {
 	    int c = parse::peek();
@@ -697,10 +698,14 @@ template_tag::common(std::vector<std::pair<var*, const type*>*>* pv,
 
   templ_base tmp = *this;
   template_usr_impl::sweeper_b sweeper_b(m_parent, &tmp);
-  s_stack.push(make_pair(this,(instantiated_tag*)0));
+  s_stack.push(make_pair(this, (instantiated_tag*)0));
   cxx_compiler_parse();
   instantiated_tag* ret = s_stack.top().second;
   s_stack.pop();
+  if (!ret) {
+    ret = new instantiated_tag(m_kind, m_name, parse::position, m_bases, this);
+    ret->m_types.first = incomplete_tagged_type::create(ret);
+  }
   assert(ret->m_src == this);
   ret->m_seed = key;
   return m_table[key] = ret;

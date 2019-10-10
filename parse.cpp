@@ -476,8 +476,7 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
       return ENUM_NAME_LEX;
     if (ptag->m_kind2 != tag::TEMPLATE)
       return CLASS_NAME_LEX;
-    template_tag* tt = static_cast<template_tag*>(ptag);
-    return tt->m_specified ? TEMPLATE_NAME_LEX : CLASS_NAME_LEX;
+    return peek() == '<' ? TEMPLATE_NAME_LEX : CLASS_NAME_LEX;
   }
   if (mode == member) {
     if (scope::current->m_id == scope::TAG) {

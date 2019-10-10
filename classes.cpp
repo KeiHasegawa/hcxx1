@@ -130,8 +130,6 @@ const cxx_compiler::type* cxx_compiler::classes::specifier::action()
   if (!tpsf.empty()) {
     if (ptr->m_kind2 == tag::TEMPLATE) {
       template_tag* tt = static_cast<template_tag*>(ptr);
-      assert(!tt->m_specified);
-      tt->m_specified = true;
       scope::current = ptr->m_parent;
       return ptr->m_types.first;
     }
