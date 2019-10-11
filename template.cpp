@@ -515,13 +515,6 @@ cxx_compiler::template_usr::instantiate_mem_fun(instantiated_tag* it)
   return m_table[key] = ins;
 }
 
-cxx_compiler::usr* cxx_compiler::template_usr::
-instantiate_explicit(std::vector<std::pair<var*, const type*>*>* pv)
-{
-  error::not_implemented();
-  return 0;
-}
-
 namespace cxx_compiler {
   using namespace std;
   vector<pair<template_usr*, instantiated_tag*> > template_usr::marked; 
@@ -573,6 +566,8 @@ namespace cxx_compiler {
         pair<usr*, tag*>*
         action(pair<usr*, tag*>* x, vector<pair<var*, const type*>*>* pv)
 	{
+	  // Note that `pv' is deleted at `template_tag::common()' or
+	  // `template_usr::instantiate_explicit()'
 	  bool b = parse::templ::save_t::s_stack.empty();
 	  auto_ptr<pair<usr*, tag*> > sweeper(b ? x : 0);
 	  if (tag* ptr = x->second) {
@@ -752,6 +747,32 @@ template_tag::common(std::vector<std::pair<var*, const type*>*>* pv,
   assert(ret->m_src == this);
   ret->m_seed = key;
   return m_table[key] = ret;
+}
+
+cxx_compiler::usr*
+cxx_compiler::template_usr::
+instantiate_explicit(vector<pair<var*, const type*>*>* pv)
+{
+  template_tag_impl::sweeper sweeper(pv);
+  KEY key;
+  transform(begin(*pv), end(*pv), back_inserter(key),
+	    [](pair<var*, const type*>* p)
+	    { return make_pair(p->second, p->first); });
+  table_t::const_iterator it = m_table.find(key);
+  if (it != m_table.end())
+    return it->second;
+  it = find_if(m_table.begin(), m_table.end(),
+	       [key](const pair<KEY, usr*>& x)
+	       { return template_usr_impl::match(key, x.first); });
+  if (it != m_table.end())
+    return m_table[key] = it->second;
+
+  templ_base tmp = *this;
+  template_usr_impl::sweeper_b sweeper_b(m_scope, &tmp);
+  cxx_compiler_parse();
+
+  map<string, vector<usr*> >& usrs = scope::current->m_usrs;
+  return templ_impl::install(usrs, m_name, key);
 }
 
 bool cxx_compiler::instance_of(usr* templ, usr* ins, templ_base::KEY& key)

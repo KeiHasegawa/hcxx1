@@ -1550,7 +1550,7 @@ struct template_usr : usr, templ_base {
   void mark(instantiated_tag*);
   static void gen();
   usr* instantiate_mem_fun(instantiated_tag*);
-  usr* instantiate_explicit(vector<pair<var*, const type*>*>* pv);
+  usr* instantiate_explicit(vector<pair<var*, const type*>*>*);
 };
 
 struct instantiated_name {
