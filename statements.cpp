@@ -211,7 +211,11 @@ int cxx_compiler::statements::expression::info_t::gen()
   tag* ptr = T->get_tag();
   if (!ptr)
     return 0;
-  if (!ptr->m_types.second) {
+  const type* T1 = ptr->m_types.first;
+  if (T1->m_id == type::TEMPLATE_PARAM)
+    return 0;
+  const type* T2 = ptr->m_types.second;
+  if (!T2) {
     using namespace error::statements::expression;
     incomplete_type(parse::position);
   }
