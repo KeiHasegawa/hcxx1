@@ -780,20 +780,6 @@ namespace cxx_compiler { namespace declarations {
     tag* m_tag;
     friend_func(const usr& u, tag* ptr) : usr(u), m_tag(ptr) {}
   };
-  bool instantiating_with_template_param(template_tag* tt)
-  {
-    const scope::TPS& tps = tt->templ_base::m_tps;
-    const scope::TPSF& tpsf = tps.first;
-    typedef scope::TPSF::const_iterator IT;
-    IT p = find_if(begin(tpsf), end(tpsf),
-		   [](const pair<string, scope::TPSFV>& x)
-		   {
-		     tag* ptr = x.second.first;
-		     const type* T = ptr->m_types.second;
-		     return T->m_id == type::TEMPLATE_PARAM;
-		   });
-    return p != end(tpsf);
-  }
 } } // end of namespace declarations and cxx_compiler
 
 cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr)
@@ -836,15 +822,10 @@ cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr)
     tag* ptr = static_cast<tag*>(scope::current);
     if (!(flag & usr::FUNCTION))
       error::not_implemented();
-    if (ptr->m_kind2 == tag::TEMPLATE)
+    tag::kind2_t kind2 = ptr->m_kind2;
+    if (kind2 == tag::TEMPLATE || kind2 == tag::INSTANTIATE)
       return curr;
-    if (ptr->m_kind2 == tag::INSTANTIATE) {
-      assert(!template_tag::s_stack.empty());
-      template_tag* tt = template_tag::s_stack.top().first;
-      if (instantiating_with_template_param(tt))
-	return curr;
-    }
-    curr->m_scope = &scope::root;
+    curr->m_scope = ptr->m_parent;
     curr = new friend_func(*curr, ptr);
   }
 

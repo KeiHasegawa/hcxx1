@@ -162,6 +162,20 @@ namespace cxx_compiler {
 				    helper(tpsf));
 	return ret == make_pair(end(xseed), end(yseed));
       }
+      bool pointer_case(const type* Tx, const type* Ty,
+			const scope::TPSF& tpsf)
+      {
+	assert(Tx->m_id == type::POINTER);
+	typedef const pointer_type PT;
+	PT* xpt = static_cast<PT*>(Tx);
+	Tx = xpt->referenced_type();
+	if (Ty->m_id != type::POINTER)
+	  error::not_implemented();
+	PT* ypt = static_cast<PT*>(Ty);
+	Ty = ypt->referenced_type();
+	calc tmp(tpsf);
+	return tmp(Tx, Ty);
+      }
       bool reference_case(const type* Tx, const type* Ty,
 			  const scope::TPSF& tpsf)
       {
@@ -181,6 +195,7 @@ namespace cxx_compiler {
 	{
 	  (*this)[type::TEMPLATE_PARAM] = template_param_case;
 	  (*this)[type::RECORD] = record_case;
+	  (*this)[type::POINTER] = pointer_case;
 	  (*this)[type::REFERENCE] = reference_case;
 	}
       } table;
