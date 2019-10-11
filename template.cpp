@@ -544,7 +544,7 @@ namespace cxx_compiler {
 	    parse::g_read = m_org;
 	  }
 	};
-	tag* action(tag* ptr, vector<pair<var*, const type*>*>* pv)
+	inline tag* tag_action(tag* ptr, vector<pair<var*, const type*>*>* pv)
 	{
 	  if (ptr->m_kind2 != tag::TEMPLATE)
 	    return ptr;
@@ -556,6 +556,18 @@ namespace cxx_compiler {
 	  }
 	  sweeper sweeper;
 	  return tt->instantiate(pv);
+	}
+	tag* action(pair<usr*, tag*>* x, vector<pair<var*, const type*>*>* pv)
+	{
+	  bool b = parse::templ::save_t::s_stack.empty();
+	  auto_ptr<pair<usr*, tag*> > sweep(b ? x : 0);
+	  if (tag* ptr = x->second) {
+	    assert(!x->first);
+	    return tag_action(ptr, pv);
+	  }
+	  usr* u = x->first;
+	  error::not_implemented();
+	  return 0;
 	}
       } // end of namespace id
     } // end of namespace templ

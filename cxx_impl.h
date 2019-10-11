@@ -811,7 +811,7 @@ namespace declarations {
     extern void decl_begin();
     extern void decl_end();
     namespace id {
-      extern tag* action(tag*, vector<pair<var*, const type*>*>*);
+      extern tag* action(pair<usr*, tag*>*, vector<pair<var*, const type*>*>*);
     } // end of namespace id
   } // end of namespace templ
 } // end of namespace declarations

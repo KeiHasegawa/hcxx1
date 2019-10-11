@@ -118,7 +118,7 @@ namespace cxx_compiler {
   std::vector<cxx_compiler::base*>* m_base_clause;
   cxx_compiler::base* m_base_specifier;
   cxx_compiler::name_space* m_name_space;
-  std::pair<usr*, tag*>* m_pvt;
+  std::pair<usr*, tag*>* m_ut;
   std::pair<type*, expr*>* m_param;
   std::vector<std::pair<type*, expr*>*>* m_params;
   std::pair<type_specifier*, bool>* m_pseudo_dest;
@@ -130,7 +130,7 @@ namespace cxx_compiler {
 
 %type<m_var> IDENTIFIER_LEX unqualified_id id_expression declarator_id
 %type<m_var> direct_declarator declarator enumerator qualified_id
-%type<m_pvt> mem_initializer_id
+%type<m_ut> mem_initializer_id TEMPLATE_NAME_LEX
 %type<m_usr> INTEGER_LITERAL_LEX CHARACTER_LITERAL_LEX FLOATING_LITERAL_LEX
 %type<m_usr> TYPEDEF_NAME_LEX init_declarator boolean_literal
 %type<m_usrs> block_declaration simple_declaration init_declarator_list
@@ -168,7 +168,7 @@ namespace cxx_compiler {
 %type<m_list> initializer_list
 %type<m_designation> designation designator_list
 %type<m_designator> designator
-%type<m_tag> ENUM_NAME_LEX CLASS_NAME_LEX TEMPLATE_NAME_LEX
+%type<m_tag> ENUM_NAME_LEX CLASS_NAME_LEX
 %type<m_tag> enum_specifier_begin class_name template_id
 %type<m_file> DEFAULT_KW
 %type<m_base_clause> base_clause base_specifier_list

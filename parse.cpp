@@ -462,6 +462,13 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
       cxx_compiler_lval.m_name_space = static_cast<name_space*>(u);
       return ORIGINAL_NAMESPACE_NAME_LEX;
     }
+    usr::flag2_t flag2 = u->m_flag2;
+    if (flag2 & usr::TEMPLATE) {
+      if (peek() == '<') {
+	cxx_compiler_lval.m_ut = new pair<usr*, tag*>(u, 0);
+	return TEMPLATE_NAME_LEX;
+      }
+    }
     const type* T = u->m_type;
     if (const pointer_type* G = T->ptr_gen())
       garbage.push_back(cxx_compiler_lval.m_var = new genaddr(G,T,u,0));
@@ -476,7 +483,10 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
       return ENUM_NAME_LEX;
     if (ptag->m_kind2 != tag::TEMPLATE)
       return CLASS_NAME_LEX;
-    return peek() == '<' ? TEMPLATE_NAME_LEX : CLASS_NAME_LEX;
+    if (peek() != '<')
+      return CLASS_NAME_LEX;
+    cxx_compiler_lval.m_ut = new pair<usr*, tag*>(0, ptag);
+    return TEMPLATE_NAME_LEX;
   }
   if (mode == member) {
     if (scope::current->m_id == scope::TAG) {
@@ -718,13 +728,18 @@ namespace cxx_compiler {
         lval.pop_front();
 	return n;
       case TEMPLATE_NAME_LEX:
-        assert(!lval.empty());
-        cxx_compiler_lval.m_tag = static_cast<tag*>(lval.front());
-        lval.pop_front();
-	if (templ) {
-	  if (!template_tag::s_stack.empty()) {
-	    if (cxx_compiler_lval.m_tag == template_tag::s_stack.top().first)
-	      cxx_compiler_lval.m_tag = template_tag::s_stack.top().second;
+	{
+	  assert(!lval.empty());
+	  typedef pair<usr*, tag*> T;
+	  T* tmp = static_cast<T*>(lval.front());
+	  cxx_compiler_lval.m_ut = new T(*tmp);
+	  lval.pop_front();
+	  if (templ) {
+	    if (!template_tag::s_stack.empty()) {
+	      T* ut = cxx_compiler_lval.m_ut;
+	      if (ut->second == template_tag::s_stack.top().first)
+		ut->second = template_tag::s_stack.top().second;
+	    }
 	  }
 	}
         return n;
