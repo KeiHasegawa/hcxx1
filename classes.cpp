@@ -102,9 +102,13 @@ specifier::begin2(int keyword, tag* ptr, std::vector<base*>* bases)
 
 void
 cxx_compiler::classes::
-specifier::begin3(int keyword, tag* ptr, std::vector<base*>* bases)
+specifier::begin3(int keyword, pair<usr*, tag*>* x, std::vector<base*>* bases)
 {
   using namespace std;
+  auto_ptr<pair<usr*, tag*> > sweeper(x);
+  if (x->first)
+    error::not_implemented();
+  tag* ptr = x->second;
   string name = ptr->m_name;
   map<string,tag*>& tags = scope::current->m_tags;
   map<string,tag*>::const_iterator p = tags.find(name);

@@ -606,7 +606,7 @@ namespace declarations {
   } // end of namespace specifier_seq
   namespace elaborated {
     const type* action(int, var*);
-    const type* action(int, tag*);
+    const type* action(int, pair<usr*, tag*>*);
   } // end of namespace elaborated
   namespace linkage {
     extern void action(var*, bool brace);
@@ -811,7 +811,8 @@ namespace declarations {
     extern void decl_begin();
     extern void decl_end();
     namespace id {
-      extern tag* action(pair<usr*, tag*>*, vector<pair<var*, const type*>*>*);
+      extern pair<usr*, tag*>*
+      action(pair<usr*, tag*>*, vector<pair<var*, const type*>*>*);
     } // end of namespace id
   } // end of namespace templ
 } // end of namespace declarations
@@ -1268,7 +1269,7 @@ namespace classes {
   namespace specifier {
     extern void begin(int, var*, vector<base*>*);
     extern void begin2(int, tag*, vector<base*>*);
-    extern void begin3(int, tag*, vector<base*>*);
+    extern void begin3(int, pair<usr*, tag*>*, vector<base*>*);
     extern const type* action();
     extern tag::kind_t get(int);
     extern void  member_function_definition(pair<usr* const, parse::member_function_body::save_t>&);
@@ -1548,7 +1549,8 @@ struct template_usr : usr, templ_base {
   static vector<pair<template_usr*, instantiated_tag*> > marked;
   void mark(instantiated_tag*);
   static void gen();
-  usr* instantiate(instantiated_tag*);
+  usr* instantiate_mem_fun(instantiated_tag*);
+  usr* instantiate_explicit(vector<pair<var*, const type*>*>* pv);
 };
 
 struct instantiated_name {

@@ -130,7 +130,7 @@ namespace cxx_compiler {
 
 %type<m_var> IDENTIFIER_LEX unqualified_id id_expression declarator_id
 %type<m_var> direct_declarator declarator enumerator qualified_id
-%type<m_ut> mem_initializer_id TEMPLATE_NAME_LEX
+%type<m_ut> mem_initializer_id TEMPLATE_NAME_LEX template_id
 %type<m_usr> INTEGER_LITERAL_LEX CHARACTER_LITERAL_LEX FLOATING_LITERAL_LEX
 %type<m_usr> TYPEDEF_NAME_LEX init_declarator boolean_literal
 %type<m_usrs> block_declaration simple_declaration init_declarator_list
@@ -169,7 +169,7 @@ namespace cxx_compiler {
 %type<m_designation> designation designator_list
 %type<m_designator> designator
 %type<m_tag> ENUM_NAME_LEX CLASS_NAME_LEX
-%type<m_tag> enum_specifier_begin class_name template_id
+%type<m_tag> enum_specifier_begin class_name
 %type<m_file> DEFAULT_KW
 %type<m_base_clause> base_clause base_specifier_list
 %type<m_base_specifier> base_specifier
@@ -246,7 +246,7 @@ simple_declaration
   | decl_specifier_seq ';'
     {
       using namespace cxx_compiler;
-      if ( !$1->m_tag )
+      if (!$1->m_tag)
         error::declarations::empty(parse::position);
       delete $1;
       parse::identifier::mode = parse::identifier::look;
@@ -1025,6 +1025,11 @@ type_specifier_seq
 class_name
   : CLASS_NAME_LEX
   | template_id
+    {
+      if ($1->first)
+	cxx_compiler::error::not_implemented();
+      $$ = $1->second;
+    }
   ;
 
 class_key

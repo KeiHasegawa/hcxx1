@@ -488,7 +488,7 @@ namespace cxx_compiler {
 } // end of namespace cxx_compiler
 
 cxx_compiler::usr*
-cxx_compiler::template_usr::instantiate(instantiated_tag* it)
+cxx_compiler::template_usr::instantiate_mem_fun(instantiated_tag* it)
 {
   const KEY& key = it->m_seed;
   table_t::const_iterator p = m_table.find(key);
@@ -515,6 +515,13 @@ cxx_compiler::template_usr::instantiate(instantiated_tag* it)
   return m_table[key] = ins;
 }
 
+cxx_compiler::usr* cxx_compiler::template_usr::
+instantiate_explicit(std::vector<std::pair<var*, const type*>*>* pv)
+{
+  error::not_implemented();
+  return 0;
+}
+
 namespace cxx_compiler {
   using namespace std;
   vector<pair<template_usr*, instantiated_tag*> > template_usr::marked; 
@@ -522,7 +529,7 @@ namespace cxx_compiler {
   {
     for_each(begin(marked), end(marked),
 	     [](const pair<template_usr*, instantiated_tag*>& x)
-	     { x.first->instantiate(x.second); });
+	     { x.first->instantiate_mem_fun(x.second); });
     marked.clear();
   }
 } // end of namepsace cxx_compiler
@@ -557,17 +564,26 @@ namespace cxx_compiler {
 	  sweeper sweeper;
 	  return tt->instantiate(pv);
 	}
-	tag* action(pair<usr*, tag*>* x, vector<pair<var*, const type*>*>* pv)
+	inline usr* usr_action(usr* u, vector<pair<var*, const type*>*>* pv)
+	{
+	  assert(u->m_flag2 == usr::TEMPLATE);
+	  template_usr* tu = static_cast<template_usr*>(u);
+	  return tu->instantiate_explicit(pv);
+	}
+        pair<usr*, tag*>*
+        action(pair<usr*, tag*>* x, vector<pair<var*, const type*>*>* pv)
 	{
 	  bool b = parse::templ::save_t::s_stack.empty();
-	  auto_ptr<pair<usr*, tag*> > sweep(b ? x : 0);
+	  auto_ptr<pair<usr*, tag*> > sweeper(b ? x : 0);
 	  if (tag* ptr = x->second) {
 	    assert(!x->first);
-	    return tag_action(ptr, pv);
+	    return new pair<usr*, tag*>(0, tag_action(ptr, pv));
 	  }
-	  usr* u = x->first;
-	  error::not_implemented();
-	  return 0;
+	  else {
+	    usr* u = x->first;
+	    assert(u);
+	    return new pair<usr*, tag*>(usr_action(u, pv), 0);
+	  }
 	}
       } // end of namespace id
     } // end of namespace templ

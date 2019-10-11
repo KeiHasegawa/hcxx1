@@ -1163,8 +1163,13 @@ cxx_compiler::declarations::elaborated::lookup(std::string name, scope* ptr)
 }
 
 const cxx_compiler::type*
-cxx_compiler::declarations::elaborated::action(int keyword, tag* ptr)
+cxx_compiler::declarations::
+elaborated::action(int keyword, std::pair<usr*, tag*>* p)
 {
+  auto_ptr<pair<usr*, tag*> > sweeper(p);
+  if (p->first)
+    error::not_implemented();
+  tag* ptr = p->second;
   tag::kind_t x = classes::specifier::get(keyword);
   tag::kind_t y = ptr->m_kind;
   if (x != y) 
