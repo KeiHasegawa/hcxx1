@@ -61,6 +61,7 @@ EOF2
   if ( /yyn.*=.*yydefact\[yystate\];/ ){
     print "#include \"patch.06.p\"\n";
     print "#include \"patch.11.p\"\n";
+    print "#include \"patch.15.p\"\n";
   }
   if ( /yystate = 0/ ){
     print "#include \"patch.07.p\"\n";

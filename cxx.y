@@ -1026,8 +1026,7 @@ class_name
   : CLASS_NAME_LEX
   | template_id
     {
-      if ($1->first)
-	cxx_compiler::error::not_implemented();
+      assert(!$1->first);
       $$ = $1->second;
     }
   ;
@@ -1721,7 +1720,10 @@ unqualified_id
   | '~' class_name
     { $$ = cxx_compiler::unqualified_id::dtor($2); }
   | template_id
-    { cxx_compiler::error::not_implemented(); }
+    {
+      assert(!$1->second);
+      $$ = $1->first;
+    }
   ;
 
 qualified_id
