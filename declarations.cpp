@@ -904,6 +904,8 @@ bool cxx_compiler::declarations::conflict(usr* x, usr* y)
   }
   if (x->m_flag & usr::OVERLOAD)
     return false;
+  if (x->m_flag2 & usr::TEMPLATE)
+    return false;
   return conflict(x->m_type,y->m_type);
 }
 

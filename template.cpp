@@ -767,6 +767,8 @@ instantiate_explicit(vector<pair<var*, const type*>*>* pv)
   if (it != m_table.end())
     return m_table[key] = it->second;
 
+  template_usr_impl::sweeper_c sweeper_c(m_tps, key);
+
   templ_base tmp = *this;
   template_usr_impl::sweeper_b sweeper_b(m_scope, &tmp);
   cxx_compiler_parse();
