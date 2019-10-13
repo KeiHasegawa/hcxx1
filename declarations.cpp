@@ -1053,7 +1053,10 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
       assert(!template_usr::s_stack.empty());
       template_usr::info_t& info = template_usr::s_stack.top();
       assert(tu == info.m_tu);
-      return info.m_iu = new instantiated_usr(*curr, tu, key);
+      info.m_iu = ret;
+      if (info.m_explicit)
+	ret->m_flag2 = usr::flag2_t(ret->m_flag2 | usr::EXPLICIT_INSTANTIATE);
+      return ret;
     }
     ret->m_flag2 = usr::flag2_t(ret->m_flag2 | usr::SPECIAL_VER);
     tu->m_table[key] = ret;

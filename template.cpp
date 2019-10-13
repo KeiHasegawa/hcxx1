@@ -431,12 +431,13 @@ cxx_compiler::template_usr::instantiate(std::vector<var*>* arg)
 
   templ_base tmp = *this;
   template_usr_impl::sweeper_b sweeper_b(m_scope, &tmp);
-  s_stack.push(info_t(this, 0));
+  s_stack.push(info_t(this, 0, false));
   cxx_compiler_parse();
   instantiated_usr* ret = s_stack.top().m_iu;
   s_stack.pop();
   assert(ret->m_src == this);
   assert(ret->m_seed == key);
+  assert(!(ret->m_flag2 & usr::EXPLICIT_INSTANTIATE));
   return m_table[key] = ret;
 }
 
@@ -499,12 +500,13 @@ cxx_compiler::template_usr::instantiate_mem_fun(instantiated_tag* it)
 
   templ_base tmp = *this;
   template_usr_impl::sweeper_b sweeper_b(scope::current, &tmp);
-  s_stack.push(info_t(this, 0));
+  s_stack.push(info_t(this, 0, false));
   cxx_compiler_parse();
   instantiated_usr* ret = s_stack.top().m_iu;
   s_stack.pop();
   assert(ret->m_src == this);
   assert(ret->m_seed == key);
+  assert(!(ret->m_flag2 & usr::EXPLICIT_INSTANTIATE));
   return m_table[key] = ret;
 }
 
@@ -764,12 +766,13 @@ instantiate_explicit(vector<pair<var*, const type*>*>* pv)
 
   templ_base tmp = *this;
   template_usr_impl::sweeper_b sweeper_b(m_scope, &tmp);
-  s_stack.push(info_t(this, 0));
+  s_stack.push(info_t(this, 0, true));
   cxx_compiler_parse();
   instantiated_usr* ret = s_stack.top().m_iu;
   s_stack.pop();
   assert(ret->m_src == this);
   assert(ret->m_seed == key);
+  assert(ret->m_flag2 & usr::EXPLICIT_INSTANTIATE);
   return m_table[key] = ret;
 }
 

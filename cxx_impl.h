@@ -1542,8 +1542,9 @@ struct template_usr : usr, templ_base {
   struct info_t {
     template_usr* m_tu;
     instantiated_usr* m_iu;
-    info_t(template_usr* tu, instantiated_usr* iu)
-    : m_tu(tu), m_iu(iu) {}
+    bool m_explicit;
+    info_t(template_usr* tu, instantiated_usr* iu, bool ex)
+    : m_tu(tu), m_iu(iu), m_explicit(ex) {}
   };
   static stack<info_t> s_stack;
   typedef map<KEY, usr*> table_t;
