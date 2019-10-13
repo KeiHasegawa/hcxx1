@@ -337,23 +337,24 @@ struct usr : var {
   };
   flag_t m_flag;
   enum flag2_t {
-    NONE2               = 0,
-    PRIVATE             = 1 << 0,
-    PROTECTED           = 1 << 1,
-    PUBLIC              = 1 << 2,
-    CONV_OPE            = 1 << 3,
-    OPERATOR            = 1 << 4,
-    PURE_VIRT_VALUE     = 1 << 5,
-    AMBIGUOUS_OVERRIDE  = 1 << 6,
-    INITIALIZE_FUNCTION = 1 << 7,
-    TERMINATE_FUNCTION  = 1 << 8,
-    GENED_BY_COMP       = 1 << 9,
-    TOR_BODY            = 1 << 10,
-    EXCLUDE_TOR         = 1 << 11,
-    TEMPLATE            = 1 << 12,
-    INSTANTIATE         = 1 << 13,
-    TEMPL_PARAM         = 1 << 14,
-    SPECIAL_VER         = 1 << 15,
+    NONE2                = 0,
+    PRIVATE              = 1 << 0,
+    PROTECTED            = 1 << 1,
+    PUBLIC               = 1 << 2,
+    CONV_OPE             = 1 << 3,
+    OPERATOR             = 1 << 4,
+    PURE_VIRT_VALUE      = 1 << 5,
+    AMBIGUOUS_OVERRIDE   = 1 << 6,
+    INITIALIZE_FUNCTION  = 1 << 7,
+    TERMINATE_FUNCTION   = 1 << 8,
+    GENED_BY_COMP        = 1 << 9,
+    TOR_BODY             = 1 << 10,
+    EXCLUDE_TOR          = 1 << 11,
+    TEMPLATE             = 1 << 12,
+    INSTANTIATE          = 1 << 13,
+    TEMPL_PARAM          = 1 << 14,
+    SPECIAL_VER          = 1 << 15,
+    EXPLICIT_INSTANTIATE = 1 << 16,
   };
   flag2_t m_flag2;
   file_t m_file;
@@ -1100,6 +1101,19 @@ struct addrof : virtual var {
   var* offref(const type*, var*);
   bool isconstant(bool b) const { return b; }
   addrof* addrof_cast(){ return this; }
+};
+
+struct template_usr;
+
+struct instantiated_usr : usr {
+  template_usr* m_src;
+  typedef std::vector<scope::TPSFVS> SEED;
+  SEED m_seed;
+  instantiated_usr(const usr& u, template_usr* tu, const SEED& seed)
+    : usr(u), m_src(tu), m_seed(seed)
+  {
+    m_flag2 = usr::flag2_t(m_flag2 | usr::INSTANTIATE);
+  }
 };
 
 struct type {

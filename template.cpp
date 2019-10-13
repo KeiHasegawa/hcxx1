@@ -204,8 +204,9 @@ namespace cxx_compiler {
     {
       calc_impl::table_t::const_iterator p =
 	calc_impl::table.find(Tx->m_id);
-      assert(p != calc_impl::table.end());
-      return (p->second)(Tx, Ty, m_tpsf);
+      if (p != calc_impl::table.end())
+	return (p->second)(Tx, Ty, m_tpsf);
+      return Tx == Ty;
     }
     inline bool not_decided(const pair<string, pair<tag*, scope::TPSFVS*> >& p)
     {
@@ -239,16 +240,29 @@ namespace cxx_compiler {
     };
     struct sweeper_a {
       const scope::TPSF& m_tpsf;
-      sweeper_a(const scope::TPSF& tpsf) : m_tpsf(tpsf) {}
+      map<tag*, const type*> m_org1;
+      map<scope::TPSFVS*, var*> m_org2;
+      sweeper_a(const scope::TPSF& tpsf) : m_tpsf(tpsf)
+      {
+	for (auto p : m_tpsf) {
+	  scope::TPSFV& x = p.second;
+	  if (tag* ptr = x.first)
+	    m_org1[ptr] = ptr->m_types.second;
+	  else {
+	    scope::TPSFVS* y = x.second;
+	    m_org2[y] = y->second;
+	  }
+	}
+      }
       ~sweeper_a()
       {
 	for (auto p : m_tpsf) {
 	  scope::TPSFV& x = p.second;
 	  if (tag* ptr = x.first)
-	    ptr->m_types.second = 0;
+	    ptr->m_types.second = m_org1[ptr];
 	  else {
 	    scope::TPSFVS* y = x.second;
-	    y->second = 0;
+	    y->second = m_org2[y];
 	  }
 	}
       }
@@ -364,29 +378,7 @@ namespace cxx_compiler {
 } // end of namespace cxx_compiler
 
 namespace cxx_compiler {
-  namespace templ_impl {
-    usr* install(map<string, vector<usr*> >& usrs, string name,
-		 const templ_base::KEY& key)
-    {
-      typedef map<string, vector<usr*> >::iterator ITw;
-      ITw pw = usrs.find(name);
-      assert(pw != usrs.end());
-      vector<usr*>& v = pw->second;
-      usr* ins = v.back();
-      usr::flag2_t flag2 = ins->m_flag2;
-      assert((flag2 & usr::INSTANTIATE) || (flag2 & usr::SPECIAL_VER));
-      v.pop_back();
-      assert(!v.empty());
-      usr* templ = v.back();
-      assert(templ->m_flag2 & usr::TEMPLATE);
-      template_usr* tu = static_cast<template_usr*>(templ);
-      template_usr::table_t& table = tu->m_table;
-      v.pop_back();
-      v.push_back(ins);
-      v.push_back(templ);
-      return table[key] = ins;
-    }
-  } // end of namespace templ_impl
+  stack<template_usr::info_t> template_usr::s_stack;
 } // end of namespace cxx_compiler
 
 cxx_compiler::usr*
@@ -412,9 +404,9 @@ cxx_compiler::template_usr::instantiate(std::vector<var*>* arg)
   typedef vector<const type*>::const_iterator ITx;
   ITx bn = begin(param);
   ITx ed = bn + n;
-  pair<ITx, ITx> ret = mismatch(bn, ed, begin(atype),
+  pair<ITx, ITx> pxx = mismatch(bn, ed, begin(atype),
 				template_usr_impl::calc(tpsf));
-  if (ret.first != ed)
+  if (pxx.first != ed)
     error::not_implemented();
 
   typedef scope::TPSF::const_iterator ITy;
@@ -439,15 +431,18 @@ cxx_compiler::template_usr::instantiate(std::vector<var*>* arg)
 
   templ_base tmp = *this;
   template_usr_impl::sweeper_b sweeper_b(m_scope, &tmp);
+  s_stack.push(info_t(this, 0));
   cxx_compiler_parse();
-
-  map<string, vector<usr*> >& usrs = scope::current->m_usrs;
-  return templ_impl::install(usrs, m_name, key);
+  instantiated_usr* ret = s_stack.top().m_iu;
+  s_stack.pop();
+  assert(ret->m_src == this);
+  assert(ret->m_seed == key);
+  return m_table[key] = ret;
 }
 
 void cxx_compiler::template_usr::mark(instantiated_tag* it)
 {
-  marked.push_back(make_pair(this, it));
+  s_marked.push_back(make_pair(this, it));
 }
 
 namespace cxx_compiler {
@@ -504,26 +499,24 @@ cxx_compiler::template_usr::instantiate_mem_fun(instantiated_tag* it)
 
   templ_base tmp = *this;
   template_usr_impl::sweeper_b sweeper_b(scope::current, &tmp);
+  s_stack.push(info_t(this, 0));
   cxx_compiler_parse();
-
-  const map<string, vector<usr*> >& usrs = it->m_usrs;
-  map<string, vector<usr*> >::const_iterator q = usrs.find(m_name);
-  assert(q != usrs.end());
-  const vector<usr*>& v = q->second;
-  usr* ins = v.back();
-  assert(ins->m_flag2 & usr::INSTANTIATE);
-  return m_table[key] = ins;
+  instantiated_usr* ret = s_stack.top().m_iu;
+  s_stack.pop();
+  assert(ret->m_src == this);
+  assert(ret->m_seed == key);
+  return m_table[key] = ret;
 }
 
 namespace cxx_compiler {
   using namespace std;
-  vector<pair<template_usr*, instantiated_tag*> > template_usr::marked; 
+  vector<pair<template_usr*, instantiated_tag*> > template_usr::s_marked; 
   void template_usr::gen()
   {
-    for_each(begin(marked), end(marked),
+    for_each(begin(s_marked), end(s_marked),
 	     [](const pair<template_usr*, instantiated_tag*>& x)
 	     { x.first->instantiate_mem_fun(x.second); });
-    marked.clear();
+    s_marked.clear();
   }
 } // end of namepsace cxx_compiler
 
@@ -771,16 +764,18 @@ instantiate_explicit(vector<pair<var*, const type*>*>* pv)
 
   templ_base tmp = *this;
   template_usr_impl::sweeper_b sweeper_b(m_scope, &tmp);
+  s_stack.push(info_t(this, 0));
   cxx_compiler_parse();
-
-  map<string, vector<usr*> >& usrs = scope::current->m_usrs;
-  return templ_impl::install(usrs, m_name, key);
+  instantiated_usr* ret = s_stack.top().m_iu;
+  s_stack.pop();
+  assert(ret->m_src == this);
+  assert(ret->m_seed == key);
+  return m_table[key] = ret;
 }
 
-bool cxx_compiler::instance_of(usr* templ, usr* ins, templ_base::KEY& key)
+bool
+cxx_compiler::instance_of(template_usr* tu, usr* ins, templ_base::KEY& key)
 {
-  assert(templ->m_flag2 & usr::TEMPLATE);
-  template_usr* tu = static_cast<template_usr*>(templ);
   const type* Tt = tu->m_type;
   if (Tt->m_id != type::FUNC)
     return false;

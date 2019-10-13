@@ -1539,6 +1539,13 @@ struct templ_base {
 };
 
 struct template_usr : usr, templ_base {
+  struct info_t {
+    template_usr* m_tu;
+    instantiated_usr* m_iu;
+    info_t(template_usr* tu, instantiated_usr* iu)
+    : m_tu(tu), m_iu(iu) {}
+  };
+  static stack<info_t> s_stack;
   typedef map<KEY, usr*> table_t;
   table_t m_table;
   template_usr(usr& u, const scope::TPS& tps) : usr(u), templ_base(tps)
@@ -1546,7 +1553,7 @@ struct template_usr : usr, templ_base {
     m_flag2 = usr::flag2_t(m_flag2 | usr::TEMPLATE);
   }
   usr* instantiate(vector<var*>* arg);
-  static vector<pair<template_usr*, instantiated_tag*> > marked;
+  static vector<pair<template_usr*, instantiated_tag*> > s_marked;
   void mark(instantiated_tag*);
   static void gen();
   usr* instantiate_mem_fun(instantiated_tag*);
@@ -1588,21 +1595,7 @@ namespace parse {
   } // end of namespace templp
 } // end of namespace parse
 
-struct special_ver : usr {
-  templ_base::KEY m_key;
-  special_ver(const usr& u, const templ_base::KEY& key)
-    : usr(u), m_key(key)
-  {
-    m_flag2 = usr::flag2_t(m_flag2 | usr::SPECIAL_VER);
-  }
-};
-
-namespace templ_impl {
-  usr* install(map<string, vector<usr*> >& usrs, string name,
-	       const templ_base::KEY& key);
-} // end of namespace templ_impl
-
-bool instance_of(usr* templ, usr* ins, templ_base::KEY& key);
+bool instance_of(template_usr* tu, usr* ins, templ_base::KEY& key);
 
 inline bool template_param(const scope::TPSFVS& x)
 {

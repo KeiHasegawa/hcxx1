@@ -876,9 +876,25 @@ cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr)
   }
   class_or_namespace_name::last = 0;
 
-  if (curr->m_flag2 & usr::SPECIAL_VER) {
-    special_ver* sv = static_cast<special_ver*>(curr);
-    curr = templ_impl::install(usrs, name, sv->m_key);
+  if (curr->m_flag2 & usr::INSTANTIATE) {
+    typedef map<string, vector<usr*> >::iterator IT;
+    IT p = usrs.find(name);
+    assert(p != usrs.end());
+    vector<usr*>& v = p->second;
+    usr* ins = v.back();
+    assert(ins == curr);
+    v.pop_back();
+    usr* templ = v.back();
+    if (templ->m_flag2 & usr::TEMPLATE) {
+      v.pop_back();
+      v.push_back(ins);
+      v.push_back(templ);
+    }
+    else {
+      // instantiated via `template_usr::instantiate_mem_fun'
+      assert(ins->m_scope->m_id == scope::TAG);
+      v.push_back(ins);
+    }
   }
   return curr;
 }
@@ -1013,22 +1029,35 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
     const type* y = curr->m_type;
     if (const type* z = composite(x, y)) {
       curr->m_type = z;
-      if (parse::templ::ptr)
-	curr->m_flag2 = usr::flag2_t(curr->m_flag2 | usr::INSTANTIATE);
+      if (parse::templ::ptr) {
+	assert(!template_usr::s_stack.empty());
+	template_usr::info_t& info = template_usr::s_stack.top();
+	template_usr* tu = info.m_tu;
+	templ_base::KEY key;
+	if (!instance_of(tu, curr, key))
+	  error::not_implemented();
+	curr = info.m_iu = new instantiated_usr(*curr, tu, key);
+      }
       return curr;
     }
   }
 
   usr::flag2_t flag2 = prev->m_flag2;
   if (flag2 & usr::TEMPLATE) {
-    if (parse::templ::ptr) {
-      curr->m_flag2 = usr::flag2_t(curr->m_flag2 | usr::INSTANTIATE);
-      return curr;
-    }
+    template_usr* tu = static_cast<template_usr*>(prev);
     templ_base::KEY key;
-    if (instance_of(prev, curr, key))
-      return new special_ver(*curr, key);
-    error::not_implemented();
+    if (!instance_of(tu, curr, key))
+      error::not_implemented();
+    instantiated_usr* ret = new instantiated_usr(*curr, tu, key);
+    if (parse::templ::ptr) {
+      assert(!template_usr::s_stack.empty());
+      template_usr::info_t& info = template_usr::s_stack.top();
+      assert(tu == info.m_tu);
+      return info.m_iu = new instantiated_usr(*curr, tu, key);
+    }
+    ret->m_flag2 = usr::flag2_t(ret->m_flag2 | usr::SPECIAL_VER);
+    tu->m_table[key] = ret;
+    return ret;
   }
 
   string name = curr->m_name;
