@@ -430,7 +430,8 @@ function::definition::begin(declarations::specifier_seq::info_t* p, var* v)
     var* ref = ga->m_ref;
     u = ref->usr_cast();
   }
-  if (u->m_flag2 & usr::CONV_OPE)
+  usr::flag2_t flag2 = u->m_flag2;
+  if (flag2 & usr::CONV_OPE)
     p = declarations::specifier_seq::info_t::s_stack.top();
   parse::identifier::mode = parse::identifier::look;
   u = declarations::action1(u,false);
@@ -484,7 +485,7 @@ function::definition::begin(declarations::specifier_seq::info_t* p, var* v)
     scope* ptr = u->m_scope;
     if (ptr->m_id == scope::BLOCK)
       ptr = &scope::root;
-    KEY key(make_pair(name,ptr),&param);
+    key_t key(name, ptr, &param, get_seed(u));
     table_t::const_iterator p = dtbl.find(key);
     if (p != dtbl.end()) {
       using namespace error::declarations::declarators::function::definition;
@@ -547,8 +548,8 @@ namespace cxx_compiler {
             extern void remember(fundef*, vector<tac*>&);
             skip::table_t skip::stbl;
             namespace defer {
-              map<pair<string, scope*>, vector<ref_t> > refs;
-              map<pair<string, scope*>, set<usr*> > callers;
+              map<key_t, vector<ref_t> > refs;
+              map<key_t, set<usr*> > callers;
               map<usr*, vector<int> > positions;
             }  // end of namespace defer
           }  // end of namespace static_inline
@@ -711,7 +712,7 @@ namespace cxx_compiler {
 
     using namespace declarations::declarators::function::definition;
     const vector<const type*>& parameter = ft->param();
-    KEY key(make_pair(name, ptr), &parameter);
+    key_t key(name, ptr, &parameter, get_seed(func));
     dtbl[key] = u;
 
     using namespace class_or_namespace_name;
@@ -956,14 +957,15 @@ namespace cxx_compiler {
 	      typedef const func_type FT;
 	      assert(T->m_id == type::FUNC);
 	      FT* ft = static_cast<FT*>(T);
+	      scope* ps = get(u);
 	      const vector<const type*>& param = ft->param();
-	      pair<string, scope*> ns(name, get(u));
-	      KEY key(ns, &param);
+	      key_t key(name, ps, &param, get_seed(u));
 	      if (definition::dtbl.find(key) != definition::dtbl.end())
 		return;
 
 	      using namespace defer;
-	      refs[ns].push_back(ref_t(name, flag, u->m_file, ptac->m_file));
+	      pair<string, scope*> ns(name, ps);
+	      refs[key].push_back(ref_t(name, flag, u->m_file, ptac->m_file));
 	      if (ptac->m_id == tac::ADDR)
 		return;
 	      assert(ptac->m_id == tac::CALL);
@@ -971,7 +973,7 @@ namespace cxx_compiler {
 		return;
 	      arg->m_wait_inline = true;
 	      usr* v = arg->m_fundef->m_usr;
-	      callers[ns].insert(v);
+	      callers[key].insert(v);
 	      positions[v].push_back(arg->m_pos);
 	    }
 	  } // end of namespace static_inline
@@ -987,7 +989,7 @@ namespace cxx_compiler { namespace declarations { namespace declarators { namesp
     using namespace defer;
     namespace skip {
       void after_substitute(usr* ucaller,
-			    pair<pair<string, scope*>, info_t*> pcallee)
+			    pair<key_t, info_t*> pcallee)
       {
         map<usr*, vector<int> >::iterator p = positions.find(ucaller);
         assert(p != positions.end());
@@ -1015,10 +1017,17 @@ namespace cxx_compiler { namespace declarations { namespace declarators { namesp
             var* y = ptac->y;
             usr* fn = y->usr_cast();
             assert(fn);
-            pair<string, scope*> ns = pcallee.first;
+            key_t key = pcallee.first;
             info_t* callee = pcallee.second;
 	    scope* ps = get(fn);
-            if (fn->m_name == ns.first && ps == ns.second) {
+	    const type* T = fn->m_type;
+	    assert(T->m_id == type::FUNC);
+	    typedef const func_type FT;
+	    FT* ft = static_cast<FT*>(T);
+	    const vector<const type*>& param = ft->param();
+	    instantiated_usr::SEED seed = get_seed(fn);
+            if (fn->m_name == key.m_name && ps == key.m_scope &&
+		&param == key.m_param && seed == key.m_seed) {
               int before = vc.size();
               if (!error::counter && !cmdline::no_inline_sub)
                 substitute(vc, n, callee);
@@ -1058,13 +1067,18 @@ namespace cxx_compiler { namespace declarations { namespace declarators { namesp
         if (!f)
           return;
 
-	pair<string, scope*> ns(u->m_name, get(u));
-        map<pair<string, scope*>, vector<ref_t> >::iterator p = refs.find(ns);
+	const type* T = u->m_type;
+	assert(T->m_id == type::FUNC);
+	typedef const func_type FT;
+	FT* ft = static_cast<FT*>(T);
+	const vector<const type*>& param = ft->param();
+	key_t key(u->m_name, get(u), &param, get_seed(u));
+        map<key_t, vector<ref_t> >::iterator p = refs.find(key);
         if (p == refs.end())
           return;
 
         refs.erase(p);
-        map<pair<string, scope*>, set<usr*> >::iterator q = callers.find(ns);
+        map<key_t, set<usr*> >::iterator q = callers.find(key);
         if (q == callers.end()) {
           stbl.erase(u);
           return gencode(info);
@@ -1074,7 +1088,7 @@ namespace cxx_compiler { namespace declarations { namespace declarators { namesp
         usr::flag_t flag = u->m_flag;
         assert(flag & usr::INLINE);
         for_each(begin(su), end(su),
-                 bind2nd(ptr_fun(after_substitute),make_pair(ns,info)));
+                 bind2nd(ptr_fun(after_substitute),make_pair(key,info)));
         callers.erase(q);
       }
     } // end of namespace skip

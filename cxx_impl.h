@@ -631,8 +631,41 @@ namespace declarations {
         extern void begin(declarations::specifier_seq::info_t*, var*);
         extern void action(statements::base*);
         extern void action(fundef* fdef, vector<tac*>&);
-        typedef pair<pair<string, scope*>,const vector<const type*>*> KEY;
-        typedef map<KEY,usr*> table_t;
+	struct key_t {
+	  string m_name;
+	  scope* m_scope;
+	  const vector<const type*>* m_param;
+	  instantiated_usr::SEED m_seed;
+	  key_t(string name, scope* ps, const vector<const type*>* param,
+		const instantiated_usr::SEED& seed)
+	  : m_name(name), m_scope(ps), m_param(param), m_seed(seed) {}
+	};
+	inline bool operator<(const key_t& x, const key_t& y)
+	{
+	  if (x.m_name < y.m_name)
+	    return true;
+	  if (x.m_name > y.m_name)
+	    return false;
+	  if (x.m_scope < y.m_scope)
+	    return true;
+	  if (x.m_scope > y.m_scope)
+	    return false;
+	  if (x.m_param < y.m_param)
+	    return true;
+	  if (x.m_param > y.m_param)
+	    return false;
+	  return x.m_seed < y.m_seed;
+	}
+	inline instantiated_usr::SEED get_seed(usr* u)
+	{
+	  usr::flag2_t flag2 = u->m_flag2;
+	  if (!(flag2 & usr::INSTANTIATE))
+	    return instantiated_usr::SEED();
+	  typedef instantiated_usr IU;
+	  IU* iu = static_cast<IU*>(u);
+	  return iu->m_seed;
+	}
+        typedef map<key_t,usr*> table_t;
         extern table_t dtbl;
         namespace static_inline {
           struct info_t {
@@ -672,10 +705,10 @@ namespace declarations {
                     const file_t& use)
               : m_name(name), m_flag(flag), m_def(def), m_use(use) {}
             };
-            extern map<pair<string, scope*>, vector<ref_t> > refs;
+            extern map<key_t, vector<ref_t> > refs;
 
             // inline function -> callers
-            extern map<pair<string, scope*>, set<usr*> > callers;
+            extern map<key_t, set<usr*> > callers;
 
             // caller -> position at caller
             extern map<usr*, vector<int> > positions;

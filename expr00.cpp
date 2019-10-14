@@ -1489,7 +1489,7 @@ cxx_compiler::unqualified_id::operator_function_id(int op)
 
   using namespace declarations::declarators::function::definition;
   const vector<const type*>& parameter = ft->param();
-  KEY key(make_pair(opn, ptr), &parameter);
+  key_t key(opn, ptr, &parameter, get_seed(u));
   dtbl[key] = u;
 
   using namespace class_or_namespace_name;

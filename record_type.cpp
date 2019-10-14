@@ -708,8 +708,9 @@ namespace cxx_compiler {
         string sn = special_name(tor, exclude);
         const type* T = tor->m_type;
         usr::flag_t flag = usr::flag_t(tor->m_flag | usr::INLINE);
-        usr* scd = new usr(sn, T, flag, parse::position,
-		   usr::flag2_t(usr::GENED_BY_COMP | usr::EXCLUDE_TOR));
+	usr::flag2_t flag2 =
+	  usr::flag2_t(usr::GENED_BY_COMP | usr::EXCLUDE_TOR);
+        usr* scd = new usr(sn, T, flag, parse::position, flag2);
         scope* ps = tor->m_scope;
         assert(ps->m_id == scope::TAG);
         tag* ptr = static_cast<tag*>(ps);
@@ -732,7 +733,7 @@ namespace cxx_compiler {
         FT* ft = static_cast<FT*>(T);
         using namespace declarations::declarators::function::definition;
         const vector<const type*>& parameter = ft->param();
-        KEY key(make_pair(sn, ptr), &parameter);
+        key_t key(sn, ptr, &parameter, get_seed(scd));
         dtbl[key] = scd;
 
         using namespace class_or_namespace_name;
@@ -766,10 +767,10 @@ namespace cxx_compiler {
         int n = code.size();
         scope* org = scope::current;
         scope::current = bp;
-        usr::flag2_t flag2 = tor->m_flag2;
+        usr::flag2_t tor_flag2 = tor->m_flag2;
         if (!is_dtor) {
           rec->tor_code(tor, param, this_ptr, bp, is_dtor, exclude);
-          if (!(flag2 & usr::GENED_BY_COMP)) {
+          if (!(tor_flag2 & usr::GENED_BY_COMP)) {
             vector<var*> arg;
             const vector<usr*>& order = param->m_order;
             copy(begin(order)+1, end(order), back_inserter(arg));
@@ -777,7 +778,7 @@ namespace cxx_compiler {
           }
         }
         else {
-          if (!(flag2 & usr::GENED_BY_COMP))
+          if (!(tor_flag2 & usr::GENED_BY_COMP))
             call_body(tor, 0, this_ptr);
           rec->tor_code(tor, param, this_ptr, bp, is_dtor, exclude);
         }
@@ -1461,11 +1462,12 @@ namespace cxx_compiler {
       const func_type* ft = default_ctor_type();
       usr::flag_t flag = is_dtor ? usr::DTOR : usr::CTOR;
       flag = usr::flag_t(flag | usr::FUNCTION | usr::INLINE);
-      usr* tor = new usr(tgn, ft, flag, parse::position, usr::GENED_BY_COMP);
+      usr::flag2_t flag2 = usr::GENED_BY_COMP;
+      usr* tor = new usr(tgn, ft, flag, parse::position, flag2);
       ptr->m_usrs[tgn].push_back(tor);
       using namespace declarations::declarators::function::definition;
       const vector<const type*>& parameter = ft->param();
-      KEY key(make_pair(tgn, ptr), &parameter);
+      key_t key(tgn, ptr, &parameter, get_seed(tor));
       dtbl[key] = tor;
 
       *param = new scope(scope::PARAM);
@@ -1805,7 +1807,8 @@ namespace cxx_compiler {
       const func_type* ft = copy_ctor_type(ptr, true);
       usr::flag_t flag =
         usr::flag_t(usr::CTOR | usr::FUNCTION | usr::INLINE);
-      usr* ctor = new usr(tgn, ft, flag, parse::position, usr::GENED_BY_COMP);
+      usr::flag2_t flag2 = usr::GENED_BY_COMP;
+      usr* ctor = new usr(tgn, ft, flag, parse::position, flag2);
       map<string, vector<usr*> >& usrs = ptr->m_usrs;
       map<string, vector<usr*> >::iterator p = usrs.find(tgn);
       assert(p != usrs.end());
@@ -1818,7 +1821,7 @@ namespace cxx_compiler {
 
       using namespace declarations::declarators::function::definition;
       const vector<const type*>& parameter = ft->param();
-      KEY key(make_pair(tgn, ptr), &parameter);
+      key_t key(tgn, ptr, &parameter, get_seed(ctor));
       dtbl[key] = ctor;
 
       using namespace class_or_namespace_name;
