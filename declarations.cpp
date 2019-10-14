@@ -1037,6 +1037,10 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
 	if (!instance_of(tu, curr, key))
 	  error::not_implemented();
 	curr = info.m_iu = new instantiated_usr(*curr, tu, key);
+	if (info.m_explicit) {
+	  curr->m_flag2 =
+	    usr::flag2_t(curr->m_flag2 | usr::EXPLICIT_INSTANTIATE);
+	}
       }
       return curr;
     }

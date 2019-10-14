@@ -585,7 +585,9 @@ namespace cxx_compiler {
     struct sweeper {
       vector<pair<var*, const type*>*>* m_ptr;
       stack<declarations::specifier_seq::info_t*> m_stack;
-      sweeper(vector<pair<var*, const type*>*>* pv) : m_ptr(pv)
+      bool m_new;
+      sweeper(vector<pair<var*, const type*>*>* pv, bool b)
+	: m_ptr(pv), m_new(b)
       {
 	stack<declarations::specifier_seq::info_t*>& x =
 	  declarations::specifier_seq::info_t::s_stack;
@@ -595,7 +597,8 @@ namespace cxx_compiler {
       }
       ~sweeper()
       {
-	parse::identifier::mode = parse::identifier::new_obj;
+	parse::identifier::mode =
+	  m_new ? parse::identifier::new_obj : parse::identifier::look;
 	declarations::specifier_seq::info_t::s_stack = m_stack;
 	if (m_ptr) {
 	  for (auto p : *m_ptr)
@@ -690,7 +693,7 @@ cxx_compiler::
 template_tag::common(std::vector<std::pair<var*, const type*>*>* pv,
 		     bool special_ver)
 {
-  template_tag_impl::sweeper sweeper(pv);
+  template_tag_impl::sweeper sweeper(pv, true);
   const vector<string>& tpss = templ_base::m_tps.second;
   if (!pv) {
     if (!tpss.empty())
@@ -748,7 +751,7 @@ cxx_compiler::usr*
 cxx_compiler::template_usr::
 instantiate_explicit(vector<pair<var*, const type*>*>* pv)
 {
-  template_tag_impl::sweeper sweeper(pv);
+  template_tag_impl::sweeper sweeper(pv, false);
   KEY key;
   transform(begin(*pv), end(*pv), back_inserter(key),
 	    [](pair<var*, const type*>* p)
