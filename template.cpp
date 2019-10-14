@@ -190,6 +190,14 @@ namespace cxx_compiler {
 	calc tmp(tpsf);
 	return tmp(Tx, Ty);
       }
+      bool qualifier_case(const type* Tx, const type* Ty,
+			  const scope::TPSF& tpsf)
+      {
+	Tx = Tx->unqualified();
+	Ty = Ty->unqualified();
+	calc tmp(tpsf);
+	return tmp(Tx, Ty);
+      }
       struct table_t : map<type::id_t, FUNC*> {
 	table_t()
 	{
@@ -197,6 +205,9 @@ namespace cxx_compiler {
 	  (*this)[type::RECORD] = record_case;
 	  (*this)[type::POINTER] = pointer_case;
 	  (*this)[type::REFERENCE] = reference_case;
+	  (*this)[type::CONST] =
+	  (*this)[type::VOLATILE] =
+	  (*this)[type::RESTRICT] = qualifier_case;
 	}
       } table;
     } // end of namespace calc_impl
