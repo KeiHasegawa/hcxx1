@@ -20,8 +20,8 @@ cxx_compiler::classes::specifier::begin(int keyword, var* v,
 {
   using namespace std;
   usr* u = static_cast<usr*>(v);
-  const scope::TPSF& tpsf = scope::current->m_tps.first;
-  usr* uu = tpsf.empty() ? u : 0;
+  const map<string, scope::TPSFV>& table = scope::current->m_tps.m_table;
+  usr* uu = table.empty() ? u : 0;
   auto_ptr<usr> sweeper(uu);
   tag::kind_t kind = get(keyword);
   string name = u ? u->m_name : new_name(".tag");
@@ -52,10 +52,11 @@ cxx_compiler::classes::specifier::begin(int keyword, var* v,
     tt = static_cast<template_tag*>(prev);
     assert(!template_tag::s_stack.empty());
     assert(tt == template_tag::s_stack.top().first);
-    const scope::TPSF& tpsf = tt->templ_base::m_tps.first;
-    const scope::TPSS& tpss = tt->templ_base::m_tps.second;
+    const map<string, scope::TPSFV>& table = tt->templ_base::m_tps.m_table;
+    const vector<string>& order = tt->templ_base::m_tps.m_order;
     name += '<';
-    name = accumulate(begin(tpss), end(tpss), name, instantiated_name(tpsf));
+    name = accumulate(begin(order), end(order), name,
+		      instantiated_name(table));
     name.erase(name.size()-1);
     name += '>';
   }
@@ -70,7 +71,7 @@ cxx_compiler::classes::specifier::begin(int keyword, var* v,
   else {
     ptr = new tag(kind, name, file, bases);
     const scope::TPS& tps = scope::current->m_tps;
-    if (!tps.first.empty()) {
+    if (!tps.m_table.empty()) {
       using namespace parse::templ;
       assert(!save_t::s_stack.empty());
       save_t* p = save_t::s_stack.top();
@@ -130,8 +131,8 @@ const cxx_compiler::type* cxx_compiler::classes::specifier::action()
   assert(scope::current->m_id == scope::TAG);
   tag* ptr = static_cast<tag*>(scope::current);
   scope* ps = ptr->m_parent;
-  const scope::TPSF& tpsf = ps->m_tps.first;
-  if (!tpsf.empty()) {
+  const map<string, scope::TPSFV>& table = ps->m_tps.m_table;
+  if (!table.empty()) {
     if (ptr->m_kind2 == tag::TEMPLATE) {
       template_tag* tt = static_cast<template_tag*>(ptr);
       scope::current = ptr->m_parent;

@@ -1560,19 +1560,19 @@ template_parameter
 
 type_parameter
   : CLASS_KW IDENTIFIER_LEX
-    { cxx_compiler::type_parameter::action($2); }
+    { cxx_compiler::type_parameter::action($2, 0); }
   | CLASS_KW
     { cxx_compiler::error::not_implemented(); }
   | CLASS_KW IDENTIFIER_LEX '=' type_id
-    { cxx_compiler::error::not_implemented(); }
+    { cxx_compiler::type_parameter::action($2, $4); }
   | CLASS_KW '=' type_id
     { cxx_compiler::error::not_implemented(); }
   | TYPENAME_KW IDENTIFIER_LEX
-    { cxx_compiler::type_parameter::action($2); }
+    { cxx_compiler::type_parameter::action($2, 0); }
   | TYPENAME_KW
     { cxx_compiler::error::not_implemented(); }
   | TYPENAME_KW IDENTIFIER_LEX '=' type_id
-    { cxx_compiler::error::not_implemented(); }
+    { cxx_compiler::type_parameter::action($2, $4); }
   | TYPENAME_KW '=' type_id
     { cxx_compiler::error::not_implemented(); }
   | TEMPLATE_KW '<' template_parameter_list '>' CLASS_KW IDENTIFIER_LEX

@@ -19,9 +19,11 @@ struct scope {
   // template parameter
   typedef std::pair<const type*, var*> TPSFVS;
   typedef std::pair<tag*, TPSFVS*> TPSFV;
-  typedef std::map<std::string, TPSFV> TPSF;
-  typedef std::vector<std::string> TPSS;
-  typedef std::pair<TPSF, TPSS> TPS;
+  struct TPS {
+    std::map<std::string, TPSFV> m_table;
+    std::vector<std::string> m_order;
+    std::map<std::string, const type*> m_default;
+  };
   TPS m_tps;
 
   static scope* current;

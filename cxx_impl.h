@@ -1521,7 +1521,7 @@ namespace qualified_id {
 } // end of namespace qualified_id
 
 namespace type_parameter {
-  extern void action(var*);
+  extern void action(var*, const type*);
 } // end of namespace type_parameter
 
 namespace call_impl {
@@ -1595,8 +1595,8 @@ struct template_usr : usr, templ_base {
 };
 
 struct instantiated_name {
-  const scope::TPSF& m_tpsf;
-  instantiated_name(const scope::TPSF& tpsf) : m_tpsf(tpsf) {}
+  const map<string, scope::TPSFV>& m_table;
+  instantiated_name(const map<string, scope::TPSFV>& table) : m_table(table) {}
   string operator()(string name, string pn);
 };
 

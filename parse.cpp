@@ -416,9 +416,9 @@ int
 cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
 {
   using namespace std;
-  const scope::TPSF& tpsf = ptr->m_tps.first;
-  scope::TPSF::const_iterator r = tpsf.find(name);
-  if (r != tpsf.end())
+  const map<string, scope::TPSFV>& table = ptr->m_tps.m_table;
+  map<string, scope::TPSFV>::const_iterator r = table.find(name);
+  if (r != table.end())
     return templ_param_lex(name, r->second, false);
   const map<string, vector<usr*> >& usrs = ptr->m_usrs;
   map<string, vector<usr*> >::const_iterator p = usrs.find(name);
@@ -518,9 +518,10 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
       if (ptag->m_kind2 == tag::INSTANTIATE) {
 	instantiated_tag* it = static_cast<instantiated_tag*>(ptag);
 	template_tag* src = it->m_src;
-	const scope::TPSF& tpsf = src->templ_base::m_tps.first;
-	scope::TPSF::const_iterator p = tpsf.find(name);
-	if (p != tpsf.end())
+	const map<string, scope::TPSFV>& table =
+	  src->templ_base::m_tps.m_table;
+	map<string, scope::TPSFV>::const_iterator p = table.find(name);
+	if (p != table.end())
 	  return templ_param_lex(name, p->second, true);
       }
     }

@@ -712,7 +712,7 @@ cxx_compiler::declarations::action1(var* v, bool ini)
     assert(!class_or_namespace_name::before.empty());
     scope* ptr = class_or_namespace_name::before.back();
     const scope::TPS& tps = ptr->m_tps;
-    if (!tps.first.empty()) {
+    if (!tps.m_table.empty()) {
       using namespace parse::templ;
       assert(!save_t::s_stack.empty());
       save_t* p = save_t::s_stack.top();
@@ -723,13 +723,13 @@ cxx_compiler::declarations::action1(var* v, bool ini)
 
   if (!installed) {
     if (parse::templ::param) {
-      scope::TPSF& tpsf = scope::current->m_tps.first;
-      scope::TPSF::const_iterator p = tpsf.find(name);
-      if (p != tpsf.end())
+      map<string, scope::TPSFV>& table = scope::current->m_tps.m_table;
+      map<string, scope::TPSFV>::const_iterator p = table.find(name);
+      if (p != table.end())
 	error::not_implemented();
-      tpsf[name].second = new scope::TPSFVS(T, 0);
-      vector<string>& tpss = scope::current->m_tps.second;
-      tpss.push_back(name);
+      table[name].second = new scope::TPSFVS(T, 0);
+      vector<string>& order = scope::current->m_tps.m_order;
+      order.push_back(name);
     }
     else
       u = action2(u);

@@ -3,14 +3,14 @@
 #include "cxx_impl.h"
 #include "yy.h"
 
-void cxx_compiler::type_parameter::action(var* v)
+void cxx_compiler::type_parameter::action(var* v, const type* T)
 {
   assert(v->usr_cast());
   usr* u = static_cast<usr*>(v);
   string name = u->m_name;
-  scope::TPSF& tpsf = scope::current->m_tps.first;
-  scope::TPSF::const_iterator p = tpsf.find(name);
-  if (p != tpsf.end())
+  map<string, scope::TPSFV>& table = scope::current->m_tps.m_table;
+  map<string, scope::TPSFV>::const_iterator p = table.find(name);
+  if (p != table.end())
     error::not_implemented();
   tag* ptr = new tag(tag::CLASS, name, parse::position, 0);
   assert(class_or_namespace_name::before.back() == ptr);
@@ -18,17 +18,20 @@ void cxx_compiler::type_parameter::action(var* v)
   ptr->m_parent = scope::current;
   vector<scope*>& children = scope::current->m_children;
   children.push_back(ptr);
-  const type* T = template_param_type::create(ptr);
-  ptr->m_types.first = T;
-  tpsf[name].first = ptr;
-  vector<string>& tpss = scope::current->m_tps.second;
-  tpss.push_back(name);
+  ptr->m_types.first = template_param_type::create(ptr);
+  table[name].first = ptr;
+  vector<string>& order = scope::current->m_tps.m_order;
+  order.push_back(name);
+  if (T) {
+    map<string, const type*>& def = scope::current->m_tps.m_default;
+    def[name] = T;
+  }
 }
 
 void cxx_compiler::declarations::templ::decl_begin()
 {
-  const scope::TPSF& tpsf = scope::current->m_tps.first;
-  if (!tpsf.empty()) {
+  const map<string, scope::TPSFV>& table = scope::current->m_tps.m_table;
+  if (!table.empty()) {
     using namespace parse::templ;
     save_t::s_stack.push(new save_t);
   }
@@ -55,8 +58,8 @@ namespace cxx_compiler {
 
 void cxx_compiler::declarations::templ::decl_end()
 {
-  scope::TPSF& tpsf = scope::current->m_tps.first;
-  if (tpsf.empty())
+  map<string, scope::TPSFV>& table = scope::current->m_tps.m_table;
+  if (table.empty())
     return;
 
   using namespace parse::templ;
@@ -70,7 +73,7 @@ void cxx_compiler::declarations::templ::decl_end()
   save_t::s_stack.pop();
 
   vector<scope*>& children = scope::current->m_children;
-  for (const auto& p : tpsf) {
+  for (const auto& p : table) {
     if (tag* ptr = p.second.first) {
       typedef vector<scope*>::reverse_iterator ITx;
       ITx q = find(rbegin(children), rend(children), ptr);
@@ -81,40 +84,43 @@ void cxx_compiler::declarations::templ::decl_end()
     }
   }
 
-  tpsf.clear();
-  vector<string>& tpss = scope::current->m_tps.second;
-  tpss.clear();
+  table.clear();
+  vector<string>& order = scope::current->m_tps.m_order;
+  order.clear();
+  map<string, const type*>& def = scope::current->m_tps.m_default;
+  def.clear();
 }
 
 namespace cxx_compiler {
   namespace template_usr_impl {
     struct calc {
-      const scope::TPSF& m_tpsf;
-      calc(const scope::TPSF& tpsf) : m_tpsf(tpsf) {}
+      const map<string, scope::TPSFV>& m_table;
+      calc(const map<string, scope::TPSFV>& table) : m_table(table) {}
       bool operator()(const type* Tx, const type* Ty);
     };
     namespace calc_impl {
-      typedef bool FUNC(const type*, const type*, const scope::TPSF&);
+      typedef bool FUNC(const type*, const type*,
+			const map<string, scope::TPSFV>&);
       bool template_param_case(const type* Tx, const type* Ty,
-			       const scope::TPSF& tpsf)
+			       const map<string, scope::TPSFV>& table)
       {
 	assert(Tx->m_id == type::TEMPLATE_PARAM);
 	typedef const template_param_type TP;
 	TP* tp = static_cast<TP*>(Tx);
 	tag* ptr = tp->get_tag();
-	typedef scope::TPSF::const_iterator IT;
-	IT p = find_if(begin(tpsf), end(tpsf),
+	typedef map<string, scope::TPSFV>::const_iterator IT;
+	IT p = find_if(begin(table), end(table),
 		       [ptr](const pair<string, scope::TPSFV>& x)
 		       { return x.second.first == ptr; });
-	assert(p != end(tpsf));
+	assert(p != end(table));
 	if (ptr->m_types.second)
 	  return ptr->m_types.second == Ty;
 	ptr->m_types.second = Ty;
 	return true;
       }
       struct helper {
-	const scope::TPSF& m_tpsf;
-	helper(const scope::TPSF& tpsf) : m_tpsf(tpsf) {}
+	const map<string, scope::TPSFV>& m_table;
+	helper(const map<string, scope::TPSFV>& table) : m_table(table) {}
 	bool operator()(const scope::TPSFVS& x, const scope::TPSFVS& y)
 	{
 	  if (x.second) {
@@ -123,12 +129,12 @@ namespace cxx_compiler {
 	  }
 	  const type* Tx = x.first;
 	  const type* Ty = y.first;
-	  calc tmp(m_tpsf);
+	  calc tmp(m_table);
 	  return tmp(Tx, Ty);
 	}
       };
       bool record_case(const type* Tx, const type* Ty,
-		       const scope::TPSF& tpsf)
+		       const map<string, scope::TPSFV>& table)
       {
 	assert(Tx->m_id == type::RECORD);
 	typedef const record_type REC;
@@ -159,11 +165,11 @@ namespace cxx_compiler {
 	assert(xseed.size() == yseed.size());
 	typedef SEED::const_iterator IT;
 	pair<IT, IT> ret = mismatch(begin(xseed), end(xseed), begin(yseed),
-				    helper(tpsf));
+				    helper(table));
 	return ret == make_pair(end(xseed), end(yseed));
       }
       bool pointer_case(const type* Tx, const type* Ty,
-			const scope::TPSF& tpsf)
+			const map<string, scope::TPSFV>& table)
       {
 	assert(Tx->m_id == type::POINTER);
 	typedef const pointer_type PT;
@@ -173,11 +179,11 @@ namespace cxx_compiler {
 	  error::not_implemented();
 	PT* ypt = static_cast<PT*>(Ty);
 	Ty = ypt->referenced_type();
-	calc tmp(tpsf);
+	calc tmp(table);
 	return tmp(Tx, Ty);
       }
       bool reference_case(const type* Tx, const type* Ty,
-			  const scope::TPSF& tpsf)
+			  const map<string, scope::TPSFV>& table)
       {
 	assert(Tx->m_id == type::REFERENCE);
 	typedef const reference_type RT;
@@ -187,15 +193,15 @@ namespace cxx_compiler {
 	  Ty = rt->referenced_type();
 	}
 	Tx = xrt->referenced_type();
-	calc tmp(tpsf);
+	calc tmp(table);
 	return tmp(Tx, Ty);
       }
       bool qualifier_case(const type* Tx, const type* Ty,
-			  const scope::TPSF& tpsf)
+			  const map<string, scope::TPSFV>& table)
       {
 	Tx = Tx->unqualified();
 	Ty = Ty->unqualified();
-	calc tmp(tpsf);
+	calc tmp(table);
 	return tmp(Tx, Ty);
       }
       struct table_t : map<type::id_t, FUNC*> {
@@ -216,7 +222,7 @@ namespace cxx_compiler {
       calc_impl::table_t::const_iterator p =
 	calc_impl::table.find(Tx->m_id);
       if (p != calc_impl::table.end())
-	return (p->second)(Tx, Ty, m_tpsf);
+	return (p->second)(Tx, Ty, m_table);
       return Tx == Ty;
     }
     inline bool not_decided(const pair<string, pair<tag*, scope::TPSFVS*> >& p)
@@ -231,13 +237,13 @@ namespace cxx_compiler {
       return !y->second;
     }
     struct decide {
-      const scope::TPSF& m_tpsf;
-      decide(const scope::TPSF& tpsf) : m_tpsf(tpsf) {}
+      const map<string, scope::TPSFV>& m_table;
+      decide(const map<string, scope::TPSFV>& table) : m_table(table) {}
       pair<const type*, var*> operator()(string name)
       {
-	typedef scope::TPSF::const_iterator IT;
-	IT p = m_tpsf.find(name);
-	assert(p != m_tpsf.end());
+	typedef map<string, scope::TPSFV>::const_iterator IT;
+	IT p = m_table.find(name);
+	assert(p != m_table.end());
 	const pair<tag*, scope::TPSFVS*>& x = p->second;
 	if (tag* ptr = x.first) {
 	  const type* T = ptr->m_types.second;
@@ -250,12 +256,12 @@ namespace cxx_compiler {
       }
     };
     struct sweeper_a {
-      const scope::TPSF& m_tpsf;
+      const map<string, scope::TPSFV>& m_table;
       map<tag*, const type*> m_org1;
       map<scope::TPSFVS*, var*> m_org2;
-      sweeper_a(const scope::TPSF& tpsf) : m_tpsf(tpsf)
+      sweeper_a(const map<string, scope::TPSFV>& table) : m_table(table)
       {
-	for (auto p : m_tpsf) {
+	for (auto p : m_table) {
 	  scope::TPSFV& x = p.second;
 	  if (tag* ptr = x.first)
 	    m_org1[ptr] = ptr->m_types.second;
@@ -267,7 +273,7 @@ namespace cxx_compiler {
       }
       ~sweeper_a()
       {
-	for (auto p : m_tpsf) {
+	for (auto p : m_table) {
 	  scope::TPSFV& x = p.second;
 	  if (tag* ptr = x.first)
 	    ptr->m_types.second = m_org1[ptr];
@@ -409,27 +415,27 @@ cxx_compiler::template_usr::instantiate(std::vector<var*>* arg)
   int b = param.size();
   int n = min(a, b);
 
-  const scope::TPSF& tpsf = m_tps.first;
-  template_usr_impl::sweeper_a sweeper_a(tpsf);
+  const map<string, scope::TPSFV>& table = m_tps.m_table;
+  template_usr_impl::sweeper_a sweeper_a(table);
 
   typedef vector<const type*>::const_iterator ITx;
   ITx bn = begin(param);
   ITx ed = bn + n;
   pair<ITx, ITx> pxx = mismatch(bn, ed, begin(atype),
-				template_usr_impl::calc(tpsf));
+				template_usr_impl::calc(table));
   if (pxx.first != ed)
     error::not_implemented();
 
-  typedef scope::TPSF::const_iterator ITy;
-  ITy py = find_if(begin(tpsf), end(tpsf),
+  typedef map<string, scope::TPSFV>::const_iterator ITy;
+  ITy py = find_if(begin(table), end(table),
 		   template_usr_impl::not_decided);
-  if (py != end(tpsf))
+  if (py != end(table))
     error::not_implemented();
 
   KEY key;
-  const scope::TPSS& tpss = m_tps.second;
-  transform(begin(tpss), end(tpss), back_inserter(key),
-	    template_usr_impl::decide(tpsf));
+  const vector<string>& order = m_tps.m_order;
+  transform(begin(order), end(order), back_inserter(key),
+	    template_usr_impl::decide(table));
 
   table_t::const_iterator it = m_table.find(key);
   if (it != m_table.end())
@@ -461,12 +467,12 @@ namespace cxx_compiler {
   namespace template_usr_impl {
     struct sweeper_c : sweeper_a {
       struct helper {
-	const scope::TPSF& m_tpsf;
-	helper(const scope::TPSF& tpsf) : m_tpsf(tpsf) {}
+	const map<string, scope::TPSFV>& m_table;
+	helper(const map<string, scope::TPSFV>& table) : m_table(table) {}
 	bool operator()(string name, const pair<const type*, var*>& x)
 	{
-	  scope::TPSF::const_iterator p = m_tpsf.find(name);
-	  assert(p != m_tpsf.end());
+	  map<string, scope::TPSFV>::const_iterator p = m_table.find(name);
+	  assert(p != m_table.end());
 	  const scope::TPSFV& tpsfv = p->second;
 	  if (tag* ptr = tpsfv.first) {
 	    const type* T = x.first;
@@ -483,12 +489,12 @@ namespace cxx_compiler {
 	}
       };
       sweeper_c(const scope::TPS& tps, const template_usr::KEY& key)
-	: sweeper_a(tps.first)
+	: sweeper_a(tps.m_table)
       {
-	const scope::TPSF& tpsf = tps.first;
-	const vector<string>& v = tps.second;
+	const map<string, scope::TPSFV>& table = tps.m_table;
+	const vector<string>& v = tps.m_order;
 	assert(v.size() == key.size());
-	mismatch(begin(v), end(v), begin(key), helper(tpsf));
+	mismatch(begin(v), end(v), begin(key), helper(table));
       }
     };
   } // end of namespace template_usr_impl
@@ -619,13 +625,13 @@ namespace cxx_compiler {
       }
     };
     struct calc_key {
-      const scope::TPSF& m_tpsf;
-      calc_key(const scope::TPSF& tpsf) : m_tpsf(tpsf) {}
+      const map<string, scope::TPSFV>& m_table;
+      calc_key(const map<string, scope::TPSFV>& table) : m_table(table) {}
       pair<const type*, var*>
       operator()(pair<var*, const type*>* p, string name)
       {
-	scope::TPSF::const_iterator it = m_tpsf.find(name);
-	assert(it != m_tpsf.end());
+	map<string, scope::TPSFV>::const_iterator it = m_table.find(name);
+	assert(it != m_table.end());
 	const pair<tag*, scope::TPSFVS*>& x = it->second;
 	if (tag* ptr = x.first) {
 	  const type* T = p->second;
@@ -659,8 +665,8 @@ namespace cxx_compiler {
 
   string instantiated_name::operator()(string name, string pn)
   {
-    scope::TPSF::const_iterator p = m_tpsf.find(pn);
-    assert(p != m_tpsf.end());
+    map<string, scope::TPSFV>::const_iterator p = m_table.find(pn);
+    assert(p != m_table.end());
     const pair<tag*, scope::TPSFVS*>& x = p->second;
     if (tag* ptr = x.first) {
       const type* T = ptr->m_types.second;
@@ -705,22 +711,22 @@ template_tag::common(std::vector<std::pair<var*, const type*>*>* pv,
 		     bool special_ver)
 {
   template_tag_impl::sweeper sweeper(pv, true);
-  const vector<string>& tpss = templ_base::m_tps.second;
+  const vector<string>& order = templ_base::m_tps.m_order;
   if (!pv) {
-    if (!tpss.empty())
+    if (!order.empty())
       error::not_implemented();
   }
   else {
-    if (tpss.size() != pv->size())
+    if (order.size() != pv->size())
       error::not_implemented();
   }
 
-  const scope::TPSF& tpsf = templ_base::m_tps.first;
-  template_usr_impl::sweeper_a sweeper_a(tpsf);
+  const map<string, scope::TPSFV>& table = templ_base::m_tps.m_table;
+  template_usr_impl::sweeper_a sweeper_a(table);
   KEY key;
   if (pv) {
-    transform(begin(*pv), end(*pv), begin(tpss), back_inserter(key),
-	      template_tag_impl::calc_key(tpsf));
+    transform(begin(*pv), end(*pv), begin(order), back_inserter(key),
+	      template_tag_impl::calc_key(table));
   }
 
   table_t::const_iterator p = m_table.find(key);
@@ -733,11 +739,12 @@ template_tag::common(std::vector<std::pair<var*, const type*>*>* pv,
     return m_table[key] = p->second;
 
   if (special_ver) {
-    const scope::TPSF& tpsf = templ_base::m_tps.first;
-    const scope::TPSS& tpss = templ_base::m_tps.second;
+    const map<string, scope::TPSFV>& table = templ_base::m_tps.m_table;
+    const vector<string>& order = templ_base::m_tps.m_order;
     string name = m_name;
     name += '<';
-    name = accumulate(begin(tpss), end(tpss), name, instantiated_name(tpsf));
+    name = accumulate(begin(order), end(order), name,
+		      instantiated_name(table));
     name.erase(name.size()-1);
     name += '>';
     return m_table[key] = new special_ver_tag(name, this, key);
@@ -807,24 +814,24 @@ cxx_compiler::instance_of(template_usr* tu, usr* ins, templ_base::KEY& key)
   if (vt.size() != vi.size())
     return false;
 
-  const scope::TPSF& tpsf = tu->m_tps.first;
-  template_usr_impl::sweeper_a sweeper_a(tpsf);
+  const map<string, scope::TPSFV>& table = tu->m_tps.m_table;
+  template_usr_impl::sweeper_a sweeper_a(table);
 
   typedef vector<const type*>::const_iterator ITx;
   pair<ITx, ITx> ret = mismatch(begin(vt), end(vt), begin(vi),
-				template_usr_impl::calc(tpsf));
+				template_usr_impl::calc(table));
   if (ret != make_pair(end(vt), end(vi)))
     return false;
 
-  typedef scope::TPSF::const_iterator ITy;
-  ITy py = find_if(begin(tpsf), end(tpsf),
+  typedef map<string, scope::TPSFV>::const_iterator ITy;
+  ITy py = find_if(begin(table), end(table),
 		   template_usr_impl::not_decided);
-  if (py != end(tpsf))
+  if (py != end(table))
     return false;
 
-  const scope::TPSS& tpss = tu->m_tps.second;
-  transform(begin(tpss), end(tpss), back_inserter(key),
-	    template_usr_impl::decide(tpsf));
+  const vector<string>& order = tu->m_tps.m_order;
+  transform(begin(order), end(order), back_inserter(key),
+	    template_usr_impl::decide(table));
   return true;
 }
 
