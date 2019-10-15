@@ -3,10 +3,6 @@
 #include "cxx_impl.h"
 #include "yy.h"
 
-void debug_break()
-{
-}
-
 void cxx_compiler::type_parameter::action(var* v, const type* T)
 {
   assert(v->usr_cast());
@@ -653,8 +649,17 @@ namespace cxx_compiler {
 	  tag* ptr = T->get_tag();
 	  if (!ptr)
 	    return new pair<var*, const type*>(0, T);
-	  debug_break();
-	  return 0;
+	  if (T->m_id == type::TEMPLATE_PARAM) {
+	    T = ptr->m_types.second;
+	    assert(T);
+	    return new pair<var*, const type*>(0, T);
+	  }
+	  if (ptr->m_kind2 == tag::INSTANTIATE) {
+	    calc_key op(m_table);
+	    T = op.resolve_templ(T);
+	    return new pair<var*, const type*>(0, T);
+	  }
+	  return new pair<var*, const type*>(0, T);
 	}
       };
       const type* resolve_templ(const type* T)
