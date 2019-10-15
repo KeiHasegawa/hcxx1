@@ -128,14 +128,14 @@ namespace cxx_compiler {
 	__int64 value() const { return 1; }
       };
       inline int templ_param_lex(string name,
-				 const pair<tag*, scope::TPSFVS*>& x,
+				 const pair<tag*, scope::tps_t::val2_t*>& x,
 				 bool instantiate)
       {
 	if (tag* ptr = x.first) {
 	  cxx_compiler_lval.m_tag = ptr;
 	  return CLASS_NAME_LEX;
 	}
-	scope::TPSFVS* y = x.second;
+	scope::tps_t::val2_t* y = x.second;
 	assert(y);
 	const type* T = y->first;
 	assert(T);
@@ -416,8 +416,8 @@ int
 cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
 {
   using namespace std;
-  const map<string, scope::TPSFV>& table = ptr->m_tps.m_table;
-  map<string, scope::TPSFV>::const_iterator r = table.find(name);
+  const map<string, scope::tps_t::value_t>& table = ptr->m_tps.m_table;
+  map<string, scope::tps_t::value_t>::const_iterator r = table.find(name);
   if (r != table.end())
     return templ_param_lex(name, r->second, false);
   const map<string, vector<usr*> >& usrs = ptr->m_usrs;
@@ -518,9 +518,10 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
       if (ptag->m_kind2 == tag::INSTANTIATE) {
 	instantiated_tag* it = static_cast<instantiated_tag*>(ptag);
 	template_tag* src = it->m_src;
-	const map<string, scope::TPSFV>& table =
+	const map<string, scope::tps_t::value_t>& table =
 	  src->templ_base::m_tps.m_table;
-	map<string, scope::TPSFV>::const_iterator p = table.find(name);
+	map<string, scope::tps_t::value_t>::const_iterator p =
+	  table.find(name);
 	if (p != table.end())
 	  return templ_param_lex(name, p->second, true);
       }

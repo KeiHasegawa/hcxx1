@@ -1565,9 +1565,9 @@ namespace block_impl {
 } // end of namespace block_impl
 
 struct templ_base {
-  scope::TPS m_tps;
+  scope::tps_t m_tps;
   parse::read_t m_read;
-  templ_base(const scope::TPS& tps) : m_tps(tps) {}
+  templ_base(const scope::tps_t& tps) : m_tps(tps) {}
   typedef instantiated_tag::SEED KEY;
 };
 
@@ -1582,7 +1582,7 @@ struct template_usr : usr, templ_base {
   static stack<info_t> s_stack;
   typedef map<KEY, usr*> table_t;
   table_t m_table;
-  template_usr(usr& u, const scope::TPS& tps) : usr(u), templ_base(tps)
+  template_usr(usr& u, const scope::tps_t& tps) : usr(u), templ_base(tps)
   {
     m_flag2 = usr::flag2_t(m_flag2 | usr::TEMPLATE);
   }
@@ -1595,8 +1595,9 @@ struct template_usr : usr, templ_base {
 };
 
 struct instantiated_name {
-  const map<string, scope::TPSFV>& m_table;
-  instantiated_name(const map<string, scope::TPSFV>& table) : m_table(table) {}
+  const map<string, scope::tps_t::value_t>& m_table;
+  instantiated_name(const map<string, scope::tps_t::value_t>& table)
+  : m_table(table) {}
   string operator()(string name, string pn);
 };
 
@@ -1604,7 +1605,7 @@ struct template_tag : templ_base, tag {
   static stack<pair<template_tag*, instantiated_tag*> > s_stack;
   typedef map<KEY, tag*> table_t;
   table_t m_table;
-  template_tag(tag& t, const scope::TPS& tps)
+  template_tag(tag& t, const scope::tps_t& tps)
     : tag(t), templ_base(tps) { m_kind2 = TEMPLATE; }
   tag* common(vector<pair<var*, const type*>*>*, bool);
   tag* instantiate(vector<pair<var*, const type*>*>* pv)
@@ -1631,7 +1632,7 @@ namespace parse {
 
 bool instance_of(template_usr* tu, usr* ins, templ_base::KEY& key);
 
-inline bool template_param(const scope::TPSFVS& x)
+inline bool template_param(const scope::tps_t::val2_t& x)
 {
   const type* T = x.first;
   if (!T)

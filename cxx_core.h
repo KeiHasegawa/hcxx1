@@ -17,14 +17,14 @@ struct scope {
   std::map<std::string, tag*> m_tags;
 
   // template parameter
-  typedef std::pair<const type*, var*> TPSFVS;
-  typedef std::pair<tag*, TPSFVS*> TPSFV;
-  struct TPS {
-    std::map<std::string, TPSFV> m_table;
+  struct tps_t {
+    typedef std::pair<const type*, var*> val2_t;
+    typedef std::pair<tag*, val2_t*> value_t;
+    std::map<std::string, value_t> m_table;
     std::vector<std::string> m_order;
     std::map<std::string, const type*> m_default;
   };
-  TPS m_tps;
+  tps_t m_tps;
 
   static scope* current;
   static scope root;
@@ -70,7 +70,7 @@ struct template_tag;
 
 struct instantiated_tag : tag {
   template_tag* m_src;
-  typedef std::vector<scope::TPSFVS> SEED;
+  typedef std::vector<scope::tps_t::val2_t> SEED;
   SEED m_seed;
   instantiated_tag(kind_t kind, std::string name, const file_t& file,
 		   std::vector<base*>* b, template_tag* tt)
@@ -1109,7 +1109,7 @@ struct template_usr;
 
 struct instantiated_usr : usr {
   template_usr* m_src;
-  typedef std::vector<scope::TPSFVS> SEED;
+  typedef std::vector<scope::tps_t::val2_t> SEED;
   SEED m_seed;
   instantiated_usr(const usr& u, template_usr* tu, const SEED& seed)
     : usr(u), m_src(tu), m_seed(seed)

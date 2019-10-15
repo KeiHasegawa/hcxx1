@@ -20,7 +20,8 @@ cxx_compiler::classes::specifier::begin(int keyword, var* v,
 {
   using namespace std;
   usr* u = static_cast<usr*>(v);
-  const map<string, scope::TPSFV>& table = scope::current->m_tps.m_table;
+  const map<string, scope::tps_t::value_t>& table =
+    scope::current->m_tps.m_table;
   usr* uu = table.empty() ? u : 0;
   auto_ptr<usr> sweeper(uu);
   tag::kind_t kind = get(keyword);
@@ -52,7 +53,8 @@ cxx_compiler::classes::specifier::begin(int keyword, var* v,
     tt = static_cast<template_tag*>(prev);
     assert(!template_tag::s_stack.empty());
     assert(tt == template_tag::s_stack.top().first);
-    const map<string, scope::TPSFV>& table = tt->templ_base::m_tps.m_table;
+    const map<string, scope::tps_t::value_t>& table =
+      tt->templ_base::m_tps.m_table;
     const vector<string>& order = tt->templ_base::m_tps.m_order;
     name += '<';
     name = accumulate(begin(order), end(order), name,
@@ -70,7 +72,7 @@ cxx_compiler::classes::specifier::begin(int keyword, var* v,
   }
   else {
     ptr = new tag(kind, name, file, bases);
-    const scope::TPS& tps = scope::current->m_tps;
+    const scope::tps_t& tps = scope::current->m_tps;
     if (!tps.m_table.empty()) {
       using namespace parse::templ;
       assert(!save_t::s_stack.empty());
@@ -131,7 +133,7 @@ const cxx_compiler::type* cxx_compiler::classes::specifier::action()
   assert(scope::current->m_id == scope::TAG);
   tag* ptr = static_cast<tag*>(scope::current);
   scope* ps = ptr->m_parent;
-  const map<string, scope::TPSFV>& table = ps->m_tps.m_table;
+  const map<string, scope::tps_t::value_t>& table = ps->m_tps.m_table;
   if (!table.empty()) {
     if (ptr->m_kind2 == tag::TEMPLATE) {
       template_tag* tt = static_cast<template_tag*>(ptr);
