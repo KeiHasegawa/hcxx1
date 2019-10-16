@@ -21,11 +21,12 @@ namespace cxx_compiler {
 	vector<base*>* bases)
     {
       if (tt) {
-	assert(!template_tag::s_stack.empty());
-	assert(!template_tag::s_stack.top().second);
-	tag* ret = template_tag::s_stack.top().second
-	  = new instantiated_tag(kind, name, file, bases, tt);
-	return ret;
+	if (!template_tag::s_stack.empty()) {
+	  assert(!template_tag::s_stack.top().second);
+	  tag* ret = template_tag::s_stack.top().second
+	    = new instantiated_tag(kind, name, file, bases, tt);
+	  return ret;
+	}
       }
 
       tag* ret = new tag(kind, name, file, bases);
