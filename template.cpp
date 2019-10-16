@@ -25,6 +25,7 @@ void cxx_compiler::type_parameter::action(var* v, const type* T)
   if (T) {
     map<string, const type*>& def = scope::current->m_tps.m_default;
     def[name] = T;
+    parse::identifier::mode = parse::identifier::new_obj;
   }
 }
 
@@ -680,6 +681,8 @@ namespace cxx_compiler {
 	template_tag* tt = it->m_src;
 	tag* res = tt->instantiate(conv);
 	T = res->m_types.second;
+	if (!T)
+	  T = res->m_types.first;
 	assert(T);
 	return T;
       }
@@ -718,37 +721,6 @@ namespace cxx_compiler {
     };
   } // end of namespace template_tag_impl
   stack<pair<template_tag*, instantiated_tag*> > template_tag::s_stack;
-
-  string instantiated_name::operator()(string name, string pn)
-  {
-    map<string, scope::tps_t::value_t>::const_iterator p = m_table.find(pn);
-    assert(p != m_table.end());
-    const pair<tag*, scope::tps_t::val2_t*>& x = p->second;
-    if (tag* ptr = x.first) {
-      const type* T = ptr->m_types.second;
-      ostringstream os;
-      T->decl(os, "");
-      return name + os.str() + ',';
-    }
-    const scope::tps_t::val2_t* y = x.second;
-    assert(y);
-    assert(y->first);
-    var* v = y->second;
-    if (!v->isconstant(true))
-      error::not_implemented();
-    ostringstream os;
-    if (v->isconstant()) {
-      assert(v->usr_cast());
-      os << v->value();
-      return name + os.str() + ',';
-    }
-    addrof* a = v->addrof_cast();
-    assert(a);
-    assert(!a->m_offset);
-    v = a->m_ref;
-    usr* u = v->usr_cast();
-    return name + u->m_name + ',';
-  }
 
   struct special_ver_tag : tag {
     template_tag* m_src;
@@ -819,15 +791,7 @@ template_tag::common(std::vector<std::pair<var*, const type*>*>* pv,
     return m_table[key] = p->second;
 
   if (special_ver) {
-    const map<string, scope::tps_t::value_t>& table
-      = templ_base::m_tps.m_table;
-    const vector<string>& order = templ_base::m_tps.m_order;
-    string name = m_name;
-    name += '<';
-    name = accumulate(begin(order), end(order), name,
-		      instantiated_name(table));
-    name.erase(name.size()-1);
-    name += '>';
+    string name = instantiated_name();
     return m_table[key] = new special_ver_tag(name, this, key);
   }
 
@@ -844,6 +808,61 @@ template_tag::common(std::vector<std::pair<var*, const type*>*>* pv,
   assert(ret->m_src == this);
   ret->m_seed = key;
   return m_table[key] = ret;
+}
+
+namespace cxx_compiler {
+  namespace template_tag_impl {
+    struct helper {
+      const map<string, scope::tps_t::value_t>& m_table;
+      helper(const map<string, scope::tps_t::value_t>& table)
+	: m_table(table) {}
+      string operator()(string name, string pn)
+      {
+	map<string, scope::tps_t::value_t>::const_iterator p =
+	  m_table.find(pn);
+	assert(p != m_table.end());
+	const pair<tag*, scope::tps_t::val2_t*>& x = p->second;
+	if (tag* ptr = x.first) {
+	  const type* T = ptr->m_types.second;
+	  ostringstream os;
+	  T->decl(os, "");
+	  return name + os.str() + ',';
+	}
+	const scope::tps_t::val2_t* y = x.second;
+	assert(y);
+	assert(y->first);
+	var* v = y->second;
+	if (!v->isconstant(true))
+	  error::not_implemented();
+	ostringstream os;
+	if (v->isconstant()) {
+	  assert(v->usr_cast());
+	  os << v->value();
+	  return name + os.str() + ',';
+	}
+	addrof* a = v->addrof_cast();
+	assert(a);
+	assert(!a->m_offset);
+	v = a->m_ref;
+	usr* u = v->usr_cast();
+	return name + u->m_name + ',';
+      }
+    };
+  } // end of namespace template_tag_impl
+} // end of namespace cxx_compiler
+
+std::string cxx_compiler::template_tag::instantiated_name() const
+{
+  const map<string, scope::tps_t::value_t>& table
+    = templ_base::m_tps.m_table;
+  const vector<string>& order = templ_base::m_tps.m_order;
+  string name = m_name;
+  name += '<';
+  name = accumulate(begin(order), end(order), name,
+		    template_tag_impl::helper(table));
+  name.erase(name.size()-1);
+  name += '>';
+  return name;
 }
 
 cxx_compiler::usr*

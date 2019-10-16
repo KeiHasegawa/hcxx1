@@ -1165,7 +1165,9 @@ cxx_compiler::declarations::elaborated::action(int keyword, var* v)
   using namespace std;
   assert(v->usr_cast());
   usr* u = static_cast<usr*>(v);
-  auto_ptr<usr> sweeper(u);
+  const map<string, scope::tps_t::value_t>& table =
+    scope::current->m_tps.m_table;
+  auto_ptr<usr> sweeper(table.empty() ? u : 0);
   string name = u->m_name;
   tag* T = lookup(name, scope::current);
   if (T) {
@@ -1177,6 +1179,17 @@ cxx_compiler::declarations::elaborated::action(int keyword, var* v)
     tag::kind_t kind = classes::specifier::get(keyword);
     const file_t& file = u->m_file;
     tag* ptr = new tag(kind,name,file,0);
+    const scope::tps_t& tps = scope::current->m_tps;
+    if (!tps.m_table.empty()) {
+      using namespace parse::templ;
+      assert(!save_t::s_stack.empty());
+      save_t* p = save_t::s_stack.top();
+      assert(!p->m_tag);
+      assert(!class_or_namespace_name::before.empty());
+      assert(class_or_namespace_name::before.back() == ptr);
+      p->m_tag = ptr = new template_tag(*ptr, tps);
+      class_or_namespace_name::before.back() = ptr;
+    }
     parent->m_tags[name] = ptr;
     ptr->m_parent = parent;
     parent->m_children.push_back(ptr);

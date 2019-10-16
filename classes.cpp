@@ -14,6 +14,37 @@ cxx_compiler::tag::kind_t cxx_compiler::classes::specifier::get(int keyword)
   }
 }
 
+namespace cxx_compiler {
+  namespace classes_impl {
+    inline tag*
+    get(template_tag* tt, tag::kind_t kind, string name, const file_t& file,
+	vector<base*>* bases)
+    {
+      if (tt) {
+	assert(!template_tag::s_stack.empty());
+	assert(!template_tag::s_stack.top().second);
+	tag* ret = template_tag::s_stack.top().second
+	  = new instantiated_tag(kind, name, file, bases, tt);
+	return ret;
+      }
+
+      tag* ret = new tag(kind, name, file, bases);
+      const scope::tps_t& tps = scope::current->m_tps;
+      if (!tps.m_table.empty()) {
+	using namespace parse::templ;
+	assert(!save_t::s_stack.empty());
+	save_t* p = save_t::s_stack.top();
+	assert(!p->m_tag);
+	assert(!class_or_namespace_name::before.empty());
+	assert(class_or_namespace_name::before.back() == ret);
+	p->m_tag = ret = new template_tag(*ret, tps);
+	class_or_namespace_name::before.back() = ret;
+      }
+      return ret;
+    }
+  } // end of namespace classes_impl
+} // end of namespace cxx_compiler
+
 void
 cxx_compiler::classes::specifier::begin(int keyword, var* v,
 					std::vector<base*>* bases)
@@ -51,39 +82,11 @@ cxx_compiler::classes::specifier::begin(int keyword, var* v,
       return;
     }
     tt = static_cast<template_tag*>(prev);
-    assert(!template_tag::s_stack.empty());
-    assert(tt == template_tag::s_stack.top().first);
-    const map<string, scope::tps_t::value_t>& table =
-      tt->templ_base::m_tps.m_table;
-    const vector<string>& order = tt->templ_base::m_tps.m_order;
-    name += '<';
-    name = accumulate(begin(order), end(order), name,
-		      instantiated_name(table));
-    name.erase(name.size()-1);
-    name += '>';
+    if (!template_tag::s_stack.empty())
+      name = tt->instantiated_name();
   }
 
-  tag* ptr;
-  if (tt) {
-    assert(!template_tag::s_stack.empty());
-    assert(!template_tag::s_stack.top().second);
-    ptr = template_tag::s_stack.top().second
-      = new instantiated_tag(kind, name, file, bases, tt);
-  }
-  else {
-    ptr = new tag(kind, name, file, bases);
-    const scope::tps_t& tps = scope::current->m_tps;
-    if (!tps.m_table.empty()) {
-      using namespace parse::templ;
-      assert(!save_t::s_stack.empty());
-      save_t* p = save_t::s_stack.top();
-      assert(!p->m_tag);
-      assert(!class_or_namespace_name::before.empty());
-      assert(class_or_namespace_name::before.back() == ptr);
-      p->m_tag = ptr = new template_tag(*ptr, tps);
-      class_or_namespace_name::before.back() = ptr;
-    }
-  }
+  tag* ptr = classes_impl::get(tt, kind, name, file, bases);
 
   ptr->m_parent = scope::current;
   ptr->m_parent->m_children.push_back(ptr);
