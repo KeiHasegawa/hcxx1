@@ -802,7 +802,8 @@ template_tag::common(std::vector<std::pair<var*, const type*>*>* pv,
   instantiated_tag* ret = s_stack.top().second;
   s_stack.pop();
   if (!ret) {
-    ret = new instantiated_tag(m_kind, m_name, parse::position, m_bases, this);
+    string name = instantiated_name();
+    ret = new instantiated_tag(m_kind, name, parse::position, m_bases, this);
     ret->m_types.first = incomplete_tagged_type::create(ret);
   }
   assert(ret->m_src == this);
