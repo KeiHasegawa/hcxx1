@@ -16,6 +16,81 @@ cxx_compiler::tag::kind_t cxx_compiler::classes::specifier::get(int keyword)
 
 namespace cxx_compiler {
   namespace classes_impl {
+    struct cmp {
+      scope::tps_t& m_ptps;
+      scope::tps_t& m_ctps;
+      cmp(scope::tps_t& ptps, scope::tps_t& ctps)
+	: m_ptps(ptps), m_ctps(ctps) {}
+      const type* template_param_case(tag* ptr)
+      {
+	string pn = ptr->m_name;
+	const vector<string>& po = m_ptps.m_order;
+	typedef vector<string>::const_iterator ITx;
+	ITx p = find(begin(po), end(po), pn);
+	assert(p != end(po));
+	int n = distance(begin(po), p);
+	const vector<string>& co = m_ctps.m_order;
+	string cn = co[n];
+	const map<string, scope::tps_t::value_t>& table = m_ctps.m_table;
+	typedef map<string, scope::tps_t::value_t>::const_iterator ITy;
+	ITy q = table.find(cn);
+	assert(q != table.end());
+	const scope::tps_t::value_t& value = q->second;
+	assert(!value.second);
+	ptr = value.first;
+	const type* T = ptr->m_types.second;
+	assert(!T);
+	T = ptr->m_types.first;
+	assert(T);
+	return T;
+      }
+      const type* calc(const type* Tp)
+      {
+	tag* ptr = Tp->get_tag();
+	if (!ptr)
+	  return Tp;
+	if (Tp->m_id == type::TEMPLATE_PARAM)
+	  return template_param_case(ptr);
+	if (ptr->m_kind2 != tag::INSTANTIATE)
+	  return Tp;
+	typedef instantiated_tag IT;
+	IT* it = static_cast<IT*>(ptr);
+	const IT::SEED& seed = it->m_seed;
+	error::not_implemented();
+	return Tp;
+      }
+      bool operator()(string p, string c)
+      {
+	map<string, const type*>& pdef = m_ptps.m_default;
+	map<string, const type*>& cdef = m_ctps.m_default;
+	typedef map<string, const type*>::const_iterator IT;
+	IT pit = pdef.find(p);
+	if (pit == pdef.end())
+	  return true;
+	const type* T = pit->second;
+	IT cit = cdef.find(c);
+	if (cit == cdef.end()) {
+	  cdef[c] = calc(T);
+	  return true;
+	}
+	error::not_implemented();
+	return false;
+      }
+    };
+    inline void merge(template_tag* prev, template_tag* curr)
+    {
+      scope::tps_t& ptps = prev->templ_base::m_tps;
+      scope::tps_t& ctps = curr->templ_base::m_tps;
+      const vector<string>& porder = ptps.m_order;
+      const vector<string>& corder = ctps.m_order;
+      if (porder.size() != corder.size())
+	error::not_implemented();
+      typedef vector<string>::const_iterator IT;
+      pair<IT, IT> ret =
+	mismatch(begin(porder), end(porder), begin(corder), cmp(ptps, ctps));
+      if (ret != make_pair(end(porder), end(corder)))
+	error::not_implemented();
+    }
     inline tag*
     get(template_tag* tt, tag::kind_t kind, string name, const file_t& file,
 	vector<base*>* bases)
@@ -38,10 +113,34 @@ namespace cxx_compiler {
 	assert(!p->m_tag);
 	assert(!class_or_namespace_name::before.empty());
 	assert(class_or_namespace_name::before.back() == ret);
-	p->m_tag = ret = new template_tag(*ret, tps);
+	template_tag* curr = new template_tag(*ret, tps);
+	p->m_tag = ret = curr;
+	if (tt) {
+	  assert(tt->m_name == name);
+	  merge(tt, curr);
+	}
 	class_or_namespace_name::before.back() = ret;
       }
       return ret;
+    }
+    inline void
+    non_template_case(tag* prev, tag::kind_t kind, const file_t& file)
+    {
+      if (prev->m_kind != kind) {
+	using namespace error::classes;
+	string name = prev->m_name;
+	redeclaration(parse::position,prev->m_file.back(),name);
+      }
+      pair<const type*, const type*> types = prev->m_types;
+      if (types.second) {
+	using namespace error::classes;
+	string name = prev->m_name;
+	redeclaration(parse::position,prev->m_file.back(),name);
+      }
+      prev->m_file.push_back(file);
+      scope::current = prev;
+      class_or_namespace_name::before.push_back(prev);
+      declarations::specifier_seq::info_t::clear();
     }
   } // end of namespace classes_impl
 } // end of namespace cxx_compiler
@@ -59,29 +158,13 @@ cxx_compiler::classes::specifier::begin(int keyword, var* v,
   tag::kind_t kind = get(keyword);
   string name = u ? u->m_name : new_name(".tag");
   const file_t& file = u ? u->m_file : parse::position;
-  map<string,tag*>& tags = scope::current->m_tags;
-  map<string,tag*>::const_iterator p = tags.find(name);
+  map<string, tag*>& tags = scope::current->m_tags;
+  map<string, tag*>::const_iterator p = tags.find(name);
   template_tag* tt = 0;
   if (p != tags.end()) {
     tag* prev = p->second;
-    if (prev->m_kind2 != tag::TEMPLATE) {
-      if (prev->m_kind != kind) {
-	using namespace error::classes;
-	redeclaration(parse::position,prev->m_file.back(),name);
-	name = new_name(".tag");
-      }
-      pair<const type*, const type*> types = prev->m_types;
-      if (types.second) {
-	using namespace error::classes;
-	redeclaration(parse::position,prev->m_file.back(),name);
-	name = new_name(".tag");
-      }
-      prev->m_file.push_back(file);
-      scope::current = prev;
-      class_or_namespace_name::before.push_back(prev);
-      declarations::specifier_seq::info_t::clear();
-      return;
-    }
+    if (prev->m_kind2 != tag::TEMPLATE)
+      return classes_impl::non_template_case(prev, kind, file);
     tt = static_cast<template_tag*>(prev);
     if (!template_tag::s_stack.empty())
       name = tt->instantiated_name();

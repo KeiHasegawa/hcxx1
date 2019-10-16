@@ -566,7 +566,7 @@ namespace cxx_compiler {
 	    parse::g_read = m_org;
 	  }
 	};
-	inline tag* tag_action(tag* ptr, vector<pair<var*, const type*>*>* pv)
+	inline tag* tag_action(tag* ptr, vector<scope::tps_t::val2_t*>* pv)
 	{
 	  if (ptr->m_kind2 != tag::TEMPLATE)
 	    return ptr;
@@ -579,14 +579,14 @@ namespace cxx_compiler {
 	  sweeper sweeper;
 	  return tt->instantiate(pv);
 	}
-	inline usr* usr_action(usr* u, vector<pair<var*, const type*>*>* pv)
+	inline usr* usr_action(usr* u, vector<scope::tps_t::val2_t*>* pv)
 	{
 	  assert(u->m_flag2 == usr::TEMPLATE);
 	  template_usr* tu = static_cast<template_usr*>(u);
 	  return tu->instantiate_explicit(pv);
 	}
         pair<usr*, tag*>*
-        action(pair<usr*, tag*>* x, vector<pair<var*, const type*>*>* pv)
+        action(pair<usr*, tag*>* x, vector<scope::tps_t::val2_t*>* pv)
 	{
 	  // Note that `pv' is deleted at `template_tag::common()' or
 	  // `template_usr::instantiate_explicit()'
@@ -610,10 +610,10 @@ namespace cxx_compiler {
 namespace cxx_compiler {
   namespace template_tag_impl {
     struct sweeper {
-      vector<pair<var*, const type*>*>* m_ptr;
+      vector<scope::tps_t::val2_t*>* m_ptr;
       stack<declarations::specifier_seq::info_t*> m_stack;
       bool m_new;
-      sweeper(vector<pair<var*, const type*>*>* pv, bool b)
+      sweeper(vector<scope::tps_t::val2_t*>* pv, bool b)
 	: m_ptr(pv), m_new(b)
       {
 	stack<declarations::specifier_seq::info_t*>& x =
@@ -642,25 +642,25 @@ namespace cxx_compiler {
 	const map<string, scope::tps_t::value_t>& m_table;
 	update(const map<string, scope::tps_t::value_t>& table)
 	  : m_table(table) {}
-	pair<var*, const type*>* operator()(const scope::tps_t::val2_t& x)
+	scope::tps_t::val2_t* operator()(const scope::tps_t::val2_t& x)
 	{
 	  if (var* v = x.second)
-	    return new pair<var*, const type*>(v, 0);
+	    return new scope::tps_t::val2_t(0, v);
 	  const type* T = x.first;
 	  tag* ptr = T->get_tag();
 	  if (!ptr)
-	    return new pair<var*, const type*>(0, T);
+	    return new scope::tps_t::val2_t(T, 0);
 	  if (T->m_id == type::TEMPLATE_PARAM) {
 	    T = ptr->m_types.second;
 	    assert(T);
-	    return new pair<var*, const type*>(0, T);
+	    return new scope::tps_t::val2_t(T, 0);
 	  }
 	  if (ptr->m_kind2 == tag::INSTANTIATE) {
 	    calc_key op(m_table);
 	    T = op.resolve_templ(T);
-	    return new pair<var*, const type*>(0, T);
+	    return new scope::tps_t::val2_t(T, 0);
 	  }
-	  return new pair<var*, const type*>(0, T);
+	  return new scope::tps_t::val2_t(T, 0);
 	}
       };
       const type* resolve_templ(const type* T)
@@ -674,8 +674,8 @@ namespace cxx_compiler {
 	typedef instantiated_tag IT;
 	IT* it = static_cast<IT*>(ptr);
 	const IT::SEED& seed = it->m_seed;
-	vector<pair<var*, const type*>*>* conv =
-	  new vector<pair<var*, const type*>*>;
+	vector<scope::tps_t::val2_t*>* conv =
+	  new vector<scope::tps_t::val2_t*>;
 	transform(begin(seed), end(seed), back_inserter(*conv),
 		  update(m_table));
 	template_tag* tt = it->m_src;
@@ -686,23 +686,23 @@ namespace cxx_compiler {
 	assert(T);
 	return T;
       }
-      pair<const type*, var*>
-      operator()(pair<var*, const type*>* p, string name)
+      scope::tps_t::val2_t
+      operator()(scope::tps_t::val2_t* p, string name)
       {
 	map<string, scope::tps_t::value_t>::const_iterator it
 	  = m_table.find(name);
 	assert(it != m_table.end());
 	const pair<tag*, scope::tps_t::val2_t*>& x = it->second;
 	if (tag* ptr = x.first) {
-	  const type* T = p->second;
+	  const type* T = p->first;
 	  ptr->m_types.second = resolve_templ(T);
-	  return make_pair(T, (usr*)0);
+	  return scope::tps_t::val2_t(T, (usr*)0);
 	}
 	scope::tps_t::val2_t* y = x.second;
 	assert(y);
 	const type* T = y->first;
 	assert(T);
-	var* v = p->first;
+	var* v = p->second;
 	assert(v);
 	bool discard = false;
 	using namespace expressions;
@@ -716,7 +716,7 @@ namespace cxx_compiler {
 	  vector<var*>::iterator q = p.base() - 1;
 	  garbage.erase(q);
 	}
-	return make_pair((const type*)0, v);
+	return scope::tps_t::val2_t((const type*)0, v);
       }
     };
   } // end of namespace template_tag_impl
@@ -738,13 +738,19 @@ namespace cxx_compiler {
     struct get {
       const map<string, const type*>& m_default;
       get(const map<string, const type*>& def) : m_default(def) {}
-      pair<var*, const type*>* operator()(string name)
+      scope::tps_t::val2_t* operator()(string name)
       {
 	map<string, const type*>::const_iterator p = m_default.find(name);
-	if (p == m_default.end())
+	if (p == m_default.end()) {
+	  for (auto x : m_default) {
+	    pair<string, const type*> debug = x;
+	    string s = debug.first;
+	    const type* t = debug.second;
+	  }
 	  error::not_implemented();
+	}
 	const type* T = p->second;
-	return new pair<var*, const type*>(0, T);
+	return new scope::tps_t::val2_t(T, 0);
       }
     };
   } // end of namespace template_tag_impl
@@ -752,7 +758,7 @@ namespace cxx_compiler {
 
 cxx_compiler::tag*
 cxx_compiler::
-template_tag::common(std::vector<std::pair<var*, const type*>*>* pv,
+template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
 		     bool special_ver)
 {
   template_tag_impl::sweeper sweeper(pv, true);
@@ -868,13 +874,12 @@ std::string cxx_compiler::template_tag::instantiated_name() const
 
 cxx_compiler::usr*
 cxx_compiler::template_usr::
-instantiate_explicit(vector<pair<var*, const type*>*>* pv)
+instantiate_explicit(vector<scope::tps_t::val2_t*>* pv)
 {
   template_tag_impl::sweeper sweeper(pv, false);
   KEY key;
   transform(begin(*pv), end(*pv), back_inserter(key),
-	    [](pair<var*, const type*>* p)
-	    { return make_pair(p->second, p->first); });
+	    [](scope::tps_t::val2_t* p){ return *p; });
   table_t::const_iterator it = m_table.find(key);
   if (it != m_table.end())
     return it->second;

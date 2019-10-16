@@ -845,7 +845,7 @@ namespace declarations {
     extern void decl_end();
     namespace id {
       extern pair<usr*, tag*>*
-      action(pair<usr*, tag*>*, vector<pair<var*, const type*>*>*);
+      action(pair<usr*, tag*>*, vector<scope::tps_t::val2_t*>*);
     } // end of namespace id
   } // end of namespace templ
 } // end of namespace declarations
@@ -1591,17 +1591,8 @@ struct template_usr : usr, templ_base {
   void mark(instantiated_tag*);
   static void gen();
   usr* instantiate_mem_fun(instantiated_tag*);
-  usr* instantiate_explicit(vector<pair<var*, const type*>*>*);
+  usr* instantiate_explicit(vector<scope::tps_t::val2_t*>*);
 };
-
-#if 0
-struct instantiated_name {
-  const map<string, scope::tps_t::value_t>& m_table;
-  instantiated_name(const map<string, scope::tps_t::value_t>& table)
-  : m_table(table) {}
-  string operator()(string name, string pn);
-};
-#endif
 
 struct template_tag : templ_base, tag {
   static stack<pair<template_tag*, instantiated_tag*> > s_stack;
@@ -1609,10 +1600,10 @@ struct template_tag : templ_base, tag {
   table_t m_table;
   template_tag(tag& t, const scope::tps_t& tps)
     : tag(t), templ_base(tps) { m_kind2 = TEMPLATE; }
-  tag* common(vector<pair<var*, const type*>*>*, bool);
-  tag* instantiate(vector<pair<var*, const type*>*>* pv)
+  tag* common(vector<scope::tps_t::val2_t*>*, bool);
+  tag* instantiate(vector<scope::tps_t::val2_t*>* pv)
   { return common(pv, false); }
-  tag* special_ver(vector<pair<var*, const type*>*>* pv)
+  tag* special_ver(vector<scope::tps_t::val2_t*>* pv)
   { return common(pv, true); }
   string instantiated_name() const;
 };

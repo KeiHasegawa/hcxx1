@@ -123,9 +123,9 @@ namespace cxx_compiler {
   std::vector<std::pair<type*, expr*>*>* m_params;
   std::pair<type_specifier*, bool>* m_pseudo_dest;
   std::list<std::pair<type*, exprs*> >* m_new_declarator;
-  typedef std::pair<var*, type*> TA;
-  TA* m_templ_arg;
-  std::vector<TA*>* m_templ_arg_list;
+  typedef cxx_compiler::scope::tps_t::val2_t val2_t;
+  val2_t* m_templ_arg;
+  std::vector<val2_t*>* m_templ_arg_list;
 }
 
 %type<m_var> IDENTIFIER_LEX unqualified_id id_expression declarator_id
@@ -1563,17 +1563,33 @@ type_parameter
     { cxx_compiler::type_parameter::action($2, 0); }
   | CLASS_KW
     { cxx_compiler::error::not_implemented(); }
-  | CLASS_KW IDENTIFIER_LEX '=' type_id
-    { cxx_compiler::type_parameter::action($2, $4); }
-  | CLASS_KW '=' type_id
+  | CLASS_KW IDENTIFIER_LEX '='
+    {
+      using namespace cxx_compiler;
+      parse::identifier::mode = parse::identifier::look;
+    } type_id
+    { cxx_compiler::type_parameter::action($2, $5); }
+  | CLASS_KW '='
+    {
+      using namespace cxx_compiler;
+      parse::identifier::mode = parse::identifier::look;
+    } type_id
     { cxx_compiler::error::not_implemented(); }
   | TYPENAME_KW IDENTIFIER_LEX
     { cxx_compiler::type_parameter::action($2, 0); }
   | TYPENAME_KW
     { cxx_compiler::error::not_implemented(); }
-  | TYPENAME_KW IDENTIFIER_LEX '=' type_id
-    { cxx_compiler::type_parameter::action($2, $4); }
-  | TYPENAME_KW '=' type_id
+  | TYPENAME_KW IDENTIFIER_LEX '='
+    {
+      using namespace cxx_compiler;
+      parse::identifier::mode = parse::identifier::look;
+    } type_id
+    { cxx_compiler::type_parameter::action($2, $5); }
+  | TYPENAME_KW '='
+    {
+      using namespace cxx_compiler;
+      parse::identifier::mode = parse::identifier::look;
+    } type_id
     { cxx_compiler::error::not_implemented(); }
   | TEMPLATE_KW '<' template_parameter_list '>' CLASS_KW IDENTIFIER_LEX
     { cxx_compiler::error::not_implemented(); }
@@ -1615,7 +1631,7 @@ template_argument_list
     {
       using namespace std;
       using namespace cxx_compiler;
-      $$ = new vector<pair<var*, const type*>*>;
+      $$ = new vector<scope::tps_t::val2_t*>;
       $$->push_back($1);
     }
   | template_argument_list ',' template_argument
@@ -1629,19 +1645,19 @@ template_argument
     {
       using namespace std;
       using namespace cxx_compiler;
-      $$ = new pair<var*, const type*>($1->gen(), 0);
+      $$ = new scope::tps_t::val2_t(0, $1->gen());
     }
   | type_id
     {
       using namespace std;
       using namespace cxx_compiler;
-      $$ = new pair<var*, const type*>(0, $1);
+      $$ = new scope::tps_t::val2_t($1, 0);
     }
   | id_expression
     {
       using namespace std;
       using namespace cxx_compiler;
-      $$ = new pair<var*, const type*>($1, 0);
+      $$ = new scope::tps_t::val2_t(0, $1);
     }
   ;
 
