@@ -669,6 +669,19 @@ namespace cxx_compiler {
 	tag* ptr = T->get_tag();
 	if (!ptr)
 	  return T;
+	if (T->m_id == type::TEMPLATE_PARAM) {
+	  string name = ptr->m_name;
+	  typedef map<string, scope::tps_t::value_t>::const_iterator IT;
+	  IT p = m_table.find(name);
+	  if (p == m_table.end())
+	    return T;
+	  const scope::tps_t::value_t& value = p->second;
+	  assert(!value.second);
+	  ptr = value.first;
+	  if (const type* T2 = ptr->m_types.second)
+	    return T2;
+	  return T;
+	}
 	if (ptr->m_kind2 != tag::INSTANTIATE)
 	  return T;
 	typedef instantiated_tag IT;
@@ -695,8 +708,8 @@ namespace cxx_compiler {
 	const pair<tag*, scope::tps_t::val2_t*>& x = it->second;
 	if (tag* ptr = x.first) {
 	  const type* T = p->first;
-	  ptr->m_types.second = resolve_templ(T);
-	  return scope::tps_t::val2_t(T, (usr*)0);
+	  ptr->m_types.second = T = resolve_templ(T);
+	  return scope::tps_t::val2_t(T, 0);
 	}
 	scope::tps_t::val2_t* y = x.second;
 	assert(y);
@@ -716,7 +729,7 @@ namespace cxx_compiler {
 	  vector<var*>::iterator q = p.base() - 1;
 	  garbage.erase(q);
 	}
-	return scope::tps_t::val2_t((const type*)0, v);
+	return scope::tps_t::val2_t(0, v);
       }
     };
   } // end of namespace template_tag_impl
@@ -810,6 +823,11 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
   if (!ret) {
     string name = instantiated_name();
     ret = new instantiated_tag(m_kind, name, parse::position, m_bases, this);
+    map<string, tag*>& tags = scope::current->m_tags;
+    assert(tags.find(name) == tags.end());
+    tags[name] = ret;
+    scope::current->m_children.push_back(ret);
+    ret->m_parent = scope::current;
     ret->m_types.first = incomplete_tagged_type::create(ret);
   }
   assert(ret->m_src == this);

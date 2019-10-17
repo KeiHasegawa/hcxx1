@@ -44,6 +44,21 @@ namespace cxx_compiler {
 	assert(T);
 	return T;
       }
+      struct helper {
+	scope::tps_t& m_ptps;
+	scope::tps_t& m_ctps;
+	helper(scope::tps_t& ptps, scope::tps_t& ctps)
+	  : m_ptps(ptps), m_ctps(ctps) {}
+	scope::tps_t::val2_t* operator()(const scope::tps_t::val2_t& x)
+	{
+	  if (var* v = x.second)
+	    return new scope::tps_t::val2_t(0, v);
+	  const type* T = x.first;
+	  cmp op(m_ptps, m_ctps);
+	  T = op.calc(T);
+	  return new scope::tps_t::val2_t(T, 0);
+	}
+      };
       const type* calc(const type* Tp)
       {
 	tag* ptr = Tp->get_tag();
@@ -56,8 +71,17 @@ namespace cxx_compiler {
 	typedef instantiated_tag IT;
 	IT* it = static_cast<IT*>(ptr);
 	const IT::SEED& seed = it->m_seed;
-	error::not_implemented();
-	return Tp;
+	vector<scope::tps_t::val2_t*>* pv = new vector<scope::tps_t::val2_t*>;
+	transform(begin(seed), end(seed), back_inserter(*pv),
+		  helper(m_ptps, m_ctps));
+	template_tag* tt = it->m_src;
+	ptr = tt->instantiate(pv);
+	const type* Tc = ptr->m_types.second;
+	if (Tc)
+	  return Tc;
+	Tc = ptr->m_types.first;
+	assert(Tc);
+	return Tc;
       }
       bool operator()(string p, string c)
       {
