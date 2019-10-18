@@ -24,104 +24,127 @@ namespace cxx_compiler {
       }
       return u ? u->m_name : new_name(".tag");
     }
-    struct cmp {
-      scope::tps_t& m_ptps;
-      scope::tps_t& m_ctps;
-      cmp(scope::tps_t& ptps, scope::tps_t& ctps)
-	: m_ptps(ptps), m_ctps(ctps) {}
-      const type* template_param_case(tag* ptr)
-      {
-	string pn = ptr->m_name;
-	const vector<string>& po = m_ptps.m_order;
-	typedef vector<string>::const_iterator ITx;
-	ITx p = find(begin(po), end(po), pn);
-	assert(p != end(po));
-	int n = distance(begin(po), p);
-	const vector<string>& co = m_ctps.m_order;
-	string cn = co[n];
-	const map<string, scope::tps_t::value_t>& table = m_ctps.m_table;
-	typedef map<string, scope::tps_t::value_t>::const_iterator ITy;
-	ITy q = table.find(cn);
-	assert(q != table.end());
-	const scope::tps_t::value_t& value = q->second;
-	assert(!value.second);
-	ptr = value.first;
-	const type* T = ptr->m_types.second;
-	assert(!T);
-	T = ptr->m_types.first;
-	assert(T);
-	return T;
-      }
-      struct helper {
+    namespace merge_impl {
+      struct cmp {
 	scope::tps_t& m_ptps;
 	scope::tps_t& m_ctps;
-	helper(scope::tps_t& ptps, scope::tps_t& ctps)
+	cmp(scope::tps_t& ptps, scope::tps_t& ctps)
 	  : m_ptps(ptps), m_ctps(ctps) {}
-	scope::tps_t::val2_t* operator()(const scope::tps_t::val2_t& x)
+	const type* template_param_case(tag* ptr)
 	{
-	  if (var* v = x.second)
-	    return new scope::tps_t::val2_t(0, v);
-	  const type* T = x.first;
-	  cmp op(m_ptps, m_ctps);
-	  T = op.calc(T);
-	  return new scope::tps_t::val2_t(T, 0);
+	  string pn = ptr->m_name;
+	  const vector<string>& po = m_ptps.m_order;
+	  typedef vector<string>::const_iterator ITx;
+	  ITx p = find(begin(po), end(po), pn);
+	  assert(p != end(po));
+	  int n = distance(begin(po), p);
+	  const vector<string>& co = m_ctps.m_order;
+	  string cn = co[n];
+	  const map<string, scope::tps_t::value_t>& table = m_ctps.m_table;
+	  typedef map<string, scope::tps_t::value_t>::const_iterator ITy;
+	  ITy q = table.find(cn);
+	  assert(q != table.end());
+	  const scope::tps_t::value_t& value = q->second;
+	  assert(!value.second);
+	  ptr = value.first;
+	  const type* T = ptr->m_types.second;
+	  assert(!T);
+	  T = ptr->m_types.first;
+	  assert(T);
+	  return T;
+	}
+	struct helper {
+	  scope::tps_t& m_ptps;
+	  scope::tps_t& m_ctps;
+	  helper(scope::tps_t& ptps, scope::tps_t& ctps)
+	    : m_ptps(ptps), m_ctps(ctps) {}
+	  scope::tps_t::val2_t* operator()(const scope::tps_t::val2_t& x)
+	  {
+	    if (var* v = x.second)
+	      return new scope::tps_t::val2_t(0, v);
+	    const type* T = x.first;
+	    cmp op(m_ptps, m_ctps);
+	    T = op.calc(T);
+	    return new scope::tps_t::val2_t(T, 0);
+	  }
+	};
+	const type* calc(const type* Tp)
+	{
+	  tag* ptr = Tp->get_tag();
+	  if (!ptr)
+	    return Tp;
+	  if (Tp->m_id == type::TEMPLATE_PARAM)
+	    return template_param_case(ptr);
+	  if (ptr->m_kind2 != tag::INSTANTIATE)
+	    return Tp;
+	  typedef instantiated_tag IT;
+	  IT* it = static_cast<IT*>(ptr);
+	  const IT::SEED& seed = it->m_seed;
+	  vector<scope::tps_t::val2_t*>* pv = new vector<scope::tps_t::val2_t*>;
+	  transform(begin(seed), end(seed), back_inserter(*pv),
+		    helper(m_ptps, m_ctps));
+	  template_tag* tt = it->m_src;
+	  ptr = tt->instantiate(pv);
+	  const type* Tc = ptr->m_types.second;
+	  if (Tc)
+	    return Tc;
+	  Tc = ptr->m_types.first;
+	  assert(Tc);
+	  return Tc;
+	}
+	bool operator()(string p, string c)
+	{
+	  map<string, const type*>& pdef = m_ptps.m_default;
+	  map<string, const type*>& cdef = m_ctps.m_default;
+	  typedef map<string, const type*>::const_iterator IT;
+	  IT pit = pdef.find(p);
+	  if (pit == pdef.end())
+	    return true;
+	  const type* T = pit->second;
+	  IT cit = cdef.find(c);
+	  if (cit == cdef.end()) {
+	    cdef[c] = calc(T);
+	    return true;
+	  }
+	  error::not_implemented();
+	  return false;
 	}
       };
-      const type* calc(const type* Tp)
+      inline void default_arg(template_tag* prev, template_tag* curr)
       {
-	tag* ptr = Tp->get_tag();
-	if (!ptr)
-	  return Tp;
-	if (Tp->m_id == type::TEMPLATE_PARAM)
-	  return template_param_case(ptr);
-	if (ptr->m_kind2 != tag::INSTANTIATE)
-	  return Tp;
-	typedef instantiated_tag IT;
-	IT* it = static_cast<IT*>(ptr);
-	const IT::SEED& seed = it->m_seed;
+	scope::tps_t& ptps = prev->templ_base::m_tps;
+	scope::tps_t& ctps = curr->templ_base::m_tps;
+	const vector<string>& porder = ptps.m_order;
+	const vector<string>& corder = ctps.m_order;
+	if (porder.size() != corder.size())
+	  error::not_implemented();
+	typedef vector<string>::const_iterator IT;
+	pair<IT, IT> ret =
+	  mismatch(begin(porder), end(porder), begin(corder), cmp(ptps, ctps));
+	if (ret != make_pair(end(porder), end(corder)))
+	  error::not_implemented();
+      }
+      inline scope::tps_t::val2_t* create(const scope::tps_t::val2_t& x)
+      {
+	return new scope::tps_t::val2_t(x);
+      }
+      inline void dispatch(pair<template_tag::KEY, tag*> x, template_tag* curr)
+      {
+	const template_tag::KEY& key = x.first;
 	vector<scope::tps_t::val2_t*>* pv = new vector<scope::tps_t::val2_t*>;
-	transform(begin(seed), end(seed), back_inserter(*pv),
-		  helper(m_ptps, m_ctps));
-	template_tag* tt = it->m_src;
-	ptr = tt->instantiate(pv);
-	const type* Tc = ptr->m_types.second;
-	if (Tc)
-	  return Tc;
-	Tc = ptr->m_types.first;
-	assert(Tc);
-	return Tc;
+	transform(begin(key), end(key), back_inserter(*pv), create);
+	curr->instantiate(pv);
       }
-      bool operator()(string p, string c)
+      inline void instantiated(template_tag* prev, template_tag* curr)
       {
-	map<string, const type*>& pdef = m_ptps.m_default;
-	map<string, const type*>& cdef = m_ctps.m_default;
-	typedef map<string, const type*>::const_iterator IT;
-	IT pit = pdef.find(p);
-	if (pit == pdef.end())
-	  return true;
-	const type* T = pit->second;
-	IT cit = cdef.find(c);
-	if (cit == cdef.end()) {
-	  cdef[c] = calc(T);
-	  return true;
-	}
-	error::not_implemented();
-	return false;
+	const template_tag::table_t& table = prev->m_table;
+	for_each(begin(table), end(table), bind2nd(ptr_fun(dispatch), curr));
       }
-    };
+    } // end of namespace merge_impl
     inline void merge(template_tag* prev, template_tag* curr)
     {
-      scope::tps_t& ptps = prev->templ_base::m_tps;
-      scope::tps_t& ctps = curr->templ_base::m_tps;
-      const vector<string>& porder = ptps.m_order;
-      const vector<string>& corder = ctps.m_order;
-      if (porder.size() != corder.size())
-	error::not_implemented();
-      typedef vector<string>::const_iterator IT;
-      pair<IT, IT> ret =
-	mismatch(begin(porder), end(porder), begin(corder), cmp(ptps, ctps));
-      if (ret != make_pair(end(porder), end(corder)))
-	error::not_implemented();
+      merge_impl::default_arg(prev, curr);
+      merge_impl::instantiated(prev, curr);
     }
     inline tag*
     get_tag(tag::kind_t kind, string name, const file_t& file,
@@ -174,20 +197,19 @@ namespace cxx_compiler {
 	return;
       }
       template_tag* tprev = static_cast<template_tag*>(prev);
-      const scope::tps_t& tps = scope::current->m_tps;
-      string name = prev->m_name;
+      string name = tprev->m_name;
       tag* ptr = get_tag(kind, name, file, bases);
-      if (ptr->m_kind2 == tag::TEMPLATE)
+      if (ptr->m_kind2 != tag::TEMPLATE)
 	error::not_implemented();
 
       template_tag* tcurr = static_cast<template_tag*>(ptr);
       merge(tprev, tcurr);
 
-      ptr->m_parent = scope::current;
-      ptr->m_parent->m_children.push_back(ptr);
-      ptr->m_types.first = incomplete_tagged_type::create(ptr);
-      scope::current->m_tags[name] = ptr;
-      scope::current = ptr;
+      tcurr->m_parent = scope::current;
+      tcurr->m_parent->m_children.push_back(tcurr);
+      tcurr->m_types.first = incomplete_tagged_type::create(tcurr);
+      scope::current->m_tags[name] = tcurr;
+      scope::current = tcurr;
       declarations::specifier_seq::info_t::clear();
     }
   } // end of namespace classes_impl
