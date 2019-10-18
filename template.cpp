@@ -851,6 +851,8 @@ namespace cxx_compiler {
 	  const type* T = ptr->m_types.second;
 	  ostringstream os;
 	  T->decl(os, "");
+	  if (T->m_id == type::TEMPLATE_PARAM)
+	    os << '.' << T;
 	  return name + os.str() + ',';
 	}
 	const scope::tps_t::val2_t* y = x.second;

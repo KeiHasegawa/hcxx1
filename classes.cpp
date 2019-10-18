@@ -16,6 +16,14 @@ cxx_compiler::tag::kind_t cxx_compiler::classes::specifier::get(int keyword)
 
 namespace cxx_compiler {
   namespace classes_impl {
+    inline string get_name(usr* u)
+    {
+      if (!template_tag::s_stack.empty()) {
+	template_tag* tt = template_tag::s_stack.top().first;
+	return tt->instantiated_name();
+      }
+      return u ? u->m_name : new_name(".tag");
+    }
     struct cmp {
       scope::tps_t& m_ptps;
       scope::tps_t& m_ctps;
@@ -116,16 +124,15 @@ namespace cxx_compiler {
 	error::not_implemented();
     }
     inline tag*
-    get(template_tag* tt, tag::kind_t kind, string name, const file_t& file,
-	vector<base*>* bases)
+    get_tag(tag::kind_t kind, string name, const file_t& file,
+	    vector<base*>* bases)
     {
-      if (tt) {
-	if (!template_tag::s_stack.empty()) {
-	  assert(!template_tag::s_stack.top().second);
-	  tag* ret = template_tag::s_stack.top().second
-	    = new instantiated_tag(kind, name, file, bases, tt);
-	  return ret;
-	}
+      if (!template_tag::s_stack.empty()) {
+	template_tag* tt = template_tag::s_stack.top().first;
+	assert(!template_tag::s_stack.top().second);
+	instantiated_tag* it =
+	  new instantiated_tag(kind, name, file, bases, tt);
+	return template_tag::s_stack.top().second = it;
       }
 
       tag* ret = new tag(kind, name, file, bases);
@@ -139,16 +146,14 @@ namespace cxx_compiler {
 	assert(class_or_namespace_name::before.back() == ret);
 	template_tag* curr = new template_tag(*ret, tps);
 	p->m_tag = ret = curr;
-	if (tt) {
-	  assert(tt->m_name == name);
-	  merge(tt, curr);
-	}
 	class_or_namespace_name::before.back() = ret;
+	return ret;
       }
       return ret;
     }
     inline void
-    non_template_case(tag* prev, tag::kind_t kind, const file_t& file)
+    combine(tag* prev, tag::kind_t kind, const file_t& file,
+	    vector<base*>* bases)
     {
       if (prev->m_kind != kind) {
 	using namespace error::classes;
@@ -162,8 +167,27 @@ namespace cxx_compiler {
 	redeclaration(parse::position,prev->m_file.back(),name);
       }
       prev->m_file.push_back(file);
-      scope::current = prev;
-      class_or_namespace_name::before.push_back(prev);
+      if (prev->m_kind2 != tag::TEMPLATE) {
+	scope::current = prev;
+	class_or_namespace_name::before.push_back(prev);
+	declarations::specifier_seq::info_t::clear();
+	return;
+      }
+      template_tag* tprev = static_cast<template_tag*>(prev);
+      const scope::tps_t& tps = scope::current->m_tps;
+      string name = prev->m_name;
+      tag* ptr = get_tag(kind, name, file, bases);
+      if (ptr->m_kind2 == tag::TEMPLATE)
+	error::not_implemented();
+
+      template_tag* tcurr = static_cast<template_tag*>(ptr);
+      merge(tprev, tcurr);
+
+      ptr->m_parent = scope::current;
+      ptr->m_parent->m_children.push_back(ptr);
+      ptr->m_types.first = incomplete_tagged_type::create(ptr);
+      scope::current->m_tags[name] = ptr;
+      scope::current = ptr;
       declarations::specifier_seq::info_t::clear();
     }
   } // end of namespace classes_impl
@@ -177,25 +201,16 @@ cxx_compiler::classes::specifier::begin(int keyword, var* v,
   usr* u = static_cast<usr*>(v);
   const map<string, scope::tps_t::value_t>& table =
     scope::current->m_tps.m_table;
-  usr* uu = table.empty() ? u : 0;
-  auto_ptr<usr> sweeper(uu);
+  auto_ptr<usr> sweeper(table.empty() ? u : 0);
   tag::kind_t kind = get(keyword);
-  string name = u ? u->m_name : new_name(".tag");
+  string name = classes_impl::get_name(u);
   const file_t& file = u ? u->m_file : parse::position;
   map<string, tag*>& tags = scope::current->m_tags;
   map<string, tag*>::const_iterator p = tags.find(name);
-  template_tag* tt = 0;
-  if (p != tags.end()) {
-    tag* prev = p->second;
-    if (prev->m_kind2 != tag::TEMPLATE)
-      return classes_impl::non_template_case(prev, kind, file);
-    tt = static_cast<template_tag*>(prev);
-    if (!template_tag::s_stack.empty())
-      name = tt->instantiated_name();
-  }
+  if (p != tags.end())
+    return classes_impl::combine(p->second, kind, file, bases);
 
-  tag* ptr = classes_impl::get(tt, kind, name, file, bases);
-
+  tag* ptr = classes_impl::get_tag(kind, name, file, bases);
   ptr->m_parent = scope::current;
   ptr->m_parent->m_children.push_back(ptr);
   ptr->m_types.first = incomplete_tagged_type::create(ptr);
