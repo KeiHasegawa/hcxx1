@@ -719,10 +719,19 @@ namespace cxx_compiler {
       case INTEGER_LITERAL_LEX:
       case CHARACTER_LITERAL_LEX:
       case FLOATING_LITERAL_LEX:
+        assert(!lval.empty());
+        cxx_compiler_lval.m_usr = static_cast<usr*>(lval.front());
+        lval.pop_front();
+        return n;
       case TYPEDEF_NAME_LEX:
         assert(!lval.empty());
         cxx_compiler_lval.m_usr = static_cast<usr*>(lval.front());
         lval.pop_front();
+	if (templ) {
+	  usr* u = cxx_compiler_lval.m_usr;
+	  string name = u->m_name;
+	  last_token = identifier::lookup(name, scope::current);
+	}
         return n;
       case STRING_LITERAL_LEX:
         assert(!lval.empty());
