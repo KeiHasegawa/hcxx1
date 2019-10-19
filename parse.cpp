@@ -128,7 +128,7 @@ namespace cxx_compiler {
 	__int64 value() const { return 1; }
       };
       inline int templ_param_lex(string name,
-				 const pair<tag*, scope::tps_t::val2_t*>& x,
+				 const scope::tps_t::value_t& x,
 				 bool instantiate)
       {
 	if (tag* ptr = x.first) {
@@ -408,6 +408,22 @@ namespace cxx_compiler {
 	}
         vector<route_t> route;
       }  // end of namespace base_lookup
+      int templ_usr_param(string name, scope* ptr)
+      {
+	if (template_usr::s_stack.empty())
+	  return 0;
+	template_usr::info_t& info = template_usr::s_stack.top();
+	const template_usr* tu = info.m_tu;
+	if (tu->m_scope != ptr)
+	  return 0;
+	const scope::tps_t& tps = tu->m_tps;
+	const map<string, scope::tps_t::value_t>& table = tps.m_table;
+	typedef map<string, scope::tps_t::value_t>::const_iterator IT;
+	IT p = table.find(name);
+	if (p == table.end())
+	  return 0;
+	return templ_param_lex(name, p->second, true);
+      }
     }  // end of namespace identifier
   }  // end of namespace parse
 }  // end of namespace cxx_compiler
@@ -420,6 +436,10 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
   map<string, scope::tps_t::value_t>::const_iterator r = table.find(name);
   if (r != table.end())
     return templ_param_lex(name, r->second, false);
+
+  if (int r = templ_usr_param(name, ptr))
+    return r;
+
   const map<string, vector<usr*> >& usrs = ptr->m_usrs;
   map<string, vector<usr*> >::const_iterator p = usrs.find(name);
   if (p != usrs.end()) {

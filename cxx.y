@@ -119,8 +119,9 @@ namespace cxx_compiler {
   cxx_compiler::base* m_base_specifier;
   cxx_compiler::name_space* m_name_space;
   std::pair<usr*, tag*>* m_ut;
-  std::pair<type*, expr*>* m_param;
-  std::vector<std::pair<type*, expr*>*>* m_params;
+  typedef std::pair<type*, expr*> param;
+  param* m_param;
+  std::vector<param*>* m_params;
   std::pair<type_specifier*, bool>* m_pseudo_dest;
   std::list<std::pair<type*, exprs*> >* m_new_declarator;
   typedef cxx_compiler::scope::tps_t::val2_t val2_t;
