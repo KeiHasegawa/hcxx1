@@ -795,14 +795,19 @@ parameter_declaration
       T* tmp = declarations::declarators::function::parameter($1, $2);
       $$ = new pair<T*, B*>(tmp, (B*)0);
     }
-  | decl_specifier_seq declarator '=' assignment_expression
+  | decl_specifier_seq declarator '=' 
+    { 
+      using namespace cxx_compiler;
+      parse::identifier::mode = parse::identifier::look;
+    }
+    assignment_expression
     {
       using namespace std;
       using namespace cxx_compiler;
       typedef const type T;
       typedef expressions::base B;
       T* tmp = declarations::declarators::function::parameter($1, $2);
-      $$ = new pair<T*, B*>(tmp, $4);
+      $$ = new pair<T*, B*>(tmp, $5);
     }
   | decl_specifier_seq abstract_declarator
     {
@@ -822,23 +827,33 @@ parameter_declaration
       T* tmp = declarations::declarators::function::parameter($1, (usr*)0);
       $$ = new pair<T*, B*>(tmp, (B*)0);
     }
-  | decl_specifier_seq abstract_declarator '=' assignment_expression
+  | decl_specifier_seq abstract_declarator '='
+    { 
+      using namespace cxx_compiler;
+      parse::identifier::mode = parse::identifier::look;
+    }
+    assignment_expression
     {
       using namespace std;
       using namespace cxx_compiler;
       typedef const type T;
       typedef expressions::base B;
       T* tmp = declarations::declarators::function::parameter($1, $2);
-      $$ = new pair<T*, B*>(tmp, $4);
+      $$ = new pair<T*, B*>(tmp, $5);
     }
-  | decl_specifier_seq '=' assignment_expression
+  | decl_specifier_seq '='
+    { 
+      using namespace cxx_compiler;
+      parse::identifier::mode = parse::identifier::look;
+    }
+    assignment_expression
     {
       using namespace std;
       using namespace cxx_compiler;
       typedef const type T;
       typedef expressions::base B;
       T* tmp = declarations::declarators::function::parameter($1, (usr*)0);
-      $$ = new pair<T*, B*>(tmp, $3);
+      $$ = new pair<T*, B*>(tmp, $4);
     }
   ;
 
