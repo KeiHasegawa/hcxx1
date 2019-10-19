@@ -180,13 +180,14 @@ namespace cxx_compiler {
 	class_or_namespace_name::before.push_back(prev);
 	declarations::specifier_seq::info_t::clear();
 	if (kind2 == tag::INSTANTIATE) {
-	  assert(!template_tag::s_stack.empty());
-	  template_tag* tt = template_tag::s_stack.top().first;
-	  assert(!template_tag::s_stack.top().second);
-	  typedef instantiated_tag IT;
-	  IT* it = static_cast<IT*>(prev);
-	  it->m_src = tt;  // override
-	  template_tag::s_stack.top().second = it;
+	  if (!template_tag::s_stack.empty()) {
+	    template_tag* tt = template_tag::s_stack.top().first;
+	    assert(!template_tag::s_stack.top().second);
+	    typedef instantiated_tag IT;
+	    IT* it = static_cast<IT*>(prev);
+	    it->m_src = tt;  // override
+	    template_tag::s_stack.top().second = it;
+	  }
 	}
 	return;
       }
@@ -251,14 +252,14 @@ specifier::begin3(int keyword, pair<usr*, tag*>* x, std::vector<base*>* bases)
 {
   using namespace std;
   auto_ptr<pair<usr*, tag*> > sweeper(x);
-  if (x->first)
-    error::not_implemented();
+  assert(!x->first);
   tag* ptr = x->second;
+ tag::kind_t kind = get(keyword);
   string name = ptr->m_name;
   map<string,tag*>& tags = scope::current->m_tags;
   map<string,tag*>::const_iterator p = tags.find(name);
   if (p != tags.end())
-    error::not_implemented();
+    return classes_impl::combine(p->second, kind, parse::position, bases);
 
   ptr->m_parent = scope::current;
   ptr->m_parent->m_children.push_back(ptr);
