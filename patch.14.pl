@@ -43,7 +43,8 @@ label:
 print<<EOF
   if (yystate == $xxx) {
     if (yychar == '>') {
-      if (cxx_compiler::parse::templ::arg > 0) {
+      using namespace cxx_compiler;
+      if (parse::templ::param || parse::templ::arg > 0) {
         YYDPRINTF((stderr, "patch.14 is applied\\n"));
         yyn = $eee + 1;
         goto yyreduce;
