@@ -48,11 +48,26 @@ namespace cxx_compiler {
 	template_usr* tu = static_cast<template_usr*>(u);
 	tu->m_read = r;
       }
+      inline scope::tps_t::val2_t* create(const scope::tps_t::val2_t& x)
+      {
+	return new scope::tps_t::val2_t(x);
+      }
+      inline void dispatch(pair<template_tag::KEY, tag*> x, template_tag* tt)
+      {
+	const template_tag::KEY& key = x.first;
+	vector<scope::tps_t::val2_t*>* pv = new vector<scope::tps_t::val2_t*>;
+	transform(begin(key), end(key), back_inserter(*pv), create);
+	tt->instantiate(pv);
+      }
       inline void handle(tag* ptr, const parse::read_t& r)
       {
 	assert(ptr->m_kind2 == tag::TEMPLATE);
 	template_tag* tt = static_cast<template_tag*>(ptr);
 	tt->m_read = r;
+	if (template_tag* prev = tt->m_prev) {
+	  const template_tag::table_t& table = prev->m_table;
+	  for_each(begin(table), end(table), bind2nd(ptr_fun(dispatch), tt));
+	}
       }
     } // end of namespace templ
   } // end of namespace declarations
@@ -803,6 +818,7 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
   table_t::const_iterator p = m_table.find(key);
   if (p != m_table.end())
     return p->second;
+
   p = find_if(m_table.begin(), m_table.end(),
 	      [key](const pair<KEY, tag*>& x)
 	      { return template_usr_impl::match(key, x.first); });

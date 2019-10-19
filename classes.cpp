@@ -124,27 +124,11 @@ namespace cxx_compiler {
 	if (ret != make_pair(end(porder), end(corder)))
 	  error::not_implemented();
       }
-      inline scope::tps_t::val2_t* create(const scope::tps_t::val2_t& x)
-      {
-	return new scope::tps_t::val2_t(x);
-      }
-      inline void dispatch(pair<template_tag::KEY, tag*> x, template_tag* curr)
-      {
-	const template_tag::KEY& key = x.first;
-	vector<scope::tps_t::val2_t*>* pv = new vector<scope::tps_t::val2_t*>;
-	transform(begin(key), end(key), back_inserter(*pv), create);
-	curr->instantiate(pv);
-      }
-      inline void instantiated(template_tag* prev, template_tag* curr)
-      {
-	const template_tag::table_t& table = prev->m_table;
-	for_each(begin(table), end(table), bind2nd(ptr_fun(dispatch), curr));
-      }
     } // end of namespace merge_impl
     inline void merge(template_tag* prev, template_tag* curr)
     {
       merge_impl::default_arg(prev, curr);
-      merge_impl::instantiated(prev, curr);
+      curr->m_prev = prev;
     }
     inline tag*
     get_tag(tag::kind_t kind, string name, const file_t& file,
@@ -190,10 +174,20 @@ namespace cxx_compiler {
 	redeclaration(parse::position,prev->m_file.back(),name);
       }
       prev->m_file.push_back(file);
-      if (prev->m_kind2 != tag::TEMPLATE) {
+      tag::kind2_t kind2 = prev->m_kind2;
+      if (kind2 != tag::TEMPLATE) {
 	scope::current = prev;
 	class_or_namespace_name::before.push_back(prev);
 	declarations::specifier_seq::info_t::clear();
+	if (kind2 == tag::INSTANTIATE) {
+	  assert(!template_tag::s_stack.empty());
+	  template_tag* tt = template_tag::s_stack.top().first;
+	  assert(!template_tag::s_stack.top().second);
+	  typedef instantiated_tag IT;
+	  IT* it = static_cast<IT*>(prev);
+	  it->m_src = tt;  // override
+	  template_tag::s_stack.top().second = it;
+	}
 	return;
       }
       template_tag* tprev = static_cast<template_tag*>(prev);

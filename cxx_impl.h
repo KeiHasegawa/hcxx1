@@ -1598,8 +1598,9 @@ struct template_tag : templ_base, tag {
   static stack<pair<template_tag*, instantiated_tag*> > s_stack;
   typedef map<KEY, tag*> table_t;
   table_t m_table;
+  template_tag* m_prev;
   template_tag(tag& t, const scope::tps_t& tps)
-    : tag(t), templ_base(tps) { m_kind2 = TEMPLATE; }
+    : tag(t), templ_base(tps), m_prev(0) { m_kind2 = TEMPLATE; }
   tag* common(vector<scope::tps_t::val2_t*>*, bool);
   tag* instantiate(vector<scope::tps_t::val2_t*>* pv)
   { return common(pv, false); }
