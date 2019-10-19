@@ -476,6 +476,15 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
 	tag* ptag = static_cast<tag*>(ptr);
 	return lookup(ptag->m_name, ptr->m_parent);
       }
+      if (peek() == '<') {
+	typedef vector<usr*>::const_iterator IT;
+	IT p = find_if(begin(v), end(v),
+		       [](usr* u){ return u->m_flag2 & usr::TEMPLATE; });
+	if (p != end(v)) {
+	  cxx_compiler_lval.m_ut = new pair<usr*, tag*>(*p, 0);
+	  return TEMPLATE_NAME_LEX;
+	}
+      }
       return IDENTIFIER_LEX;
     }
     if (flag & usr::NAMESPACE) {

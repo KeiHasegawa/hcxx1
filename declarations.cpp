@@ -885,11 +885,25 @@ cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr)
     usr* ins = v.back();
     assert(ins == curr);
     v.pop_back();
-    usr* templ = v.back();
-    if (templ->m_flag2 & usr::TEMPLATE) {
+    usr* prev = v.back();
+    if (prev->m_flag2 & usr::TEMPLATE) {
       v.pop_back();
       v.push_back(ins);
-      v.push_back(templ);
+      v.push_back(prev);
+    }
+    else if (prev->m_flag & usr::OVERLOAD) {
+      overload* ovl = static_cast<overload*>(prev);
+      const vector<usr*>& cand = ovl->m_candidacy;
+      typedef vector<usr*>::const_iterator IT;
+      IT p = find_if(begin(cand), end(cand),
+		     [](usr* u){ return u->m_flag2 & usr::TEMPLATE; });
+      assert(p != end(cand));
+      usr* templ = *p;
+      instantiated_usr* iu = static_cast<instantiated_usr*>(curr);
+      assert(iu->m_src == templ);
+      v.pop_back();
+      v.push_back(ins);
+      v.push_back(prev);
     }
     else {
       // instantiated via `template_usr::instantiate_mem_fun'
@@ -1025,6 +1039,19 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
     break;
   }
 
+  usr::flag_t flag = prev->m_flag;
+  if (flag & usr::OVERLOAD) {
+    overload* ovl = static_cast<overload*>(prev);
+    const vector<usr*>& cand = ovl->m_candidacy;
+    if (parse::templ::ptr) {
+      typedef vector<usr*>::const_iterator IT;
+      IT p = find_if(begin(cand), end(cand),
+		     [](usr* u){ return u->m_flag2 & usr::TEMPLATE; });
+      if (p != end(cand))
+	prev = *p;
+    }
+  }
+
   const type* x = prev->m_type;
   if (x) {
     const type* y = curr->m_type;
@@ -1051,21 +1078,22 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
   if (flag2 & usr::TEMPLATE) {
     template_usr* tu = static_cast<template_usr*>(prev);
     templ_base::KEY key;
-    if (!instance_of(tu, curr, key))
-      error::not_implemented();
-    instantiated_usr* ret = new instantiated_usr(*curr, tu, key);
-    if (parse::templ::ptr) {
-      assert(!template_usr::s_stack.empty());
-      template_usr::info_t& info = template_usr::s_stack.top();
-      assert(tu == info.m_tu);
-      info.m_iu = ret;
-      if (info.m_explicit)
-	ret->m_flag2 = usr::flag2_t(ret->m_flag2 | usr::EXPLICIT_INSTANTIATE);
+    if (instance_of(tu, curr, key)) {
+      instantiated_usr* ret = new instantiated_usr(*curr, tu, key);
+      if (parse::templ::ptr) {
+	assert(!template_usr::s_stack.empty());
+	template_usr::info_t& info = template_usr::s_stack.top();
+	assert(tu == info.m_tu);
+	info.m_iu = ret;
+	if (info.m_explicit)
+	  ret->m_flag2 =
+	    usr::flag2_t(ret->m_flag2 | usr::EXPLICIT_INSTANTIATE);
+	return ret;
+      }
+      ret->m_flag2 = usr::flag2_t(ret->m_flag2 | usr::SPECIAL_VER);
+      tu->m_table[key] = ret;
       return ret;
     }
-    ret->m_flag2 = usr::flag2_t(ret->m_flag2 | usr::SPECIAL_VER);
-    tu->m_table[key] = ret;
-    return ret;
   }
 
   string name = curr->m_name;
