@@ -1615,6 +1615,10 @@ template_id
 enter_templ_arg
   : {
       using namespace cxx_compiler;
+      if (!parse::templ::arg) {
+	assert(!expressions::constant_flag);
+	expressions::constant_flag = true;
+      }
       ++parse::templ::arg;
     }
   ;
@@ -1624,6 +1628,8 @@ leave_templ_arg
       using namespace cxx_compiler;
       assert(parse::templ::arg > 0);
       --parse::templ::arg;
+      if (!parse::templ::arg)
+	expressions::constant_flag = false;
     }
   ;
 
