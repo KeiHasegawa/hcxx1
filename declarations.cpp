@@ -1152,6 +1152,14 @@ cxx_compiler::declarations::exchange(bool installed, usr* new_one, usr* org)
     v.back() = new_one;
   }
   delete org;
+
+  if (!parse::templ::save_t::s_stack.empty()) {
+    parse::templ::save_t* p = parse::templ::save_t::s_stack.top();
+    parse::read_t& r = p->m_read;
+    list<void*>& lv = r.m_lval;
+    assert(org == lv.back());
+    lv.back() = new_one;
+  }
   return new_one;
 }
 
