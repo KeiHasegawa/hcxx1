@@ -223,9 +223,7 @@ cxx_compiler::classes::specifier::begin(int keyword, var* v,
 {
   using namespace std;
   usr* u = static_cast<usr*>(v);
-  const map<string, scope::tps_t::value_t>& table =
-    scope::current->m_tps.m_table;
-  auto_ptr<usr> sweeper(table.empty() ? u : 0);
+  auto_ptr<usr> sweeper(parse::templ::save_t::s_stack.empty() ? u : 0);
   tag::kind_t kind = get(keyword);
   string name = classes_impl::get_name(u);
   const file_t& file = u ? u->m_file : parse::position;
