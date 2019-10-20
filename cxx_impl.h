@@ -1524,6 +1524,10 @@ namespace type_parameter {
   extern void action(var*, const type*);
 } // end of namespace type_parameter
 
+namespace templ_parameter {
+  extern void action(pair<const type*, expressions::base*>*);
+} // end of namespace templ_parameter
+
 namespace call_impl {
   var* common(const func_type* ft,
               var* func,

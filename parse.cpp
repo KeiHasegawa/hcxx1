@@ -153,7 +153,18 @@ namespace cxx_compiler {
 	if (T->integer()) {
 	  assert(v->usr_cast());
 	  usr* u = static_cast<usr*>(v);
+	  T = T->unqualified();
+	  type::id_t id = T->m_id;
+	  if (id == type::BOOL) {
+	    string name = u->m_name;
+	    if (name == "false")
+	      return FALSE_KW;
+	    assert(name == "true");
+	    return TRUE_KW;
+	  }
 	  cxx_compiler_lval.m_usr = u;
+	  if (id == type::CHAR || id == type::WCHAR)
+	    return CHARACTER_LITERAL_LEX;
 	  return INTEGER_LITERAL_LEX;
 	}
 	if (T->arithmetic()) {

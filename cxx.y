@@ -1572,6 +1572,7 @@ template_parameter_list
 template_parameter
   : type_parameter
   | parameter_declaration
+    { cxx_compiler::templ_parameter::action($1); }
   ;
 
 type_parameter

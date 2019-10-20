@@ -96,8 +96,8 @@ namespace cxx_compiler {
 	{
 	  if (const type* T = x.first)
 	    return make_pair(calc_type(T), (var*)0);
-	  error::not_implemented();
-	  return make_pair((const type*)0, (var*)0);
+	  var* v = x.second;
+	  return make_pair((const type*)0, v);
 	}
 	bool operator()(string p, string c)
 	{

@@ -30,6 +30,25 @@ void cxx_compiler::type_parameter::action(var* v, const type* T)
   }
 }
 
+void cxx_compiler::
+templ_parameter::action(pair<const type*, expressions::base*>* p)
+{
+  auto_ptr<pair<const type*, expressions::base*> > sweeper(p);
+  expressions::base* expr = p->second;
+  if (!expr)
+    return;
+  auto_ptr<expressions::base> sweeper2(expr);
+  var* v = expr->gen();
+  v = v->rvalue();
+  scope::tps_t& tps = scope::current->m_tps;
+  const vector<string>& order = tps.m_order;
+  assert(!order.empty());
+  string name = order.back();
+  map<string, pair<const type*, var*> >& def = tps.m_default;
+  assert(def.find(name) == def.end());
+  def[name] = make_pair((const type*)0, v);
+}
+
 void cxx_compiler::declarations::templ::decl_begin()
 {
   const map<string, scope::tps_t::value_t>& table =
