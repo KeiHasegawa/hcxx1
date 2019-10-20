@@ -19,8 +19,12 @@ namespace cxx_compiler {
     inline string get_name(usr* u)
     {
       if (!template_tag::s_stack.empty()) {
-	template_tag* tt = template_tag::s_stack.top().first;
-	return tt->instantiated_name();
+	const pair<template_tag*, instantiated_tag*>& x =
+	  template_tag::s_stack.top();
+	template_tag* tt = x.first;
+	instantiated_tag* it = x.second;
+	if (!it)
+	  return tt->instantiated_name();
       }
       return u ? u->m_name : new_name(".tag");
     }
@@ -142,11 +146,11 @@ namespace cxx_compiler {
 	    vector<base*>* bases)
     {
       if (!template_tag::s_stack.empty()) {
-	template_tag* tt = template_tag::s_stack.top().first;
-	assert(!template_tag::s_stack.top().second);
-	instantiated_tag* it =
-	  new instantiated_tag(kind, name, file, bases, tt);
-	return template_tag::s_stack.top().second = it;
+	pair<template_tag*, instantiated_tag*>& x =
+	  template_tag::s_stack.top();
+	template_tag* tt = x.first;
+	if (!x.second)
+	  return x.second = new instantiated_tag(kind, name, file, bases, tt);
       }
 
       tag* ret = new tag(kind, name, file, bases);

@@ -1293,10 +1293,15 @@ namespace cxx_compiler {
         assert(p->m_type);
 	usr::flag_t flag = usr::flag_t(p->m_flag | usr::CTOR);
         const type* T = p->m_type;
+#if 0
         assert(T->m_id == type::INCOMPLETE_TAGGED);
         typedef const incomplete_tagged_type ITT;
         ITT* itt = static_cast<ITT*>(T);
         tag* ptr = itt->get_tag();
+#else
+	tag* ptr = T->get_tag();
+	assert(ptr);
+#endif
 	string name = tor_name(ptr);
         T = backpatch_type::create();
         return new usr(name, T, flag, parse::position, usr::NONE2);
