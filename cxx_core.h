@@ -22,7 +22,7 @@ struct scope {
     typedef std::pair<tag*, val2_t*> value_t;
     std::map<std::string, value_t> m_table;
     std::vector<std::string> m_order;
-    std::map<std::string, const type*> m_default;
+    std::map<std::string, std::pair<const type*, var*> > m_default;
   };
   tps_t m_tps;
 

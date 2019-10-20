@@ -23,8 +23,9 @@ void cxx_compiler::type_parameter::action(var* v, const type* T)
   vector<string>& order = scope::current->m_tps.m_order;
   order.push_back(name);
   if (T) {
-    map<string, const type*>& def = scope::current->m_tps.m_default;
-    def[name] = T;
+    map<string, pair<const type*, var*> >& def =
+      scope::current->m_tps.m_default;
+    def[name] = make_pair(T, (var*)0);
     parse::identifier::mode = parse::identifier::new_obj;
   }
 }
@@ -104,7 +105,7 @@ void cxx_compiler::declarations::templ::decl_end()
   table.clear();
   vector<string>& order = scope::current->m_tps.m_order;
   order.clear();
-  map<string, const type*>& def = scope::current->m_tps.m_default;
+  map<string, pair<const type*, var*> >& def = scope::current->m_tps.m_default;
   def.clear();
 }
 
@@ -764,21 +765,15 @@ namespace cxx_compiler {
 namespace cxx_compiler {
   namespace template_tag_impl {
     struct get {
-      const map<string, const type*>& m_default;
-      get(const map<string, const type*>& def) : m_default(def) {}
+      const map<string, pair<const type*, var*> >& m_default;
+      get(const map<string, pair<const type*, var*> >& def) : m_default(def) {}
       scope::tps_t::val2_t* operator()(string name)
       {
-	map<string, const type*>::const_iterator p = m_default.find(name);
-	if (p == m_default.end()) {
-	  for (auto x : m_default) {
-	    pair<string, const type*> debug = x;
-	    string s = debug.first;
-	    const type* t = debug.second;
-	  }
+	typedef map<string, pair<const type*, var*> >::const_iterator IT;
+	IT p = m_default.find(name);
+	if (p == m_default.end())
 	  error::not_implemented();
-	}
-	const type* T = p->second;
-	return new scope::tps_t::val2_t(T, 0);
+	return new scope::tps_t::val2_t(p->second);
       }
     };
   } // end of namespace template_tag_impl
@@ -799,7 +794,8 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
     int n = pv->size();
     int m = order.size();
     if (n < m) {
-      const map<string, const type*>& def = templ_base::m_tps.m_default;
+      const map<string, pair<const type*, var*> >& def =
+	templ_base::m_tps.m_default;
       transform(begin(order) + n, end(order), back_inserter(*pv),
 		template_tag_impl::get(def));
     }

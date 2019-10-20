@@ -64,11 +64,11 @@ namespace cxx_compiler {
 	      return new scope::tps_t::val2_t(0, v);
 	    const type* T = x.first;
 	    cmp op(m_ptps, m_ctps);
-	    T = op.calc(T);
+	    T = op.calc_type(T);
 	    return new scope::tps_t::val2_t(T, 0);
 	  }
 	};
-	const type* calc(const type* Tp)
+	const type* calc_type(const type* Tp)
 	{
 	  tag* ptr = Tp->get_tag();
 	  if (!ptr)
@@ -92,18 +92,25 @@ namespace cxx_compiler {
 	  assert(Tc);
 	  return Tc;
 	}
+	pair<const type*, var*> calc(const pair<const type*, var*>& x)
+	{
+	  if (const type* T = x.first)
+	    return make_pair(calc_type(T), (var*)0);
+	  error::not_implemented();
+	  return make_pair((const type*)0, (var*)0);
+	}
 	bool operator()(string p, string c)
 	{
-	  map<string, const type*>& pdef = m_ptps.m_default;
-	  map<string, const type*>& cdef = m_ctps.m_default;
-	  typedef map<string, const type*>::const_iterator IT;
+	  map<string, pair<const type*, var*> >& pdef = m_ptps.m_default;
+	  map<string, pair<const type*, var*> >& cdef = m_ctps.m_default;
+	  typedef map<string, pair<const type*, var*> >::const_iterator IT;
 	  IT pit = pdef.find(p);
 	  if (pit == pdef.end())
 	    return true;
-	  const type* T = pit->second;
+	  pair<const type*, var*> x = pit->second;
 	  IT cit = cdef.find(c);
 	  if (cit == cdef.end()) {
-	    cdef[c] = calc(T);
+	    cdef[c] = calc(x);
 	    return true;
 	  }
 	  error::not_implemented();
