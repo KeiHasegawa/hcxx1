@@ -2395,12 +2395,12 @@ void cxx_compiler::record_type::decl(std::ostream& os, std::string name) const
 void cxx_compiler::record_impl::encode(std::ostream& os, const tag* ptr)
 {
   string name = ptr->m_name;
-  tag::kind2_t kind2 = ptr->m_kind2;
-  if (kind2 == tag::NONE) {
+  tag::flag_t flag = ptr->m_flag;
+  if (!flag) {
     os << name.length() << name;
     return;
   }
-  assert(kind2 == tag::INSTANTIATE);
+  assert(flag & tag::INSTANTIATE);
   const instantiated_tag* it = static_cast<const instantiated_tag*>(ptr);
   const template_tag* tt = it->m_src;
   name = tt->m_name;

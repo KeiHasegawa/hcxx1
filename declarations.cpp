@@ -823,8 +823,9 @@ cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr)
     tag* ptr = static_cast<tag*>(scope::current);
     if (!(flag & usr::FUNCTION))
       error::not_implemented();
-    tag::kind2_t kind2 = ptr->m_kind2;
-    if (kind2 == tag::TEMPLATE || kind2 == tag::INSTANTIATE)
+    tag::flag_t flag = ptr->m_flag;
+    tag::flag_t mask = tag::flag_t(tag::TEMPLATE | tag::INSTANTIATE);
+    if (flag & mask)
       return curr;
     curr->m_scope = ptr->m_parent;
     curr = new friend_func(*curr, ptr);

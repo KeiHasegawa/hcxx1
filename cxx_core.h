@@ -51,15 +51,21 @@ struct base;
 struct tag : scope {
   enum kind_t { STRUCT, UNION, CLASS, ENUM };
   kind_t m_kind;
-  enum kind2_t { NONE, TEMPLATE, INSTANTIATE, SPECIAL_VER };
-  kind2_t m_kind2;
+  enum flag_t {
+    NONE        = 0,
+    TEMPLATE    = 1 << 0,
+    INSTANTIATE = 1 << 1,
+    SPECIAL_VER = 1 << 2,
+    TYPENAME    = 1 << 3,
+  };
+  flag_t m_flag;
   std::string m_name;
   std::vector<file_t> m_file;
   std::pair<const type*, const type*> m_types;
   static std::string keyword(kind_t);
   std::vector<base*>* m_bases;
   tag(kind_t kind, std::string name, const file_t& file, std::vector<base*>* b)
-    : scope(TAG), m_kind(kind), m_kind2(NONE), m_name(name), m_bases(b)
+    : scope(TAG), m_kind(kind), m_flag(NONE), m_name(name), m_bases(b)
   {
     m_file.push_back(file);
   }
@@ -74,7 +80,7 @@ struct instantiated_tag : tag {
   SEED m_seed;
   instantiated_tag(kind_t kind, std::string name, const file_t& file,
 		   std::vector<base*>* b, template_tag* tt)
-    : tag(kind, name, file, b), m_src(tt) { m_kind2 = INSTANTIATE; }
+    : tag(kind, name, file, b), m_src(tt) { m_flag = INSTANTIATE; }
 };
 
 template<class T> struct constant;

@@ -336,7 +336,7 @@ void cxx_compiler::instantiate_if(usr* fun)
   if (ps->m_id != scope::TAG)
     return;
   tag* ptr = static_cast<tag*>(ps);
-  if (ptr->m_kind2 != tag::INSTANTIATE)
+  if (!(ptr->m_flag & tag::INSTANTIATE))
     return;
   instantiated_tag* it = static_cast<instantiated_tag*>(ptr);
   template_tag* tt = it->m_src;

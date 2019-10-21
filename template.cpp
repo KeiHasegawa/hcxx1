@@ -81,7 +81,7 @@ namespace cxx_compiler {
       }
       inline void handle(tag* ptr, const parse::read_t& r)
       {
-	assert(ptr->m_kind2 == tag::TEMPLATE);
+	assert(ptr->m_flag & tag::TEMPLATE);
 	template_tag* tt = static_cast<template_tag*>(ptr);
 	tt->m_read = r;
 	if (template_tag* prev = tt->m_prev) {
@@ -191,9 +191,9 @@ namespace cxx_compiler {
 	REC* yrec = static_cast<REC*>(Ty);
 	tag* xtag = xrec->get_tag();
 	tag* ytag = yrec->get_tag();
-	if (xtag->m_kind2 != tag::INSTANTIATE)
+	if (!(xtag->m_flag & tag::INSTANTIATE))
 	  return false;
-	if (ytag->m_kind2 != tag::INSTANTIATE)
+	if (!(ytag->m_flag & tag::INSTANTIATE))
 	  return false;
 	instantiated_tag* xit = static_cast<instantiated_tag*>(xtag);
 	instantiated_tag* yit = static_cast<instantiated_tag*>(ytag);
@@ -603,7 +603,7 @@ namespace cxx_compiler {
 	};
 	inline tag* tag_action(tag* ptr, vector<scope::tps_t::val2_t*>* pv)
 	{
-	  if (ptr->m_kind2 != tag::TEMPLATE)
+	  if (!(ptr->m_flag & tag::TEMPLATE))
 	    return ptr;
           template_tag* tt = static_cast<template_tag*>(ptr);
 	  if (!parse::base_clause) {
@@ -690,7 +690,7 @@ namespace cxx_compiler {
 	    assert(T);
 	    return new scope::tps_t::val2_t(T, 0);
 	  }
-	  if (ptr->m_kind2 == tag::INSTANTIATE) {
+	  if (ptr->m_flag & tag::INSTANTIATE) {
 	    calc_key op(m_table);
 	    T = op.resolve_templ(T);
 	    return new scope::tps_t::val2_t(T, 0);
@@ -717,7 +717,7 @@ namespace cxx_compiler {
 	    return T2;
 	  return T;
 	}
-	if (ptr->m_kind2 != tag::INSTANTIATE)
+	if (!(ptr->m_flag & tag::INSTANTIATE))
 	  return T;
 	typedef instantiated_tag IT;
 	IT* it = static_cast<IT*>(ptr);
@@ -776,7 +776,7 @@ namespace cxx_compiler {
     special_ver_tag(string name, template_tag* src,
 		    const template_tag::KEY& key)
       : tag(src->m_kind, name, parse::position, 0), m_src(src), m_key(key)
-    { m_kind2 = SPECIAL_VER; }
+    { m_flag = SPECIAL_VER; }
   };
 
 } // end of namespace cxx_compiler
@@ -992,3 +992,13 @@ cxx_compiler::instance_of(template_usr* tu, usr* ins, templ_base::KEY& key)
   return true;
 }
 
+const cxx_compiler::type* cxx_compiler::typenamed::action(tag* ptr)
+{
+  using namespace parse::templ;
+  if (save_t::s_stack.empty())
+    ptr->m_flag = tag::flag_t(ptr->m_flag | tag::TYPENAME);
+
+  if (const type* T = ptr->m_types.second)
+    return T;
+  return ptr->m_types.first;
+}

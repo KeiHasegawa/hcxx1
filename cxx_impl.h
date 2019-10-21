@@ -1604,7 +1604,7 @@ struct template_tag : templ_base, tag {
   table_t m_table;
   template_tag* m_prev;
   template_tag(tag& t, const scope::tps_t& tps)
-    : tag(t), templ_base(tps), m_prev(0) { m_kind2 = TEMPLATE; }
+    : tag(t), templ_base(tps), m_prev(0) { m_flag = TEMPLATE; }
   tag* common(vector<scope::tps_t::val2_t*>*, bool);
   tag* instantiate(vector<scope::tps_t::val2_t*>* pv)
   { return common(pv, false); }
@@ -1615,7 +1615,7 @@ struct template_tag : templ_base, tag {
 
 inline string tor_name(tag* ptr)
 {
-  if (ptr->m_kind2 == tag::INSTANTIATE) {
+  if (ptr->m_flag & tag::INSTANTIATE) {
     instantiated_tag* it = static_cast<instantiated_tag*>(ptr);
     ptr = it->m_src;
   }
@@ -1638,6 +1638,10 @@ inline bool template_param(const scope::tps_t::val2_t& x)
     error::not_implemented();
   return T->m_id == type::TEMPLATE_PARAM;
 }
+
+namespace typenamed {
+  extern const type* action(tag*);
+} // end of namespace typenamed
 
 } // end of namespace cxx_compiler
 

@@ -79,7 +79,7 @@ namespace cxx_compiler {
 	    return Tp;
 	  if (Tp->m_id == type::TEMPLATE_PARAM)
 	    return template_param_case(ptr);
-	  if (ptr->m_kind2 != tag::INSTANTIATE)
+	  if (!(ptr->m_flag & tag::INSTANTIATE))
 	    return Tp;
 	  typedef instantiated_tag IT;
 	  IT* it = static_cast<IT*>(ptr);
@@ -185,12 +185,12 @@ namespace cxx_compiler {
 	redeclaration(parse::position,prev->m_file.back(),name);
       }
       prev->m_file.push_back(file);
-      tag::kind2_t kind2 = prev->m_kind2;
-      if (kind2 != tag::TEMPLATE) {
+      tag::flag_t flag = prev->m_flag;
+      if (!(flag & tag::TEMPLATE)) {
 	scope::current = prev;
 	class_or_namespace_name::before.push_back(prev);
 	declarations::specifier_seq::info_t::clear();
-	if (kind2 == tag::INSTANTIATE) {
+	if (flag & tag::INSTANTIATE) {
 	  if (!template_tag::s_stack.empty()) {
 	    template_tag* tt = template_tag::s_stack.top().first;
 	    assert(!template_tag::s_stack.top().second);
@@ -205,7 +205,7 @@ namespace cxx_compiler {
       template_tag* tprev = static_cast<template_tag*>(prev);
       string name = tprev->m_name;
       tag* ptr = get_tag(kind, name, file, bases);
-      if (ptr->m_kind2 != tag::TEMPLATE)
+      if (!(ptr->m_flag & tag::TEMPLATE))
 	error::not_implemented();
 
       template_tag* tcurr = static_cast<template_tag*>(ptr);
@@ -287,7 +287,7 @@ const cxx_compiler::type* cxx_compiler::classes::specifier::action()
   scope* ps = ptr->m_parent;
   const map<string, scope::tps_t::value_t>& table = ps->m_tps.m_table;
   if (!table.empty()) {
-    if (ptr->m_kind2 == tag::TEMPLATE) {
+    if (ptr->m_flag & tag::TEMPLATE) {
       template_tag* tt = static_cast<template_tag*>(ptr);
       scope::current = ptr->m_parent;
       return ptr->m_types.first;
