@@ -998,6 +998,9 @@ const cxx_compiler::type* cxx_compiler::typenamed::action(tag* ptr)
   if (save_t::s_stack.empty())
     ptr->m_flag = tag::flag_t(ptr->m_flag | tag::TYPENAME);
 
+  assert(!class_or_namespace_name::before.empty());
+  scope::current = class_or_namespace_name::before.back();
+
   if (const type* T = ptr->m_types.second)
     return T;
   return ptr->m_types.first;

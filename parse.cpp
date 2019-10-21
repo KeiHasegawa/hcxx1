@@ -757,7 +757,8 @@ namespace cxx_compiler {
         lval.pop_front();
 	if (templ) {
 	  tag* ptr = cxx_compiler_lval.m_tag;
-	  if (ptr->m_flag & tag::INSTANTIATE) {
+	  tag::flag_t flag = ptr->m_flag;
+	  if (flag & tag::INSTANTIATE) {
 	    instantiated_tag* it = static_cast<instantiated_tag*>(ptr);
 	    const instantiated_tag::SEED& seed = it->m_seed;
 	    typedef instantiated_tag::SEED::const_iterator IT;
@@ -770,6 +771,12 @@ namespace cxx_compiler {
 	      assert(r == CLASS_NAME_LEX);
 	      return r;
 	    }
+	  }
+	  if (flag & tag::TYPENAME) {
+	    string name = ptr->m_name;
+	    int r = identifier::lookup(name, scope::current);
+	    assert(r == CLASS_NAME_LEX);
+	    return r;
 	  }
 	}
 	return n;
