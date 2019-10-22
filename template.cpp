@@ -995,7 +995,7 @@ cxx_compiler::instance_of(template_usr* tu, usr* ins, templ_base::KEY& key)
 const cxx_compiler::type* cxx_compiler::typenamed::action(tag* ptr)
 {
   using namespace parse::templ;
-  if (save_t::s_stack.empty())
+  if (!save_t::s_stack.empty())
     ptr->m_flag = tag::flag_t(ptr->m_flag | tag::TYPENAME);
 
   assert(!class_or_namespace_name::before.empty());
