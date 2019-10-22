@@ -1830,6 +1830,8 @@ postfix_expression
     { cxx_compiler::error::not_implemented(); }
   | TYPENAME_KW nested_name_specifier IDENTIFIER_LEX '(' ')'
     { cxx_compiler::error::not_implemented(); }
+  | TYPENAME_KW nested_name_specifier CLASS_NAME_LEX '(' ')'
+    { cxx_compiler::error::not_implemented(); }
   | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier
     TEMPLATE_KW template_id '(' expression_list ')'
     { cxx_compiler::error::not_implemented(); }
