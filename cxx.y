@@ -1813,13 +1813,9 @@ postfix_expression
   | postfix_expression '(' ')'
     { $$ = new cxx_compiler::expressions::postfix::call($1,0); }
   | simple_type_specifier '(' fcast_prev  expression_list ')'
-    {
-      $$ = new cxx_compiler::expressions::postfix::fcast($1, $4);
-    }
-  | simple_type_specifier '(' fcast_prev                  ')'
-    {
-      $$ = new cxx_compiler::expressions::postfix::fcast($1, 0);
-    }
+    { $$ = new cxx_compiler::expressions::postfix::fcast($1, $4); }
+  | simple_type_specifier '(' fcast_prev ')'
+    { $$ = new cxx_compiler::expressions::postfix::fcast($1, 0); }
   | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier
     IDENTIFIER_LEX '(' expression_list ')'
     { cxx_compiler::error::not_implemented(); }
@@ -1828,10 +1824,12 @@ postfix_expression
     { cxx_compiler::error::not_implemented(); }
   | TYPENAME_KW nested_name_specifier IDENTIFIER_LEX '(' expression_list ')'
     { cxx_compiler::error::not_implemented(); }
+  | TYPENAME_KW nested_name_specifier CLASS_NAME_LEX '(' expression_list ')'
+    { $$ = new cxx_compiler::expressions::postfix::fcast($3, $5); }
   | TYPENAME_KW nested_name_specifier IDENTIFIER_LEX '(' ')'
     { cxx_compiler::error::not_implemented(); }
   | TYPENAME_KW nested_name_specifier CLASS_NAME_LEX '(' ')'
-    { cxx_compiler::error::not_implemented(); }
+    { $$ = new cxx_compiler::expressions::postfix::fcast($3, 0); }
   | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier
     TEMPLATE_KW template_id '(' expression_list ')'
     { cxx_compiler::error::not_implemented(); }

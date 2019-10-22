@@ -2276,6 +2276,17 @@ fcast::fcast(declarations::type_specifier* ptr, std::vector<base*>* list)
   m_type = info.m_type;
 }
 
+cxx_compiler::expressions::postfix::
+fcast::fcast(tag* ptr, std::vector<base*>* list)
+  : m_list(list), m_file(parse::position)
+{
+  m_type = ptr->m_types.second;
+  if (!m_type)
+    m_type = ptr->m_types.first;
+  assert(!class_or_namespace_name::before.empty());
+  scope::current = class_or_namespace_name::before.back();
+}
+
 namespace cxx_compiler {
   namespace expressions {
     namespace postfix {
