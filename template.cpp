@@ -687,15 +687,11 @@ namespace cxx_compiler {
 	    return new scope::tps_t::val2_t(T, 0);
 	  if (T->m_id == type::TEMPLATE_PARAM) {
 	    T = ptr->m_types.second;
-#if 0
-	    assert(T);
-#else
 	    if (!T) {
 	      using namespace parse::templ;
 	      assert(!save_t::s_stack.empty());
 	      T = ptr->m_types.first;
 	    }
-#endif
 	    return new scope::tps_t::val2_t(T, 0);
 	  }
 	  if (ptr->m_flag & tag::INSTANTIATE) {
@@ -880,7 +876,7 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
   template_tag_impl::sweeper sweeper(pv, true);
 
   if (!s_stack.empty()) {
-    const pair<template_tag*, instantiated_tag*>& x = s_stack.top();
+    pair<template_tag*, instantiated_tag*>& x = s_stack.top();
     template_tag* tt = x.first;
     flag_t flag = tt->m_flag;
     if (flag & tag::PARTIAL_SPECIAL) {
@@ -888,9 +884,8 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
       template_tag* primary = ps->m_primary;
       if (primary == this) {
 	string name = ps->instantiated_name();
-	tag* ptr = new instantiated_tag(m_kind, name, parse::position,
-					m_bases, ps);
-	return ptr;
+	return x.second = new instantiated_tag(m_kind, name, parse::position,
+					       m_bases, ps);
       }
     }
   }
