@@ -2378,10 +2378,42 @@ bool cxx_compiler::record_impl::base_modifiable(base* bp, bool partially)
 namespace cxx_compiler {
   record_type::table_t record_type::tmp_tbl;
   namespace record_impl {
+    string scope_name(scope* p)
+    {
+      if (!p)
+	return "";
+      scope::id_t id = p->m_id;
+      switch (id) {
+      case scope::TAG:
+	{
+	  tag* ptr = static_cast<tag*>(p);
+	  string sn = scope_name(ptr->m_parent);
+	  string name = ptr->m_name;
+	  if (!sn.empty())
+	    return sn + "::" + name;
+	  return name;
+	}
+      case scope::NAMESPACE:
+	{
+	  name_space* ns = static_cast<name_space*>(p);
+	  string sn = scope_name(ns->m_parent);
+	  string name = ns->m_name;
+	  if (!sn.empty())
+	    return sn + "::" + name;
+	  return name;
+	}
+      default:
+	return "";
+      }
+    }
     void decl(ostream& os, string name, const tag* ptr)
     {
-      os << tag::keyword(ptr->m_kind) << ' ' << ptr->m_name;
-      if ( !name.empty() )
+      os << tag::keyword(ptr->m_kind) << ' ';
+      string sn = scope_name(ptr->m_parent);
+      if (!sn.empty())
+	os << sn << "::";
+      os << ptr->m_name;
+      if (!name.empty())
 	os << ' ' << name;
     }
   } // end of namespace record_impl

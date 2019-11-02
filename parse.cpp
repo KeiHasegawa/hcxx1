@@ -684,6 +684,17 @@ namespace cxx_compiler {
       }
       return identifier::judge(u->m_name);
     }
+    inline bool inside_templ(scope* p)
+    {
+      if (!p)
+	return false;
+      if (p->m_id != scope::TAG)
+	return false;
+      tag* ptr = static_cast<tag*>(p);
+      if (ptr->m_flag & tag::TEMPLATE)
+	return true;
+      return inside_templ(ptr->m_parent);
+    }
     int get_common(int n, list<void*>& lval, bool from_mem_fun_body,
 		   bool templ)
     {
@@ -772,7 +783,7 @@ namespace cxx_compiler {
 	      return r;
 	    }
 	  }
-	  if (flag & tag::TYPENAMED) {
+	  if ((flag & tag::TYPENAMED) || inside_templ(ptr->m_parent)) {
 	    string name = ptr->m_name;
 	    int r = identifier::lookup(name, scope::current);
 	    assert(r == CLASS_NAME_LEX);
