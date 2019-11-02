@@ -270,6 +270,14 @@ specifier::begin3(int keyword, pair<usr*, tag*>* x, std::vector<base*>* bases)
   if (p != tags.end())
     return classes_impl::combine(p->second, kind, parse::position, bases);
 
+  if (ptr->m_flag & tag::INSTANTIATE) {
+    instantiated_tag* it = static_cast<instantiated_tag*>(ptr);
+    assert(!template_tag::s_stack.empty());
+    pair<template_tag*, instantiated_tag*>& t = template_tag::s_stack.top();
+    assert(!t.second);
+    t.second = it;
+  }
+  
   ptr->m_parent = scope::current;
   ptr->m_parent->m_children.push_back(ptr);
   ptr->m_types.first = incomplete_tagged_type::create(ptr);
