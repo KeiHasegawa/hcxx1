@@ -1599,11 +1599,14 @@ struct template_usr : usr, templ_base {
   usr* instantiate_explicit(vector<scope::tps_t::val2_t*>*);
 };
 
+struct partial_special_tag;
+
 struct template_tag : templ_base, tag {
   static stack<pair<template_tag*, instantiated_tag*> > s_stack;
   typedef map<KEY, tag*> table_t;
   table_t m_table;
   template_tag* m_prev;
+  vector<partial_special_tag*> m_partial_special;
   template_tag(tag& t, const scope::tps_t& tps)
     : tag(t), templ_base(tps), m_prev(0) { m_flag = TEMPLATE; }
   tag* common(vector<scope::tps_t::val2_t*>*, bool);
@@ -1611,7 +1614,7 @@ struct template_tag : templ_base, tag {
   { return common(pv, false); }
   tag* special_ver(vector<scope::tps_t::val2_t*>* pv)
   { return common(pv, true); }
-  string instantiated_name() const;
+  virtual string instantiated_name() const;
 };
 
 inline string tor_name(tag* ptr)

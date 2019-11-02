@@ -263,7 +263,7 @@ specifier::begin3(int keyword, pair<usr*, tag*>* x, std::vector<base*>* bases)
   auto_ptr<pair<usr*, tag*> > sweeper(x);
   assert(!x->first);
   tag* ptr = x->second;
- tag::kind_t kind = get(keyword);
+  tag::kind_t kind = get(keyword);
   string name = ptr->m_name;
   map<string,tag*>& tags = scope::current->m_tags;
   map<string,tag*>::const_iterator p = tags.find(name);

@@ -772,7 +772,7 @@ namespace cxx_compiler {
 	      return r;
 	    }
 	  }
-	  if (flag & tag::TYPENAME) {
+	  if (flag & tag::TYPENAMED) {
 	    string name = ptr->m_name;
 	    int r = identifier::lookup(name, scope::current);
 	    assert(r == CLASS_NAME_LEX);

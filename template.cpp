@@ -687,7 +687,15 @@ namespace cxx_compiler {
 	    return new scope::tps_t::val2_t(T, 0);
 	  if (T->m_id == type::TEMPLATE_PARAM) {
 	    T = ptr->m_types.second;
+#if 0
 	    assert(T);
+#else
+	    if (!T) {
+	      using namespace parse::templ;
+	      assert(!save_t::s_stack.empty());
+	      T = ptr->m_types.first;
+	    }
+#endif
 	    return new scope::tps_t::val2_t(T, 0);
 	  }
 	  if (ptr->m_flag & tag::INSTANTIATE) {
@@ -776,9 +784,22 @@ namespace cxx_compiler {
     special_ver_tag(string name, template_tag* src,
 		    const template_tag::KEY& key)
       : tag(src->m_kind, name, parse::position, 0), m_src(src), m_key(key)
-    { m_flag = SPECIAL_VER; }
+    {
+      m_parent = src->m_parent;
+      m_flag = SPECIAL_VER;
+    }
   };
-
+  struct partial_special_tag : template_tag {
+    special_ver_tag* m_sv;
+    template_tag* m_primary;
+    partial_special_tag(special_ver_tag* sv, const scope::tps_t& tps,
+			template_tag* primary)
+      : template_tag(*sv, tps), m_sv(sv), m_primary(primary)
+    {
+      m_flag = flag_t(m_flag | tag::PARTIAL_SPECIAL);
+    }
+    string instantiated_name() const;
+  };
 } // end of namespace cxx_compiler
 
 namespace cxx_compiler {
@@ -795,6 +816,59 @@ namespace cxx_compiler {
 	return new scope::tps_t::val2_t(p->second);
       }
     };
+    struct cmp {
+      template_tag::KEY& m_key;
+      cmp(template_tag::KEY& key) : m_key(key) {}
+      bool
+      operator()(const scope::tps_t::val2_t& x, const scope::tps_t::val2_t* y)
+      {
+	if (const type* Tx = x.first) {
+	  const type* Ty = y->first;
+	  assert(Tx && Ty);
+	  tag* xtag = Tx->get_tag();
+	  assert(xtag);
+	  tag* ytag = Ty->get_tag();
+	  if (!ytag)
+	    return false;
+	  assert(xtag->m_flag & tag::INSTANTIATE);
+	  instantiated_tag* itx = static_cast<instantiated_tag*>(xtag);
+	  if (!(ytag->m_flag & tag::INSTANTIATE))
+	    return false;
+	  instantiated_tag* ity = static_cast<instantiated_tag*>(ytag);
+	  template_tag* ttx = itx->m_src;
+	  template_tag* tty = ity->m_src;
+	  if (ttx != tty)
+	    return false;
+	  const template_tag::KEY& src = ity->m_seed;
+	  copy(begin(src), end(src), back_inserter(m_key));
+	  return true;
+	}
+	else {
+	  var* vx = x.second;
+	  var* vy = y->second;
+	  assert(vx && vy);
+	  error::not_implemented();
+	  return false;
+	}
+      }
+    };
+    struct match {
+      vector<scope::tps_t::val2_t*>* m_pv;
+      template_tag::KEY& m_key;
+      match(vector<scope::tps_t::val2_t*>* pv, template_tag::KEY& key)
+	: m_pv(pv), m_key(key) {}
+      bool operator()(const partial_special_tag* ps)
+      {
+	const special_ver_tag* sv = ps->m_sv;
+	const template_tag::KEY& key = sv->m_key;
+	assert(key.size() == m_pv->size());
+	typedef template_tag::KEY::const_iterator ITx;
+	typedef vector<scope::tps_t::val2_t*>::iterator ITy;
+	pair<ITx, ITy> ret = mismatch(begin(key), end(key), begin(*m_pv),
+				      cmp(m_key));
+	return ret == make_pair(end(key), end(*m_pv));
+      }
+    };
   } // end of namespace template_tag_impl
 } // end of namespace cxx_compiler
 
@@ -804,6 +878,34 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
 		     bool special_ver)
 {
   template_tag_impl::sweeper sweeper(pv, true);
+
+  if (!s_stack.empty()) {
+    const pair<template_tag*, instantiated_tag*>& x = s_stack.top();
+    template_tag* tt = x.first;
+    flag_t flag = tt->m_flag;
+    if (flag & tag::PARTIAL_SPECIAL) {
+      partial_special_tag* ps = static_cast<partial_special_tag*>(tt);
+      template_tag* primary = ps->m_primary;
+      if (primary == this) {
+	string name = ps->instantiated_name();
+	tag* ptr = new instantiated_tag(m_kind, name, parse::position,
+					m_bases, ps);
+	return ptr;
+      }
+    }
+  }
+
+  KEY res;
+  typedef vector<partial_special_tag*>::iterator IT;
+  IT it = find_if(begin(m_partial_special), end(m_partial_special),
+		  template_tag_impl:: match(pv, res));
+  if (it != end(m_partial_special)) {
+    vector<scope::tps_t::val2_t*>* pv2 = new vector<scope::tps_t::val2_t*>;
+    transform(begin(res), end(res), back_inserter(*pv2),
+      [](scope::tps_t::val2_t& x){ return new scope::tps_t::val2_t(x); });
+    return (*it)->common(pv2, special_ver);
+  }
+
   const vector<string>& order = templ_base::m_tps.m_order;
   if (!pv) {
     if (!order.empty())
@@ -842,7 +944,17 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
 
   if (special_ver) {
     string name = instantiated_name();
-    return m_table[key] = new special_ver_tag(name, this, key);
+    special_ver_tag* sv = new special_ver_tag(name, this, key);
+    const scope::tps_t& tps = scope::current->m_tps;
+    if (!tps.m_table.empty()) {
+      partial_special_tag* ps = new partial_special_tag(sv, tps, this);
+      m_partial_special.push_back(ps);
+      using namespace parse::templ;
+      assert(!save_t::s_stack.empty());
+      save_t* p = save_t::s_stack.top();
+      p->m_tag = ps;
+    }
+    return m_table[key] = sv;
   }
 
   templ_base tmp = *this;
@@ -923,6 +1035,69 @@ std::string cxx_compiler::template_tag::instantiated_name() const
   return name;
 }
 
+namespace cxx_compiler {
+  namespace partial_special_impl {
+    struct helper {
+      const map<string, scope::tps_t::value_t>& m_table;
+      helper(const map<string, scope::tps_t::value_t>& table)
+	: m_table(table) {}
+      string decl(string name, const type* T)
+      {
+	ostringstream os;
+	T->decl(os, "");
+	return name + os.str() + ',';
+      }
+      string type_case(string name, const type* T)
+      {
+	tag* ptr = T->get_tag();
+	if (!ptr)
+	  return decl(name, T);
+	if (T->m_id == type::TEMPLATE_PARAM) {
+	  template_tag_impl::helper op(m_table);
+	  string pn = ptr->m_name;
+	  return op(name, pn);
+	}
+	tag::flag_t flag = ptr->m_flag;
+	if (!(flag & tag::INSTANTIATE))
+	  return decl(name, T);
+	instantiated_tag* it = static_cast<instantiated_tag*>(ptr);
+	const instantiated_tag::SEED& seed = it->m_seed;
+	string sn = it->m_src->m_name;
+	sn += '<';
+	sn = accumulate(begin(seed), end(seed), sn, helper(m_table));
+	sn.erase(sn.size()-1);
+	sn += '>';
+	return name + sn + ',';
+      }
+      string var_case(string name, var* v)
+      {
+	error::not_implemented();
+	return name;
+      }
+      string operator()(string name, const scope::tps_t::val2_t& p)
+      {
+	const type* T = p.first;
+	return T ? type_case(name, T) : var_case(name, p.second);
+      }
+    };
+  } // end of namespace partial_special_impl
+} // end of namespace cxx_compiler
+
+std::string cxx_compiler::partial_special_tag::instantiated_name() const
+{
+  template_tag* tt = m_sv->m_src;
+  string name = tt->m_name;
+  name += '<';
+  const KEY& key = m_sv->m_key;
+  const map<string, scope::tps_t::value_t>& table
+    = templ_base::m_tps.m_table;
+  name = accumulate(begin(key), end(key), name,
+		    partial_special_impl::helper(table));
+  name.erase(name.size()-1);
+  name += '>';
+  return name;
+}
+
 cxx_compiler::usr*
 cxx_compiler::template_usr::
 instantiate_explicit(vector<scope::tps_t::val2_t*>* pv)
@@ -996,7 +1171,7 @@ const cxx_compiler::type* cxx_compiler::typenamed::action(tag* ptr)
 {
   using namespace parse::templ;
   if (!save_t::s_stack.empty())
-    ptr->m_flag = tag::flag_t(ptr->m_flag | tag::TYPENAME);
+    ptr->m_flag = tag::flag_t(ptr->m_flag | tag::TYPENAMED);
 
   assert(!class_or_namespace_name::before.empty());
   scope::current = class_or_namespace_name::before.back();

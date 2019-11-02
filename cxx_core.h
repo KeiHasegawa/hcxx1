@@ -52,11 +52,12 @@ struct tag : scope {
   enum kind_t { STRUCT, UNION, CLASS, ENUM };
   kind_t m_kind;
   enum flag_t {
-    NONE        = 0,
-    TEMPLATE    = 1 << 0,
-    INSTANTIATE = 1 << 1,
-    SPECIAL_VER = 1 << 2,
-    TYPENAME    = 1 << 3,
+    NONE            = 0,
+    TEMPLATE        = 1 << 0,
+    INSTANTIATE     = 1 << 1,
+    SPECIAL_VER     = 1 << 2,
+    TYPENAMED       = 1 << 3,
+    PARTIAL_SPECIAL = 1 << 4,
   };
   flag_t m_flag;
   std::string m_name;
