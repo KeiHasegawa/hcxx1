@@ -803,10 +803,12 @@ function::definition::action(fundef* fdef, std::vector<tac*>& vc)
   usr::flag2_t flag2 = u->m_flag2;
   if (flag2 & usr::TEMPLATE) {
     assert(fundef::current == fdef);
+#if 0
     using namespace parse::templ;
     assert(!save_t::s_stack.empty());
     save_t* p = save_t::s_stack.top();
     assert(p->m_usr == u);
+#endif
     scope* param = fdef->m_param;
     vector<scope*>& children = param->m_parent->m_children;
     assert(children.back() == param);

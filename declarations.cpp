@@ -837,12 +837,12 @@ cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr)
     const vector<usr*>& v = p->second;
     usr* prev = v.back();
     assert(prev != curr);
-    if (conflict(prev,curr)) {
+    if (conflict(prev, curr)) {
       using namespace error::declarations;
       redeclaration(prev,curr,false);
     }
     else {
-      curr = combine(prev,curr);
+      curr = combine(prev, curr);
       usr::flag_t flag = curr->m_flag;
       if (flag & usr::OVERLOAD) {
         overload* ovl = static_cast<overload*>(curr);
@@ -936,8 +936,10 @@ bool cxx_compiler::declarations::conflict(usr* x, usr* y)
   }
   if (x->m_flag & usr::OVERLOAD)
     return false;
-  if (x->m_flag2 & usr::TEMPLATE)
-    return false;
+  if (x->m_flag2 & usr::TEMPLATE) {
+    if (!(y->m_flag2 & usr::TEMPLATE))
+      return false;
+  }
   return conflict(x->m_type,y->m_type);
 }
 
@@ -1006,38 +1008,42 @@ bool cxx_compiler::declarations::conflict(const type* prev, const type* curr)
 cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
 {
   using namespace std;
-  scope::id_t id = curr->m_scope->m_id;
-  switch (id) {
-  case scope::NONE: case scope::NAMESPACE:
-    {
-      usr::flag_t a = prev->m_flag;
-      usr::flag_t b = curr->m_flag;
-      if (a == usr::NONE && b == usr::NONE)
-        curr->m_flag = usr::EXTERN;
-      else if (a & usr::STATIC)
-        curr->m_flag = usr::flag_t(b | usr::STATIC);
-      else if (a & usr::INLINE)
-        curr->m_flag = usr::flag_t(b | usr::INLINE);
-      if (a & usr::C_SYMBOL)
-        curr->m_flag = usr::flag_t(b | usr::C_SYMBOL);
-    }
-    break;
-  case scope::TAG:
-    {
-      usr::flag_t a = prev->m_flag;
-      usr::flag_t b = curr->m_flag;
-      if (a & usr::STATIC) {
-	if (a & usr::FUNCTION) {
-	  assert(b & usr::FUNCTION);
+  const type* Tp = prev->m_type;
+  const type* Tc = curr->m_type;
+  if (Tp && Tc && compatible(Tp, Tc)) {
+    scope::id_t id = curr->m_scope->m_id;
+    switch (id) {
+    case scope::NONE: case scope::NAMESPACE:
+      {
+	usr::flag_t a = prev->m_flag;
+	usr::flag_t b = curr->m_flag;
+	if (a == usr::NONE && b == usr::NONE)
+	  curr->m_flag = usr::EXTERN;
+	else if (a & usr::STATIC)
 	  curr->m_flag = usr::flag_t(b | usr::STATIC);
-	}
-	else {
-	  assert(!(b & usr::FUNCTION));
-	  curr->m_flag = usr::flag_t(b | usr::STATIC_DEF);
+	else if (a & usr::INLINE)
+	  curr->m_flag = usr::flag_t(b | usr::INLINE);
+	if (a & usr::C_SYMBOL)
+	  curr->m_flag = usr::flag_t(b | usr::C_SYMBOL);
+      }
+      break;
+    case scope::TAG:
+      {
+	usr::flag_t a = prev->m_flag;
+	usr::flag_t b = curr->m_flag;
+	if (a & usr::STATIC) {
+	  if (a & usr::FUNCTION) {
+	    assert(b & usr::FUNCTION);
+	    curr->m_flag = usr::flag_t(b | usr::STATIC);
+	  }
+	  else {
+	    assert(!(b & usr::FUNCTION));
+	    curr->m_flag = usr::flag_t(b | usr::STATIC_DEF);
+	  }
 	}
       }
+      break;
     }
-    break;
   }
 
   usr::flag_t flag = prev->m_flag;
