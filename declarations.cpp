@@ -1083,14 +1083,20 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
 
   usr::flag2_t flag2 = prev->m_flag2;
   if (flag2 & usr::TEMPLATE) {
-    template_usr* tu = static_cast<template_usr*>(prev);
+    template_usr* ptu = static_cast<template_usr*>(prev);
+    if (curr->m_flag2 & usr::TEMPLATE) {
+      string name = curr->m_name;
+      scope::current->m_usrs[name].push_back(curr);
+      template_usr* ctu = static_cast<template_usr*>(curr);
+      return new partial_ordering(ptu, ctu);
+    }
     templ_base::KEY key;
-    if (instance_of(tu, curr, key)) {
-      instantiated_usr* ret = new instantiated_usr(*curr, tu, key);
+    if (instance_of(ptu, curr, key)) {
+      instantiated_usr* ret = new instantiated_usr(*curr, ptu, key);
       if (parse::templ::ptr) {
 	assert(!template_usr::s_stack.empty());
 	template_usr::info_t& info = template_usr::s_stack.top();
-	assert(tu == info.m_tu);
+	assert(ptu == info.m_tu);
 	info.m_iu = ret;
 	if (info.m_explicit)
 	  ret->m_flag2 =
@@ -1098,9 +1104,19 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
 	return ret;
       }
       ret->m_flag2 = usr::flag2_t(ret->m_flag2 | usr::SPECIAL_VER);
-      tu->m_table[key] = ret;
+      ptu->m_table[key] = ret;
       return ret;
     }
+  }
+
+  if (flag2 & usr::PARTIAL_ORDERING) {
+    partial_ordering* po = static_cast<partial_ordering*>(prev);
+    if (!(curr->m_flag2 & usr::TEMPLATE))
+      error::not_implemented();
+    template_usr* tu = static_cast<template_usr*>(curr);
+    string name = curr->m_name;
+    scope::current->m_usrs[name].push_back(curr);
+    return new partial_ordering(po, tu);
   }
 
   string name = curr->m_name;
@@ -1128,6 +1144,19 @@ namespace cxx_compiler {
       *p = curr;
     else
       m_candidacy.push_back(curr);
+  }
+  partial_ordering::partial_ordering(template_usr* prev, template_usr* curr)
+    : usr(curr->m_name, 0, usr::NONE, curr->m_file, usr::PARTIAL_ORDERING)
+  {
+    m_candidacy.push_back(prev);
+    m_candidacy.push_back(curr);
+  }
+  partial_ordering::partial_ordering(partial_ordering* prev,
+				     template_usr* curr)
+    : usr(curr->m_name, 0, usr::NONE, curr->m_file, usr::PARTIAL_ORDERING)
+  {
+    m_candidacy = prev->m_candidacy;
+    m_candidacy.push_back(curr);
   }
 } // end of namespace cxx_compiler
 

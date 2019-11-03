@@ -364,6 +364,7 @@ struct usr : var {
     TEMPL_PARAM          = 1 << 14,
     SPECIAL_VER          = 1 << 15,
     EXPLICIT_INSTANTIATE = 1 << 16,
+    PARTIAL_ORDERING     = 1 << 17,
   };
   flag2_t m_flag2;
   file_t m_file;

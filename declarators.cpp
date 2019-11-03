@@ -435,6 +435,14 @@ function::definition::begin(declarations::specifier_seq::info_t* p, var* v)
     p = declarations::specifier_seq::info_t::s_stack.top();
   parse::identifier::mode = parse::identifier::look;
   u = declarations::action1(u,false);
+  flag2 = u->m_flag2;
+  if (flag2 & usr::PARTIAL_ORDERING) {
+    partial_ordering* po = static_cast<partial_ordering*>(u);
+    const vector<template_usr*>& c = po->m_candidacy;
+    assert(!c.empty());
+    u = c.back();
+    flag2 = u->m_flag2;
+  }
   usr::flag_t flag = u->m_flag;
   auto_ptr<declarations::specifier_seq::info_t>
     sweeper((flag & usr::CTOR) ? 0 : p);

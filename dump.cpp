@@ -64,6 +64,8 @@ void cxx_compiler::dump::usrx(const usr* u, int ntab)
     cout << "template " << name << '\n';
     return;
   }
+  if (flag2 & usr::PARTIAL_ORDERING)
+    return;
   const type* T = u->m_type;
   if (!T) {
     assert(flag & usr::NAMESPACE);

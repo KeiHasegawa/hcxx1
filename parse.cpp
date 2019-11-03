@@ -509,6 +509,8 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
 	return TEMPLATE_NAME_LEX;
       }
     }
+    if (flag2 & usr::PARTIAL_ORDERING)
+      return IDENTIFIER_LEX;
     const type* T = u->m_type;
     if (const pointer_type* G = T->ptr_gen())
       garbage.push_back(cxx_compiler_lval.m_var = new genaddr(G,T,u,0));

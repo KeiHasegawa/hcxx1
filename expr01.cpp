@@ -456,6 +456,12 @@ cxx_compiler::var* cxx_compiler::overload::call(std::vector<var*>* arg,
   return ret;
 }
 
+cxx_compiler::var* cxx_compiler::partial_ordering::call(std::vector<var*>* arg)
+{
+  error::not_implemented();
+  return 0;
+}
+
 namespace cxx_compiler {
   namespace call_impl {
     using namespace std;
