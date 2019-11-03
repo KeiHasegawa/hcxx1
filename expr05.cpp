@@ -56,6 +56,11 @@ namespace cxx_compiler { namespace var_impl {
 	ovl->m_obj = y;
       return ovl->call(&arg);
     }
+    usr::flag2_t flag2 = op_fun->m_flag2;
+    if (flag2 & usr::TEMPLATE) {
+      template_usr* templ = static_cast<template_usr*>(op_fun);
+      op_fun = templ->instantiate(&arg);
+    }
 
     var* obj = p->m_id == scope::TAG ? y : 0;
     var* ret = call_impl::wrapper(op_fun, &arg, obj);
