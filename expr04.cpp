@@ -28,9 +28,8 @@ namespace cxx_compiler {
     if (!r)
       return 0;
     var* v = cxx_compiler_lval.m_var;
-    genaddr* ga = v->genaddr_cast();
-    assert(ga);
-    v = ga->m_ref;
+    if (genaddr* ga = v->genaddr_cast())
+      v = ga->m_ref;
     assert(v->usr_cast());
     usr* op_fun = static_cast<usr*>(v);
     return op_fun;

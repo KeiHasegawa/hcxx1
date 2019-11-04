@@ -887,7 +887,8 @@ cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr)
     assert(ins == curr);
     v.pop_back();
     usr* prev = v.back();
-    if (prev->m_flag2 & usr::TEMPLATE) {
+    usr::flag2_t mask2 = usr::flag2_t(usr::TEMPLATE | usr::PARTIAL_ORDERING);
+    if (prev->m_flag2 & mask2) {
       v.pop_back();
       v.push_back(ins);
       v.push_back(prev);
@@ -922,25 +923,29 @@ namespace cxx_compiler { namespace declarations {
 
 bool cxx_compiler::declarations::conflict(usr* x, usr* y)
 {
-  if ( conflict(x->m_flag,y->m_flag) ){
+  if (conflict(x->m_flag,y->m_flag)) {
     if (!x->m_type) {
       assert(x->m_flag & usr::OVERLOAD);
       return false;
     }
-    if ( x->m_type->m_id != type::FUNC )
+    if (x->m_type->m_id != type::FUNC)
       return true;
   }
-  if ( scope::current == &scope::root ){
+  if (scope::current == &scope::root) {
     if ((x->m_flag & usr::WITH_INI) && (y->m_flag & usr::WITH_INI))
       return true;
   }
-  if (x->m_flag & usr::OVERLOAD)
+  usr::flag_t flag = x->m_flag;
+  if (flag & usr::OVERLOAD)
     return false;
-  if (x->m_flag2 & usr::TEMPLATE) {
+  usr::flag2_t flag2 = x->m_flag2;
+  if (flag2 & usr::TEMPLATE) {
     if (!(y->m_flag2 & usr::TEMPLATE))
       return false;
   }
-  return conflict(x->m_type,y->m_type);
+  if (flag2 & usr::PARTIAL_ORDERING)
+    return false;
+  return conflict(x->m_type, y->m_type);
 }
 
 namespace cxx_compiler {
@@ -1111,8 +1116,21 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
 
   if (flag2 & usr::PARTIAL_ORDERING) {
     partial_ordering* po = static_cast<partial_ordering*>(prev);
-    if (!(curr->m_flag2 & usr::TEMPLATE))
-      error::not_implemented();
+    if (!(curr->m_flag2 & usr::TEMPLATE)) {
+      assert(parse::templ::ptr);
+      assert(!template_usr::s_stack.empty());
+      template_usr::info_t& info = template_usr::s_stack.top();
+      template_usr* tu = info.m_tu;
+      const vector<template_usr*>& c = po->m_candidacy;
+      assert(find(begin(c), end(c), tu) != end(c));
+      templ_base::KEY key;
+      bool b = instance_of(tu, curr, key);
+      assert(b);
+      instantiated_usr* ret = new instantiated_usr(*curr, tu, key);
+      info.m_iu = ret;
+      assert(!info.m_explicit);
+      return ret;
+    }
     template_usr* tu = static_cast<template_usr*>(curr);
     string name = curr->m_name;
     scope::current->m_usrs[name].push_back(curr);

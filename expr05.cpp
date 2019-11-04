@@ -59,7 +59,11 @@ namespace cxx_compiler { namespace var_impl {
     usr::flag2_t flag2 = op_fun->m_flag2;
     if (flag2 & usr::TEMPLATE) {
       template_usr* templ = static_cast<template_usr*>(op_fun);
-      op_fun = templ->instantiate(&arg);
+      op_fun = templ->instantiate(&arg, 0);
+    }
+    if (flag2 & usr::PARTIAL_ORDERING) {
+      partial_ordering* po = static_cast<partial_ordering*>(op_fun);
+      return po->call(&arg);
     }
 
     var* obj = p->m_id == scope::TAG ? y : 0;

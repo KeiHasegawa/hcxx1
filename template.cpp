@@ -447,7 +447,7 @@ namespace cxx_compiler {
 } // end of namespace cxx_compiler
 
 cxx_compiler::usr*
-cxx_compiler::template_usr::instantiate(std::vector<var*>* arg)
+cxx_compiler::template_usr::instantiate(std::vector<var*>* arg, KEY* trial)
 {
   if (!arg)
     error::not_implemented();
@@ -471,19 +471,29 @@ cxx_compiler::template_usr::instantiate(std::vector<var*>* arg)
   ITx ed = bn + n;
   pair<ITx, ITx> pxx = mismatch(bn, ed, begin(atype),
 				template_usr_impl::calc(table));
-  if (pxx.first != ed)
+  if (pxx.first != ed) {
+    if (trial)
+      return 0;
     error::not_implemented();
+  }
 
   typedef map<string, scope::tps_t::value_t>::const_iterator ITy;
   ITy py = find_if(begin(table), end(table),
 		   template_usr_impl::not_decided);
-  if (py != end(table))
+  if (py != end(table)) {
+    if (trial)
+      return 0;
     error::not_implemented();
+  }
 
   KEY key;
   const vector<string>& order = m_tps.m_order;
   transform(begin(order), end(order), back_inserter(key),
 	    template_usr_impl::decide(table));
+  if (trial) {
+    *trial = key;
+    return reinterpret_cast<usr*>(-1);
+  }
 
   table_t::const_iterator it = m_table.find(key);
   if (it != m_table.end())

@@ -1591,7 +1591,7 @@ struct template_usr : usr, templ_base {
   {
     m_flag2 = usr::flag2_t(m_flag2 | usr::TEMPLATE);
   }
-  usr* instantiate(vector<var*>* arg);
+  usr* instantiate(vector<var*>* arg, KEY* trial);
   static vector<pair<template_usr*, instantiated_tag*> > s_marked;
   void mark(instantiated_tag*);
   static void gen();

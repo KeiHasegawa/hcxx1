@@ -161,7 +161,7 @@ cxx_compiler::genaddr::call(std::vector<var*>* arg)
   usr::flag2_t flag2 = u->m_flag2;
   if (flag2 & usr::TEMPLATE) {
     template_usr* templ = static_cast<template_usr*>(u);
-    u = templ->instantiate(arg);
+    u = templ->instantiate(arg, 0);
   }
   const type* T = u->m_type;
   if (T->m_id != type::FUNC) {
@@ -456,10 +456,41 @@ cxx_compiler::var* cxx_compiler::overload::call(std::vector<var*>* arg,
   return ret;
 }
 
+namespace cxx_compiler {
+  namespace partial_ordering_impl {
+    struct comp {
+      vector<var*>* m_arg;
+      comp(vector<var*>* arg) : m_arg(arg) {}
+      bool operator()(template_usr* x, template_usr* y)
+      {
+	template_usr::KEY xkey;
+	usr* ux = x->instantiate(m_arg, &xkey);
+	if (!ux)
+	  return false;
+	template_usr::KEY ykey;
+	usr* uy = y->instantiate(m_arg, &ykey);
+	if (!uy)
+	  return true;
+	if (xkey.size() < ykey.size())
+	  return true;
+	if (xkey.size() > ykey.size())
+	  return false;
+	error::not_implemented();
+	return false;
+      }
+    };
+  } // end of namespace partial_ordering_impl
+} // end of namespace cxx_compiler
+
 cxx_compiler::var* cxx_compiler::partial_ordering::call(std::vector<var*>* arg)
 {
-  error::not_implemented();
-  return 0;
+  typedef vector<template_usr*>::const_iterator IT;
+  IT p = min_element(begin(m_candidacy), end(m_candidacy),
+		     partial_ordering_impl::comp(arg));
+  assert(p != end(m_candidacy));
+  template_usr* tu = *p;
+  usr* ins = tu->instantiate(arg, 0);
+  return call_impl::wrapper(ins, arg, 0);
 }
 
 namespace cxx_compiler {
