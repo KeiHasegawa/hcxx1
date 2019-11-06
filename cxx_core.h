@@ -1072,7 +1072,7 @@ struct type_def : usr {
   std::vector<file_t> m_refed;
   type_def(const usr& u) : usr(u) {}
 };
- 
+
 struct name_space : scope, usr {
   name_space(std::string name, const file_t& file)
     : scope(scope::NAMESPACE), usr(name,0,usr::NAMESPACE,file,NONE2) {}

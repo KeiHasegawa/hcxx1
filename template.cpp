@@ -67,6 +67,16 @@ namespace cxx_compiler {
 	assert(u->m_flag2 & usr::TEMPLATE);
 	template_usr* tu = static_cast<template_usr*>(u);
 	tu->m_read = r;
+	if (!(u->m_flag & usr::STATIC_DEF))
+	  return;
+	scope* p = u->m_scope;
+	assert(p->m_id == scope::TAG);
+	tag* ptr = static_cast<tag*>(p);
+	assert(ptr->m_flag & tag::INSTANTIATE);
+	typedef instantiated_tag IT;
+	IT* it = static_cast<IT*>(ptr);
+	template_tag* tt = it->m_src;
+	tt->m_static_def.push_back(tu);
       }
       inline scope::tps_t::val2_t* create(const scope::tps_t::val2_t& x)
       {
@@ -506,7 +516,7 @@ cxx_compiler::template_usr::instantiate(std::vector<var*>* arg, KEY* trial)
 
   templ_base tmp = *this;
   template_usr_impl::sweeper_b sweeper_b(m_scope, &tmp);
-  s_stack.push(info_t(this, 0, false));
+  s_stack.push(info_t(this, 0, info_t::NONE));
   cxx_compiler_parse();
   instantiated_usr* ret = s_stack.top().m_iu;
   s_stack.pop();
@@ -577,7 +587,7 @@ cxx_compiler::template_usr::instantiate_mem_fun(instantiated_tag* it)
 
   templ_base tmp = *this;
   template_usr_impl::sweeper_b sweeper_b(scope::current, &tmp);
-  s_stack.push(info_t(this, 0, false));
+  s_stack.push(info_t(this, 0, info_t::NONE));
   cxx_compiler_parse();
   instantiated_usr* ret = s_stack.top().m_iu;
   s_stack.pop();
@@ -880,6 +890,17 @@ namespace cxx_compiler {
 	return ret == make_pair(end(key), end(*m_pv));
       }
     };
+    struct instantiate {
+      const template_tag::KEY& m_key;
+      instantiate(const template_tag::KEY& key) : m_key(key) {}
+      void operator()(template_usr* tu)
+      {
+	vector<scope::tps_t::val2_t*>* pv = new vector<scope::tps_t::val2_t*>;
+	transform(begin(m_key), end(m_key), back_inserter(*pv),
+		  declarations::templ::create);
+	tu->instantiate_static_def(pv);
+      }
+    };
   } // end of namespace template_tag_impl
 } // end of namespace cxx_compiler
 
@@ -985,7 +1006,10 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
   }
   assert(ret->m_src == this);
   ret->m_seed = key;
-  return m_table[key] = ret;
+  m_table[key] = ret;
+  for_each(begin(m_static_def), end(m_static_def),
+	   template_tag_impl::instantiate(key));
+  return ret;
 }
 
 namespace cxx_compiler {
@@ -1110,7 +1134,7 @@ std::string cxx_compiler::partial_special_tag::instantiated_name() const
 
 cxx_compiler::usr*
 cxx_compiler::template_usr::
-instantiate_explicit(vector<scope::tps_t::val2_t*>* pv)
+instantiate_common(vector<scope::tps_t::val2_t*>* pv, info_t::mode_t mode)
 {
   template_tag_impl::sweeper sweeper(pv, false);
   KEY key;
@@ -1129,22 +1153,41 @@ instantiate_explicit(vector<scope::tps_t::val2_t*>* pv)
 
   templ_base tmp = *this;
   template_usr_impl::sweeper_b sweeper_b(m_scope, &tmp);
-  s_stack.push(info_t(this, 0, true));
+  s_stack.push(info_t(this, 0, mode));
   cxx_compiler_parse();
   instantiated_usr* ret = s_stack.top().m_iu;
   s_stack.pop();
   assert(ret->m_src == this);
   assert(ret->m_seed == key);
-  assert(ret->m_flag2 & usr::EXPLICIT_INSTANTIATE);
+  if (mode == info_t::EXPLICIT)
+    assert(ret->m_flag2 & usr::EXPLICIT_INSTANTIATE);
+  else {
+    assert(mode == info_t::STATIC_DEF);
+    assert(ret->m_flag & usr::STATIC_DEF);
+  }
   return m_table[key] = ret;
 }
+
+namespace cxx_compiler {
+  namespace instance_of_impl {
+    bool non_func_case(template_usr* tu, usr* ins, templ_base::KEY& key)
+    {
+      const type* Tt = tu->m_type;
+      if (Tt->m_id != type::TEMPLATE_PARAM)
+	return false;
+      const type* Ti = ins->m_type;
+      key.push_back(scope::tps_t::val2_t(Ti, 0));
+      return true;
+    }
+  } // end of namespace instance_of_impl
+} // end of namespace cxx_compiler
 
 bool
 cxx_compiler::instance_of(template_usr* tu, usr* ins, templ_base::KEY& key)
 {
   const type* Tt = tu->m_type;
   if (Tt->m_id != type::FUNC)
-    return false;
+    return instance_of_impl::non_func_case(tu, ins, key);
   const type* Ti = ins->m_type;
   if (Ti->m_id != type::FUNC)
     return false;

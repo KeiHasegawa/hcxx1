@@ -1077,7 +1077,7 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
 	if (!instance_of(tu, curr, key))
 	  error::not_implemented();
 	curr = info.m_iu = new instantiated_usr(*curr, tu, key);
-	if (info.m_explicit) {
+	if (info.m_mode == template_usr::info_t::EXPLICIT) {
 	  curr->m_flag2 =
 	    usr::flag2_t(curr->m_flag2 | usr::EXPLICIT_INSTANTIATE);
 	}
@@ -1103,7 +1103,7 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
 	template_usr::info_t& info = template_usr::s_stack.top();
 	assert(ptu == info.m_tu);
 	info.m_iu = ret;
-	if (info.m_explicit)
+	if (info.m_mode == template_usr::info_t::EXPLICIT)
 	  ret->m_flag2 =
 	    usr::flag2_t(ret->m_flag2 | usr::EXPLICIT_INSTANTIATE);
 	return ret;
@@ -1128,7 +1128,7 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
       assert(b);
       instantiated_usr* ret = new instantiated_usr(*curr, tu, key);
       info.m_iu = ret;
-      assert(!info.m_explicit);
+      assert(info.m_mode == template_usr::info_t::NONE);
       return ret;
     }
     template_usr* tu = static_cast<template_usr*>(curr);
@@ -1201,6 +1201,16 @@ check_installed(usr* u, specifier_seq::info_t* p, bool* installed)
     ret->m_file = parse::position;
     map<string, vector<usr*> >& usrs = ps->m_usrs;
     string name = u->m_name;
+    if (parse::templ::ptr) {
+      assert(!template_usr::s_stack.empty());
+      template_usr::info_t& info = template_usr::s_stack.top();
+      template_usr* tu = info.m_tu;
+      templ_base::KEY key;
+      if (!instance_of(tu, ret, key))
+	error::not_implemented();
+      ret = info.m_iu = new instantiated_usr(*ret, tu, key);
+      assert(info.m_mode == template_usr::info_t::STATIC_DEF);
+    }
     usrs[name].push_back(ret);
     return ret;
   }
@@ -1233,15 +1243,25 @@ cxx_compiler::declarations::exchange(bool installed, usr* new_one, usr* org)
     assert(v.back() == org);
     v.back() = new_one;
   }
+
+  if (!template_usr::s_stack.empty()) {
+    const template_usr::info_t& info = template_usr::s_stack.top();
+    assert(info.m_iu == org);
+    return new_one;
+  }
+
   delete org;
 
   if (!parse::templ::save_t::s_stack.empty()) {
     parse::templ::save_t* p = parse::templ::save_t::s_stack.top();
     parse::read_t& r = p->m_read;
     list<void*>& lv = r.m_lval;
-    assert(org == lv.back());
-    lv.back() = new_one;
+    if (!lv.empty()) {
+      if (org == lv.back())
+	lv.back() = new_one;
+    }
   }
+
   return new_one;
 }
 

@@ -1580,9 +1580,10 @@ struct template_usr : usr, templ_base {
   struct info_t {
     template_usr* m_tu;
     instantiated_usr* m_iu;
-    bool m_explicit;
-    info_t(template_usr* tu, instantiated_usr* iu, bool ex)
-    : m_tu(tu), m_iu(iu), m_explicit(ex) {}
+    enum mode_t { NONE, EXPLICIT, STATIC_DEF };
+    mode_t m_mode;
+    info_t(template_usr* tu, instantiated_usr* iu, mode_t mode)
+    : m_tu(tu), m_iu(iu), m_mode(mode) {}
   };
   static stack<info_t> s_stack;
   typedef map<KEY, usr*> table_t;
@@ -1596,7 +1597,11 @@ struct template_usr : usr, templ_base {
   void mark(instantiated_tag*);
   static void gen();
   usr* instantiate_mem_fun(instantiated_tag*);
-  usr* instantiate_explicit(vector<scope::tps_t::val2_t*>*);
+  usr* instantiate_common(vector<scope::tps_t::val2_t*>*, info_t::mode_t);
+  usr* instantiate_explicit(vector<scope::tps_t::val2_t*>* pv)
+  { return instantiate_common(pv, info_t::EXPLICIT); }
+  usr* instantiate_static_def(vector<scope::tps_t::val2_t*>* pv)
+  { return instantiate_common(pv, info_t::STATIC_DEF); }
 };
 
 struct partial_ordering : usr {
@@ -1614,6 +1619,7 @@ struct template_tag : templ_base, tag {
   table_t m_table;
   template_tag* m_prev;
   vector<partial_special_tag*> m_partial_special;
+  vector<template_usr*> m_static_def;
   template_tag(tag& t, const scope::tps_t& tps)
     : tag(t), templ_base(tps), m_prev(0) { m_flag = TEMPLATE; }
   tag* common(vector<scope::tps_t::val2_t*>*, bool);

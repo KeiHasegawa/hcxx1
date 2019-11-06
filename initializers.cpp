@@ -62,6 +62,8 @@ void cxx_compiler::declarations::initializers::action(var* v, info_t* i)
   usr* u = static_cast<usr*>(v);
   auto_ptr<info_t> sweeper(i);
   argument::dst = u;
+  if (u->m_flag2 & usr::TEMPLATE)
+    return;
   usr::flag_t flag = u->m_flag;
   with_initial* p = 0;
   if (flag & usr::WITH_INI)
