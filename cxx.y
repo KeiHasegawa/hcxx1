@@ -1476,7 +1476,7 @@ operator_function_id
   | OPERATOR_KW operator
     '<' enter_templ_arg template_argument_list leave_templ_arg '>'
     { cxx_compiler::error::not_implemented(); }
-  | OPERATOR_KW operator '<' '>'
+  | OPERATOR_KW operator '<' enter_templ_arg leave_templ_arg '>'
     { cxx_compiler::error::not_implemented(); }
   ;
 
@@ -1626,7 +1626,7 @@ template_id
   : TEMPLATE_NAME_LEX
     '<' enter_templ_arg template_argument_list leave_templ_arg '>'
     { $$ = cxx_compiler::declarations::templ::id::action($1, $4); }
-  | TEMPLATE_NAME_LEX '<' '>'
+  | TEMPLATE_NAME_LEX '<' enter_templ_arg leave_templ_arg '>'
     { $$ = cxx_compiler::declarations::templ::id::action($1, 0); }
   ;
 
@@ -1638,6 +1638,7 @@ enter_templ_arg
 	expressions::constant_flag = true;
       }
       ++parse::templ::arg;
+      parse::identifier::mode = parse::identifier::look;
     }
   ;
 
