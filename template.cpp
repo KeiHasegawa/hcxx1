@@ -1170,14 +1170,67 @@ instantiate_common(vector<scope::tps_t::val2_t*>* pv, info_t::mode_t mode)
 
 namespace cxx_compiler {
   namespace instance_of_impl {
+    scope::tps_t::val2_t
+    calc(const scope::tps_t::val2_t& x, const scope::tps_t::val2_t& y)
+    {
+      if (const type* Tx = x.first) {
+	assert(Tx->m_id == type::TEMPLATE_PARAM);
+	assert(y.first);
+	return y;
+      }
+      var* v = x.second;
+      assert(v->usr_cast());
+      usr* u = static_cast<usr*>(v);
+      usr::flag2_t flag = u->m_flag2;
+      assert(flag & usr::TEMPL_PARAM);
+      assert(y.second);      
+      return y;
+    }
+    bool type_equal_case(template_usr* tu, usr* ins, templ_base::KEY& key)
+    {
+      string x = tu->m_name;
+      string y = ins->m_name;
+      if (x != y)
+	return false;
+      scope* xs = tu->m_scope;
+      if (xs->m_id != scope::TAG)
+	return false;
+      tag* xt = static_cast<tag*>(xs);
+      scope* ys = ins->m_scope;
+      if (ys->m_id != scope::TAG)
+	return false;
+      tag* yt = static_cast<tag*>(ys);
+      tag::flag_t xflag = xt->m_flag;
+      if (!(xflag & tag::INSTANTIATE))
+	return false;
+      typedef instantiated_tag IT;
+      IT* xit = static_cast<IT*>(xt);
+      template_tag* xsrc = xit->m_src;
+      tag::flag_t yflag = yt->m_flag;
+      if (!(yflag & tag::INSTANTIATE))
+	return false;
+      IT* yit = static_cast<IT*>(yt);
+      template_tag* ysrc = yit->m_src;
+      if (xsrc != ysrc)
+	return false;
+      const IT::SEED& xseed = xit->m_seed;
+      const IT::SEED& yseed = yit->m_seed;
+      assert(xseed.size() == yseed.size());
+      transform(begin(xseed), end(xseed), begin(yseed), back_inserter(key),
+		calc);
+      return true;
+    }
     bool non_func_case(template_usr* tu, usr* ins, templ_base::KEY& key)
     {
       const type* Tt = tu->m_type;
-      if (Tt->m_id != type::TEMPLATE_PARAM)
-	return false;
       const type* Ti = ins->m_type;
-      key.push_back(scope::tps_t::val2_t(Ti, 0));
-      return true;
+      if (Tt->m_id == type::TEMPLATE_PARAM) {
+	key.push_back(scope::tps_t::val2_t(Ti, 0));
+	return true;
+      }
+      if (Tt == Ti)
+	return type_equal_case(tu, ins, key);
+      return false;
     }
   } // end of namespace instance_of_impl
 } // end of namespace cxx_compiler
