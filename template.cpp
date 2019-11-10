@@ -1203,7 +1203,7 @@ namespace cxx_compiler {
       usr* u = static_cast<usr*>(v);
       usr::flag2_t flag = u->m_flag2;
       assert(flag & usr::TEMPL_PARAM);
-      assert(y.second);      
+      assert(y.second);
       return y;
     }
     bool type_equal_case(template_usr* tu, usr* ins, templ_base::KEY& key)
@@ -1240,6 +1240,36 @@ namespace cxx_compiler {
 		calc);
       return true;
     }
+    bool comp_parent(scope* x, scope* y, templ_base::KEY& key)
+    {
+      if (x == y)
+	return true;
+      if (x->m_id != scope::TAG)
+	return false;
+      tag* xt = static_cast<tag*>(x);
+      if (y->m_id != scope::TAG)
+	return false;
+      tag* yt = static_cast<tag*>(y);
+      tag::flag_t xf = xt->m_flag;
+      if (!(xf & tag::INSTANTIATE))
+	return false;
+      typedef instantiated_tag IT;
+      IT* xit = static_cast<IT*>(xt); 
+      tag::flag_t yf = yt->m_flag;
+      if (!(yf & tag::INSTANTIATE))
+	return false;
+      IT* yit = static_cast<IT*>(yt); 
+      template_tag* xsrc = xit->m_src;
+      template_tag* ysrc = yit->m_src;
+      if (xsrc != ysrc)
+	return false;
+      const IT::SEED& xseed = xit->m_seed;
+      const IT::SEED& yseed = yit->m_seed;
+      assert(xseed.size() == yseed.size());
+      transform(begin(xseed), end(xseed), begin(yseed), back_inserter(key),
+		calc);
+      return comp_parent(x->m_parent, y->m_parent, key);
+    }
     bool non_func_case(template_usr* tu, usr* ins, templ_base::KEY& key)
     {
       const type* Tt = tu->m_type;
@@ -1250,7 +1280,16 @@ namespace cxx_compiler {
       }
       if (Tt == Ti)
 	return type_equal_case(tu, ins, key);
-      return false;
+      tag* x = Tt->get_tag();
+      if (!x)
+	return false;
+      tag::flag_t flag = x->m_flag;
+      if (!(flag & tag::TYPENAMED))
+	return false;
+      tag* y = Ti->get_tag();
+      if (!y)
+	return false;
+      return comp_parent(x->m_parent, y->m_parent, key);
     }
   } // end of namespace instance_of_impl
 } // end of namespace cxx_compiler
