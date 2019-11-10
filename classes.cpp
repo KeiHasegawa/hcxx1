@@ -454,6 +454,7 @@ namespace cxx_compiler {
     using namespace std;
     vector<scope*> before;
     scope* last;
+    int decl_array;
   } // end of namespace class_or_namespace_name
 } // end of namespace cxx_compiler
 

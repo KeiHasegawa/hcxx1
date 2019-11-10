@@ -1465,12 +1465,13 @@ cxx_compiler::tag* cxx_compiler::declarations::enumeration::begin(var* v)
   return tags[name] = T;
 }
 
-void cxx_compiler::declarations::enumeration::definition(var* v, expressions::base* expr)
+void cxx_compiler::declarations::
+enumeration::definition(var* v, expressions::base* expr)
 {
   using namespace std;
   using namespace error::declarations::enumeration;
   usr* u = static_cast<usr*>(v);
-  auto_ptr<usr> sweeper1(u);
+  auto_ptr<usr> sweeper1(parse::templ::save_t::s_stack.empty() ? u : 0);
   auto_ptr<expressions::base> sweeper2(expr);
   v = 0;
   if ( expr ){

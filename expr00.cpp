@@ -1383,7 +1383,8 @@ cxx_compiler::unqualified_id::from_nonmember(var* v)
   if (!u)
     return v;
   usr::flag_t flag = u->m_flag;
-  if (flag & usr::STATIC)
+  usr::flag_t mask = usr::flag_t(usr::STATIC | usr::ENUM_MEMBER);
+  if (flag & mask)
     return u;
   if (!fundef::current)
     return u;

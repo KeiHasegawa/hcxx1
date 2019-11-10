@@ -921,6 +921,14 @@ begin_array
       mode = look;
       using namespace cxx_compiler::declarations::specifier_seq;
       info_t::s_stack.push(0);
+      using namespace cxx_compiler;
+      if (class_or_namespace_name::last) {
+        using namespace class_or_namespace_name;
+        before.push_back(scope::current);
+        scope::current = last;
+        last = 0;
+        ++decl_array;
+      }
     }
   ;
 
@@ -931,6 +939,15 @@ end_array
       mode = new_obj;
       using namespace cxx_compiler::declarations::specifier_seq;
       info_t::s_stack.pop();
+      using namespace cxx_compiler;
+      if (class_or_namespace_name::decl_array) {
+        using namespace class_or_namespace_name;
+	--decl_array;
+        assert(decl_array >= 0);
+        assert(!before.empty());
+        scope::current = before.back();
+        before.pop_back();
+      }
     }
   ;
 

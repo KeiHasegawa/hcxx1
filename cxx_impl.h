@@ -1508,6 +1508,7 @@ namespace class_or_namespace_name {
   extern vector<scope*> before;
   extern scope* last;
   extern void after(bool set_last);
+  extern int decl_array;
 } // end of namespace class_or_namespace_name
 
 namespace unqualified_id {
