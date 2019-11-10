@@ -426,6 +426,16 @@ namespace cxx_compiler {
       assert(vy);
       if (vx == vy)
 	return true;
+      if (usr* ux = vx->usr_cast()) {
+	usr::flag2_t fx = ux->m_flag2;
+	if (fx & usr::TEMPL_PARAM)
+	  return false;
+      }
+      if (usr* uy = vy->usr_cast()) {
+	usr::flag2_t fy = uy->m_flag2;
+	if (fy & usr::TEMPL_PARAM)
+	  return false;
+      }
       if (!vx->isconstant(true) || !vy->isconstant(true))
 	return false;
       if (vx->isconstant()) {
@@ -1036,6 +1046,16 @@ namespace cxx_compiler {
 	assert(y);
 	assert(y->first);
 	var* v = y->second;
+	if (usr* u = v->usr_cast()) {
+	  usr::flag2_t flag2 = u->m_flag2;
+	  if (flag2 & usr::TEMPL_PARAM) {
+	    ostringstream os;
+	    const type* T = y->first;
+	    T->decl(os, u->m_name);
+	    os << '.' << u;
+	    return name + os.str() + ',';
+	  }
+	}
 	if (!v->isconstant(true))
 	  error::not_implemented();
 	ostringstream os;
