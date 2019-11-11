@@ -32,8 +32,16 @@ int cxx_compiler::parse::identifier::judge(std::string name)
     return create(name), PEEKED_NAME_LEX;
 
   if (last_token == COLONCOLON_MK || peek() == COLONCOLON_MK) {
-    if (int r = lookup(name, scope::current))
+    if (int r = lookup(name, scope::current)) {
+      if (r == IDENTIFIER_LEX) {
+	var* v = cxx_compiler_lval.m_var;
+	if (genaddr* ga = v->genaddr_cast()) {
+	  assert(!class_or_namespace_name::before.empty());
+	  ga->m_scope = class_or_namespace_name::before.back();
+	}
+      }
       return r;
+    }
     error::undeclared(parse::position, name);
     if (last_token == COLONCOLON_MK) {
       int r = create(name, int_type::create());
@@ -514,8 +522,11 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
     if (flag2 & usr::PARTIAL_ORDERING)
       return IDENTIFIER_LEX;
     const type* T = u->m_type;
-    if (const pointer_type* G = T->ptr_gen())
-      garbage.push_back(cxx_compiler_lval.m_var = new genaddr(G,T,u,0));
+    if (const pointer_type* G = T->ptr_gen()) {
+      cxx_compiler_lval.m_var = new genaddr(G,T,u,0);
+      if (template_usr::s_stack.empty())
+	garbage.push_back(cxx_compiler_lval.m_var);
+    }
     return IDENTIFIER_LEX;
   }
   const map<string, tag*>& tags = ptr->m_tags;
