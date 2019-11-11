@@ -1532,7 +1532,7 @@ public:
   const type* prev() const { return !m_T ? 0 : m_T->prev(); }
   void post(std::ostream&) const;
   const type* patch(const type*, usr*) const;
-  bool backpatch() const { assert(m_T); return m_T->backpatch(); }
+  bool backpatch() const { return m_T ? m_T->backpatch() : false; }
   const type* qualified(int) const;
   const type* complete_type() const;
   const pointer_type* ptr_gen() const;

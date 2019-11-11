@@ -83,12 +83,14 @@ function::action(const type* T,
     return u->m_type;
   }
   if (pdc) {
-    vector<const type*> param;
-    transform(begin(*pdc), end(*pdc), back_inserter(param),
-	      [](pair<const type*, expressions::base*>* p)
-	      { return p->first; });
-    const type* ret =
-      T->patch(func_type::create(backpatch_type::create(),param),u);
+    const type* ret = T;
+    if (T->backpatch()) {
+      vector<const type*> param;
+      transform(begin(*pdc), end(*pdc), back_inserter(param),
+		[](pair<const type*, expressions::base*>* p)
+		{ return p->first; });
+      ret = T->patch(func_type::create(backpatch_type::create(),param),u);
+    }
     vector<var*> default_arg;
     transform(begin(*pdc), end(*pdc), back_inserter(default_arg),
 	      [](pair<const type*, expressions::base*>* p)
@@ -115,9 +117,12 @@ function::action(const type* T,
     return ret;
   }
   else {
-    vector<const type*> param;
-    param.push_back(void_type::create());
-    return T->patch(func_type::create(backpatch_type::create(),param),u);
+    if (T->backpatch()) {
+      vector<const type*> param;
+      param.push_back(void_type::create());
+      return T->patch(func_type::create(backpatch_type::create(),param),u);
+    }
+    return T;
   }
 }
 
@@ -431,8 +436,11 @@ function::definition::begin(declarations::specifier_seq::info_t* p, var* v)
     u = ref->usr_cast();
   }
   usr::flag2_t flag2 = u->m_flag2;
-  if (flag2 & usr::CONV_OPE)
-    p = declarations::specifier_seq::info_t::s_stack.top();
+  if (flag2 & usr::CONV_OPE) {
+    using namespace declarations::specifier_seq;
+    assert(!info_t::s_stack.empty());
+    p = info_t::s_stack.top();
+  }
   parse::identifier::mode = parse::identifier::look;
   u = declarations::action1(u,false);
   flag2 = u->m_flag2;
@@ -1318,7 +1326,17 @@ namespace cxx_compiler {
         REC* rec = static_cast<REC*>(T);
         tag* ptr = rec->get_tag();
 	string name = tor_name(ptr);
-        T = backpatch_type::create();
+#if 0
+	const map<string, vector<usr*> >& usrs = ptr->m_usrs;
+	typedef map<string, vector<usr*> >::const_iterator IT;
+	IT p = usrs.find(name);
+	assert(p != usrs.end());
+	const vector<usr*>& v = p->second;
+	usr* u = v.back();
+	T = u->m_type;
+#else
+	T = backpatch_type::create();
+#endif
         return new usr(name, T, usr::CTOR, parse::position, usr::NONE2);
       }
     } // end of namespace declarators

@@ -1224,7 +1224,11 @@ check_installed(usr* u, specifier_seq::info_t* p, bool* installed)
     FT* ft = static_cast<FT*>(Tu);
     const type* T = ft->return_type();
     const type* Tp = p->m_type;
-    if (!compatible(T, Tp))
+    if (T && Tp) {
+      if (!compatible(T, Tp))
+	error::not_implemented();
+    }
+    else if (T || Tp)
       error::not_implemented();
   }
   usr* ret = new usr(*u);
