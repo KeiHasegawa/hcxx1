@@ -1198,6 +1198,7 @@ check_installed(usr* u, specifier_seq::info_t* p, bool* installed)
   if (ps->m_id == scope::TAG && (flag & usr::STATIC) && Tu && Tu->size()) {
     usr* ret = new usr(*u);
     ret->m_flag = usr::flag_t(flag | p->m_flag | usr::STATIC_DEF);
+    ret->m_flag = usr::flag_t(ret->m_flag & ~usr::WITH_INI);
     ret->m_file = parse::position;
     map<string, vector<usr*> >& usrs = ps->m_usrs;
     string name = u->m_name;

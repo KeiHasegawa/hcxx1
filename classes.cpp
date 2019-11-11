@@ -380,17 +380,19 @@ void cxx_compiler::classes::members::action(var* v, expressions::base* expr)
     if ((flag & usr::STATIC) && (flag & usr::VIRTUAL))
       error::not_implemented();
     if (flag & usr::STATIC) {
-      with_initial* wi = new with_initial(*u);
-      wi->m_value[0] = cons;
-      scope* p = u->m_scope;
-      string name = u->m_name;
-      assert(p->m_order.back() == u);
-      p->m_order.back() = wi;
-      assert(p->m_usrs[name].back() == u);
-      p->m_usrs[name].back() = wi;
-      wi->m_flag = usr::flag_t(flag | usr::WITH_INI | usr::STATIC_DEF);
-      delete u;
-      u = wi;
+      if (parse::templ::save_t::s_stack.empty()) {
+	with_initial* wi = new with_initial(*u);
+	wi->m_value[0] = cons;
+	scope* p = u->m_scope;
+	string name = u->m_name;
+	assert(p->m_order.back() == u);
+	p->m_order.back() = wi;
+	assert(p->m_usrs[name].back() == u);
+	p->m_usrs[name].back() = wi;
+	wi->m_flag = usr::flag_t(flag | usr::WITH_INI | usr::STATIC_DEF);
+	delete u;
+	u = wi;
+      }
     }
     if (flag & usr::VIRTUAL) {
       const type* T = cons->m_type;
