@@ -289,6 +289,9 @@ const cxx_compiler::type* cxx_compiler::classes::specifier::action()
   if (!table.empty()) {
     if (ptr->m_flag & tag::TEMPLATE) {
       template_tag* tt = static_cast<template_tag*>(ptr);
+      assert(!before.empty());
+      assert(scope::current == before.back());
+      before.pop_back();
       scope::current = ptr->m_parent;
       return ptr->m_types.first;
     }

@@ -373,8 +373,11 @@ namespace cxx_compiler {
 	    m_parent = m_parent->m_parent;
 	  }
 	  vector<scope*>& children = m_parent->m_children;
-	  assert(children.back() == m_del);
-	  children.pop_back();
+	  typedef vector<scope*>::reverse_iterator IT;
+	  IT p = find(rbegin(children), rend(children), m_del);
+	  assert(p != rend(children));
+	  // Once erase current function parameter scope
+	  children.erase(p.base() - 1);
 	}
 	garbage.clear();
 	code.clear();
@@ -407,6 +410,7 @@ namespace cxx_compiler {
 	parse::position = m_file;
 	if (m_parent) {
 	  vector<scope*>& children = m_parent->m_children;
+	  // Recover parameter scope which is erased at sweeper_b::sweeper_b
 	  children.push_back(m_del);
 	}
 	scope::current = m_current;
