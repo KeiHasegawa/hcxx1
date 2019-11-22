@@ -62,6 +62,20 @@ void cxx_compiler::declarations::templ::decl_begin()
 namespace cxx_compiler {
   namespace declarations {
     namespace templ {
+      inline instantiated_tag* get(scope* p)
+      {
+	if (!p)
+	  return 0;
+	if (p->m_id != scope::TAG)
+	  return get(p->m_parent);
+	tag* ptr = static_cast<tag*>(p);
+	if (ptr->m_flag & tag::INSTANTIATE) {
+	  typedef instantiated_tag IT;
+	  IT* it = static_cast<IT*>(ptr);
+	  return it;
+	}
+	return get(ptr->m_parent);
+      }
       inline void handle(usr* u, const parse::read_t& r)
       {
 	assert(u->m_flag2 & usr::TEMPLATE);
@@ -70,11 +84,7 @@ namespace cxx_compiler {
 	if (!(u->m_flag & usr::STATIC_DEF))
 	  return;
 	scope* p = u->m_scope;
-	assert(p->m_id == scope::TAG);
-	tag* ptr = static_cast<tag*>(p);
-	assert(ptr->m_flag & tag::INSTANTIATE);
-	typedef instantiated_tag IT;
-	IT* it = static_cast<IT*>(ptr);
+	instantiated_tag* it = get(p);
 	template_tag* tt = it->m_src;
 	tt->m_static_def.push_back(tu);
       }
@@ -1211,24 +1221,16 @@ namespace cxx_compiler {
       string y = ins->m_name;
       if (x != y)
 	return false;
-      scope* xs = tu->m_scope;
-      if (xs->m_id != scope::TAG)
-	return false;
-      tag* xt = static_cast<tag*>(xs);
-      scope* ys = ins->m_scope;
-      if (ys->m_id != scope::TAG)
-	return false;
-      tag* yt = static_cast<tag*>(ys);
-      tag::flag_t xflag = xt->m_flag;
-      if (!(xflag & tag::INSTANTIATE))
-	return false;
       typedef instantiated_tag IT;
-      IT* xit = static_cast<IT*>(xt);
-      template_tag* xsrc = xit->m_src;
-      tag::flag_t yflag = yt->m_flag;
-      if (!(yflag & tag::INSTANTIATE))
+      scope* xs = tu->m_scope;
+      IT* xit = declarations::templ::get(xs);
+      if (!xit)
 	return false;
-      IT* yit = static_cast<IT*>(yt);
+      template_tag* xsrc = xit->m_src;
+      scope* ys = ins->m_scope;
+      IT* yit = declarations::templ::get(ys);
+      if (!yit)
+	return false;
       template_tag* ysrc = yit->m_src;
       if (xsrc != ysrc)
 	return false;

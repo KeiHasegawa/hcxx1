@@ -706,7 +706,9 @@ namespace cxx_compiler {
       if (p->m_id != scope::TAG)
 	return false;
       tag* ptr = static_cast<tag*>(p);
-      if (ptr->m_flag & tag::TEMPLATE)
+      tag::flag_t flag = ptr->m_flag;
+      tag::flag_t mask = tag::flag_t(tag::TEMPLATE | tag::INSTANTIATE);
+      if (ptr->m_flag & mask)
 	return true;
       return inside_templ(ptr->m_parent);
     }
