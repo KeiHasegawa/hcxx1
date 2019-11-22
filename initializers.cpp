@@ -315,6 +315,7 @@ void cxx_compiler::declarations::initializers::gencode(usr* u)
 		   code.push_back(new param3ac(v));
 	       });
     }
+    copy_ctor = instantiate_if(copy_ctor);
     code.push_back(new call3ac(0, copy_ctor));
     if (!error::counter && !cmdline::no_inline_sub) {
       if (flag & usr::INLINE) {
@@ -328,7 +329,7 @@ void cxx_compiler::declarations::initializers::gencode(usr* u)
 	}
       }
     }
-    return (void)instantiate_if(copy_ctor);
+    return;
   }
 
   if (compatible(Tx, Ty)) {

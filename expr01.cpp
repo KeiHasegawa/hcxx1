@@ -306,6 +306,14 @@ cxx_compiler::member_function::rvalue()
 
 namespace cxx_compiler {
   namespace member_function_impl {
+    inline bool helper(usr* u, usr* fun)
+    {
+      if (!(u->m_flag2 & usr::TEMPLATE))
+	return false;
+      template_usr* tu = static_cast<template_usr*>(u);
+      templ_base::KEY key;
+      return instance_of(tu, fun, key);
+    }
     template_usr* has_templ(const pair<template_tag::KEY, tag*>& x, usr* fun)
     {
       const template_tag::KEY& key = x.first;
@@ -321,9 +329,20 @@ namespace cxx_compiler {
       const vector<usr*>& v = q->second;
       usr* u = v.back();
       usr::flag2_t flag2 = u->m_flag2;
-      if (!(flag2 & usr::TEMPLATE))
-	return 0;
-      return static_cast<template_usr*>(u);
+      if (flag2 & usr::TEMPLATE)
+	return static_cast<template_usr*>(u);
+      usr::flag_t flag = u->m_flag;
+      if (flag & usr::OVERLOAD) {
+	overload* ovl = static_cast<overload*>(u);
+	vector<usr*>& c = ovl->m_candidacy;
+	typedef vector<usr*>::const_iterator IT;
+	IT p = find_if(begin(c), end(c), bind2nd(ptr_fun(helper), fun));
+	if (p != end(c)) {
+	  usr* u = *p;
+	  return static_cast<template_usr*>(u);
+	}
+      }
+      return 0;
     }
   } // end of namespace member_function_impl
 } // end of namespace cxx_compiler
@@ -641,6 +660,7 @@ namespace cxx_compiler {
       code.push_back(new addr3ac(t1, y));
       vector<var*> arg;
       arg.push_back(t1);
+      copy_ctor = instantiate_if(copy_ctor);
       call_impl::wrapper(copy_ctor, &arg, t0);
       return t0;
     }

@@ -2815,7 +2815,7 @@ cxx_compiler::usr* cxx_compiler::get_copy_ctor(const type* T)
   typedef const record_type REC;
   REC* rec = static_cast<REC*>(T);
   tag* ptr = rec->get_tag();
-  string name = ptr->m_name;
+  string name = tor_name(ptr);
   const map<string, vector<usr*> >& usrs = ptr->m_usrs;
   typedef map<string, vector<usr*> >::const_iterator ITx;
   ITx p = usrs.find(name);

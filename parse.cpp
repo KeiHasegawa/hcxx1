@@ -712,6 +712,16 @@ namespace cxx_compiler {
 	return true;
       return inside_templ(ptr->m_parent);
     }
+    inline instantiated_tag* get_itag(scope* p)
+    {
+      assert(p);
+      if (p->m_id != scope::TAG)
+	return get_itag(p->m_parent);
+      tag* ptr = static_cast<tag*>(p);
+      if (ptr->m_flag & tag::INSTANTIATE)
+	return static_cast<instantiated_tag*>(ptr);
+      return get_itag(p->m_parent);
+    }
     int get_common(int n, list<void*>& lval, bool from_mem_fun_body,
 		   bool templ)
     {
@@ -805,6 +815,11 @@ namespace cxx_compiler {
 	    int r = identifier::lookup(name, scope::current);
 	    assert(r == CLASS_NAME_LEX);
 	    return r;
+	  }
+	  if (flag & tag::TEMPLATE) {
+	    instantiated_tag* it = get_itag(scope::current);
+	    cxx_compiler_lval.m_tag = it;
+	    return CLASS_NAME_LEX;
 	  }
 	}
 	return n;
