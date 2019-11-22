@@ -204,13 +204,13 @@ namespace cxx_compiler {
 	  RT* rt = static_cast<RT*>(Ty);
 	  Ty = rt->referenced_type();
 	}
-	if (Ty->m_id != type::RECORD)
+
+	type::id_t id = Ty->m_id;
+	if (id != type::RECORD && id != type::INCOMPLETE_TAGGED)
 	  return false;
 
-	typedef const record_type REC;
-	REC* yrec = static_cast<REC*>(Ty);
-	tag* xtag = xrec->get_tag();
-	tag* ytag = yrec->get_tag();
+	tag* xtag = Tx->get_tag();
+	tag* ytag = Ty->get_tag();
 	if (!(xtag->m_flag & tag::INSTANTIATE))
 	  return false;
 	if (!(ytag->m_flag & tag::INSTANTIATE))

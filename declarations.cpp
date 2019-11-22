@@ -899,13 +899,19 @@ cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr)
       typedef vector<usr*>::const_iterator IT;
       IT p = find_if(begin(cand), end(cand),
 		     [](usr* u){ return u->m_flag2 & usr::TEMPLATE; });
-      assert(p != end(cand));
-      usr* templ = *p;
-      instantiated_usr* iu = static_cast<instantiated_usr*>(curr);
-      assert(iu->m_src == templ);
-      v.pop_back();
-      v.push_back(ins);
-      v.push_back(prev);
+      if (p != end(cand)) {
+	usr* templ = *p;
+	instantiated_usr* iu = static_cast<instantiated_usr*>(curr);
+	assert(iu->m_src == templ);
+	v.pop_back();
+	v.push_back(ins);
+	v.push_back(prev);
+      }
+      else {
+	// instantiated via `template_usr::instantiate_mem_fun'
+	assert(ins->m_scope->m_id == scope::TAG);
+	v.push_back(ins);
+      }
     }
     else {
       // instantiated via `template_usr::instantiate_mem_fun'
@@ -1061,6 +1067,12 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
 		     [](usr* u){ return u->m_flag2 & usr::TEMPLATE; });
       if (p != end(cand))
 	prev = *p;
+      else {
+	assert(!template_usr::s_stack.empty());
+	template_usr::info_t& info = template_usr::s_stack.top();
+	template_usr* tu = info.m_tu;
+	prev = tu;
+      }
     }
   }
 
