@@ -328,7 +328,7 @@ void cxx_compiler::declarations::initializers::gencode(usr* u)
 	}
       }
     }
-    return instantiate_if(copy_ctor);
+    return (void)instantiate_if(copy_ctor);
   }
 
   if (compatible(Tx, Ty)) {

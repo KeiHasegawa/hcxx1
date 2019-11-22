@@ -223,6 +223,8 @@ cxx_compiler::member_function::call(std::vector<var*>* arg)
   assert(T->m_id == type::FUNC); 
   typedef const func_type FT;
   FT* ft = static_cast<FT*>(T);
+  if (usr* u = m_fun->usr_cast())
+    m_fun = instantiate_if(u);
   var* ret = call_impl::common(ft, m_fun, arg, 0, m_obj,
                                m_qualified_func, m_vftbl_off);
   if (usr* u = m_fun->usr_cast()) {
@@ -238,7 +240,6 @@ cxx_compiler::member_function::call(std::vector<var*>* arg)
 	}
       }
     }
-    instantiate_if(u);
   }
   return ret;
 }
@@ -299,9 +300,8 @@ cxx_compiler::member_function::rvalue()
   tag* ptr = static_cast<tag*>(p);
   assert(m_fun->usr_cast());
   usr* fun = static_cast<usr*>(m_fun);
-  var* ret = fun_ptr_mem(ptr, fun);
-  instantiate_if(fun);
-  return ret;
+  fun = instantiate_if(fun);
+  return fun_ptr_mem(ptr, fun);
 }
 
 namespace cxx_compiler {
@@ -328,16 +328,16 @@ namespace cxx_compiler {
   } // end of namespace member_function_impl
 } // end of namespace cxx_compiler
 
-void cxx_compiler::instantiate_if(usr* fun)
+cxx_compiler::usr* cxx_compiler::instantiate_if(usr* fun)
 {
   if (!fun)
-    return;
+    return fun;
   scope* ps = fun->m_scope;
   if (ps->m_id != scope::TAG)
-    return;
+    return fun;
   tag* ptr = static_cast<tag*>(ps);
   if (!(ptr->m_flag & tag::INSTANTIATE))
-    return;
+    return fun;
   instantiated_tag* it = static_cast<instantiated_tag*>(ptr);
   template_tag* tt = it->m_src;
   const template_tag::table_t& tbl = tt->m_table;
@@ -348,11 +348,11 @@ void cxx_compiler::instantiate_if(usr* fun)
 		 [fun, &tu](const pair<template_tag::KEY, tag*>& x)
 		 { return tu = has_templ(x, fun); } );
   if (p == end(tbl))
-    return;
+    return fun;
   tag* ptr2 = p->second;
   assert(find_if(++p, end(tbl), [fun](const pair<template_tag::KEY, tag*>& x)
 		 { return has_templ(x,fun); } ) == end(tbl));
-  tu->mark(it);
+  return tu->instantiate_mem_fun(it);
 }
 
 namespace cxx_compiler {

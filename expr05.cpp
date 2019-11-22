@@ -67,9 +67,8 @@ namespace cxx_compiler { namespace var_impl {
     }
 
     var* obj = p->m_id == scope::TAG ? y : 0;
-    var* ret = call_impl::wrapper(op_fun, &arg, obj);
-    instantiate_if(op_fun);
-    return ret;
+    op_fun = instantiate_if(op_fun);
+    return call_impl::wrapper(op_fun, &arg, obj);
   }
 } } // end of namespace var_impl and cxx_compiler
 

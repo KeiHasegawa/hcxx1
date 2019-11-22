@@ -27,7 +27,6 @@ int main(int argc, char** argv)
 #endif // _DEBUG
   using namespace declarations::declarators::function::definition;
   static_inline::defer::last();
-  template_usr::gen();
 
   if ( parse::is_last_decl ){
     if ( cmdline::output_medium ){

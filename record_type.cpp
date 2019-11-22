@@ -3016,8 +3016,8 @@ void cxx_compiler::call_default_ctor(var* v)
   if (q == end(ctors))
     return;
   usr* ctor = *q;
+  ctor = instantiate_if(ctor);
   call_impl::wrapper(ctor, 0, v);
-  instantiate_if(ctor);
 }
 
 namespace cxx_compiler {

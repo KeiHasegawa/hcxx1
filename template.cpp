@@ -346,10 +346,13 @@ namespace cxx_compiler {
       templ_base* m_ptr;
       vector<var*> m_garbage;
       vector<tac*> m_code;
+      stack<declarations::specifier_seq::info_t*> m_stack1;
       vector<scope*> m_before;
-      stack<parse::templ::save_t*> m_stack;
+      scope* m_last;
+      stack<parse::templ::save_t*> m_stack2;
       int m_yychar;
       parse::read_t m_read;
+      map<int, bool> m_retry;
       static bool block_or_param(scope* p)
       {
 	scope::id_t id = p->m_id;
@@ -360,9 +363,11 @@ namespace cxx_compiler {
 	  m_del(scope::current), m_file(parse::position),
 	  m_fundef(fundef::current), m_ptr(parse::templ::ptr),
 	  m_garbage(garbage), m_code(code),
+	  m_stack1(declarations::specifier_seq::info_t::s_stack),
 	  m_before(class_or_namespace_name::before),
-	  m_stack(parse::templ::save_t::s_stack), m_yychar(cxx_compiler_char),
-	  m_read(parse::g_read)
+	  m_last(class_or_namespace_name::last),
+	  m_stack2(parse::templ::save_t::s_stack), m_yychar(cxx_compiler_char),
+	  m_read(parse::g_read), m_retry(parse::context_t::retry)
       {
 	scope::current = p;
 	fundef::current = 0;
@@ -381,7 +386,10 @@ namespace cxx_compiler {
 	}
 	garbage.clear();
 	code.clear();
+	while (!declarations::specifier_seq::info_t::s_stack.empty())
+	  declarations::specifier_seq::info_t::s_stack.pop();
 	class_or_namespace_name::before.clear();
+	class_or_namespace_name::last = 0;
 
 	vector<scope*> tmp;
 	while (p) {
@@ -396,13 +404,17 @@ namespace cxx_compiler {
 	cxx_compiler_char = 0;
 	parse::g_read.m_token.clear();
 	parse::g_read.m_lval.clear();
+	parse::context_t::retry.clear();
       } 
       ~sweeper_b()
       {
+	parse::context_t::retry = m_retry;
 	parse::g_read = m_read;
 	cxx_compiler_char = m_yychar;
-	parse::templ::save_t::s_stack = m_stack;
+	parse::templ::save_t::s_stack = m_stack2;
+	class_or_namespace_name::last = m_last;
 	class_or_namespace_name::before = m_before;
+	declarations::specifier_seq::info_t::s_stack = m_stack1;
 	code = m_code;
 	garbage = m_garbage;
 	parse::templ::ptr = m_ptr;
@@ -540,11 +552,6 @@ cxx_compiler::template_usr::instantiate(std::vector<var*>* arg, KEY* trial)
   return m_table[key] = ret;
 }
 
-void cxx_compiler::template_usr::mark(instantiated_tag* it)
-{
-  s_marked.push_back(make_pair(this, it));
-}
-
 namespace cxx_compiler {
   namespace template_usr_impl {
     struct sweeper_c : sweeper_a {
@@ -600,7 +607,7 @@ cxx_compiler::template_usr::instantiate_mem_fun(instantiated_tag* it)
   template_usr_impl::sweeper_c sweeper_c(m_tps, key);
 
   templ_base tmp = *this;
-  template_usr_impl::sweeper_b sweeper_b(scope::current, &tmp);
+  template_usr_impl::sweeper_b sweeper_b(m_scope->m_parent, &tmp);
   s_stack.push(info_t(this, 0, info_t::NONE));
   cxx_compiler_parse();
   instantiated_usr* ret = s_stack.top().m_iu;
@@ -610,18 +617,6 @@ cxx_compiler::template_usr::instantiate_mem_fun(instantiated_tag* it)
   assert(!(ret->m_flag2 & usr::EXPLICIT_INSTANTIATE));
   return m_table[key] = ret;
 }
-
-namespace cxx_compiler {
-  using namespace std;
-  vector<pair<template_usr*, instantiated_tag*> > template_usr::s_marked; 
-  void template_usr::gen()
-  {
-    for_each(begin(s_marked), end(s_marked),
-	     [](const pair<template_usr*, instantiated_tag*>& x)
-	     { x.first->instantiate_mem_fun(x.second); });
-    s_marked.clear();
-  }
-} // end of namepsace cxx_compiler
 
 namespace cxx_compiler {
   namespace declarations {

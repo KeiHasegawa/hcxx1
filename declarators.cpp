@@ -451,9 +451,8 @@ function::definition::begin(declarations::specifier_seq::info_t* p, var* v)
     u = c.back();
     flag2 = u->m_flag2;
   }
-  usr::flag_t flag = u->m_flag;
   auto_ptr<declarations::specifier_seq::info_t>
-    sweeper((flag & usr::CTOR) ? 0 : p);
+    sweeper(p);
   vector<scope*>& children = scope::current->m_children;
   if (children.empty()) {
     using namespace error::declarations::declarators::function::definition;
@@ -470,6 +469,7 @@ function::definition::begin(declarations::specifier_seq::info_t* p, var* v)
   const vector<usr*>& order = param->m_order;
   if (check_now(u))
     for_each(order.begin(),order.end(),check_object);
+  usr::flag_t flag = u->m_flag;
   if (flag & usr::OVERLOAD) {
     overload* ovl = static_cast<overload*>(u);
     const vector<usr*>& c = ovl->m_candidacy;
@@ -1326,17 +1326,7 @@ namespace cxx_compiler {
         REC* rec = static_cast<REC*>(T);
         tag* ptr = rec->get_tag();
 	string name = tor_name(ptr);
-#if 0
-	const map<string, vector<usr*> >& usrs = ptr->m_usrs;
-	typedef map<string, vector<usr*> >::const_iterator IT;
-	IT p = usrs.find(name);
-	assert(p != usrs.end());
-	const vector<usr*>& v = p->second;
-	usr* u = v.back();
-	T = u->m_type;
-#else
 	T = backpatch_type::create();
-#endif
         return new usr(name, T, usr::CTOR, parse::position, usr::NONE2);
       }
     } // end of namespace declarators

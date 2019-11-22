@@ -1478,7 +1478,7 @@ struct member_function : var {
   var* rvalue();
 };
 
-void instantiate_if(usr*);
+usr* instantiate_if(usr*);
 
 var* fun_ptr_mem(tag* ptr, usr* fun);
 
@@ -1594,9 +1594,6 @@ struct template_usr : usr, templ_base {
     m_flag2 = usr::flag2_t(m_flag2 | usr::TEMPLATE);
   }
   usr* instantiate(vector<var*>* arg, KEY* trial);
-  static vector<pair<template_usr*, instantiated_tag*> > s_marked;
-  void mark(instantiated_tag*);
-  static void gen();
   usr* instantiate_mem_fun(instantiated_tag*);
   usr* instantiate_common(vector<scope::tps_t::val2_t*>*, info_t::mode_t);
   usr* instantiate_explicit(vector<scope::tps_t::val2_t*>* pv)

@@ -279,8 +279,8 @@ void cxx_compiler::call_dtor(var* v)
     return;
   const vector<usr*>& vu = p->second;
   usr* dtor = vu.back();
+  dtor = instantiate_if(dtor);
   call_impl::wrapper(dtor, 0, v);
-  instantiate_if(dtor);
 }
 
 cxx_compiler::statements::compound::info_t::~info_t()
