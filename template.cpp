@@ -1215,7 +1215,7 @@ namespace cxx_compiler {
       assert(y.second);
       return y;
     }
-    bool type_equal_case(template_usr* tu, usr* ins, templ_base::KEY& key)
+    bool none_tag_case(template_usr* tu, usr* ins, templ_base::KEY& key)
     {
       string x = tu->m_name;
       string y = ins->m_name;
@@ -1279,11 +1279,9 @@ namespace cxx_compiler {
 	key.push_back(scope::tps_t::val2_t(Ti, 0));
 	return true;
       }
-      if (Tt == Ti)
-	return type_equal_case(tu, ins, key);
       tag* x = Tt->get_tag();
       if (!x)
-	return false;
+	return none_tag_case(tu, ins, key);
       tag::flag_t flag = x->m_flag;
       if (!(flag & tag::TYPENAMED))
 	return false;
