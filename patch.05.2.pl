@@ -162,7 +162,7 @@ print<<EOF
     if (*yyssp == $xxx) {
       using namespace cxx_compiler::parse;
       YYDPRINTF((stderr, "patch.05.2 is applied\\n"));
-      restore(&yystate, &yyss, &yyssp, yyssa, &yyvs, &yyvsp, yyvsa);
+      restore(&yystate, &yyss, &yyssp, yyssa, &yyvs, &yyvsp, yyvsa, false);
       ++context_t::retry[$xxx];
       YY_STACK_PRINT(yyss, yyssp);
       goto yynewstate;
@@ -174,7 +174,7 @@ print<<EOF
       using namespace parse;
       class_or_namespace_name::after(false);
       YYDPRINTF((stderr, "patch.05.2 is applied\\n"));
-      restore(&yystate, &yyss, &yyssp, yyssa, &yyvs, &yyvsp, yyvsa);
+      restore(&yystate, &yyss, &yyssp, yyssa, &yyvs, &yyvsp, yyvsa, false);
       ++context_t::retry[$xxx];
       YY_STACK_PRINT(yyss, yyssp);
       goto yynewstate;
@@ -186,7 +186,7 @@ print<<EOF
 	  using namespace parse;
 	  class_or_namespace_name::after(false);
 	  YYDPRINTF((stderr, "patch.05.2 is applied\\n"));
-	  restore(&yystate, &yyss, &yyssp, yyssa, &yyvs, &yyvsp, yyvsa);
+	  restore(&yystate, &yyss, &yyssp, yyssa, &yyvs, &yyvsp, yyvsa, false);
 	  ++context_t::retry[$xxx];
 	  YY_STACK_PRINT(yyss, yyssp);
 	  goto yynewstate;
@@ -198,7 +198,7 @@ print<<EOF
 	  using namespace parse;
 	  class_or_namespace_name::after(false);
 	  YYDPRINTF((stderr, "patch.05.2 is applied\\n"));
-	  restore(&yystate, &yyss, &yyssp, yyssa, &yyvs, &yyvsp, yyvsa);
+	  restore(&yystate, &yyss, &yyssp, yyssa, &yyvs, &yyvsp, yyvsa, false);
 	  ++context_t::retry[$xxx];
 	  YY_STACK_PRINT(yyss, yyssp);
 	  goto yynewstate;

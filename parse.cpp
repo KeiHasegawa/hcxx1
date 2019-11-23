@@ -1327,7 +1327,7 @@ namespace cxx_compiler {
       context_t::all.push_back(context_t(state, vs, vv, cxx_compiler_char));
     }
     void restore(int* state, short** b0, short** t0, short* a0,
-                 YYSTYPE** b1, YYSTYPE** t1, YYSTYPE* a1)
+                 YYSTYPE** b1, YYSTYPE** t1, YYSTYPE* a1, bool b)
     {
       assert(!context_t::all.empty());
       const context_t& x = context_t::all.back();
@@ -1353,7 +1353,11 @@ namespace cxx_compiler {
       if (!templ::save_t::s_stack.empty()) {
 	templ::save_t* p = templ::save_t::s_stack.top();
 	read_t& r = p->m_read;
-	for (int i = 0 ; i != g_read.m_token.size() ; ++i)
+	int n = g_read.m_token.size();
+	if (b)
+	  --n;
+	assert(n >= 0);
+	for (int i = 0 ; i != n ; ++i)
 	  r.m_token.pop_back();
       }
     }

@@ -100,7 +100,8 @@ print <<EOF3
         case TEMPLATE_NAME_LEX:
         case ENUM_NAME_LEX:
           assert(!parse::context_t::all.empty());
-          parse::restore(&yystate, &yyss, &yyssp, yyssa, &yyvs, &yyvsp, yyvsa);
+          parse::restore(&yystate, &yyss, &yyssp, yyssa, &yyvs, &yyvsp, yyvsa,
+                         true);
           parse::context_t::retry[$xxx] = true;
           YYDPRINTF((stderr, "retry!\\n"));
           YY_STACK_PRINT(yyss, yyssp);

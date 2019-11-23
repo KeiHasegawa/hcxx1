@@ -73,7 +73,8 @@ EOF2
   if (/^yyerrlab:/) {
       print<<EOF
   if (!cxx_compiler::parse::context_t::all.empty()) {
-    cxx_compiler::parse::restore(&yystate, &yyss, &yyssp, yyssa, &yyvs, &yyvsp, yyvsa);
+    cxx_compiler::parse::restore(&yystate, &yyss, &yyssp, yyssa,
+                                 &yyvs, &yyvsp, yyvsa, false);
     cxx_compiler::parse::context_t::retry[yystate] = true;
     YYDPRINTF((stderr, "retry!\\n"));
     YY_STACK_PRINT(yyss, yyssp);
