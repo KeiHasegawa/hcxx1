@@ -4,6 +4,10 @@
 #include "yy.h"
 #include "cxx_y.h"
 
+void debug_break3()
+{
+}
+
 void cxx_compiler::declarations::destroy()
 {
   using namespace std;
@@ -524,6 +528,8 @@ cxx_compiler::declarations::action1(var* v, bool ini)
     v = ga->m_ref;
   assert(v->usr_cast());
   usr* u = static_cast<usr*>(v);
+  if (u->m_name == "T2")
+    debug_break3();
   const type* T = u->m_type;
   usr::flag_t flag = u->m_flag;
   bool installed = (flag & usr::OVERLOAD) ? true : !T->backpatch();

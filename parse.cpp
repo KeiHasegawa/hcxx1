@@ -7,6 +7,10 @@
 #include "patch.04.q"
 #include "patch.10.q"
 
+void debug_break()
+{
+}
+
 namespace cxx_compiler {
   namespace parse {
     file_t position;
@@ -29,6 +33,9 @@ namespace cxx_compiler {
 
 int cxx_compiler::parse::identifier::judge(std::string name)
 {
+  if (name == "S22")
+    debug_break();
+
   if (mode == peeking)
     return create(name), PEEKED_NAME_LEX;
 

@@ -3,6 +3,10 @@
 #include "cxx_impl.h"
 #include "yy.h"
 
+void debug_break4()
+{
+}
+
 void cxx_compiler::type_parameter::action(var* v, const type* T)
 {
   assert(v->usr_cast());
@@ -929,6 +933,9 @@ namespace cxx_compiler {
       map<string, scope::tps_t::value_t>& table = tps.m_table;
       if (p->first) {
 	tag* ptr = new tag(tag::CLASS, pn, parse::position, 0);
+	assert(!class_or_namespace_name::before.empty());
+	assert(class_or_namespace_name::before.back() == ptr);
+	class_or_namespace_name::before.pop_back();
 	table[pn] = scope::tps_t::value_t(ptr,0);
       }
       else
@@ -1356,6 +1363,7 @@ cxx_compiler::instance_of(template_usr* tu, usr* ins, templ_base::KEY& key)
 
 const cxx_compiler::type* cxx_compiler::typenamed::action(var* v)
 {
+  debug_break4();
   auto_ptr<var> sweeper(v);
   assert(v->usr_cast());
   usr* u = static_cast<usr*>(v);
@@ -1363,6 +1371,9 @@ const cxx_compiler::type* cxx_compiler::typenamed::action(var* v)
   assert(T->m_id == type::BACKPATCH);
   string name = u->m_name;
   tag* ptr = new tag(tag::TYPENAME, name, parse::position, 0);
+  assert(!class_or_namespace_name::before.empty());
+  assert(class_or_namespace_name::before.back() == ptr);
+  class_or_namespace_name::before.pop_back();
   ptr->m_types.first = incomplete_tagged_type::create(ptr);
   map<string, tag*>& tags = scope::current->m_tags;
   assert(tags.find(name) == tags.end());
@@ -1377,9 +1388,6 @@ const cxx_compiler::type* cxx_compiler::typenamed::action(tag* ptr)
   using namespace parse::templ;
   if (!save_t::s_stack.empty())
     ptr->m_flag = tag::flag_t(ptr->m_flag | tag::TYPENAMED);
-
-  assert(!class_or_namespace_name::before.empty());
-  scope::current = class_or_namespace_name::before.back();
 
   if (const type* T = ptr->m_types.second)
     return T;
