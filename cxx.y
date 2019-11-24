@@ -382,9 +382,9 @@ elaborated_type_specifier
   | enum_key IDENTIFIER_LEX
     { $$ = cxx_compiler::declarations::elaborated::action($1,$2); }
   | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier IDENTIFIER_LEX
-    { cxx_compiler::error::not_implemented(); }
+    { $$ = cxx_compiler::typenamed::action($5); }
   | TYPENAME_KW nested_name_specifier IDENTIFIER_LEX
-    { cxx_compiler::error::not_implemented(); }
+    { $$ = cxx_compiler::typenamed::action($3); }
   | TYPENAME_KW nested_name_specifier CLASS_NAME_LEX
     { $$ = cxx_compiler::typenamed::action($3); }
   | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier

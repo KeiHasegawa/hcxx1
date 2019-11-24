@@ -47,11 +47,13 @@ cxx_compiler::scope::~scope()
 
 std::string cxx_compiler::tag::keyword(kind_t kind)
 {
-  switch ( kind ){
-  case CLASS: return "class";
+  switch (kind) {
+  case CLASS:  return "class";
   case STRUCT: return "struct";
   case UNION:  return "union";
-  default: return "enum";
+  case ENUM:   return "enum";
+  case TEMPL:  return "template";
+  default:     return "typename";
   }
 }
 

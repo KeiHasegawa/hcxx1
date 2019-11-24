@@ -1354,6 +1354,24 @@ cxx_compiler::instance_of(template_usr* tu, usr* ins, templ_base::KEY& key)
   return true;
 }
 
+const cxx_compiler::type* cxx_compiler::typenamed::action(var* v)
+{
+  auto_ptr<var> sweeper(v);
+  assert(v->usr_cast());
+  usr* u = static_cast<usr*>(v);
+  const type* T = u->m_type;
+  assert(T->m_id == type::BACKPATCH);
+  string name = u->m_name;
+  tag* ptr = new tag(tag::TYPENAME, name, parse::position, 0);
+  ptr->m_types.first = incomplete_tagged_type::create(ptr);
+  map<string, tag*>& tags = scope::current->m_tags;
+  assert(tags.find(name) == tags.end());
+  tags[name] = ptr;
+  scope::current->m_children.push_back(ptr);
+  ptr->m_parent = scope::current;
+  return action(ptr);
+}
+
 const cxx_compiler::type* cxx_compiler::typenamed::action(tag* ptr)
 {
   using namespace parse::templ;

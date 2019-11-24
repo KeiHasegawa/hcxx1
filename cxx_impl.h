@@ -1655,6 +1655,7 @@ inline bool template_param(const scope::tps_t::val2_t& x)
 }
 
 namespace typenamed {
+  extern const type* action(var*);
   extern const type* action(tag*);
   extern const type* action(pair<usr*, tag*>*);
 } // end of namespace typenamed
