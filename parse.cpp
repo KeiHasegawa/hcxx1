@@ -22,6 +22,9 @@ namespace cxx_compiler {
 	assert(parent->m_id == scope::TAG);
 	return parent;
       }
+#if 1
+      int create_templ(std::string);
+#endif
     } // end of namespace identifier
   } // end of namespace parse and
 } // end of namespace cxx_compiler
@@ -81,6 +84,11 @@ int cxx_compiler::parse::identifier::judge(std::string name)
   if (mode == new_obj || mode == canbe_ctor)
     return create(name);
 
+#if 1
+  if (mode == templ_name && peek() == '<')
+    return create_templ(name);
+#endif
+
   if (int r = lookup(name, search_scope())) {
     if (context_t::retry[DECL_FCAST_CONFLICT_STATE])
       return r;
@@ -126,6 +134,23 @@ int cxx_compiler::parse::identifier::create(std::string name, const type* T)
     new usr(name,T,usr::NONE,parse::position,usr::NONE2);
   return IDENTIFIER_LEX;
 }
+
+#if 1
+int cxx_compiler::parse::identifier::create_templ(std::string name)
+{
+  tag* ptr = new tag(tag::TEMPL, name, parse::position, 0);
+  ptr->m_parent = scope::current;
+  ptr->m_types.first = incomplete_tagged_type::create(ptr);
+  scope::tps_t dummy;
+  template_tag* tt = new template_tag(*ptr, dummy);
+  cxx_compiler_lval.m_ut = new pair<usr*, tag*>(0, tt);
+  map<string, tag*>& tags = scope::current->m_tags;
+  assert(tags.find(name) == tags.end());
+  tags[name] = tt;
+  scope::current->m_children.push_back(tt);
+  return TEMPLATE_NAME_LEX;
+}
+#endif
 
 namespace cxx_compiler {
   namespace parse {
@@ -634,6 +659,10 @@ int cxx_compiler::parse::peek()
   identifier::mode = identifier::peeking;
   int r = lex_and_save();
   identifier::mode = org;
+#if 1
+  if (last_token == TEMPLATE_KW && r == PEEKED_NAME_LEX)
+    identifier::mode = identifier::templ_name;
+#endif
   cxx_compiler_lval.m_var = org2;
   return r;
 }

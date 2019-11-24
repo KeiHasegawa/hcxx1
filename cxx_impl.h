@@ -79,7 +79,7 @@ namespace parse {
     extern int lookup(std::string, scope*);
     extern int judge(string);
     enum mode_t { look, new_obj, member, peeking, no_err, canbe_ctor,
-		  mem_ini };
+		  mem_ini, templ_name };
     extern mode_t mode;
     namespace base_lookup {
       extern vector<route_t> route;
@@ -1656,6 +1656,7 @@ inline bool template_param(const scope::tps_t::val2_t& x)
 
 namespace typenamed {
   extern const type* action(tag*);
+  extern const type* action(pair<usr*, tag*>*);
 } // end of namespace typenamed
 
 } // end of namespace cxx_compiler

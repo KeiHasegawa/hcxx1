@@ -389,13 +389,13 @@ elaborated_type_specifier
     { $$ = cxx_compiler::typenamed::action($3); }
   | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier
     TEMPLATE_KW template_id
-    { cxx_compiler::error::not_implemented(); }
+    { $$ = cxx_compiler::typenamed::action($6); }
   | TYPENAME_KW nested_name_specifier TEMPLATE_KW template_id
-    { cxx_compiler::error::not_implemented(); }
+    { $$ = cxx_compiler::typenamed::action($4); }
   | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier template_id
-    { cxx_compiler::error::not_implemented(); }
+    { $$ = cxx_compiler::typenamed::action($5); }
   | TYPENAME_KW nested_name_specifier template_id
-    { cxx_compiler::error::not_implemented(); }
+    { $$ = cxx_compiler::typenamed::action($3); }
   ;
 
 enum_specifier
@@ -1787,19 +1787,25 @@ unqualified_id
 
 qualified_id
   : COLONCOLON_MK move_to_root nested_name_specifier TEMPLATE_KW unqualified_id
-    { cxx_compiler::error::not_implemented(); }
+    { $$ = $5; }
   | COLONCOLON_MK move_to_root nested_name_specifier unqualified_id
-    { cxx_compiler::error::not_implemented(); }
+    { $$ = $4; }
   | nested_name_specifier TEMPLATE_KW unqualified_id
-    { cxx_compiler::error::not_implemented(); }
+    { $$ = $3; }
   | nested_name_specifier unqualified_id
     { $$ = $2; }
   | COLONCOLON_MK move_to_root IDENTIFIER_LEX
-    { $$ = $3; cxx_compiler::class_or_namespace_name::after(false); }
+    {
+      $$ = $3;
+      cxx_compiler::class_or_namespace_name::after(false);
+    }
   | COLONCOLON_MK move_to_root operator_function_id
     { cxx_compiler::error::not_implemented(); }
   | COLONCOLON_MK move_to_root template_id
-    { cxx_compiler::error::not_implemented(); }
+    {
+      assert(!$3->second);
+      $$ = $3->first;
+    }
   ;
 
 move_to_root

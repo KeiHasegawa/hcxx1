@@ -920,6 +920,20 @@ namespace cxx_compiler {
 	tu->instantiate_static_def(pv);
       }
     };
+    inline void modify(template_tag* tt, scope::tps_t::val2_t* p)
+    {
+      string pn = new_name(".pn");
+      scope::tps_t& tps = tt->templ_base::m_tps;
+      vector<string>& order = tps.m_order;
+      order.push_back(pn);
+      map<string, scope::tps_t::value_t>& table = tps.m_table;
+      if (p->first) {
+	tag* ptr = new tag(tag::CLASS, pn, parse::position, 0);
+	table[pn] = scope::tps_t::value_t(ptr,0);
+      }
+      else
+	error::not_implemented();
+    }
   } // end of namespace template_tag_impl
 } // end of namespace cxx_compiler
 
@@ -970,6 +984,15 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
       transform(begin(order) + n, end(order), back_inserter(*pv),
 		template_tag_impl::get(def));
     }
+ 
+    if (order.empty()) {
+      assert(m_kind == tag::TEMPL);
+      if (pv) {
+	for_each(begin(*pv), end(*pv),
+		 bind1st(ptr_fun(template_tag_impl::modify), this));
+      }
+    }
+ 
     if (order.size() != pv->size())
       error::not_implemented();
   }
@@ -1344,3 +1367,13 @@ const cxx_compiler::type* cxx_compiler::typenamed::action(tag* ptr)
     return T;
   return ptr->m_types.first;
 }
+
+const cxx_compiler::type*
+cxx_compiler::typenamed::action(pair<usr*, tag*>* p)
+{
+  auto_ptr<pair<usr*, tag*> > sweeper(p);
+  assert(!p->first);
+  tag* ptr = p->second;
+  return action(ptr);
+}
+

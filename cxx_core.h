@@ -49,7 +49,7 @@ struct file_t {
 struct base;
 
 struct tag : scope {
-  enum kind_t { STRUCT, UNION, CLASS, ENUM };
+  enum kind_t { STRUCT, UNION, CLASS, ENUM, TEMPL };
   kind_t m_kind;
   enum flag_t {
     NONE            = 0,
