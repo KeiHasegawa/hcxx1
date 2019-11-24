@@ -2093,7 +2093,7 @@ cxx_compiler::record_type::record_type(tag* ptr)
           [](usr* u) {
             usr::flag_t flag = u->m_flag;
             usr::flag_t mask =
-              usr::flag_t(usr::FUNCTION | usr::STATIC | usr::OVERLOAD);
+              usr::flag_t(usr::FUNCTION | usr::STATIC | usr::OVERLOAD | usr::TYPEDEF);
             return !(flag & mask);
           });
   if (!bases && m_member.empty()) {
@@ -2272,10 +2272,7 @@ int cxx_compiler::record_impl::layouter::operator()(int offset, usr* member)
     m_current = current();
     string name = member->m_name;
     const type* T = member->m_type;
-    if (!T) {
-      assert(member->m_flag & usr::OVERLOAD);
-      return offset;
-    }
+    assert(T);
     if (T->variably_modified()){
       using namespace error::classes;
       not_ordinary(member);
