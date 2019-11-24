@@ -22,9 +22,7 @@ namespace cxx_compiler {
 	assert(parent->m_id == scope::TAG);
 	return parent;
       }
-#if 1
       int create_templ(std::string);
-#endif
     } // end of namespace identifier
   } // end of namespace parse and
 } // end of namespace cxx_compiler
@@ -84,10 +82,8 @@ int cxx_compiler::parse::identifier::judge(std::string name)
   if (mode == new_obj || mode == canbe_ctor)
     return create(name);
 
-#if 1
   if (mode == templ_name && peek() == '<')
     return create_templ(name);
-#endif
 
   if (int r = lookup(name, search_scope())) {
     if (context_t::retry[DECL_FCAST_CONFLICT_STATE])
@@ -135,7 +131,6 @@ int cxx_compiler::parse::identifier::create(std::string name, const type* T)
   return IDENTIFIER_LEX;
 }
 
-#if 1
 int cxx_compiler::parse::identifier::create_templ(std::string name)
 {
   tag* ptr = new tag(tag::TEMPL, name, parse::position, 0);
@@ -150,7 +145,6 @@ int cxx_compiler::parse::identifier::create_templ(std::string name)
   scope::current->m_children.push_back(tt);
   return TEMPLATE_NAME_LEX;
 }
-#endif
 
 namespace cxx_compiler {
   namespace parse {
@@ -621,6 +615,8 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
     return create(name);
   if (last_token == NAMESPACE_KW)
     return create(name);
+  if (mode == new_obj)
+    return create(name);
   error::undeclared(parse::position, name);
   int ret = create(name, int_type::create());
   usr* u = cxx_compiler_lval.m_usr;
@@ -659,10 +655,6 @@ int cxx_compiler::parse::peek()
   identifier::mode = identifier::peeking;
   int r = lex_and_save();
   identifier::mode = org;
-#if 1
-  if (last_token == TEMPLATE_KW && r == PEEKED_NAME_LEX)
-    identifier::mode = identifier::templ_name;
-#endif
   cxx_compiler_lval.m_var = org2;
   return r;
 }

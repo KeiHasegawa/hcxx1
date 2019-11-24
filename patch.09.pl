@@ -43,10 +43,18 @@ exit 1;
 
 label:
 print <<EOF
-  if (yystate == $xxx && cxx_compiler::parse::peek() != COLONCOLON_MK) {
-    YYDPRINTF((stderr, "patch.09 is applied\\n"));
-    yyn = $bbb + 1;
-    goto yyreduce;
+  if (yystate == $xxx) {
+    using namespace cxx_compiler::parse;
+    if (last_token == TEMPLATE_KW) {
+      identifier::mode = identifier::templ_name;
+    }
+    else {
+      if (peek() != COLONCOLON_MK) {
+        YYDPRINTF((stderr, "patch.09 is applied\\n"));
+        yyn = $bbb + 1;
+        goto yyreduce;
+      }
+    }
   }
 EOF
     ;
