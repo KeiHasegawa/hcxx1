@@ -367,27 +367,56 @@ elaborated_type_specifier
    { $$ = cxx_compiler::declarations::elaborated::action($1,$2); }
   | class_key COLONCOLON_MK move_to_root nested_name_specifier
     TEMPLATE_KW template_id
-    { cxx_compiler::error::not_implemented(); }
+    {
+      $$ = cxx_compiler::declarations::elaborated::action($1,$6);
+      cxx_compiler::class_or_namespace_name::after(false);
+    }
   | class_key nested_name_specifier TEMPLATE_KW template_id
-    { cxx_compiler::error::not_implemented(); }
+    {
+      $$ = cxx_compiler::declarations::elaborated::action($1,$4);
+      cxx_compiler::class_or_namespace_name::after(false);
+    }
   | class_key COLONCOLON_MK move_to_root TEMPLATE_KW template_id
-    { cxx_compiler::error::not_implemented(); }
+    {
+      $$ = cxx_compiler::declarations::elaborated::action($1,$5);
+      cxx_compiler::class_or_namespace_name::after(false);
+    }
   | class_key COLONCOLON_MK move_to_root nested_name_specifier template_id
-    { cxx_compiler::error::not_implemented(); }
+    {
+      $$ = cxx_compiler::declarations::elaborated::action($1,$5);
+      cxx_compiler::class_or_namespace_name::after(false);
+    }
   | class_key TEMPLATE_KW template_id
-    { cxx_compiler::error::not_implemented(); }
+    {
+      $$ = cxx_compiler::declarations::elaborated::action($1,$3);
+    }
   | class_key COLONCOLON_MK move_to_root template_id
-    { cxx_compiler::error::not_implemented(); }
+    {
+      $$ = cxx_compiler::declarations::elaborated::action($1,$4);
+      cxx_compiler::class_or_namespace_name::after(false);
+    }
   | class_key nested_name_specifier template_id
-    { cxx_compiler::error::not_implemented(); }
+    {
+      $$ = cxx_compiler::declarations::elaborated::action($1,$3);
+      cxx_compiler::class_or_namespace_name::after(false);
+    }
   | class_key template_id
     { $$ = cxx_compiler::declarations::elaborated::action($1,$2); }
   | enum_key COLONCOLON_MK move_to_root nested_name_specifier IDENTIFIER_LEX
-    { cxx_compiler::error::not_implemented(); }
+    {
+      $$ = cxx_compiler::declarations::elaborated::action($1,$5);
+      cxx_compiler::class_or_namespace_name::after(false);
+    }
   | enum_key nested_name_specifier IDENTIFIER_LEX
-    { cxx_compiler::error::not_implemented(); }
+    {
+      $$ = cxx_compiler::declarations::elaborated::action($1,$3);
+      cxx_compiler::class_or_namespace_name::after(false);
+    }
   | enum_key COLONCOLON_MK move_to_root IDENTIFIER_LEX
-    { cxx_compiler::error::not_implemented(); }
+    {
+      $$ = cxx_compiler::declarations::elaborated::action($1,$4);
+      cxx_compiler::class_or_namespace_name::after(false);
+    }
   | enum_key IDENTIFIER_LEX
     { $$ = cxx_compiler::declarations::elaborated::action($1,$2); }
   | TYPENAME_KW COLONCOLON_MK move_to_root nested_name_specifier IDENTIFIER_LEX
