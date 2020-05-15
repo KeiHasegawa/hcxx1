@@ -7,15 +7,12 @@
 #include "patch.04.q"
 #include "patch.10.q"
 
-void debug_break()
-{
-}
-
 namespace cxx_compiler {
   namespace parse {
     file_t position;
     namespace identifier {
       mode_t mode;
+      int typenaming;
       int create(std::string, const type* = backpatch_type::create());
       inline scope* search_scope()
       {
@@ -33,9 +30,6 @@ namespace cxx_compiler {
 
 int cxx_compiler::parse::identifier::judge(std::string name)
 {
-  if (name == "S22")
-    debug_break();
-
   if (mode == peeking)
     return create(name), PEEKED_NAME_LEX;
 
@@ -624,6 +618,8 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
     return create(name);
   if (mode == new_obj)
     return create(name);
+  if (last_token == COLONCOLON_MK && typenaming)
+    return create(name);
   error::undeclared(parse::position, name);
   int ret = create(name, int_type::create());
   usr* u = cxx_compiler_lval.m_usr;
@@ -782,16 +778,16 @@ namespace cxx_compiler {
 	  assert(v->usr_cast());
           usr* u = static_cast<usr*>(v);
           string name = u->m_name;
-	  last_token = identifier::judge(name);
+	  return last_token = identifier::judge(name);
 	}
-        else if (context_t::retry[DECL_FCAST_CONFLICT_STATE] ||
-		 context_t::retry[TYPE_NAME_CONFLICT_STATE] ) {
-          usr* u = static_cast<usr*>(cxx_compiler_lval.m_var);
-          assert(u->m_type->backpatch());
-          string name = u->m_name;
-          last_token = identifier::lookup(name, scope::current);
-          delete u;
-        }
+	if (context_t::retry[DECL_FCAST_CONFLICT_STATE] ||
+	    context_t::retry[TYPE_NAME_CONFLICT_STATE] ) {
+	  usr* u = static_cast<usr*>(cxx_compiler_lval.m_var);
+	  assert(u->m_type->backpatch());
+	  string name = u->m_name;
+	  last_token = identifier::lookup(name, scope::current);
+	  delete u;
+	}
         return n;
       case INTEGER_LITERAL_LEX:
       case CHARACTER_LITERAL_LEX:

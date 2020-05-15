@@ -3,10 +3,6 @@
 #include "cxx_impl.h"
 #include "yy.h"
 
-void debug_break4()
-{
-}
-
 void cxx_compiler::type_parameter::action(var* v, const type* T)
 {
   assert(v->usr_cast());
@@ -1363,11 +1359,12 @@ cxx_compiler::instance_of(template_usr* tu, usr* ins, templ_base::KEY& key)
 
 const cxx_compiler::type* cxx_compiler::typenamed::action(var* v)
 {
-  debug_break4();
-  auto_ptr<var> sweeper(v);
   assert(v->usr_cast());
   usr* u = static_cast<usr*>(v);
   const type* T = u->m_type;
+  usr::flag_t flag = u->m_flag;
+  if (flag & usr::TYPEDEF)
+    return T;
   assert(T->m_id == type::BACKPATCH);
   string name = u->m_name;
   tag* ptr = new tag(tag::TYPENAME, name, parse::position, 0);

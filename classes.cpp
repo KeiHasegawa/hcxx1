@@ -472,6 +472,18 @@ void cxx_compiler::class_or_namespace_name::after(bool set_last)
   scope::current = before.back();
 }
 
+cxx_compiler::tag* cxx_compiler::class_or_namespace_name::conv(tag* ptr)
+{
+  if (!parse::identifier::typenaming)
+    return ptr;
+  const type* T = ptr->m_types.second;
+  if (!T)
+    return ptr;
+  ptr = T->get_tag();
+  assert(ptr);
+  return ptr;
+}
+
 namespace cxx_compiler {
   namespace declarations {
     namespace declarators {

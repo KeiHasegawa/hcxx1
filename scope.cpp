@@ -4,15 +4,9 @@
 #include "yy.h"
 #include "cxx_y.h"
 
-void debug_break2()
-{
-}
-
 cxx_compiler::scope::scope(id_t id = NONE) : m_id(id), m_parent(0)
 {
   class_or_namespace_name::before.push_back(this);
-  if (this == (scope*)0x8359188)
-    debug_break2();
 }
 
 cxx_compiler::scope cxx_compiler::scope::root;

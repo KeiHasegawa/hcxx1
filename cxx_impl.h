@@ -81,6 +81,7 @@ namespace parse {
     enum mode_t { look, new_obj, member, peeking, no_err, canbe_ctor,
 		  mem_ini, templ_name };
     extern mode_t mode;
+    extern int typenaming;
     namespace base_lookup {
       extern vector<route_t> route;
       extern int action(string name, tag* ptr);
@@ -1509,6 +1510,7 @@ namespace class_or_namespace_name {
   extern scope* last;
   extern void after(bool set_last);
   extern int decl_array;
+  extern tag* conv(tag*);
 } // end of namespace class_or_namespace_name
 
 namespace unqualified_id {
