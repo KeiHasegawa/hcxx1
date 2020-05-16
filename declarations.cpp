@@ -714,8 +714,8 @@ cxx_compiler::declarations::action1(var* v, bool ini)
     const scope::tps_t& tps = ptr->m_tps;
     if (!tps.m_table.empty()) {
       using namespace parse::templ;
-      assert(!save_t::s_stack.empty());
-      save_t* p = save_t::s_stack.top();
+      assert(!save_t::nest.empty());
+      save_t* p = save_t::nest.back();
       assert(!p->m_usr);
       p->m_usr = u = new template_usr(*u, tps);
     }
@@ -1267,10 +1267,11 @@ cxx_compiler::declarations::exchange(bool installed, usr* new_one, usr* org)
     return new_one;
   }
 
-  delete org;
+  if (parse::templ::save_t::nest.size() <= 1)
+    delete org;
 
-  if (!parse::templ::save_t::s_stack.empty()) {
-    parse::templ::save_t* p = parse::templ::save_t::s_stack.top();
+  if (!parse::templ::save_t::nest.empty()) {
+    parse::templ::save_t* p = parse::templ::save_t::nest.back();
     parse::read_t& r = p->m_read;
     list<void*>& lv = r.m_lval;
     if (!lv.empty()) {
@@ -1309,8 +1310,8 @@ cxx_compiler::declarations::elaborated::action(int keyword, var* v)
     const scope::tps_t& tps = scope::current->m_tps;
     if (!tps.m_table.empty()) {
       using namespace parse::templ;
-      assert(!save_t::s_stack.empty());
-      save_t* p = save_t::s_stack.top();
+      assert(!save_t::nest.empty());
+      save_t* p = save_t::nest.back();
       assert(!p->m_tag);
       assert(!class_or_namespace_name::before.empty());
       assert(class_or_namespace_name::before.back() == ptr);
@@ -1488,7 +1489,7 @@ enumeration::definition(var* v, expressions::base* expr)
   using namespace std;
   using namespace error::declarations::enumeration;
   usr* u = static_cast<usr*>(v);
-  auto_ptr<usr> sweeper1(parse::templ::save_t::s_stack.empty() ? u : 0);
+  auto_ptr<usr> sweeper1(parse::templ::save_t::nest.empty() ? u : 0);
   auto_ptr<expressions::base> sweeper2(expr);
   v = 0;
   if ( expr ){

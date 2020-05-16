@@ -898,20 +898,21 @@ int cxx_compiler::parse::lex_and_save()
 
 namespace cxx_compiler {
   namespace parse {
-    inline void save_each(context_t& x)
+    inline void save_c(context_t& x)
     {
       x.m_read.m_token.push_back(make_pair(last_token,position));
       save_common(last_token, x.m_read.m_lval);
     }
+    inline void save_s(templ::save_t* p)
+    {
+      read_t& r = p->m_read;
+      r.m_token.push_back(make_pair(last_token, parse::position));
+      save_common(last_token, r.m_lval, 0, true);
+    }
     inline int save_for_retry()
     {
-      for_each(begin(context_t::all), end(context_t::all), save_each);
-      if (!templ::save_t::s_stack.empty()) {
-	templ::save_t* p = templ::save_t::s_stack.top();
-	read_t& r = p->m_read;
-	r.m_token.push_back(make_pair(last_token, parse::position));
-	save_common(last_token, r.m_lval, 0, true);
-      }
+      for_each(begin(context_t::all), end(context_t::all), save_c);
+      for_each(begin(templ::save_t::nest), end(templ::save_t::nest), save_s);
       return last_token;
     }
     namespace templ {
@@ -1195,8 +1196,8 @@ namespace cxx_compiler {
       void save_brace(read_t*);
       inline read_t* get(usr* key, scope* param)
       {
-	if (!templ::save_t::s_stack.empty()) {
-	  templ::save_t* p = templ::save_t::s_stack.top();
+	if (!templ::save_t::nest.empty()) {
+	  templ::save_t* p = templ::save_t::nest.back();
 	  if (p->m_tag)
 	    return &p->m_read;
 	}
@@ -1266,7 +1267,7 @@ void cxx_compiler::parse::member_function_body::save_brace(read_t* ptr)
       if (n == 0) // YYEOF
 	break;
       token.push_back(make_pair(n,position));
-      save_common(n, lval, 0, !templ::save_t::s_stack.empty());
+      save_common(n, lval, 0, !templ::save_t::nest.empty());
     }
 
     if (n == '{') {
@@ -1374,8 +1375,8 @@ namespace cxx_compiler {
 	   back_inserter(g_read.m_token));
       copy(begin(tmp.m_lval), end(tmp.m_lval), back_inserter(g_read.m_lval));
       context_t::all.pop_back();
-      if (!templ::save_t::s_stack.empty()) {
-	templ::save_t* p = templ::save_t::s_stack.top();
+      if (!templ::save_t::nest.empty()) {
+	templ::save_t* p = templ::save_t::nest.back();
 	read_t& r = p->m_read;
 	int n = g_read.m_token.size();
 	if (b)
@@ -1392,7 +1393,7 @@ namespace cxx_compiler {
 namespace cxx_compiler {
   namespace parse {
     namespace templ {
-      stack<save_t*> save_t::s_stack;
+      list<save_t*> save_t::nest;
     } // end of namespace templ
   } // end of namespace parse
 } // end of namespace cxx_compiler

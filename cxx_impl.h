@@ -113,7 +113,7 @@ namespace parse {
       usr* m_usr;
       tag* m_tag;
       save_t() : m_usr(0), m_tag(0) {}
-      static stack<save_t*> s_stack;
+      static list<save_t*> nest;
     };
     extern bool param;
     extern int arg;

@@ -55,7 +55,7 @@ void cxx_compiler::declarations::templ::decl_begin()
     scope::current->m_tps.m_table;
   if (!table.empty()) {
     using namespace parse::templ;
-    save_t::s_stack.push(new save_t);
+    save_t::nest.push_back(new save_t);
   }
 }
 
@@ -120,14 +120,14 @@ void cxx_compiler::declarations::templ::decl_end()
     return;
 
   using namespace parse::templ;
-  assert(!save_t::s_stack.empty());
-  save_t* p = save_t::s_stack.top();
+  assert(!save_t::nest.empty());
+  save_t* p = save_t::nest.back();
   if (usr* u = p->m_usr)
     handle(u, p->m_read);
   else
     handle(p->m_tag, p->m_read);
   delete p;
-  save_t::s_stack.pop();
+  save_t::nest.pop_back();
 
   vector<scope*>& children = scope::current->m_children;
   for (const auto& p : table) {
@@ -359,7 +359,7 @@ namespace cxx_compiler {
       stack<declarations::specifier_seq::info_t*> m_stack1;
       vector<scope*> m_before;
       scope* m_last;
-      stack<parse::templ::save_t*> m_stack2;
+      list<parse::templ::save_t*> m_nest;
       int m_yychar;
       parse::read_t m_read;
       map<int, bool> m_retry;
@@ -376,7 +376,7 @@ namespace cxx_compiler {
 	  m_stack1(declarations::specifier_seq::info_t::s_stack),
 	  m_before(class_or_namespace_name::before),
 	  m_last(class_or_namespace_name::last),
-	  m_stack2(parse::templ::save_t::s_stack), m_yychar(cxx_compiler_char),
+	  m_nest(parse::templ::save_t::nest), m_yychar(cxx_compiler_char),
 	  m_read(parse::g_read), m_retry(parse::context_t::retry)
       {
 	scope::current = p;
@@ -409,8 +409,7 @@ namespace cxx_compiler {
 	copy(rbegin(tmp), rend(tmp),
 	     back_inserter(class_or_namespace_name::before));
 
-	while (!parse::templ::save_t::s_stack.empty())
-	  parse::templ::save_t::s_stack.pop();
+	parse::templ::save_t::nest.clear();
 	cxx_compiler_char = 0;
 	parse::g_read.m_token.clear();
 	parse::g_read.m_lval.clear();
@@ -421,7 +420,7 @@ namespace cxx_compiler {
 	parse::context_t::retry = m_retry;
 	parse::g_read = m_read;
 	cxx_compiler_char = m_yychar;
-	parse::templ::save_t::s_stack = m_stack2;
+	parse::templ::save_t::nest = m_nest;
 	class_or_namespace_name::last = m_last;
 	class_or_namespace_name::before = m_before;
 	declarations::specifier_seq::info_t::s_stack = m_stack1;
@@ -669,7 +668,7 @@ namespace cxx_compiler {
 	{
 	  // Note that `pv' is deleted at `template_tag::common()' or
 	  // `template_usr::instantiate_explicit()'
-	  bool b = parse::templ::save_t::s_stack.empty();
+	  bool b = parse::templ::save_t::nest.empty();
 	  auto_ptr<pair<usr*, tag*> > sweeper(b ? x : 0);
 	  if (tag* ptr = x->second) {
 	    assert(!x->first);
@@ -733,7 +732,7 @@ namespace cxx_compiler {
 	    T = ptr->m_types.second;
 	    if (!T) {
 	      using namespace parse::templ;
-	      assert(!save_t::s_stack.empty());
+	      assert(!save_t::nest.empty());
 	      T = ptr->m_types.first;
 	    }
 	    return new scope::tps_t::val2_t(T, 0);
@@ -1026,8 +1025,8 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
       partial_special_tag* ps = new partial_special_tag(sv, tps, this);
       m_partial_special.push_back(ps);
       using namespace parse::templ;
-      assert(!save_t::s_stack.empty());
-      save_t* p = save_t::s_stack.top();
+      assert(!save_t::nest.empty());
+      save_t* p = save_t::nest.back();
       p->m_tag = ps;
     }
     return m_table[key] = sv;
@@ -1383,7 +1382,7 @@ const cxx_compiler::type* cxx_compiler::typenamed::action(var* v)
 const cxx_compiler::type* cxx_compiler::typenamed::action(tag* ptr)
 {
   using namespace parse::templ;
-  if (!save_t::s_stack.empty())
+  if (!save_t::nest.empty())
     ptr->m_flag = tag::flag_t(ptr->m_flag | tag::TYPENAMED);
 
   if (const type* T = ptr->m_types.second)
