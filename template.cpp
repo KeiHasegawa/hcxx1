@@ -646,8 +646,11 @@ namespace cxx_compiler {
 	};
 	inline tag* tag_action(tag* ptr, vector<scope::tps_t::val2_t*>* pv)
 	{
-	  if (!(ptr->m_flag & tag::TEMPLATE))
+	  tag::flag_t flag = ptr->m_flag;
+	  if (!(flag & tag::TEMPLATE)) {
+	    assert(flag & tag::INSTANTIATE);
 	    return ptr;
+	  }
           template_tag* tt = static_cast<template_tag*>(ptr);
 	  if (!parse::base_clause) {
 	    int c = parse::peek();
