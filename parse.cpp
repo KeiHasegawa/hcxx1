@@ -139,6 +139,7 @@ int cxx_compiler::parse::identifier::create_templ(std::string name)
   ptr->m_types.first = incomplete_tagged_type::create(ptr);
   scope::tps_t dummy;
   template_tag* tt = new template_tag(*ptr, dummy);
+  tt->m_created = true;
   cxx_compiler_lval.m_ut = new pair<usr*, tag*>(0, tt);
   map<string, tag*>& tags = scope::current->m_tags;
   assert(tags.find(name) == tags.end());
@@ -890,6 +891,15 @@ namespace cxx_compiler {
 	  T* tmp = static_cast<T*>(lval.front());
 	  cxx_compiler_lval.m_ut = new T(*tmp);
 	  lval.pop_front();
+	  if (tag* ptr = cxx_compiler_lval.m_ut->second) {
+	    assert(ptr->m_flag & tag::TEMPLATE);
+	    template_tag* tt = static_cast<template_tag*>(ptr);
+	    if (tt->m_created) {
+	      string name = tt->m_name;
+	      last_token = identifier::lookup(name, scope::current);
+	      assert(last_token == n);
+	    }
+	  }
 	}
         return n;
       case DEFAULT_KW:

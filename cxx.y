@@ -1958,6 +1958,13 @@ nested_name_specifier
   : class_or_namespace_name COLONCOLON_MK nested_name_specifier
   | class_or_namespace_name COLONCOLON_MK
   | class_or_namespace_name COLONCOLON_MK TEMPLATE_KW nested_name_specifier
+    {
+      using namespace cxx_compiler;
+      if (template_tag::nest.empty()) {
+        assert(!class_or_namespace_name::before.empty());
+        class_or_namespace_name::before.pop_back();
+      }
+    }
   ;
 
 class_or_namespace_name
