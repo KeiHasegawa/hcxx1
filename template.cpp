@@ -380,13 +380,9 @@ namespace cxx_compiler {
 	  m_read(parse::g_read), m_retry(parse::context_t::retry)
       {
 	scope::current = p;
-	fundef::current = 0;
-	parse::templ::ptr = q;
-	if (m_parent) {
-	  while (block_or_param(m_parent)) {
-	    m_del = m_parent;
-	    m_parent = m_parent->m_parent;
-	  }
+	if (fundef::current) {
+	  m_del = fundef::current->m_param;
+	  m_parent = m_del->m_parent;
 	  vector<scope*>& children = m_parent->m_children;
 	  typedef vector<scope*>::reverse_iterator IT;
 	  IT p = find(rbegin(children), rend(children), m_del);
@@ -394,6 +390,23 @@ namespace cxx_compiler {
 	  // Once erase current function parameter scope
 	  children.erase(p.base() - 1);
 	}
+	else {
+	  if (m_parent) {
+	    while (block_or_param(m_parent)) {
+	      m_del = m_parent;
+	      m_parent = m_parent->m_parent;
+	    }
+	    vector<scope*>& children = m_parent->m_children;
+	    typedef vector<scope*>::reverse_iterator IT;
+	    IT p = find(rbegin(children), rend(children), m_del);
+	    assert(p != rend(children));
+	    // Once erase current function parameter scope
+	    children.erase(p.base() - 1);
+	  }
+	}
+
+	fundef::current = 0;
+	parse::templ::ptr = q;
 	garbage.clear();
 	code.clear();
 	while (!declarations::specifier_seq::info_t::s_stack.empty())
@@ -646,11 +659,7 @@ namespace cxx_compiler {
 	};
 	inline tag* tag_action(tag* ptr, vector<scope::tps_t::val2_t*>* pv)
 	{
-	  tag::flag_t flag = ptr->m_flag;
-	  if (!(flag & tag::TEMPLATE)) {
-	    assert(flag & tag::INSTANTIATE);
-	    return ptr;
-	  }
+	  assert(ptr->m_flag & tag::TEMPLATE);
           template_tag* tt = static_cast<template_tag*>(ptr);
 	  if (!parse::base_clause) {
 	    int c = parse::peek();
@@ -818,7 +827,7 @@ namespace cxx_compiler {
       }
     };
   } // end of namespace template_tag_impl
-  stack<pair<template_tag*, instantiated_tag*> > template_tag::s_stack;
+  list<pair<template_tag*, instantiated_tag*> > template_tag::nest;
 
   struct special_ver_tag : tag {
     template_tag* m_src;
@@ -939,6 +948,14 @@ namespace cxx_compiler {
       else
 	error::not_implemented();
     }
+    bool already(template_tag* tt)
+    {
+      typedef list<pair<template_tag*, instantiated_tag*> >::const_iterator IT;
+      IT it = find_if(begin(template_tag::nest), end(template_tag::nest),
+		      [tt](const pair<template_tag*, instantiated_tag*>& x)
+		      { return x.first == tt; });
+      return it != end(template_tag::nest);
+    }
   } // end of namespace template_tag_impl
 } // end of namespace cxx_compiler
 
@@ -949,8 +966,8 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
 {
   template_tag_impl::sweeper sweeper(pv, true);
 
-  if (!s_stack.empty()) {
-    pair<template_tag*, instantiated_tag*>& x = s_stack.top();
+  if (!nest.empty()) {
+    pair<template_tag*, instantiated_tag*>& x = nest.back();
     template_tag* tt = x.first;
     flag_t flag = tt->m_flag;
     if (flag & tag::PARTIAL_SPECIAL) {
@@ -1035,12 +1052,29 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
     return m_table[key] = sv;
   }
 
+  if (template_tag_impl::already(this)) {
+    string name = instantiated_name();
+    instantiated_tag* ret =
+      new instantiated_tag(m_kind, name, parse::position, m_bases, this);
+    map<string, tag*>& tags = scope::current->m_tags;
+    assert(tags.find(name) == tags.end());
+    tags[name] = ret;
+    scope::current->m_children.push_back(ret);
+    ret->m_parent = scope::current;
+    ret->m_types.first = incomplete_tagged_type::create(ret);
+    using namespace class_or_namespace_name;
+    assert(!before.empty());
+    assert(ret == before.back());
+    before.pop_back();
+    return ret;
+  }
+
   templ_base tmp = *this;
   template_usr_impl::sweeper_b sweeper_b(m_parent, &tmp);
-  s_stack.push(make_pair(this, (instantiated_tag*)0));
+  nest.push_back(make_pair(this, (instantiated_tag*)0));
   cxx_compiler_parse();
-  instantiated_tag* ret = s_stack.top().second;
-  s_stack.pop();
+  instantiated_tag* ret = nest.back().second;
+  nest.pop_back();
   if (!ret) {
     string name = instantiated_name();
     ret = new instantiated_tag(m_kind, name, parse::position, m_bases, this);

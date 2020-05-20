@@ -74,6 +74,7 @@ namespace parse {
   extern int last_token;
   extern int get_token();
   extern int peek();
+  extern bool templ_arg_and_coloncolon();
   extern int lex_and_save();
   namespace identifier {
     extern int lookup(std::string, scope*);
@@ -1614,7 +1615,7 @@ struct partial_ordering : usr {
 struct partial_special_tag;
 
 struct template_tag : templ_base, tag {
-  static stack<pair<template_tag*, instantiated_tag*> > s_stack;
+  static list<pair<template_tag*, instantiated_tag*> > nest;
   typedef map<KEY, tag*> table_t;
   table_t m_table;
   template_tag* m_prev;

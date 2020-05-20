@@ -18,9 +18,9 @@ namespace cxx_compiler {
   namespace classes_impl {
     inline string get_name(usr* u)
     {
-      if (!template_tag::s_stack.empty()) {
+      if (!template_tag::nest.empty()) {
 	const pair<template_tag*, instantiated_tag*>& x =
-	  template_tag::s_stack.top();
+	  template_tag::nest.back();
 	template_tag* tt = x.first;
 	instantiated_tag* it = x.second;
 	if (!it)
@@ -145,9 +145,9 @@ namespace cxx_compiler {
     get_tag(tag::kind_t kind, string name, const file_t& file,
 	    vector<base*>* bases)
     {
-      if (!template_tag::s_stack.empty()) {
+      if (!template_tag::nest.empty()) {
 	pair<template_tag*, instantiated_tag*>& x =
-	  template_tag::s_stack.top();
+	  template_tag::nest.back();
 	template_tag* tt = x.first;
 	if (!x.second)
 	  return x.second = new instantiated_tag(kind, name, file, bases, tt);
@@ -191,13 +191,13 @@ namespace cxx_compiler {
 	class_or_namespace_name::before.push_back(prev);
 	declarations::specifier_seq::info_t::clear();
 	if (flag & tag::INSTANTIATE) {
-	  if (!template_tag::s_stack.empty()) {
-	    template_tag* tt = template_tag::s_stack.top().first;
-	    assert(!template_tag::s_stack.top().second);
+	  if (!template_tag::nest.empty()) {
+	    template_tag* tt = template_tag::nest.back().first;
+	    assert(!template_tag::nest.back().second);
 	    typedef instantiated_tag IT;
 	    IT* it = static_cast<IT*>(prev);
 	    it->m_src = tt;  // override
-	    template_tag::s_stack.top().second = it;
+	    template_tag::nest.back().second = it;
 	  }
 	}
 	return;

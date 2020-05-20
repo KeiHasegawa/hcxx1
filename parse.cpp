@@ -632,7 +632,7 @@ cxx_compiler::parse::read_t cxx_compiler::parse::g_read;
 int cxx_compiler::parse::peek()
 {
   using namespace std;
-  if ( !g_read.m_token.empty() ){
+  if (!g_read.m_token.empty()) {
     parse::position = g_read.m_token.front().second;
     return g_read.m_token.front().first;
   }
@@ -660,6 +660,37 @@ int cxx_compiler::parse::peek()
   identifier::mode = org;
   cxx_compiler_lval.m_var = org2;
   return r;
+}
+
+bool cxx_compiler::parse::templ_arg_and_coloncolon()
+{
+  if (g_read.m_token.size() != 1)
+    error::not_implemented();
+
+  if (peek() != '<')
+    return false;
+
+  identifier::mode_t org = identifier::mode;
+  var* org2 = cxx_compiler_lval.m_var;
+  identifier::mode = identifier::peeking;
+
+  int c;
+  while ((c = lex_and_save()) != EOF) {
+    if (c == '>')
+      break;
+    if (c == '<')
+      error::not_implemented();
+  }
+
+  if (c != '>')
+    error::not_implemented();
+
+  c = lex_and_save();
+
+  identifier::mode = org;
+  cxx_compiler_lval.m_var = org2;
+
+  return c == COLONCOLON_MK;
 }
 
 namespace cxx_compiler {
@@ -859,13 +890,6 @@ namespace cxx_compiler {
 	  T* tmp = static_cast<T*>(lval.front());
 	  cxx_compiler_lval.m_ut = new T(*tmp);
 	  lval.pop_front();
-	  if (templ) {
-	    if (!template_tag::s_stack.empty()) {
-	      T* ut = cxx_compiler_lval.m_ut;
-	      if (ut->second == template_tag::s_stack.top().first)
-		ut->second = template_tag::s_stack.top().second;
-	    }
-	  }
 	}
         return n;
       case DEFAULT_KW:
