@@ -2214,13 +2214,13 @@ pseudo_destructor_name
       delete $1; $$ = new pair<type_specifier*, bool>($4, true);
     }
   | COLONCOLON_MK move_to_root nested_name_specifier TEMPLATE_KW
-    template_id COLONCOLON_MK '.' type_name
+    template_id COLONCOLON_MK '~' type_name
     {
       using namespace std;
       using namespace cxx_compiler::declarations;
       $$ = new pair<type_specifier*, bool>($8, true);
     }
-  | nested_name_specifier TEMPLATE_KW template_id COLONCOLON_MK '.' type_name
+  | nested_name_specifier TEMPLATE_KW template_id COLONCOLON_MK '~' type_name
     {
       using namespace std;
       using namespace cxx_compiler::declarations;

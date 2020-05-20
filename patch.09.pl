@@ -48,7 +48,7 @@ print <<EOF
     if (last_token == TEMPLATE_KW) {
       identifier::mode = identifier::templ_name;
     }
-    if (last_token == TEMPLATE_NAME_LEX) {
+    else if (last_token == TEMPLATE_NAME_LEX) {
       if (!templ_arg_and_coloncolon()) {
         YYDPRINTF((stderr, "patch.09 is applied\\n"));
         yyn = $bbb + 1;
