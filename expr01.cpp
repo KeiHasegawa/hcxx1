@@ -325,7 +325,8 @@ namespace cxx_compiler {
       map<string, vector<usr*> >& usrs = ptr->m_usrs;
       string name = fun->m_name;
       map<string, vector<usr*> >::const_iterator q = usrs.find(name);
-      assert(q != usrs.end());
+      if (q == usrs.end())
+	return 0;
       const vector<usr*>& v = q->second;
       usr* u = v.back();
       usr::flag2_t flag2 = u->m_flag2;
@@ -2374,10 +2375,39 @@ namespace cxx_compiler {
 	  }
 	  return ret;
 	}
+	bool copy_code(var* x, var* y)
+	{
+	  const type* Tx = x->m_type;
+	  assert(Tx->m_id == type::RECORD);
+	  const type* Ty = y->m_type;
+	  Ty = Ty->unqualified();
+	  bool b = (Ty->m_id == type::REFERENCE);
+	  if (b) {
+	    typedef const reference_type REF;
+	    REF* ref = static_cast<REF*>(Ty);
+	    Ty = ref->referenced_type();
+	    Ty = Ty->unqualified();
+	  }
+	  if (Ty->m_id != type::RECORD)
+	    return false;
+	  if (!compatible(Tx, Ty))
+	    return false;
+	  if (b)
+	    code.push_back(new invraddr3ac(x, y));
+	  else
+	    code.push_back(new assign3ac(x, y));
+	  return true;
+	}
 	var* operator_code(const record_type* recx, var* y)
 	{
 	  const type* Ty = y->m_type;
 	  Ty = Ty->unqualified();
+	  if (Ty->m_id == type::REFERENCE) {
+	    typedef const reference_type REF;
+	    REF* ref = static_cast<REF*>(Ty);
+	    Ty = ref->referenced_type();
+	    Ty = Ty->unqualified();
+	  }
 	  if (Ty->m_id != type::RECORD)
 	    error::not_implemented();
 	  typedef const record_type REC;
@@ -2445,7 +2475,8 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::fcast::gen()
   typedef const record_type REC;
   REC* rec = static_cast<REC*>(m_type);
   tag* ptr = rec->get_tag();
-  if (usr* ctor = has_ctor_dtor(ptr, false)) {
+  usr* ctor = has_ctor_dtor(ptr, false);
+  if (ctor) {
     usr::flag_t flag = ctor->m_flag;
     if (flag & usr::OVERLOAD) {
       overload* ovl = static_cast<overload*>(ctor);
@@ -2462,6 +2493,10 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::fcast::gen()
     return ret;  // already error handled. just return.
 
   var* y = arg.back();
+
+  if (!ctor && fcast_impl::copy_code(ret, y))
+    return ret;
+
   return fcast_impl::operator_code(rec, y);
 }
 

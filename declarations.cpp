@@ -520,6 +520,15 @@ cxx_compiler::declarations::action1(var* v, bool ini)
 {
   using namespace std;
   using namespace error::declarations::specifier_seq::type;
+  if (ini) {
+    using namespace parse;
+    if (last_token != '=' && last_token != '(') {
+      if (!context_t::all.empty()) {
+	// Not declaration. This situation causes retry.
+	return 0;
+      }
+    }
+  }
   if (genaddr* ga = v->genaddr_cast())
     v = ga->m_ref;
   assert(v->usr_cast());

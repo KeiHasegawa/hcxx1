@@ -1399,7 +1399,7 @@ namespace cxx_compiler {
         *dst++ = vp;
       *b1 = a1;
       *t1 = a1 + x.m_stack1.size();
-      cxx_compiler_char = x.m_char;
+      last_token = cxx_compiler_char = x.m_char;
       read_t tmp = g_read;
       g_read = x.m_read;
       scope::current = x.m_scope;
