@@ -789,7 +789,8 @@ action(statements::base* stmt)
     if (flag & usr::CTOR)
       add_tor_code(fundef::current, false);
     int n = code.size();
-    stmt->gen();
+    if (!parse::templ::func())
+      stmt->gen();
     if (tor_of_vbase(u))
       save_tor_body(fundef::current, n);
     if (flag & usr::DTOR)

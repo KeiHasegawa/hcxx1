@@ -118,6 +118,7 @@ namespace parse {
     };
     extern bool param;
     extern int arg;
+    extern bool func();
   } // end of namespace templ
   extern bool base_clause;
 } // end of namespace parse

@@ -1960,7 +1960,12 @@ nested_name_specifier
   | class_or_namespace_name COLONCOLON_MK TEMPLATE_KW nested_name_specifier
     {
       using namespace cxx_compiler;
-      if (template_tag::nest.empty()) {
+      assert(scope::current->m_id == scope::TAG);
+      tag* ptr = static_cast<tag*>(scope::current);
+      assert(ptr->m_flag & tag::INSTANTIATE);
+      instantiated_tag* it = static_cast<instantiated_tag*>(ptr);
+      template_tag* tt = it->m_src;
+      if (tt->m_created) {
         assert(!class_or_namespace_name::before.empty());
         class_or_namespace_name::before.pop_back();
       }
@@ -2183,13 +2188,18 @@ fcast_prev
   ;
 
 member_access_begin
-  : postfix_expression '.'       { $$ = cxx_compiler::expressions::postfix::member::begin($1,true); }
-  | postfix_expression ARROW_MK  { $$ = cxx_compiler::expressions::postfix::member::begin($1,false); }
+  : postfix_expression '.'
+    { $$ = cxx_compiler::expressions::postfix::member::begin($1,true); }
+  | postfix_expression ARROW_MK
+    { $$ = cxx_compiler::expressions::postfix::member::begin($1,false); }
   ;
 
 expression_list
   : assignment_expression
-    { $$ = new std::vector<cxx_compiler::expressions::base*>; $$->push_back($1); }
+    {
+      $$ = new std::vector<cxx_compiler::expressions::base*>;
+      $$->push_back($1);
+    }
   | expression_list ',' assignment_expression
     { $$ = $1; $$->push_back($3); }
   ;

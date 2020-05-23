@@ -778,6 +778,15 @@ namespace cxx_compiler {
 	return static_cast<instantiated_tag*>(ptr);
       return get_itag(p->m_parent);
     }
+    inline bool should_lookup_templ()
+    {
+      scope::id_t id = scope::current->m_id;
+      if (id != scope::TAG)
+	return true;
+      tag* ptr = static_cast<tag*>(scope::current);
+      const type* T = ptr->m_types.second;
+      return T;
+    }
     int get_common(int n, list<void*>& lval, bool from_mem_fun_body,
 		   bool templ)
     {
@@ -896,7 +905,9 @@ namespace cxx_compiler {
 	    template_tag* tt = static_cast<template_tag*>(ptr);
 	    if (tt->m_created) {
 	      string name = tt->m_name;
-	      last_token = identifier::lookup(name, scope::current);
+	      using namespace identifier;
+	      last_token = should_lookup_templ() ?
+		lookup(name, scope::current) : create_templ(name);
 	      assert(last_token == n);
 	    }
 	  }
@@ -953,6 +964,13 @@ namespace cxx_compiler {
       templ_base* ptr;
       bool param;
       int arg;
+      bool func()
+      {
+	if (save_t::nest.empty())
+	  return false;
+	save_t* p = save_t::nest.back();
+	return p->m_usr;
+      }
     } // end of namespac templ
   } // end of namesapce parse
 } // end of namesapce cxx_compiler

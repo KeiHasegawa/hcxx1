@@ -1325,6 +1325,10 @@ cxx_compiler::expressions::postfix::member::begin(base* expr, bool dot)
   using namespace std;
   parse::identifier::base_lookup::route.clear();
   auto_ptr<base> sweeper(expr);
+  if (parse::templ::func()) {
+    parse::identifier::mode = parse::identifier::new_obj;
+    return 0;
+  }
   int n = code.size();
   var* v = expr->gen();
   int m = code.size();
@@ -1364,6 +1368,11 @@ cxx_compiler::expressions::postfix::member::begin(base* expr, bool dot)
 cxx_compiler::expressions::base*
 cxx_compiler::expressions::postfix::member::end(info_t* info, var* member)
 {
+  if (!info) {
+    assert(parse::templ::func());
+    parse::identifier::mode = parse::identifier::look;
+    return 0;
+  }
   info->m_member = member;
   info->m_route = parse::identifier::base_lookup::route;
   parse::identifier::base_lookup::route.clear();
