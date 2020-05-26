@@ -614,9 +614,8 @@ namespace cxx_compiler {
 } // end of namespace cxx_compiler
 
 cxx_compiler::usr*
-cxx_compiler::template_usr::instantiate_mem_fun(instantiated_tag* it)
+cxx_compiler::template_usr::instantiate_mem_fun(const KEY& key)
 {
-  const KEY& key = it->m_seed;
   table_t::const_iterator p = m_table.find(key);
   if (p != m_table.end())
     return p->second;

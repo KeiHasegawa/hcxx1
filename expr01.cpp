@@ -402,7 +402,7 @@ cxx_compiler::usr* cxx_compiler::instantiate_if(usr* fun)
   tag* ptr2 = p->second;
   assert(find_if(++p, end(tbl), [fun](const pair<template_tag::KEY, tag*>& x)
 		 { return has_templ(x,fun); } ) == end(tbl));
-  return tu->instantiate_mem_fun(it);
+  return tu->instantiate_mem_fun(it->m_seed);
 }
 
 namespace cxx_compiler {
