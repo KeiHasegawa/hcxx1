@@ -828,6 +828,12 @@ namespace cxx_compiler {
 	  string name = u->m_name;
 	  last_token = identifier::lookup(name, scope::current);
 	  delete u;
+	  if (!templ::save_t::nest.empty()) {
+	    templ::save_t* p = templ::save_t::nest.back();
+	    list<void*>& lval = p->m_read.m_lval;
+	    assert(lval.back() == u);
+	    lval.pop_back();
+	  }
 	}
         return n;
       case INTEGER_LITERAL_LEX:
@@ -1243,7 +1249,7 @@ void cxx_compiler::parse::block::leave()
 namespace cxx_compiler {
   namespace parse {
     namespace member_function_body {
-      std::map<usr*, save_t> stbl;
+      map<usr*, save_t> stbl;
       save_t* saved;
       void save_brace(read_t*);
       inline read_t* get(usr* key, scope* param)
@@ -1458,6 +1464,10 @@ namespace cxx_compiler {
       const list<pair<int, file_t> >& ls = r.m_token;
       for (auto p : ls)
 	cout << p.first << ' ';
+      cout << '\n';
+      const list<void*>& ls2 = r.m_lval;
+      for (auto p : ls2)
+	cout << p << ' ';
       cout << endl;
     }
   } // end of namespace parse

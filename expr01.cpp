@@ -306,6 +306,25 @@ cxx_compiler::member_function::rvalue()
 
 namespace cxx_compiler {
   namespace member_function_impl {
+    inline tag* decled_tag(tag* ptr,  usr* fun)
+    {
+      const map<string, vector<usr*> >& usrs = ptr->m_usrs;
+      string fn = fun->m_name;
+      map<string, vector<usr*> >::const_iterator p = usrs.find(fn);
+      if (p != usrs.end())
+	return ptr;
+      scope* fs = fun->m_scope;
+      assert(fs->m_id == scope::TAG);
+      tag* fst = static_cast<tag*>(fs);
+      const map<string, tag*>& tags = ptr->m_tags;
+      string tn = fst->m_name;
+      map<string, tag*>::const_iterator q = tags.find(tn);
+      if (q != tags.end()) {
+	ptr = q->second;
+	return decled_tag(ptr, fun);
+      }
+      return 0;
+    }
     inline bool helper(usr* u, usr* fun)
     {
       if (!(u->m_flag2 & usr::TEMPLATE))
@@ -321,12 +340,13 @@ namespace cxx_compiler {
 	find_if(begin(key), end(key), not1(ptr_fun(template_param)));
       if (p != end(key))
 	return 0;
-      tag* ptr = x.second;
+      tag* ptr = decled_tag(x.second, fun);
+      if (!ptr)
+	return 0;
       map<string, vector<usr*> >& usrs = ptr->m_usrs;
       string name = fun->m_name;
       map<string, vector<usr*> >::const_iterator q = usrs.find(name);
-      if (q == usrs.end())
-	return 0;
+      assert(q != usrs.end());
       const vector<usr*>& v = q->second;
       usr* u = v.back();
       usr::flag2_t flag2 = u->m_flag2;
@@ -345,6 +365,16 @@ namespace cxx_compiler {
       }
       return 0;
     }
+    instantiated_tag* get_it(tag* ptr)
+    {
+      if (ptr->m_flag & tag::INSTANTIATE)
+	return static_cast<instantiated_tag*>(ptr);
+      scope* parent = ptr->m_parent;
+      if (!(parent->m_id & scope::TAG))
+	return 0;
+      ptr = static_cast<tag*>(parent);
+      return get_it(ptr);
+    }
   } // end of namespace member_function_impl
 } // end of namespace cxx_compiler
 
@@ -356,9 +386,9 @@ cxx_compiler::usr* cxx_compiler::instantiate_if(usr* fun)
   if (ps->m_id != scope::TAG)
     return fun;
   tag* ptr = static_cast<tag*>(ps);
-  if (!(ptr->m_flag & tag::INSTANTIATE))
+  instantiated_tag* it = member_function_impl::get_it(ptr);
+  if (!it)
     return fun;
-  instantiated_tag* it = static_cast<instantiated_tag*>(ptr);
   template_tag* tt = it->m_src;
   const template_tag::table_t& tbl = tt->m_table;
   typedef template_tag::table_t::const_iterator IT;
