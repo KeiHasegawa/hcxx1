@@ -1587,8 +1587,9 @@ struct template_usr : usr, templ_base {
     instantiated_usr* m_iu;
     enum mode_t { NONE, EXPLICIT, STATIC_DEF };
     mode_t m_mode;
-    info_t(template_usr* tu, instantiated_usr* iu, mode_t mode)
-    : m_tu(tu), m_iu(iu), m_mode(mode) {}
+    KEY m_key;
+    info_t(template_usr* tu, instantiated_usr* iu, mode_t mode, const KEY& key)
+    : m_tu(tu), m_iu(iu), m_mode(mode), m_key(key) {}
   };
   static stack<info_t> s_stack;
   typedef map<KEY, usr*> table_t;
@@ -1604,6 +1605,7 @@ struct template_usr : usr, templ_base {
   { return instantiate_common(pv, info_t::EXPLICIT); }
   usr* instantiate_static_def(vector<scope::tps_t::val2_t*>* pv)
   { return instantiate_common(pv, info_t::STATIC_DEF); }
+  static bool explicit_instantiating(KEY& key);
 };
 
 struct partial_ordering : usr {

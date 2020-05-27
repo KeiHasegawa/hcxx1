@@ -564,7 +564,7 @@ cxx_compiler::template_usr::instantiate(std::vector<var*>* arg, KEY* trial)
 
   templ_base tmp = *this;
   template_usr_impl::sweeper_b sweeper_b(m_scope, &tmp);
-  s_stack.push(info_t(this, 0, info_t::NONE));
+  s_stack.push(info_t(this, 0, info_t::NONE, key));
   cxx_compiler_parse();
   instantiated_usr* ret = s_stack.top().m_iu;
   s_stack.pop();
@@ -629,7 +629,7 @@ cxx_compiler::template_usr::instantiate_mem_fun(const KEY& key)
 
   templ_base tmp = *this;
   template_usr_impl::sweeper_b sweeper_b(m_scope->m_parent, &tmp);
-  s_stack.push(info_t(this, 0, info_t::NONE));
+  s_stack.push(info_t(this, 0, info_t::NONE, key));
   cxx_compiler_parse();
   instantiated_usr* ret = s_stack.top().m_iu;
   s_stack.pop();
@@ -1243,10 +1243,12 @@ instantiate_common(vector<scope::tps_t::val2_t*>* pv, info_t::mode_t mode)
 
   templ_base tmp = *this;
   template_usr_impl::sweeper_b sweeper_b(m_scope, &tmp);
-  s_stack.push(info_t(this, 0, mode));
+  s_stack.push(info_t(this, 0, mode, key));
   cxx_compiler_parse();
+  assert(!s_stack.empty());
   instantiated_usr* ret = s_stack.top().m_iu;
   s_stack.pop();
+  assert(ret);
   assert(ret->m_src == this);
   assert(ret->m_seed == key);
   if (mode == info_t::EXPLICIT)
@@ -1256,6 +1258,18 @@ instantiate_common(vector<scope::tps_t::val2_t*>* pv, info_t::mode_t mode)
     assert(ret->m_flag & usr::STATIC_DEF);
   }
   return m_table[key] = ret;
+}
+
+bool
+cxx_compiler::template_usr::explicit_instantiating(KEY& key)
+{
+  if (s_stack.empty())
+    return false;
+  const info_t& info = s_stack.top();
+  if (info.m_mode != info_t::EXPLICIT)
+    return false;
+  key = info.m_key;
+  return true;
 }
 
 namespace cxx_compiler {

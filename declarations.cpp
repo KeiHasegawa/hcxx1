@@ -764,6 +764,11 @@ void cxx_compiler::declarations::check_object(usr* u)
 {
   const type* T = u->m_type;
   u->m_type = T = T->complete_type();
+  if (tag* ptr = T->get_tag()) {
+    tag::flag_t flag = ptr->m_flag;
+    if (flag & tag::TYPENAMED)
+      return;
+  }
   int size = T->size();
   if (!size) {
     using namespace error::declarations;
@@ -1117,12 +1122,14 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
       return new partial_ordering(ptu, ctu);
     }
     templ_base::KEY key;
-    if (instance_of(ptu, curr, key)) {
+    if (instance_of(ptu, curr, key) ||
+	template_usr::explicit_instantiating(key)) {
       instantiated_usr* ret = new instantiated_usr(*curr, ptu, key);
       if (parse::templ::ptr) {
 	assert(!template_usr::s_stack.empty());
 	template_usr::info_t& info = template_usr::s_stack.top();
 	assert(ptu == info.m_tu);
+	assert(key == info.m_key);
 	info.m_iu = ret;
 	if (info.m_mode == template_usr::info_t::EXPLICIT)
 	  ret->m_flag2 =
