@@ -702,14 +702,16 @@ namespace cxx_compiler {
           void overload_candidacy(usr* c)
           {
             const file_t& file = c->m_file;
-            string name = c->m_name;
             switch (lang) {
             case jpn:
+              header(file,"ƒGƒ‰[");
+              break;
             default:
               header(file,"error");
-              cerr << "`" << name << "'" << '\n';
               break;
             }
+            string name = c->m_name;
+	    cerr << "`" << name << "'" << '\n';
           }
         } // end of namespace call
       } // end of namespace postfix
