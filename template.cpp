@@ -197,8 +197,6 @@ namespace cxx_compiler {
 		       const map<string, scope::tps_t::value_t>& table)
       {
 	assert(Tx->m_id == type::RECORD);
-	typedef const record_type REC;
-	REC* xrec = static_cast<REC*>(Tx);
 	if (Ty->m_id == type::REFERENCE) {
 	  typedef const reference_type RT;
 	  RT* rt = static_cast<RT*>(Ty);
@@ -211,6 +209,8 @@ namespace cxx_compiler {
 
 	tag* xtag = Tx->get_tag();
 	tag* ytag = Ty->get_tag();
+	if (xtag == ytag)
+	  return true;
 	if (!(xtag->m_flag & tag::INSTANTIATE))
 	  return false;
 	if (!(ytag->m_flag & tag::INSTANTIATE))
@@ -227,6 +227,24 @@ namespace cxx_compiler {
 	pair<IT, IT> ret = mismatch(begin(xseed), end(xseed), begin(yseed),
 				    helper(table));
 	return ret == make_pair(end(xseed), end(yseed));
+      }
+      bool incomplete_case(const type* Tx, const type* Ty,
+		       const map<string, scope::tps_t::value_t>& table)
+      {
+	assert(Tx->m_id == type::INCOMPLETE_TAGGED);
+	typedef const incomplete_tagged_type ITT;
+	ITT* xitt = static_cast<ITT*>(Tx);
+	if (Ty->m_id == type::REFERENCE) {
+	  typedef const reference_type RT;
+	  RT* rt = static_cast<RT*>(Ty);
+	  Ty = rt->referenced_type();
+	}
+	type::id_t id = Ty->m_id;
+	if (id != type::RECORD && id != type::INCOMPLETE_TAGGED)
+	  return false;
+	tag* xtag = Tx->get_tag();
+	tag* ytag = Ty->get_tag();
+	return xtag == ytag;
       }
       bool pointer_case(const type* Tx, const type* Ty,
 			const map<string, scope::tps_t::value_t>& table)
@@ -269,6 +287,7 @@ namespace cxx_compiler {
 	{
 	  (*this)[type::TEMPLATE_PARAM] = template_param_case;
 	  (*this)[type::RECORD] = record_case;
+	  (*this)[type::INCOMPLETE_TAGGED] = incomplete_case;
 	  (*this)[type::POINTER] = pointer_case;
 	  (*this)[type::REFERENCE] = reference_case;
 	  (*this)[type::CONST] =
@@ -627,12 +646,18 @@ cxx_compiler::template_usr::instantiate_mem_fun(const KEY& key)
 
   template_usr_impl::sweeper_c sweeper_c(m_tps, key);
 
+  scope* ps = m_patch_13_2 ? m_scope : m_scope->m_parent;
   templ_base tmp = *this;
-  template_usr_impl::sweeper_b sweeper_b(m_scope->m_parent, &tmp);
+  template_usr_impl::sweeper_b sweeper_b(ps, &tmp);
   s_stack.push(info_t(this, 0, info_t::NONE, key));
   cxx_compiler_parse();
   instantiated_usr* ret = s_stack.top().m_iu;
   s_stack.pop();
+  if (m_patch_13_2) {
+    assert(m_flag & usr::INLINE);
+    assert(!(ret->m_flag & usr::INLINE));
+    ret->m_flag = usr::flag_t(ret->m_flag | usr::INLINE);
+  }
   assert(ret->m_src == this);
   assert(ret->m_seed == key);
   assert(!(ret->m_flag2 & usr::EXPLICIT_INSTANTIATE));
@@ -826,7 +851,12 @@ namespace cxx_compiler {
       }
     };
   } // end of namespace template_tag_impl
+
+#ifndef __GNUC__
+  vector<pair<template_tag*, instantiated_tag*> > template_tag::nest;
+#else  // __GNUC__
   list<pair<template_tag*, instantiated_tag*> > template_tag::nest;
+#endif  // __GNUC__
 
   struct special_ver_tag : tag {
     template_tag* m_src;
@@ -949,11 +979,9 @@ namespace cxx_compiler {
     }
     bool already(template_tag* tt)
     {
-      typedef list<pair<template_tag*, instantiated_tag*> >::const_iterator IT;
-      IT it = find_if(begin(template_tag::nest), end(template_tag::nest),
-		      [tt](const pair<template_tag*, instantiated_tag*>& x)
-		      { return x.first == tt; });
-      return it != end(template_tag::nest);
+      return  find_if(begin(template_tag::nest), end(template_tag::nest),
+	      [tt](const pair<template_tag*, instantiated_tag*>& x)
+	      { return x.first == tt; }) != end(template_tag::nest);
     }
   } // end of namespace template_tag_impl
 } // end of namespace cxx_compiler

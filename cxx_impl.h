@@ -106,6 +106,7 @@ namespace parse {
     extern map<usr*, save_t> stbl;
     extern save_t* saved;
     extern void save(usr*);
+    extern void save_brace(read_t*);
     extern int get_token();
   } // end of namespace member_function_body
   namespace templ {
@@ -113,8 +114,13 @@ namespace parse {
       read_t m_read;
       usr* m_usr;
       tag* m_tag;
-      save_t() : m_usr(0), m_tag(0) {}
+      bool m_patch_13_2;
+      save_t() : m_usr(0), m_tag(0), m_patch_13_2(false) {}
+#ifndef __GNUC__
+      static vector<save_t*> nest;
+#else  // __GNUC__
       static list<save_t*> nest;
+#endif  // __GNUC__
     };
     extern bool param;
     extern int arg;
@@ -1588,15 +1594,20 @@ struct template_usr : usr, templ_base {
     enum mode_t { NONE, EXPLICIT, STATIC_DEF };
     mode_t m_mode;
     KEY m_key;
-    info_t(template_usr* tu, instantiated_usr* iu, mode_t mode, const KEY& key)
+    info_t(template_usr* tu, instantiated_usr* iu, mode_t mode,
+	   const KEY& key)
     : m_tu(tu), m_iu(iu), m_mode(mode), m_key(key) {}
   };
   static stack<info_t> s_stack;
   typedef map<KEY, usr*> table_t;
   table_t m_table;
-  template_usr(usr& u, const scope::tps_t& tps) : usr(u), templ_base(tps)
+  bool m_patch_13_2;
+  template_usr(usr& u, const scope::tps_t& tps, bool patch_13_2)
+    : usr(u), templ_base(tps), m_patch_13_2(patch_13_2)
   {
     m_flag2 = usr::flag2_t(m_flag2 | usr::TEMPLATE);
+    if (m_patch_13_2)
+      m_flag = usr::flag_t(m_flag | usr::INLINE);
   }
   usr* instantiate(vector<var*>* arg, KEY* trial);
   usr* instantiate_mem_fun(const KEY& key);
@@ -1618,7 +1629,11 @@ struct partial_ordering : usr {
 struct partial_special_tag;
 
 struct template_tag : templ_base, tag {
+#ifndef __GNUC__
+  static vector<pair<template_tag*, instantiated_tag*> > nest;
+#else  // __GNUC__
   static list<pair<template_tag*, instantiated_tag*> > nest;
+#endif  // __GNUC__
   typedef map<KEY, tag*> table_t;
   table_t m_table;
   template_tag* m_prev;

@@ -412,6 +412,13 @@ namespace cxx_compiler {
 		  vector<vector<tac*> >& tmp, vector<int>& cost)
     {
       using namespace std;
+      usr::flag2_t flag2 = u->m_flag2;
+      if (flag2 & usr::TEMPLATE) {
+	template_usr* tu = static_cast<template_usr*>(u);
+	template_usr::KEY key;
+	if (tu->instantiate(arg, &key))
+	  u = tu->instantiate_mem_fun(key);
+      }
       const type* T = u->m_type;
       assert(T->m_id == type::FUNC);
       typedef const func_type FT;

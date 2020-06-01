@@ -400,6 +400,7 @@ expr_list(std::vector<expressions::base*>* exprs, argument* arg)
     return 0;
   }
 
+  int n = code.size();
   vector<var*> res;
   transform(begin(*exprs), end(*exprs), back_inserter(res),
             mem_fun(&expressions::base::gen));
@@ -410,7 +411,6 @@ expr_list(std::vector<expressions::base*>* exprs, argument* arg)
   if (flag & usr::OVERLOAD) {
     overload* ovl = static_cast<overload*>(ctor);
     ovl->m_obj = argument::dst;
-    int n = code.size();
     vector<usr::flag_t> org;
     if (scope::current->m_id != scope::BLOCK) {
       const vector<usr*>& v = ovl->m_candidacy;
@@ -437,7 +437,6 @@ expr_list(std::vector<expressions::base*>* exprs, argument* arg)
   assert(T2->m_id == type::FUNC);
   typedef const func_type FT;
   FT* ft = static_cast<FT*>(T2);
-  int n = code.size();
   if (scope::current->m_id != scope::BLOCK)
     ctor->m_flag = usr::flag_t(ctor->m_flag & ~usr::INLINE);
   call_impl::wrapper(ctor, &res, argument::dst);

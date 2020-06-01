@@ -792,7 +792,6 @@ namespace cxx_compiler {
     {
       switch (n) {
       case PEEKED_NAME_LEX:
-	assert(!templ);
         assert(!lval.empty());
         cxx_compiler_lval.m_var = static_cast<var*>(lval.front());
         lval.pop_front();
@@ -805,7 +804,7 @@ namespace cxx_compiler {
           last_token = identifier::judge(name);
           delete u;
         }
-        return n;
+	return last_token;
       case IDENTIFIER_LEX:
         assert(!lval.empty());
         cxx_compiler_lval.m_var = static_cast<var*>(lval.front());
@@ -1251,7 +1250,6 @@ namespace cxx_compiler {
     namespace member_function_body {
       map<usr*, save_t> stbl;
       save_t* saved;
-      void save_brace(read_t*);
       inline read_t* get(usr* key, scope* param)
       {
 	if (!templ::save_t::nest.empty()) {
@@ -1451,7 +1449,11 @@ namespace cxx_compiler {
 namespace cxx_compiler {
   namespace parse {
     namespace templ {
+#ifndef __GNUC__
+      vector<save_t*> save_t::nest;
+#else  // __GNUC__
       list<save_t*> save_t::nest;
+#endif  // __GNUC__
     } // end of namespace templ
   } // end of namespace parse
 } // end of namespace cxx_compiler
@@ -1469,6 +1471,15 @@ namespace cxx_compiler {
       for (auto p : ls2)
 	cout << p << ' ';
       cout << endl;
+    }
+    void debug_stbl()
+    {
+      for (auto p : member_function_body::stbl) {
+	usr* u = p.first;
+	cout << u << '(' << u->m_name << ')' << endl;
+	const read_t& r = p.second.m_read;
+	debug_read(r);
+      }
     }
   } // end of namespace parse
 } // end of namespace cxx_compiler

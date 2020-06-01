@@ -726,7 +726,7 @@ cxx_compiler::declarations::action1(var* v, bool ini)
       assert(!save_t::nest.empty());
       save_t* p = save_t::nest.back();
       assert(!p->m_usr);
-      p->m_usr = u = new template_usr(*u, tps);
+      p->m_usr = u = new template_usr(*u, tps, p->m_patch_13_2);
     }
   }
 

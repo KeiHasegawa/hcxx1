@@ -1780,6 +1780,14 @@ template_param_type::encode(std::ostream& os) const
 
 int cxx_compiler::template_param_type::size() const { return 1; }
 
+const cxx_compiler::type*
+cxx_compiler::template_param_type::complete_type() const
+{
+  assert(this == m_tag->m_types.first);
+  const type* T = m_tag->m_types.second;
+  return T ? T : this;
+}
+
 const cxx_compiler::template_param_type*
 cxx_compiler::template_param_type::create(tag* ptr)
 {

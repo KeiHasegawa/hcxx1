@@ -1826,6 +1826,7 @@ public:
   void encode(std::ostream&) const;
   int size() const;
   tag* get_tag() const { return m_tag; }
+  const type* complete_type() const;
   static const template_param_type* create(tag*);
 };
 
