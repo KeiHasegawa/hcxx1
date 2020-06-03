@@ -195,22 +195,9 @@ namespace cxx_compiler {
 	  return tmp(Tx, Ty);
 	}
       };
-      bool record_case(const type* Tx, const type* Ty,
-		       const map<string, scope::tps_t::value_t>& table)
+      bool common(tag* xtag, tag* ytag,
+		  const map<string, scope::tps_t::value_t>& table)
       {
-	assert(Tx->m_id == type::RECORD);
-	if (Ty->m_id == type::REFERENCE) {
-	  typedef const reference_type RT;
-	  RT* rt = static_cast<RT*>(Ty);
-	  Ty = rt->referenced_type();
-	}
-
-	type::id_t id = Ty->m_id;
-	if (id != type::RECORD && id != type::INCOMPLETE_TAGGED)
-	  return false;
-
-	tag* xtag = Tx->get_tag();
-	tag* ytag = Ty->get_tag();
 	if (xtag == ytag)
 	  return true;
 	if (!(xtag->m_flag & tag::INSTANTIATE))
@@ -230,6 +217,24 @@ namespace cxx_compiler {
 				    helper(table));
 	return ret == make_pair(end(xseed), end(yseed));
       }
+      bool record_case(const type* Tx, const type* Ty,
+		       const map<string, scope::tps_t::value_t>& table)
+      {
+	assert(Tx->m_id == type::RECORD);
+	if (Ty->m_id == type::REFERENCE) {
+	  typedef const reference_type RT;
+	  RT* rt = static_cast<RT*>(Ty);
+	  Ty = rt->referenced_type();
+	}
+
+	type::id_t id = Ty->m_id;
+	if (id != type::RECORD && id != type::INCOMPLETE_TAGGED)
+	  return false;
+
+	tag* xtag = Tx->get_tag();
+	tag* ytag = Ty->get_tag();
+	return common(xtag, ytag, table);
+      }
       bool incomplete_case(const type* Tx, const type* Ty,
 		       const map<string, scope::tps_t::value_t>& table)
       {
@@ -246,7 +251,7 @@ namespace cxx_compiler {
 	  return false;
 	tag* xtag = Tx->get_tag();
 	tag* ytag = Ty->get_tag();
-	return xtag == ytag;
+	return common(xtag, ytag, table);
       }
       bool pointer_case(const type* Tx, const type* Ty,
 			const map<string, scope::tps_t::value_t>& table)
@@ -1105,9 +1110,12 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
   nest.pop_back();
   if (!ret) {
     string name = instantiated_name();
-    ret = new instantiated_tag(m_kind, name, parse::position, m_bases, this);
     map<string, tag*>& tags = scope::current->m_tags;
-    assert(tags.find(name) == tags.end());
+    typedef map<string, tag*>::const_iterator IT;
+    IT p = tags.find(name);
+    if (p != tags.end())
+      return p->second;
+    ret = new instantiated_tag(m_kind, name, parse::position, m_bases, this);
     tags[name] = ret;
     scope::current->m_children.push_back(ret);
     ret->m_parent = scope::current;

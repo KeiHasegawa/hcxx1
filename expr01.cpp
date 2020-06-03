@@ -234,8 +234,9 @@ cxx_compiler::var*
 cxx_compiler::member_function::call(std::vector<var*>* arg)
 {
   using namespace std;
+  var* fun = m_fun;
   auto_ptr<member_function> sweeper(this);
-  const type* T = m_fun->m_type;
+  const type* T = fun->m_type;
   if (T->m_id == type::POINTER) {
     typedef const pointer_type PT;
     PT* pt = static_cast<PT*>(T);
@@ -244,11 +245,22 @@ cxx_compiler::member_function::call(std::vector<var*>* arg)
   assert(T->m_id == type::FUNC); 
   typedef const func_type FT;
   FT* ft = static_cast<FT*>(T);
-  if (usr* u = m_fun->usr_cast())
-    m_fun = instantiate_if(u);
-  var* ret = call_impl::common(ft, m_fun, arg, 0, m_obj,
+  if (usr* u = fun->usr_cast()) {
+    fun = instantiate_if(u);
+    if (fun == u) {
+      usr::flag2_t flag2 = u->m_flag2;
+      if (flag2 & usr::TEMPLATE) {
+	template_usr* tu = static_cast<template_usr*>(u);
+	fun = tu->instantiate(arg, 0);
+	T = fun->m_type;
+	assert(T->m_id == type::FUNC); 
+	ft = static_cast<FT*>(T);
+      }
+    }
+  }
+  var* ret = call_impl::common(ft, fun, arg, 0, m_obj,
                                m_qualified_func, m_vftbl_off);
-  if (usr* u = m_fun->usr_cast()) {
+  if (usr* u = fun->usr_cast()) {
     usr::flag_t flag = u->m_flag;
     if (!error::counter && !cmdline::no_inline_sub) {
       if (flag & usr::INLINE) {
