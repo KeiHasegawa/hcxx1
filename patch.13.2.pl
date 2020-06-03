@@ -65,20 +65,12 @@ print <<EOF
           using namespace parse;
           if (!templ::save_t::nest.empty()) {
             YYDPRINTF((stderr, "patch.13.2 is applied\\n"));
-#if 0
-            member_function_body::save(yyvsp[0].m_usr);
-	    templ::save_t* p = templ::save_t::nest.back();
-	    p->m_patch_13_2 = true;
-            pair<int, file_t>& r = p->m_read.m_token.back();
-            r.first = yychar = ';';
-#else
 	    templ::save_t* p = templ::save_t::nest.back();
 	    p->m_patch_13_2 = true;
 	    identifier::mode = identifier::peeking;
 	    member_function_body::save_brace(&p->m_read);
 	    identifier::mode = identifier::look;
             yychar = ';';
-#endif
             yyn = $aaa + 1;
             goto yyreduce;
           }

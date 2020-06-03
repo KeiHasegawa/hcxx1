@@ -1287,13 +1287,46 @@ member_declaration
     }
   | COLONCOLON_MK move_to_root nested_name_specifier TEMPLATE_KW
     unqualified_id ';'
-   { cxx_compiler::error::not_implemented(); }
+    {
+      using namespace cxx_compiler::parse;
+      context_t::clear();
+    }
   | COLONCOLON_MK move_to_root nested_name_specifier unqualified_id ';'
+    {
+      using namespace cxx_compiler::parse;
+      context_t::clear();
+    }
   | nested_name_specifier TEMPLATE_KW unqualified_id ';'
-   { cxx_compiler::error::not_implemented(); }
+    {
+      using namespace cxx_compiler::parse;
+      context_t::clear();
+    }
   | nested_name_specifier unqualified_id ';'
+    {
+      using namespace cxx_compiler::parse;
+      context_t::clear();
+    }
   | using_declaration
+    {
+      using namespace cxx_compiler::parse;
+      context_t::clear();
+    }
   | template_declaration
+    {
+      using namespace cxx_compiler;
+      vector<scope*>& children = scope::current->m_children;
+      typedef vector<scope*>::iterator IT;
+      for (IT p = begin(children) ; p != end(children); ) {
+        scope* ps = *p;
+	scope::id_t id = ps->m_id;
+        if (id == scope::PARAM)
+	  p = children.erase(p);
+	else
+	  ++p;
+      }
+      using namespace cxx_compiler::parse;
+      context_t::clear();
+    }
   ;
 
 member_declarator_list

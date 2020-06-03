@@ -1602,8 +1602,9 @@ struct template_usr : usr, templ_base {
   typedef map<KEY, usr*> table_t;
   table_t m_table;
   bool m_patch_13_2;
+  scope* m_decled;
   template_usr(usr& u, const scope::tps_t& tps, bool patch_13_2)
-    : usr(u), templ_base(tps), m_patch_13_2(patch_13_2)
+    : usr(u), templ_base(tps), m_patch_13_2(patch_13_2), m_decled(0)
   {
     m_flag2 = usr::flag2_t(m_flag2 | usr::TEMPLATE);
     if (m_patch_13_2)

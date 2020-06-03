@@ -80,6 +80,8 @@ namespace cxx_compiler {
       {
 	assert(u->m_flag2 & usr::TEMPLATE);
 	template_usr* tu = static_cast<template_usr*>(u);
+	assert(!tu->m_decled);
+	tu->m_decled = scope::current;
 	tu->m_read = r;
 	if (!(u->m_flag & usr::STATIC_DEF))
 	  return;
@@ -646,9 +648,8 @@ cxx_compiler::template_usr::instantiate_mem_fun(const KEY& key)
 
   template_usr_impl::sweeper_c sweeper_c(m_tps, key);
 
-  scope* ps = m_patch_13_2 ? m_scope : m_scope->m_parent;
   templ_base tmp = *this;
-  template_usr_impl::sweeper_b sweeper_b(ps, &tmp);
+  template_usr_impl::sweeper_b sweeper_b(m_decled, &tmp);
   s_stack.push(info_t(this, 0, info_t::NONE, key));
   cxx_compiler_parse();
   instantiated_usr* ret = s_stack.top().m_iu;

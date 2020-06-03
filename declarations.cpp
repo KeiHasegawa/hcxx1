@@ -1171,6 +1171,20 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
 }
 
 namespace cxx_compiler {
+  namespace overload_impl {
+    bool match(usr* prev, usr* curr)
+    {
+      if (compatible(prev->m_type, curr->m_type))
+	return true;
+      usr::flag2_t pf = prev->m_flag2;
+      if (!(pf & usr::TEMPLATE))
+	return false;
+      usr::flag2_t cf = curr->m_flag2;
+      if (!(cf & usr::TEMPLATE))
+	return false;
+      return true;
+    }
+  } // end of namespace overload_impl
   overload::overload(usr* prev, usr* curr)
     : usr(curr->m_name, 0, usr::OVERLOAD, curr->m_file, usr::NONE2), m_obj(0)
   { 
@@ -1184,8 +1198,8 @@ namespace cxx_compiler {
     overload* ovl = static_cast<overload*>(prev);
     m_candidacy = ovl->m_candidacy;
     typedef vector<usr*>::iterator IT;
-    IT p = find_if(begin(m_candidacy), end(m_candidacy), [curr](usr* u)
-		   { return compatible(u->m_type, curr->m_type); });
+    IT p = find_if(begin(m_candidacy), end(m_candidacy),
+		   bind2nd(ptr_fun(overload_impl::match), curr));
     if (p != end(m_candidacy))
       *p = curr;
     else
