@@ -130,26 +130,47 @@ cxx_compiler::expressions::postfix::call::~call()
   delete m_arg;
 }
 
+namespace cxx_compiler {
+  namespace var_impl {
+    var* funop_code(var* fun, vector<var*>* arg)
+    {
+      const type* T = fun->result_type();
+      usr* op_fun = operator_function(T, '(');
+      if (!op_fun)
+	return 0;
+      usr::flag2_t flag2 = op_fun->m_flag2;
+      if (flag2 & usr::TEMPLATE) {
+	template_usr* templ = static_cast<template_usr*>(op_fun);
+	op_fun = templ->instantiate(arg, 0);
+      }
+      return call_impl::wrapper(op_fun, arg, fun);
+    }
+  } // end of namespace var_impl
+} // end of namespace cxx_compiler
+
 cxx_compiler::var* cxx_compiler::var::call(std::vector<var*>* arg)
 {
   using namespace std;
+
+  if (var* ret = var_impl::funop_code(this, arg))
+    return ret;
+
   var* func = rvalue();
   const type* T = func->m_type;
   T = T->unqualified();
-  if ( T->m_id == type::POINTER ){
+  if (T->m_id == type::POINTER) {
     typedef const pointer_type PT;
     PT* pt = static_cast<PT*>(T);
     T = pt->referenced_type();
   }
-  if ( T->m_id != type::FUNC ){
-    using namespace error::expressions::postfix::call;
-    not_function(parse::position,func);
-    return func;
+  if (T->m_id == type::FUNC) {
+    typedef const func_type FT;
+    FT* ft = static_cast<FT*>(T);
+    return call_impl::common(ft, func, arg, 0, 0, false, 0);
   }
-  typedef const func_type FT;
-  FT* ft = static_cast<FT*>(T);
-  var* ret = call_impl::common(ft, func, arg, 0, 0, false, 0);
-  return ret;
+  using namespace error::expressions::postfix::call;
+  not_function(parse::position,func);
+  return func;
 }
 
 cxx_compiler::var*
