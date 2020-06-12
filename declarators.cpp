@@ -831,6 +831,19 @@ function::definition::action(fundef* fdef, std::vector<tac*>& vc)
     class_or_namespace_name::pop(param);
     return;
   }
+  if (flag2 & usr::INSTANTIATE) {
+    instantiated_usr* iu = static_cast<instantiated_usr*>(u);
+    const instantiated_usr::SEED& seed = iu->m_seed;
+    typedef instantiated_usr::SEED::const_iterator IT;
+    IT p = find_if(begin(seed), end(seed), [](scope::tps_t::val2_t v)
+		   {
+		     const type* T = v.first;
+		     if (!T)
+		       return false;
+		     return T->m_id == type::TEMPLATE_PARAM;});
+    if (p != end(seed))
+      return;
+  }
   if (!error::counter && cmdline::optimize_level >= 1)
     optimize::action(fdef, vc);
   usr::flag_t flag = u->m_flag;

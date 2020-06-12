@@ -374,6 +374,7 @@ namespace cxx_compiler {
       }
     };
     struct sweeper_b {
+      scope::tps_t m_tps;
       scope* m_current;
       scope* m_del;
       file_t m_file;
@@ -434,8 +435,8 @@ namespace cxx_compiler {
 	return ret;
       }
       sweeper_b(scope* p, templ_base* q)
-	: m_current(scope::current), m_del(current_param()),
-	  m_file(parse::position),
+	: m_tps(scope::current->m_tps), m_current(scope::current),
+	  m_del(current_param()), m_file(parse::position),
 	  m_fundef(fundef::current), m_ptr(parse::templ::ptr),
 	  m_garbage(garbage), m_code(code),
 	  m_stack1(declarations::specifier_seq::info_t::s_stack),
@@ -444,6 +445,10 @@ namespace cxx_compiler {
 	  m_nest(parse::templ::save_t::nest), m_yychar(cxx_compiler_char),
 	  m_read(parse::g_read), m_retry(parse::context_t::retry)
       {
+	scope::tps_t& tps = scope::current->m_tps;
+	tps.m_table.clear();
+	tps.m_order.clear();
+	tps.m_default.clear();
 	scope::current = p;
 	fundef::current = 0;
 	parse::templ::ptr = q;
@@ -489,6 +494,7 @@ namespace cxx_compiler {
 	  children.push_back(m_del);
 	}
 	scope::current = m_current;
+	scope::current->m_tps = m_tps;
       }
     };
     bool comp(const scope::tps_t::val2_t& x, const scope::tps_t::val2_t& y)
@@ -558,19 +564,16 @@ cxx_compiler::template_usr::instantiate(std::vector<var*>* arg, KEY* trial)
   typedef const func_type FT;
   FT* ft = static_cast<FT*>(m_type);
   const vector<const type*>& param = ft->param();
-  int a = atype.size();
-  int b = param.size();
-  int n = min(a, b);
+  if (atype.size() != param.size())
+    return 0;
 
   const map<string, scope::tps_t::value_t>& table = m_tps.m_table;
   template_usr_impl::sweeper_a sweeper_a(table);
 
   typedef vector<const type*>::const_iterator ITx;
-  ITx bn = begin(param);
-  ITx ed = bn + n;
-  pair<ITx, ITx> pxx = mismatch(bn, ed, begin(atype),
+  pair<ITx, ITx> pxx = mismatch(begin(param), end(param), begin(atype),
 				template_usr_impl::calc(table));
-  if (pxx.first != ed) {
+  if (pxx.first != end(param)) {
     if (trial)
       return 0;
     error::not_implemented();
