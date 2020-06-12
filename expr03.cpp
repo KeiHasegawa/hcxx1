@@ -341,6 +341,7 @@ namespace cxx_compiler {
       const type* R = src->result_type();
       if (Ty != R)
 	return src;
+      Ty = Ty->complete_type();
       typedef const reference_type RT;
       RT* xrt = static_cast<RT*>(T);
       const type* Rx = xrt->referenced_type();
@@ -369,6 +370,7 @@ cxx_compiler::var* cxx_compiler::var::cast(const type* T)
     return r;
 
   const type* U = m_type->unqualified();
+  U = U->complete_type();
   if (U->m_id == type::RECORD) {
     typedef const record_type REC;
     REC* rec = static_cast<REC*>(U);

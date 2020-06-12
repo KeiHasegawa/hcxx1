@@ -539,6 +539,12 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
 	cxx_compiler_lval.m_ut = new pair<usr*, tag*>(u, 0);
 	return TEMPLATE_NAME_LEX;
       }
+      if (mode == new_obj)
+	return create(name);
+#if 1
+      if (parse::templ::ptr)
+	return create(name);
+#endif
     }
     if (flag2 & usr::PARTIAL_ORDERING)
       return IDENTIFIER_LEX;
@@ -995,6 +1001,10 @@ int cxx_compiler::parse::get_token()
     else
       get_common(last_token, g_read.m_lval, false, false);
     if (last_token == COLONCOLON_MK) {
+      // Ex1 : pt->T::~T()
+      //     2nd `T' must be lookuped
+      // Ex2 : template<class T> vector<T>::~vector(){ ... }
+      //     2nd `vector' must be lookuped
       if (scope::current->m_id != scope::TAG && peek() != '*')
         identifier::mode = identifier::look;
     }

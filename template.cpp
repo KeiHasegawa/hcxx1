@@ -396,7 +396,11 @@ namespace cxx_compiler {
       }
       sweeper_b(scope* p, templ_base* q)
 	: m_current(scope::current), m_parent(scope::current->m_parent),
+#if 1
 	  m_del(scope::current), m_file(parse::position),
+#else
+	  m_del(0), m_file(parse::position),
+#endif
 	  m_fundef(fundef::current), m_ptr(parse::templ::ptr),
 	  m_garbage(garbage), m_code(code),
 	  m_stack1(declarations::specifier_seq::info_t::s_stack),
@@ -422,13 +426,53 @@ namespace cxx_compiler {
 	      m_del = m_parent;
 	      m_parent = m_parent->m_parent;
 	    }
+#if 1
+	    if (m_del->m_id == scope::PARAM) {
+	      vector<scope*>& children = m_parent->m_children;
+	      typedef vector<scope*>::reverse_iterator IT;
+	      IT p = find(rbegin(children), rend(children), m_del);
+	      assert(p != rend(children));
+	      // Once erase current function parameter scope
+	      children.erase(p.base() - 1);
+	    }
+	    else {
+	      vector<scope*>& children = m_current->m_children;
+	      if (!children.empty()) {
+		m_del = children.back();
+		if (m_del->m_id == scope::PARAM) {
+		  children.pop_back();
+		  m_parent = m_current;
+		}
+		else
+		  m_del = 0;
+	      }
+	      else
+		m_del = 0;
+	    }
+#else
 	    vector<scope*>& children = m_parent->m_children;
 	    typedef vector<scope*>::reverse_iterator IT;
 	    IT p = find(rbegin(children), rend(children), m_del);
 	    assert(p != rend(children));
 	    // Once erase current function parameter scope
 	    children.erase(p.base() - 1);
+#endif
 	  }
+#if 1
+	  else {
+	    vector<scope*>& children = m_current->m_children;
+	    if (!children.empty()) {
+	      scope* p = children.back();
+	      if (p->m_id == scope::PARAM) {
+		m_del = p;
+		m_parent = m_current;
+		children.pop_back();
+	      }
+	    }
+	    else
+	      m_del = 0;
+	  }
+#endif
 	}
 
 	fundef::current = 0;
@@ -468,11 +512,20 @@ namespace cxx_compiler {
 	parse::templ::ptr = m_ptr;
 	fundef::current = m_fundef;
 	parse::position = m_file;
+#if 1
+	if (m_parent && m_del) {
+	  vector<scope*>& children = m_parent->m_children;
+	  // Recover parameter scope which is erased at sweeper_b::sweeper_b
+	  assert(m_del->m_id == scope::PARAM);
+	  children.push_back(m_del);
+	}
+#else
 	if (m_parent) {
 	  vector<scope*>& children = m_parent->m_children;
 	  // Recover parameter scope which is erased at sweeper_b::sweeper_b
 	  children.push_back(m_del);
 	}
+#endif
 	scope::current = m_current;
       }
     };
@@ -640,7 +693,7 @@ namespace cxx_compiler {
 } // end of namespace cxx_compiler
 
 cxx_compiler::usr*
-cxx_compiler::template_usr::instantiate_mem_fun(const KEY& key)
+cxx_compiler::template_usr::instantiate(const KEY& key)
 {
   table_t::const_iterator p = m_table.find(key);
   if (p != m_table.end())
@@ -1087,6 +1140,8 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
 
   if (template_tag_impl::already(this)) {
     string name = instantiated_name();
+    if (tag* ptr = declarations::elaborated::lookup(name, scope::current))
+      return ptr;
     instantiated_tag* ret =
       new instantiated_tag(m_kind, name, parse::position, m_bases, this);
     map<string, tag*>& tags = scope::current->m_tags;
@@ -1353,7 +1408,7 @@ namespace cxx_compiler {
 		calc);
       return true;
     }
-    bool comp_parent(scope* x, scope* y, templ_base::KEY& key)
+    bool comp(scope* x, scope* y, templ_base::KEY& key)
     {
       if (x == y)
 	return true;
@@ -1381,7 +1436,7 @@ namespace cxx_compiler {
       assert(xseed.size() == yseed.size());
       transform(begin(xseed), end(xseed), begin(yseed), back_inserter(key),
 		calc);
-      return comp_parent(x->m_parent, y->m_parent, key);
+      return comp(x->m_parent, y->m_parent, key);
     }
     bool non_func_case(template_usr* tu, usr* ins, templ_base::KEY& key)
     {
@@ -1395,12 +1450,16 @@ namespace cxx_compiler {
       if (!x)
 	return none_tag_case(tu, ins, key);
       tag::flag_t flag = x->m_flag;
-      if (!(flag & tag::TYPENAMED))
-	return false;
+      if (flag & tag::TYPENAMED) {
+	tag* y = Ti->get_tag();
+	if (!y)
+	  return false;
+	return comp(x->m_parent, y->m_parent, key);
+      }
       tag* y = Ti->get_tag();
       if (!y)
 	return false;
-      return comp_parent(x->m_parent, y->m_parent, key);
+      return comp(x, y, key);
     }
   } // end of namespace instance_of_impl
 } // end of namespace cxx_compiler

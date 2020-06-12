@@ -616,6 +616,7 @@ namespace declarations {
   namespace elaborated {
     const type* action(int, var*);
     const type* action(int, pair<usr*, tag*>*);
+    tag* lookup(string, scope*);
   } // end of namespace elaborated
   namespace linkage {
     extern void action(var*, bool brace);
@@ -1611,7 +1612,7 @@ struct template_usr : usr, templ_base {
       m_flag = usr::flag_t(m_flag | usr::INLINE);
   }
   usr* instantiate(vector<var*>* arg, KEY* trial);
-  usr* instantiate_mem_fun(const KEY& key);
+  usr* instantiate(const KEY& key);
   usr* instantiate_common(vector<scope::tps_t::val2_t*>*, info_t::mode_t);
   usr* instantiate_explicit(vector<scope::tps_t::val2_t*>* pv)
   { return instantiate_common(pv, info_t::EXPLICIT); }

@@ -435,7 +435,7 @@ cxx_compiler::usr* cxx_compiler::instantiate_if(usr* fun)
   tag* ptr2 = p->second;
   assert(find_if(++p, end(tbl), [fun](const pair<template_tag::KEY, tag*>& x)
 		 { return has_templ(x,fun); } ) == end(tbl));
-  return tu->instantiate_mem_fun(it->m_seed);
+  return tu->instantiate(it->m_seed);
 }
 
 namespace cxx_compiler {
@@ -450,7 +450,7 @@ namespace cxx_compiler {
 	template_usr* tu = static_cast<template_usr*>(u);
 	template_usr::KEY key;
 	if (tu->instantiate(arg, &key))
-	  u = tu->instantiate_mem_fun(key);
+	  u = tu->instantiate(key);
       }
       const type* T = u->m_type;
       assert(T->m_id == type::FUNC);
@@ -841,7 +841,7 @@ namespace cxx_compiler {
       T = T->unqualified();
       const type* R = rt->referenced_type();
       R = R->unqualified();
-      if (R == T)
+      if (compatible(R, T))
         return make_pair(R,0);
       pair<const type*, int> zero;
       if (R->m_id != type::RECORD)

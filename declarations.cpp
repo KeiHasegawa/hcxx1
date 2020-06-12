@@ -792,8 +792,9 @@ namespace cxx_compiler { namespace declarations {
     return name == operator_name(DELETE_ARRAY_LEX);
   }
   struct friend_func : usr {
+    usr* m_org;
     tag* m_tag;
-    friend_func(const usr& u, tag* ptr) : usr(u), m_tag(ptr) {}
+    friend_func(usr* u, tag* ptr) : usr(*u), m_org(u), m_tag(ptr) {}
   };
 } } // end of namespace declarations and cxx_compiler
 
@@ -842,7 +843,7 @@ cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr)
     if (flag & mask)
       return curr;
     curr->m_scope = ptr->m_parent;
-    curr = new friend_func(*curr, ptr);
+    curr = new friend_func(curr, ptr);
   }
 
   map<string, vector<usr*> >& usrs = curr->m_scope->m_usrs;
@@ -922,13 +923,13 @@ cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr)
 	v.push_back(prev);
       }
       else {
-	// instantiated via `template_usr::instantiate_mem_fun'
+	// instantiated via `template_usr::instantiate(const KEY&)'
 	assert(ins->m_scope->m_id == scope::TAG);
 	v.push_back(ins);
       }
     }
     else {
-      // instantiated via `template_usr::instantiate_mem_fun'
+      // instantiated via `template_usr::instantiate(const KEY&)'
       assert(ins->m_scope->m_id == scope::TAG);
       v.push_back(ins);
     }
@@ -936,10 +937,13 @@ cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr)
   return curr;
 }
 
-namespace cxx_compiler { namespace declarations {
-  bool conflict(usr::flag_t, usr::flag_t);
-  bool conflict(const type*, const type*);
-} } // end of namespace declarations and cxx_compiler
+namespace cxx_compiler {
+  namespace declarations {
+    bool conflict(usr::flag_t, usr::flag_t);
+    bool conflict(const type*, const type*);
+    bool conflict_tu(template_usr*, template_usr*);
+  } // end of namespace declarations
+} // end of namespace cxx_compiler
 
 bool cxx_compiler::declarations::conflict(usr* x, usr* y)
 {
@@ -962,6 +966,13 @@ bool cxx_compiler::declarations::conflict(usr* x, usr* y)
   if (flag2 & usr::TEMPLATE) {
     if (!(y->m_flag2 & usr::TEMPLATE))
       return false;
+    if (flag & usr::FRIEND) {
+      friend_func* ff = static_cast<friend_func*>(x);
+      x = ff->m_org;
+    }
+    template_usr* xt = static_cast<template_usr*>(x);
+    template_usr* yt = static_cast<template_usr*>(y);
+    return conflict_tu(xt, yt);
   }
   if (flag2 & usr::PARTIAL_ORDERING)
     return false;
@@ -1029,6 +1040,128 @@ bool cxx_compiler::declarations::conflict(const type* prev, const type* curr)
   FT* fc = static_cast<FT*>(curr);
   return !fp->overloadable(fc);
 }
+
+namespace cxx_compiler {
+  namespace declarations {
+    namespace conflict_impl {
+      struct comp {
+	const scope::tps_t& m_xtps;
+	const scope::tps_t& m_ytps;
+	comp(const scope::tps_t& xtps, const scope::tps_t& ytps)
+	  : m_xtps(xtps), m_ytps(ytps) {}
+	bool operator()(string x, string y)
+	{
+	  typedef scope::tps_t::value_t V;
+	  typedef map<string, V>::const_iterator IT;
+	  const map<string, V>& xtbl = m_xtps.m_table;
+	  const map<string, V>& ytbl = m_ytps.m_table;
+	  IT px = xtbl.find(x);
+	  assert(px != xtbl.end());
+	  const V& vx = px->second;
+	  IT py = ytbl.find(y);
+	  assert(py != ytbl.end());
+	  const V& vy = py->second;
+	  if (vx.first)
+	    return vy.first;
+	  assert(vx.second);
+	  return vy.second;
+	}
+      };
+      struct templ_arg {
+	const scope::tps_t& m_tps;
+	templ_arg(const scope::tps_t& tps) : m_tps(tps) {}
+	scope::tps_t::val2_t operator()(string name)
+	{
+	  typedef scope::tps_t::value_t V;
+	  typedef map<string, V>::const_iterator IT;
+	  const map<string, V>& tbl = m_tps.m_table;
+	  IT p = tbl.find(name);
+	  assert(p != tbl.end());
+	  const V& v = p->second;
+	  if (tag* ptr = v.first) {
+	    const type* T = ptr->m_types.first;
+	    return scope::tps_t::val2_t(T, (var*)0);
+	  }
+	  error::not_implemented();
+	  return scope::tps_t::val2_t((const type*)0, (var*)0);
+	}
+      };
+      const type* tu_common(template_usr* x, template_usr* y)
+      {
+	using namespace conflict_impl;
+	assert(x->m_name == y->m_name);
+	const scope::tps_t& xtps = x->m_tps;
+	const scope::tps_t& ytps = y->m_tps;
+	const vector<string>& xo = xtps.m_order;
+	const vector<string>& yo = ytps.m_order;
+	if (xo.size() != yo.size())
+	  return 0;
+	typedef vector<string>::const_iterator IT;
+	pair<IT, IT> ret = mismatch(begin(xo), end(xo), begin(yo),
+				    comp(xtps, ytps));
+	if (ret != make_pair(end(xo), end(yo)))
+	  return 0;
+	template_usr::KEY key;
+	transform(begin(yo), end(yo), back_inserter(key), templ_arg(ytps));
+	usr* xi = x->instantiate(key);
+	scope* ps = xi->m_scope;
+	map<string, vector<usr*> >& usrs = ps->m_usrs;
+	map<string, vector<usr*> >::iterator p = usrs.find(xi->m_name);
+	vector<usr*>& v = p->second;
+	if (v.size() >= 2) {
+	  usr* b = v.back();
+	  if (b->m_flag & usr::FRIEND) {
+	    friend_func* ff = static_cast<friend_func*>(b);
+	    assert(ff->m_org == x);
+	  }
+	  else
+	    assert(b == x);
+	  v.pop_back();
+	  assert(v.back() == xi);
+	  v.pop_back();
+	  v.push_back(b);
+	}
+	else {
+	  assert(v.size() == 1);
+	  usr* b = v.back();
+	  if (b->m_flag & usr::FRIEND) {
+	    friend_func* ff = static_cast<friend_func*>(b);
+	    assert(ff->m_org == x);
+	  }
+	  else
+	    assert(b == x);
+	}
+	const type* Tx = xi->m_type;
+	return Tx;
+      }
+    } // end of namespace conflict_impl
+  } // end of namespace declarations
+} // end of namespace cxx_compiler
+
+bool
+cxx_compiler::declarations::conflict_tu(template_usr* x, template_usr* y)
+{
+  using namespace conflict_impl;
+  const type* Tx = tu_common(x, y);
+  if (!Tx)
+    return false;
+  const type* Ty = y->m_type;
+  return conflict(Tx, Ty);
+}
+
+namespace cxx_compiler {
+  namespace declarations {
+    const type* composite_tu(template_usr* x, template_usr* y)
+    {
+      using namespace conflict_impl;
+      const type* Tx = tu_common(x, y);
+      if (!Tx)
+	return 0;
+      const type* Ty = y->m_type;
+      return composite(Tx, Ty);
+    }
+  } // end of namespace declarations
+} // end of namespace cxx_compiler
 
 cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
 {
@@ -1114,11 +1247,19 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
 
   usr::flag2_t flag2 = prev->m_flag2;
   if (flag2 & usr::TEMPLATE) {
+    if (flag & usr::FRIEND) {
+      friend_func* ff = static_cast<friend_func*>(prev);
+      prev = ff->m_org;
+    }
     template_usr* ptu = static_cast<template_usr*>(prev);
     if (curr->m_flag2 & usr::TEMPLATE) {
+      template_usr* ctu = static_cast<template_usr*>(curr);
+      if (const type* T = composite_tu(ptu, ctu)) {
+	ctu->m_type = T;
+	return ctu;
+      }
       string name = curr->m_name;
       scope::current->m_usrs[name].push_back(curr);
-      template_usr* ctu = static_cast<template_usr*>(curr);
       return new partial_ordering(ptu, ctu);
     }
     templ_base::KEY key;
@@ -1312,10 +1453,6 @@ cxx_compiler::declarations::exchange(bool installed, usr* new_one, usr* org)
 
   return new_one;
 }
-
-namespace cxx_compiler { namespace declarations { namespace elaborated {
-  tag* lookup(std::string, scope*);
-} } } // end of namespace elaborated, declarations and cxx_compiler
 
 const cxx_compiler::type*
 cxx_compiler::declarations::elaborated::action(int keyword, var* v)
