@@ -541,10 +541,8 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
       }
       if (mode == new_obj)
 	return create(name);
-#if 1
       if (parse::templ::ptr)
 	return create(name);
-#endif
     }
     if (flag2 & usr::PARTIAL_ORDERING)
       return IDENTIFIER_LEX;

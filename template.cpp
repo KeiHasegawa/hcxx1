@@ -375,7 +375,6 @@ namespace cxx_compiler {
     };
     struct sweeper_b {
       scope* m_current;
-      scope* m_parent;
       scope* m_del;
       file_t m_file;
       fundef* m_fundef;
@@ -394,13 +393,49 @@ namespace cxx_compiler {
 	scope::id_t id = p->m_id;
 	return id == scope::BLOCK || id == scope::PARAM;
       }
+      static scope* current_param()
+      {
+	if (fundef::current) {
+	  scope* param = fundef::current->m_param;
+	  scope* parent = param->m_parent;
+	  vector<scope*>& children = parent->m_children;
+	  typedef vector<scope*>::reverse_iterator IT;
+	  IT p = find(rbegin(children), rend(children), param);
+	  assert(p != rend(children));
+	  // Once erase current function parameter scope
+	  children.erase(p.base() - 1);
+	  return param;
+	}
+
+	if (scope* parent = scope::current->m_parent) {
+	  scope* ret = scope::current;
+	  while (block_or_param(parent)) {
+	    ret = parent;
+	    parent = parent->m_parent;
+	  }
+	  if (ret->m_id == scope::PARAM) {
+	    vector<scope*>& children = parent->m_children;
+	    typedef vector<scope*>::reverse_iterator IT;
+	    IT p = find(rbegin(children), rend(children), ret);
+	    assert(p != rend(children));
+	    // Once erase current function parameter scope
+	    children.erase(p.base() - 1);
+	    return ret;
+	  }
+	}
+
+	vector<scope*>& children = scope::current->m_children;
+	if (children.empty())
+	  return 0;
+	scope* ret = children.back();
+	if (ret->m_id != scope::PARAM)
+	  return 0;
+	children.pop_back();
+	return ret;
+      }
       sweeper_b(scope* p, templ_base* q)
-	: m_current(scope::current), m_parent(scope::current->m_parent),
-#if 1
-	  m_del(scope::current), m_file(parse::position),
-#else
-	  m_del(0), m_file(parse::position),
-#endif
+	: m_current(scope::current), m_del(current_param()),
+	  m_file(parse::position),
 	  m_fundef(fundef::current), m_ptr(parse::templ::ptr),
 	  m_garbage(garbage), m_code(code),
 	  m_stack1(declarations::specifier_seq::info_t::s_stack),
@@ -410,71 +445,6 @@ namespace cxx_compiler {
 	  m_read(parse::g_read), m_retry(parse::context_t::retry)
       {
 	scope::current = p;
-	if (fundef::current) {
-	  m_del = fundef::current->m_param;
-	  m_parent = m_del->m_parent;
-	  vector<scope*>& children = m_parent->m_children;
-	  typedef vector<scope*>::reverse_iterator IT;
-	  IT p = find(rbegin(children), rend(children), m_del);
-	  assert(p != rend(children));
-	  // Once erase current function parameter scope
-	  children.erase(p.base() - 1);
-	}
-	else {
-	  if (m_parent) {
-	    while (block_or_param(m_parent)) {
-	      m_del = m_parent;
-	      m_parent = m_parent->m_parent;
-	    }
-#if 1
-	    if (m_del->m_id == scope::PARAM) {
-	      vector<scope*>& children = m_parent->m_children;
-	      typedef vector<scope*>::reverse_iterator IT;
-	      IT p = find(rbegin(children), rend(children), m_del);
-	      assert(p != rend(children));
-	      // Once erase current function parameter scope
-	      children.erase(p.base() - 1);
-	    }
-	    else {
-	      vector<scope*>& children = m_current->m_children;
-	      if (!children.empty()) {
-		m_del = children.back();
-		if (m_del->m_id == scope::PARAM) {
-		  children.pop_back();
-		  m_parent = m_current;
-		}
-		else
-		  m_del = 0;
-	      }
-	      else
-		m_del = 0;
-	    }
-#else
-	    vector<scope*>& children = m_parent->m_children;
-	    typedef vector<scope*>::reverse_iterator IT;
-	    IT p = find(rbegin(children), rend(children), m_del);
-	    assert(p != rend(children));
-	    // Once erase current function parameter scope
-	    children.erase(p.base() - 1);
-#endif
-	  }
-#if 1
-	  else {
-	    vector<scope*>& children = m_current->m_children;
-	    if (!children.empty()) {
-	      scope* p = children.back();
-	      if (p->m_id == scope::PARAM) {
-		m_del = p;
-		m_parent = m_current;
-		children.pop_back();
-	      }
-	    }
-	    else
-	      m_del = 0;
-	  }
-#endif
-	}
-
 	fundef::current = 0;
 	parse::templ::ptr = q;
 	garbage.clear();
@@ -512,20 +482,12 @@ namespace cxx_compiler {
 	parse::templ::ptr = m_ptr;
 	fundef::current = m_fundef;
 	parse::position = m_file;
-#if 1
-	if (m_parent && m_del) {
-	  vector<scope*>& children = m_parent->m_children;
-	  // Recover parameter scope which is erased at sweeper_b::sweeper_b
-	  assert(m_del->m_id == scope::PARAM);
-	  children.push_back(m_del);
-	}
-#else
-	if (m_parent) {
-	  vector<scope*>& children = m_parent->m_children;
+	if (m_del) {
+	  scope* parent = m_del->m_parent;
+	  vector<scope*>& children = parent->m_children;
 	  // Recover parameter scope which is erased at sweeper_b::sweeper_b
 	  children.push_back(m_del);
 	}
-#endif
 	scope::current = m_current;
       }
     };
