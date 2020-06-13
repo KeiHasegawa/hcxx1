@@ -1414,17 +1414,17 @@ namespace cxx_compiler {
       tag* x = Tt->get_tag();
       if (!x)
 	return none_tag_case(tu, ins, key);
-      tag::flag_t flag = x->m_flag;
-      if (flag & tag::TYPENAMED) {
-	tag* y = Ti->get_tag();
-	if (!y)
-	  return false;
-	return comp(x->m_parent, y->m_parent, key);
-      }
       tag* y = Ti->get_tag();
       if (!y)
 	return false;
-      return comp(x, y, key);
+      tag::flag_t flag = x->m_flag;
+      if (flag & tag::TYPENAMED)
+	return comp(x->m_parent, y->m_parent, key);
+      if (flag & tag::INSTANTIATE)
+	return comp(x, y, key);
+      if (x == y)
+	return comp(tu->m_scope, ins->m_scope, key);
+      return false;
     }
   } // end of namespace instance_of_impl
 } // end of namespace cxx_compiler

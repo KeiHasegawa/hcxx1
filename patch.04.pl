@@ -31,6 +31,8 @@ use Getopt::Long;
 
 $opt_header = 0;
 
+$opt_2 = 0;
+
 GetOptions('header' => \$opt_header, '2' => \$opt_2);
 
 while ( <> ){

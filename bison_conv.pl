@@ -54,6 +54,7 @@ EOF2
   if ( /yystate = yydefgoto/ ){
     print "#include \"patch.00.p\"\n";
     print "#include \"patch.05.2.p\"\n";
+    print "#include \"patch.11.p2\"\n";
   }
   if ( /yystate = yyn/ ){
     print "#include \"patch.01.p\"\n";
