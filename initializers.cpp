@@ -356,7 +356,12 @@ namespace cxx_compiler {
 int cxx_compiler::declarations::initializers::clause::
 gencode(info_t* c, argument* arg)
 {
-  return c->m_expr ? assign(c->m_expr->gen(),arg) : lsting(c->m_list,arg);
+  if (c->m_expr)
+    return assign(c->m_expr->gen(),arg);
+  if (c->m_list)
+    return lsting(c->m_list,arg);
+  assert(parse::templ::func());
+  return 0;
 }
 
 int cxx_compiler::declarations::initializers::
