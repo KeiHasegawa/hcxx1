@@ -1306,7 +1306,14 @@ void cxx_compiler::terminate_dtor_code(usr* u)
 void cxx_compiler::declarations::initializers::common(usr* u, bool ini)
 {
   using namespace std;
-  assert(scope::current == &scope::root);
+  scope::id_t id = scope::current->m_id;
+  if (id != scope::NONE && id != scope::NAMESPACE) {
+    usr::flag_t flag = u->m_flag;
+    assert(flag & usr::STATIC);
+    assert(flag & usr::STATIC_DEF);
+    usr::flag2_t flag2 = u->m_flag2;
+    assert(flag2 & usr::INSTANTIATE);
+  }
   string name = ini ? "initialize." : "terminate.";
   name += u->m_name;
   vector<const type*> dummy;
@@ -1315,7 +1322,8 @@ void cxx_compiler::declarations::initializers::common(usr* u, bool ini)
   usr::flag2_t flag2 =
     ini ? usr::INITIALIZE_FUNCTION : usr::TERMINATE_FUNCTION;
   flag2 = usr::flag2_t(flag2 | usr::GENED_BY_COMP);
-  usr* func = new usr(name, ft, flag, parse::position, flag2);
+  usr* func = new ini_term(name, ft, flag, parse::position, flag2, u);
+  func->m_scope = &scope::root;
   scope* param = new scope(scope::PARAM);
   using namespace class_or_namespace_name;
   assert(!before.empty());

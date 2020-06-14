@@ -835,12 +835,7 @@ function::definition::action(fundef* fdef, std::vector<tac*>& vc)
     instantiated_usr* iu = static_cast<instantiated_usr*>(u);
     const instantiated_usr::SEED& seed = iu->m_seed;
     typedef instantiated_usr::SEED::const_iterator IT;
-    IT p = find_if(begin(seed), end(seed), [](scope::tps_t::val2_t v)
-		   {
-		     const type* T = v.first;
-		     if (!T)
-		       return false;
-		     return T->m_id == type::TEMPLATE_PARAM;});
+    IT p = find_if(begin(seed), end(seed), template_param);
     if (p != end(seed))
       return;
   }

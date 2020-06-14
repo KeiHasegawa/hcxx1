@@ -145,6 +145,18 @@ cxx_compiler::optimize::basic_block::action(fundef* fdef, std::vector<tac*>& v)
     return;
   }
 
+  usr::flag2_t mask2 =
+    usr::flag2_t(usr::INITIALIZE_FUNCTION | usr::TERMINATE_FUNCTION);
+  if (flag2 & mask2) {
+    ini_term* it = static_cast<ini_term*>(u);
+    usr* obj = it->m_obj;
+    usr::flag2_t oflag2 = obj->m_flag2;
+    if (oflag2 & usr::INSTANTIATE) {
+      symtab::literal::just_clear();
+      return;
+    }
+  }
+
   symtab::literal::simplify(v);
 }
 

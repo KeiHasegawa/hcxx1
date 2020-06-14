@@ -748,8 +748,10 @@ cxx_compiler::declarations::action1(var* v, bool ini)
   if (!ini) {
     usr::flag_t mask = 
       usr::flag_t(usr::TYPEDEF |usr::FUNCTION | usr::OVERLOAD);
+    usr::flag2_t flag2 = u->m_flag2;
+    usr::flag2_t mask2 = usr::TEMPLATE;
     if (!(flag & mask) && is_external_declaration(u) &&
-	!just_static_member_decl(u)) {
+	!just_static_member_decl(u) && !(flag2 & mask2)) {
       if (must_call_default_ctor(u))
 	initialize_ctor_code(u);
       if (must_call_dtor(u))

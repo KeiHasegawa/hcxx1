@@ -1675,7 +1675,7 @@ inline bool template_param(const scope::tps_t::val2_t& x)
 {
   const type* T = x.first;
   if (!T)
-    error::not_implemented();
+    return false;
   return T->m_id == type::TEMPLATE_PARAM;
 }
 
@@ -1684,6 +1684,13 @@ namespace typenamed {
   extern const type* action(tag*);
   extern const type* action(pair<usr*, tag*>*);
 } // end of namespace typenamed
+
+struct ini_term : usr {
+  usr* m_obj;
+  ini_term(string name, const type* T, flag_t flag, const file_t& file,
+	   flag2_t flag2, usr* obj)
+    : usr(name, T, flag, file, flag2), m_obj(obj) {}
+};
 
 } // end of namespace cxx_compiler
 
