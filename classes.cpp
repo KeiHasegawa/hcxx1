@@ -187,6 +187,9 @@ namespace cxx_compiler {
       prev->m_file.push_back(file);
       tag::flag_t flag = prev->m_flag;
       if (!(flag & tag::TEMPLATE)) {
+	if (prev->m_bases)
+	  error::not_implemented();
+	prev->m_bases = bases;
 	scope::current = prev;
 	class_or_namespace_name::before.push_back(prev);
 	declarations::specifier_seq::info_t::clear();

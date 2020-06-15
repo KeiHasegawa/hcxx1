@@ -857,6 +857,9 @@ namespace declarations {
       extern pair<usr*, tag*>*
       action(pair<usr*, tag*>*, vector<scope::tps_t::val2_t*>*);
     } // end of namespace id
+    namespace specialization {
+      extern stack<scope*> nest;
+    } // end of namespace specialization
   } // end of namespace templ
 } // end of namespace declarations
 

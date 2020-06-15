@@ -1881,7 +1881,18 @@ explicit_instantiation
   ;
 
 explicit_specialization
-  : TEMPLATE_KW '<' '>' declaration
+  : TEMPLATE_KW '<' '>'
+    {
+      using namespace cxx_compiler;
+      using namespace cxx_compiler::declarations::templ;
+      specialization::nest.push(scope::current);;
+    }
+    declaration
+    {
+      using namespace cxx_compiler::declarations::templ;
+      assert(!specialization::nest.empty());
+      specialization::nest.pop();
+    }
   ;
 
 try_block

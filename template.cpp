@@ -97,6 +97,11 @@ namespace cxx_compiler {
       inline void dispatch(pair<template_tag::KEY, tag*> x, template_tag* tt)
       {
 	const template_tag::KEY& key = x.first;
+	tag* ptr = x.second;
+	if (ptr->m_flag & tag::SPECIAL_VER) {
+	  tt->m_table[key] = ptr;
+	  return;
+	}
 	vector<scope::tps_t::val2_t*>* pv = new vector<scope::tps_t::val2_t*>;
 	transform(begin(key), end(key), back_inserter(*pv), create);
 	tt->instantiate(pv);
@@ -713,6 +718,25 @@ namespace cxx_compiler {
 	    int c = parse::peek();
 	    if (c == '{' || c == ':')
 	      return tt->special_ver(pv);
+	    if (c == ';') {
+	      if (!specialization::nest.empty()) {
+		if (specialization::nest.top() == scope::current) {
+		  tag* ptr = tt->special_ver(pv);
+		  assert(!ptr->m_types.first);
+		  assert(!ptr->m_types.second);
+		  ptr->m_types.first = incomplete_tagged_type::create(ptr);
+		  map<string, tag*>& tags = scope::current->m_tags;
+		  string name = ptr->m_name;
+		  assert(tags.find(name) == tags.end());
+		  tags[name] = ptr;
+		  vector<scope*>& children = scope::current->m_children;
+		  assert(find(begin(children), end(children), ptr)
+			 == end(children));
+		  children.push_back(ptr);
+		  return ptr;
+		}
+	      }
+	    }
 	  }
 	  sweeper sweeper;
 	  return tt->instantiate(pv);
@@ -1509,4 +1533,13 @@ cxx_compiler::typenamed::action(pair<usr*, tag*>* p)
   tag* ptr = p->second;
   return action(ptr);
 }
+
+namespace cxx_compiler {
+  namespace declarations {
+    namespace templ {
+      stack<scope*> specialization::nest;
+    } // end of namespace templ
+  } // end of namespace declarations
+} // end of namespace cxx_compiler
+
 
