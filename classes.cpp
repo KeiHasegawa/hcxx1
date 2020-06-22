@@ -19,10 +19,9 @@ namespace cxx_compiler {
     inline string get_name(usr* u)
     {
       if (!template_tag::nest.empty()) {
-	const pair<template_tag*, instantiated_tag*>& x =
-	  template_tag::nest.back();
-	template_tag* tt = x.first;
-	instantiated_tag* it = x.second;
+	const template_tag::info_t& x = template_tag::nest.back();
+	template_tag* tt = x.m_tt;
+	instantiated_tag* it = x.m_it;
 	if (!it)
 	  return tt->instantiated_name();
       }
@@ -146,11 +145,12 @@ namespace cxx_compiler {
 	    vector<base*>* bases)
     {
       if (!template_tag::nest.empty()) {
-	pair<template_tag*, instantiated_tag*>& x =
-	  template_tag::nest.back();
-	template_tag* tt = x.first;
-	if (!x.second)
-	  return x.second = new instantiated_tag(kind, name, file, bases, tt);
+	template_tag::info_t& x = template_tag::nest.back();
+	template_tag* tt = x.m_tt;
+	if (!x.m_it) {
+	  x.m_it = new instantiated_tag(kind, name, file, bases, tt, x.m_seed);
+	  return x.m_it;
+	}
       }
 
       tag* ret = new tag(kind, name, file, bases);
@@ -195,12 +195,12 @@ namespace cxx_compiler {
 	declarations::specifier_seq::info_t::clear();
 	if (flag & tag::INSTANTIATE) {
 	  if (!template_tag::nest.empty()) {
-	    template_tag* tt = template_tag::nest.back().first;
-	    assert(!template_tag::nest.back().second);
+	    template_tag* tt = template_tag::nest.back().m_tt;
+	    assert(!template_tag::nest.back().m_it);
 	    typedef instantiated_tag IT;
 	    IT* it = static_cast<IT*>(prev);
 	    it->m_src = tt;  // override
-	    template_tag::nest.back().second = it;
+	    template_tag::nest.back().m_it = it;
 	  }
 	}
 	return;
@@ -344,12 +344,15 @@ namespace cxx_compiler {
         fundef::current = new fundef(u,param);
 	const vector<usr*>& order = param->m_order;
 	for_each(order.begin(),order.end(),check_object);
-	usr::flag_t flag = u->m_flag;
-        parse::member_function_body::saved = &E.second;
-        file_t org = parse::position;
+	using namespace parse;
+        member_function_body::saved = &E.second;
+        file_t org = position;
+	identifier::mode_t org2 = identifier::mode;
+	identifier::mode = identifier::look;
         cxx_compiler_parse();
-        parse::position = org;
-        parse::member_function_body::saved = 0;
+	identifier::mode = org2;
+        position = org;
+        member_function_body::saved = 0;
       }
     } // end of namespace specifier
   } // end of namespace classes
@@ -515,10 +518,13 @@ namespace cxx_compiler {
               const type* Ty = y->result_type();
               var tmp(Ty);
               bool discard = false;
-              const type* T = assignment::valid(Tx, &tmp, &discard, true, 0);
+	      bool ctor_conv = false;
+              const type* T =
+		assignment::valid(Tx, &tmp, &discard, &ctor_conv, 0);
               if (!T)
                 error::not_implemented();
-	      y = y->cast(Tx);
+	      y = Tx->aggregate() ? aggregate_conv(Tx, y, ctor_conv, 0) 
+		: y->cast(Tx);
               code.push_back(new invladdr3ac(x,y));
             }
             void for_aggregate(var* dst, vector<expressions::base*>* p)

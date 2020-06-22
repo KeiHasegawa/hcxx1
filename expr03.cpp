@@ -5,7 +5,7 @@
 #include "cxx_y.h"
 
 namespace cxx_compiler { namespace expressions { namespace cast {
-  const type* valid(const type*, var*);
+  const type* valid(const type*, var*, bool* ctor_conv);
 } } } // end of namespace cast, expressions and cxx_compiler
 
 cxx_compiler::var* cxx_compiler::expressions::cast::info_t::gen()
@@ -15,7 +15,8 @@ cxx_compiler::var* cxx_compiler::expressions::cast::info_t::gen()
   if (T->m_id == type::REFERENCE) {
     const type* Ty = expr->m_type;
     if (Ty->m_id == type::REFERENCE) {
-      const type* res = valid(T, expr);
+      bool ctor_conv = false;
+      const type* res = valid(T, expr, &ctor_conv);
       return expr->cast(T);
     }
   }
@@ -25,7 +26,8 @@ cxx_compiler::var* cxx_compiler::expressions::cast::info_t::gen()
     garbage.push_back(ret);
     return ret;
   }
-  const type* res = valid(T, expr);
+  bool ctor_conv = false;
+  const type* res = valid(T, expr, &ctor_conv);
   if (!res) {
     if (!T->scalar()) {
       using namespace error::expressions::cast;
@@ -38,10 +40,12 @@ cxx_compiler::var* cxx_compiler::expressions::cast::info_t::gen()
       res = int_type::create();
     }
   }
-  return res->aggregate() ? aggregate_conv(res, expr) : expr->cast(res);
+  return res->aggregate() ? aggregate_conv(res, expr, ctor_conv, 0)
+    : expr->cast(res);
 }
 
-const cxx_compiler::file_t& cxx_compiler::expressions::cast::info_t::file() const
+const cxx_compiler::file_t&
+cxx_compiler::expressions::cast::info_t::file() const
 {
   return m_expr->file();
 }
@@ -311,9 +315,9 @@ namespace cxx_compiler {
 }  // end of namespace cxx_compiler
 
 const cxx_compiler::type*
-cxx_compiler::expressions::cast::valid(const type* T, var* y)
+cxx_compiler::expressions::cast::valid(const type* T, var* y, bool* ctor_conv)
 {
-  if (assignment::valid(T, y, 0, true, 0))
+  if (assignment::valid(T, y, 0, ctor_conv, 0))
     return T;
   const type* Tx = T->unqualified();
   const type* Ty = y->m_type->unqualified();
@@ -474,7 +478,8 @@ namespace cxx_compiler { namespace constant_impl {
         return cast(et->get_integer(),y);
       }
     default:
-      return Tx->aggregate() ? aggregate_conv(Tx, y) : y->var::cast(Tx);
+      return Tx->aggregate() ?
+	aggregate_conv(Tx, y, false, 0) : y->var::cast(Tx);
     }
   }
   template<class T> var* fcast(const type* Tx, constant<T>* y)
@@ -530,7 +535,8 @@ namespace cxx_compiler { namespace constant_impl {
         return fcast(et->get_integer(),y);
       }
     default:
-      return Tx->aggregate() ? aggregate_conv(Tx, y) : y->var::cast(Tx);
+      return Tx->aggregate() ?
+	aggregate_conv(Tx, y, false, 0) : y->var::cast(Tx);
     }
   }
   template<class T> var* pcast(const type* Tx, constant<T>* y)
@@ -712,7 +718,7 @@ cxx_compiler::var* cxx_compiler::constant<long double>::cast(const type* T)
     else {
       double d = (*generator::long_double->to_double)(b);
       usr* tmp = floating::create(d);
-      return T->aggregate() ? aggregate_conv(T, tmp) : tmp->cast(T);
+      return T->aggregate() ? aggregate_conv(T, tmp, false, 0) : tmp->cast(T);
     }
   }
   else

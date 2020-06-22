@@ -516,6 +516,8 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
       if (uu->m_flag & usr::CTOR) {
 	assert(ptr->m_id == scope::TAG);
 	tag* ptag = static_cast<tag*>(ptr);
+	if ((ptag->m_flag & tag::INSTANTIATE) && peek() == '<')
+	  return lookup(name, ptr->m_parent);
 	return lookup(ptag->m_name, ptr->m_parent);
       }
       if (peek() == '<') {
@@ -806,7 +808,8 @@ namespace cxx_compiler {
           assert(u->m_type->m_id == type::BACKPATCH);
           string name = u->m_name;
           last_token = identifier::judge(name);
-          delete u;
+	  if (!templ)
+	    delete u;
         }
 	return last_token;
       case IDENTIFIER_LEX:
@@ -830,7 +833,8 @@ namespace cxx_compiler {
 	  assert(u->m_type->backpatch());
 	  string name = u->m_name;
 	  last_token = identifier::lookup(name, scope::current);
-	  delete u;
+	  if (!templ)
+	    delete u;
 	  if (!templ::save_t::nest.empty()) {
 	    templ::save_t* p = templ::save_t::nest.back();
 	    list<void*>& lval = p->m_read.m_lval;
@@ -979,6 +983,34 @@ namespace cxx_compiler {
 	  return false;
 	save_t* p = save_t::nest.back();
 	return p->m_usr;
+      }
+      void patch_13_2(save_t* p, const read_t& rd, pair<int, int> x)
+      {
+	tag* ptr = p->m_tag;
+	assert(ptr);
+	pair<int, file_t>& b = p->m_read.m_token.back();
+	assert(b.first == '{');
+	tag::flag_t flag = ptr->m_flag;
+	if (!(flag & tag::TEMPLATE)) {
+	  b.first = ';';
+	  return;
+	}
+	typedef list<pair<int, file_t> >::const_iterator ITx;
+	ITx ex = rd.m_token.end();
+	ITx bx = ex;
+	int n = x.first;
+	assert(n);
+	while (n--)
+	  --bx;
+	copy(bx, ex, back_inserter(p->m_read.m_token));
+	typedef list<void*>::const_iterator ITy;
+	ITy ey = rd.m_lval.end();
+	ITy by = ey;
+	int m = x.second;
+	assert(m);
+	while (m--)
+	  --by;
+	copy(by, ey, back_inserter(p->m_read.m_lval));
       }
     } // end of namespac templ
   } // end of namesapce parse
@@ -1305,11 +1337,14 @@ void cxx_compiler::parse::member_function_body::save(usr* key)
   scope::current = ptr;
 }
 
-void cxx_compiler::parse::member_function_body::save_brace(read_t* ptr)
+std::pair<int, int>
+cxx_compiler::parse::member_function_body::save_brace(read_t* ptr)
 {
   using namespace std;
   list<pair<int, file_t> >& token = ptr->m_token;
+  int n = token.size();
   list<void*>& lval = ptr->m_lval;
+  int m = lval.size();
   while (1) {
     int n;
     if (!g_read.m_token.empty()) {
@@ -1341,6 +1376,8 @@ void cxx_compiler::parse::member_function_body::save_brace(read_t* ptr)
     if (n == '}')
       break;
   }
+
+  return make_pair(token.size() - n, lval.size() - m);
 }
 
 int cxx_compiler::parse::member_function_body::get_token()
@@ -1415,6 +1452,16 @@ namespace cxx_compiler {
       }
       context_t::all.push_back(context_t(state, vs, vv, cxx_compiler_char));
     }
+    inline void helper(templ::save_t* p, bool b)
+    {
+      read_t& r = p->m_read;
+      int n = g_read.m_token.size();
+      if (b)
+	--n;
+      assert(n >= 0);
+      for (int i = 0 ; i != n ; ++i)
+	r.m_token.pop_back();
+    }
     void restore(int* state, short** b0, short** t0, short* a0,
                  YYSTYPE** b1, YYSTYPE** t1, YYSTYPE* a1, bool b)
     {
@@ -1439,16 +1486,9 @@ namespace cxx_compiler {
 	   back_inserter(g_read.m_token));
       copy(begin(tmp.m_lval), end(tmp.m_lval), back_inserter(g_read.m_lval));
       context_t::all.pop_back();
-      if (!templ::save_t::nest.empty()) {
-	templ::save_t* p = templ::save_t::nest.back();
-	read_t& r = p->m_read;
-	int n = g_read.m_token.size();
-	if (b)
-	  --n;
-	assert(n >= 0);
-	for (int i = 0 ; i != n ; ++i)
-	  r.m_token.pop_back();
-      }
+      using namespace templ;
+      for_each(begin(save_t::nest), end(save_t::nest),
+	       bind2nd(ptr_fun(helper), b));
     }
   } // end of namesapce parse
 } // end of namesapce cxx_compiler

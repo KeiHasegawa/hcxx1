@@ -80,8 +80,9 @@ struct instantiated_tag : tag {
   typedef std::vector<scope::tps_t::val2_t> SEED;
   SEED m_seed;
   instantiated_tag(kind_t kind, std::string name, const file_t& file,
-		   std::vector<base*>* b, template_tag* tt)
-    : tag(kind, name, file, b), m_src(tt) { m_flag = INSTANTIATE; }
+		   std::vector<base*>* b, template_tag* tt, const SEED& seed)
+    : tag(kind, name, file, b), m_src(tt), m_seed(seed)
+  { m_flag = INSTANTIATE; }
 };
 
 template<class T> struct constant;

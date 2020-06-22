@@ -1170,8 +1170,9 @@ int cxx_compiler::statements::return_stmt::info_t::gen()
 	return 0;
     }
     bool discard = false;
+    bool ctor_conv = false;
     const type* res =
-      expressions::assignment::valid(T, expr, &discard, true, 0);
+      expressions::assignment::valid(T, expr, &discard, &ctor_conv, 0);
     if (!res) {
       using namespace error::statements::return_stmt;
       const type* from = expr->m_type;
@@ -1179,7 +1180,8 @@ int cxx_compiler::statements::return_stmt::info_t::gen()
       invalid(m_file,from,to);
       return 0;
     }
-    expr = T->aggregate() ? aggregate_conv(T, expr) : expr->cast(T);
+    expr = T->aggregate() ?
+      aggregate_conv(T, expr, ctor_conv, 0) : expr->cast(T);
     if (T->m_id == type::REFERENCE && res->m_id != type::REFERENCE)
       expr = expr->address();
     expr = copy_ctor(T, expr);

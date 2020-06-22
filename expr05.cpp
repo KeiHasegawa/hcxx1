@@ -40,7 +40,7 @@ namespace cxx_compiler { namespace var_impl {
       op_fun = operator_function(Tz, op);
       if (!op_fun)
 	return 0;
-      y = aggregate_conv(Tz, y->rvalue());
+      y = aggregate_conv(Tz, y->rvalue(), true, 0);
     }
     y = y->rvalue();
     z = z->rvalue();

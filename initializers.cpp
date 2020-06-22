@@ -284,53 +284,8 @@ void cxx_compiler::declarations::initializers::gencode(usr* u)
   if (Tx->m_id == type::REFERENCE && Ty->m_id != type::REFERENCE)
     return reference_case(u, v);
 
-  if (usr* copy_ctor = get_copy_ctor(Tx->qualified(cvr))) {
-    const type* T = pointer_type::create(Tx);
-    var* t0 = new var(T);
-    var* t1 = new var(T);
-    if (scope::current->m_id == scope::BLOCK) {
-      block* b = static_cast<block*>(scope::current);
-      b->m_vars.push_back(t0);
-      b->m_vars.push_back(t1);
-    }
-    else {
-      garbage.push_back(t0);
-      garbage.push_back(t1);
-    }
-    code.push_back(new addr3ac(t0, u));
-    code.push_back(new addr3ac(t1, v));
-    code.push_back(new param3ac(t0));
-    code.push_back(new param3ac(t1));
-    usr::flag_t flag = copy_ctor->m_flag;
-    if (flag & usr::HAS_DEFAULT_ARG) {
-      using namespace declarations::declarators::function;
-      typedef map<usr*, vector<var*> >::const_iterator IT;
-      IT p = default_arg_table.find(copy_ctor);
-      assert(p != default_arg_table.end());
-      const vector<var*>& v = p->second;
-      assert(!v.empty());
-      for_each(begin(v)+1, end(v), [](var* v)
-	       {
-		 if (v)
-		   code.push_back(new param3ac(v));
-	       });
-    }
-    copy_ctor = instantiate_if(copy_ctor);
-    code.push_back(new call3ac(0, copy_ctor));
-    if (!error::counter && !cmdline::no_inline_sub) {
-      if (flag & usr::INLINE) {
-	using namespace declarations::declarators::function;
-	using namespace definition::static_inline;
-	skip::table_t::const_iterator p = skip::stbl.find(copy_ctor);
-	if (p != skip::stbl.end()) {
-	  using definition::static_inline::info_t;
-	  if (info_t* info = p->second)
-	    substitute(code, code.size()-1, info);
-	}
-      }
-    }
+  if (usr* copy_ctor = get_copy_ctor(Tx->qualified(cvr)))
     return;
-  }
 
   if (compatible(Tx, Ty)) {
     code.push_back(new assign3ac(u,v));
@@ -397,7 +352,8 @@ expr_list(std::vector<expressions::base*>* exprs, argument* arg)
       expressions::base* expr = (*exprs)[0];
       var* src = expr->gen();
       bool discard = false;
-      if (expressions::assignment::valid(T, src, &discard, true, 0))
+      bool ctor_conv = false;
+      if (expressions::assignment::valid(T, src, &discard, &ctor_conv, 0))
 	return clause::assign(src, arg);
     }
     using namespace error::declarations::initializers;
@@ -505,7 +461,8 @@ assign(var* y, argument* arg)
     T = ret.second;
     if (!T->scalar() && y->m_type->scalar()) {
       bool discard = false;
-      if (!expressions::assignment::valid(T, y, &discard, true, 0))
+      bool ctor_conv = false;
+      if (!expressions::assignment::valid(T, y, &discard, &ctor_conv, 0))
 	return assign_special(y,arg);
     }
     arg->off_max = max(arg->off_max, arg->off = ret.first);
@@ -526,8 +483,9 @@ assign(var* y, argument* arg)
     }
   }
   bool discard = false;
+  bool ctor_conv = false;
   usr* exp_ctor = 0;
-  T = expressions::assignment::valid(T, y, &discard, true, &exp_ctor);
+  T = expressions::assignment::valid(T, y, &discard, &ctor_conv, &exp_ctor);
   if (!T) {
     using namespace error::declarations::initializers;
     invalid_assign(parse::position,argument::dst,discard);
@@ -543,7 +501,11 @@ assign(var* y, argument* arg)
   if ( T->m_id == type::BIT_FIELD )
     return bit_field(y,arg);
   if (T->aggregate()) {
-    var* tmp = aggregate_conv(T, y);
+    usr* dst = arg->dst;
+    const type* Td = dst->m_type;
+    if (!compatible(T, Td))
+      dst = 0;
+    var* tmp = aggregate_conv(T, y, ctor_conv, dst);
     if (tmp != y)
       arg->not_constant = true;
     y = tmp;
@@ -1434,7 +1396,8 @@ namespace cxx_compiler {
 	  assert(!param.empty());
 	  const type* Ta = param[0];
 	  bool discard = false;
-	  if (!assignment::valid(Ta, y, &discard, false, 0)) {
+	  bool ctor_conv = false;
+	  if (!assignment::valid(Ta, y, &discard, &ctor_conv, 0)) {
 	    assert(discard);
 	    mismatch_argument(parse::position, 0, discard, copy_ctor);
 	  }

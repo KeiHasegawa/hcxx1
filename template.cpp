@@ -884,8 +884,9 @@ namespace cxx_compiler {
 	var* v = p->second;
 	assert(v);
 	bool discard = false;
+	bool ctor_conv = false;
 	using namespace expressions;
-	if (!assignment::valid(T, v, &discard, true, 0))
+	if (!assignment::valid(T, v, &discard, &ctor_conv, 0))
 	  error::not_implemented();
 	y->second = v;
 	if (v->addrof_cast()) {
@@ -901,9 +902,9 @@ namespace cxx_compiler {
   } // end of namespace template_tag_impl
 
 #ifndef __GNUC__
-  vector<pair<template_tag*, instantiated_tag*> > template_tag::nest;
+  vector<template_tag::info_t> template_tag::nest;
 #else  // __GNUC__
-  list<pair<template_tag*, instantiated_tag*> > template_tag::nest;
+  list<template_tag::info_t> template_tag::nest;
 #endif  // __GNUC__
 
   struct special_ver_tag : tag {
@@ -1028,8 +1029,8 @@ namespace cxx_compiler {
     bool already(template_tag* tt)
     {
       return  find_if(begin(template_tag::nest), end(template_tag::nest),
-	      [tt](const pair<template_tag*, instantiated_tag*>& x)
-	      { return x.first == tt; }) != end(template_tag::nest);
+	      [tt](const template_tag::info_t& x)
+	      { return x.m_tt == tt; }) != end(template_tag::nest);
     }
   } // end of namespace template_tag_impl
 } // end of namespace cxx_compiler
@@ -1042,16 +1043,17 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
   template_tag_impl::sweeper sweeper(pv, true);
 
   if (!nest.empty()) {
-    pair<template_tag*, instantiated_tag*>& x = nest.back();
-    template_tag* tt = x.first;
+    template_tag::info_t& x = nest.back();
+    template_tag* tt = x.m_tt;
     flag_t flag = tt->m_flag;
     if (flag & tag::PARTIAL_SPECIAL) {
       partial_special_tag* ps = static_cast<partial_special_tag*>(tt);
       template_tag* primary = ps->m_primary;
       if (primary == this) {
 	string name = ps->instantiated_name();
-	return x.second = new instantiated_tag(m_kind, name, parse::position,
-					       m_bases, ps);
+	x.m_it = new instantiated_tag(m_kind, name, parse::position,
+				      m_bases, ps, x.m_seed);
+	return x.m_it;
       }
     }
   }
@@ -1132,7 +1134,7 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
     if (tag* ptr = declarations::elaborated::lookup(name, scope::current))
       return ptr;
     instantiated_tag* ret =
-      new instantiated_tag(m_kind, name, parse::position, m_bases, this);
+      new instantiated_tag(m_kind, name, parse::position, m_bases, this, key);
     map<string, tag*>& tags = scope::current->m_tags;
     assert(tags.find(name) == tags.end());
     tags[name] = ret;
@@ -1148,9 +1150,9 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
 
   templ_base tmp = *this;
   template_usr_impl::sweeper_b sweeper_b(m_parent, &tmp);
-  nest.push_back(make_pair(this, (instantiated_tag*)0));
+  nest.push_back(info_t(this, (instantiated_tag*)0, key));
   cxx_compiler_parse();
-  instantiated_tag* ret = nest.back().second;
+  instantiated_tag* ret = nest.back().m_it;
   nest.pop_back();
   if (!ret) {
     string name = instantiated_name();
@@ -1159,14 +1161,14 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
     IT p = tags.find(name);
     if (p != tags.end())
       return p->second;
-    ret = new instantiated_tag(m_kind, name, parse::position, m_bases, this);
+    ret = new instantiated_tag(m_kind, name, parse::position,
+			       m_bases, this, key);
     tags[name] = ret;
     scope::current->m_children.push_back(ret);
     ret->m_parent = scope::current;
     ret->m_types.first = incomplete_tagged_type::create(ret);
   }
   assert(ret->m_src == this);
-  ret->m_seed = key;
   m_table[key] = ret;
   for_each(begin(m_static_def), end(m_static_def),
 	   template_tag_impl::instantiate(key));
@@ -1482,8 +1484,28 @@ cxx_compiler::instance_of(template_usr* tu, usr* ins, templ_base::KEY& key)
   typedef map<string, scope::tps_t::value_t>::const_iterator ITy;
   ITy py = find_if(begin(table), end(table),
 		   template_usr_impl::not_decided);
-  if (py != end(table))
+  if (py != end(table)) {
+    scope* x = tu->m_scope;
+    if (x->m_id == scope::TAG) {
+      tag* px = static_cast<tag*>(x);
+      tag::flag_t fx = px->m_flag;
+      if (fx & tag::INSTANTIATE) {
+	instantiated_tag* itx = static_cast<instantiated_tag*>(px);
+	scope* y = ins->m_scope;
+	assert(y->m_id == scope::TAG);
+	tag* py = static_cast<tag*>(y);
+	tag::flag_t fy = py->m_flag;
+	if (fy & tag::INSTANTIATE) {
+	  instantiated_tag* ity = static_cast<instantiated_tag*>(py);
+	  if (itx->m_src == ity->m_src) {
+	    key = ity->m_seed;
+	    return true;
+	  }
+	}
+      }
+    }
     return false;
+  }
 
   const vector<string>& order = tu->m_tps.m_order;
   transform(begin(order), end(order), back_inserter(key),

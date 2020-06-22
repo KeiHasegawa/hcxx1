@@ -531,6 +531,7 @@ cxx_compiler::var* cxx_compiler::overload::call(std::vector<var*>* arg,
   copy(begin(v), end(v), back_inserter(code));
   v.clear();
   usr* u = cand[m];
+  u = instantiate_if(u);
   usr::flag_t flag = u->m_flag;
   if (!error::counter && !cmdline::no_inline_sub) {
     if (flag & usr::INLINE) {
@@ -880,7 +881,9 @@ cxx_compiler::var* cxx_compiler::call_impl::convert::operator()(var* arg)
   }
   T = T->unqualified();
   bool discard = false;
-  T = expressions::assignment::valid(T, arg, &discard, !m_trial_cost, 0);
+  bool ctor_conv = false;
+  bool* tmp = !m_trial_cost ? &ctor_conv : 0;
+  T = expressions::assignment::valid(T, arg, &discard, tmp, 0);
   if (!T) {
     if (m_trial_cost) {
       *m_trial_cost = numeric_limits<int>::max();
@@ -926,7 +929,7 @@ cxx_compiler::var* cxx_compiler::call_impl::convert::operator()(var* arg)
     }
   }
   else {
-    arg = aggregate_conv(T, arg);
+    arg = aggregate_conv(T, arg, ctor_conv, 0);
     if (m_trial_cost)
       ++*m_trial_cost;
   }
@@ -1964,7 +1967,7 @@ namespace cxx_compiler {
         return table.find(make_pair(x, y)) != table.end();
       }
       var* ctor_conv_common(const record_type* xx, var* src, bool trial,
-			    usr** exp_ctor)
+			    usr** exp_ctor, var* obj)
       {
 	tag* ptr = xx->get_tag();
 	usr* ctor = has_ctor_dtor(ptr, false);
@@ -1975,13 +1978,15 @@ namespace cxx_compiler {
 	  if (exp_ctor)
 	    *exp_ctor = ctor;
 	}
-	var* obj = new var(xx);
-	if (scope::current->m_id == scope::BLOCK) {
-	  block* b = static_cast<block*>(scope::current);
-	  b->m_vars.push_back(obj);
+	if (!obj) {
+	  obj = new var(xx);
+	  if (scope::current->m_id == scope::BLOCK) {
+	    block* b = static_cast<block*>(scope::current);
+	    b->m_vars.push_back(obj);
+	  }
+	  else
+	    garbage.push_back(obj);
 	}
-	else
-	  garbage.push_back(obj);
 	vector<var*> arg;
 	arg.push_back(src);
 	if (flag & usr::OVERLOAD) {
@@ -1999,13 +2004,13 @@ namespace cxx_compiler {
 		     });
 	  }
 	  int ind = -1;
-	  var* res = ovl->call(&arg, &ind);
+	  var* ret = ovl->call(&arg, &ind);
 	  if (scope::current->m_id != scope::BLOCK) {
 	    vector<usr*>& v = ovl->m_candidacy;
 	    for (int i = 0 ; i != v.size() ; ++i )
 	      v[i]->m_flag = org[i];
 	  }
-	  if (res) {
+	  if (ret) {
 	    assert(ind >= 0);
 	    const vector<usr*>& v = ovl->m_candidacy;
 	    usr* u = v[ind];
@@ -2020,8 +2025,8 @@ namespace cxx_compiler {
 	    for_each(begin(code)+n, end(code), [](tac* p){ delete p; });
 	    code.resize(n);
 	  }
-	  assert(trial || res);
-	  return res ? obj : 0;
+	  assert(trial || ret);
+	  return ret ? obj : 0;
 	}
 	const type* T = ctor->m_type;
 	assert(T->m_id == type::FUNC);
@@ -2032,7 +2037,7 @@ namespace cxx_compiler {
 	int n = code.size();
 	if (scope::current->m_id != scope::BLOCK)
 	  flag = usr::flag_t(flag & ~usr::INLINE);
-	var* res = call_impl::common(ft, ctor, &arg, pi, obj, false, 0);
+	var* ret = call_impl::common(ft, ctor, &arg, pi, obj, false, 0);
 	if (trial) {
 	  for_each(begin(code)+n, end(code), [](tac* p){ delete p; });
 	  code.resize(n);
@@ -2050,8 +2055,8 @@ namespace cxx_compiler {
 	    }
 	  }
 	}
-	assert(trial || res);
-	return res ? obj : 0;
+	assert(trial || ret);
+	return ret ? obj : 0;
       }
     } // end of namespace assignment
   } // end of namespace expressions
@@ -2059,7 +2064,7 @@ namespace cxx_compiler {
 
 const cxx_compiler::type*
 cxx_compiler::expressions::
-assignment::valid(const type* T, var* src, bool* discard, bool ctor_conv,
+assignment::valid(const type* T, var* src, bool* discard, bool* ctor_conv,
 		  usr** exp_ctor)
 {
   const type* xx = T;
@@ -2076,19 +2081,23 @@ assignment::valid(const type* T, var* src, bool* discard, bool ctor_conv,
       return xx;
     typedef const record_type REC;
     REC* xrec = static_cast<REC*>(xx);
-    if (yy->m_id != type::RECORD) {
-      if (ctor_conv)
-	return ctor_conv_common(xrec, src, true, exp_ctor) ? xx : 0;
-      return 0;
+    if (yy->m_id == type::RECORD) {
+      REC* yrec = static_cast<REC*>(yy);
+      vector<route_t> dummy;
+      bool ambiguous = false;
+      int offset = calc_offset(yrec, xrec, dummy, &ambiguous);
+      if (ambiguous)
+	error::not_implemented();
+      if (offset >= 0)
+	return xx;
     }
-    REC* yrec = static_cast<REC*>(yy);
-    vector<route_t> dummy;
-    bool ambiguous = false;
-    int offset = calc_offset(yrec, xrec, dummy, &ambiguous);
-    if (ambiguous)
-      error::not_implemented();
-    if (offset >= 0)
-      return xx;
+    if (ctor_conv) {
+      if (ctor_conv_common(xrec, src, true, exp_ctor, 0)) {
+	*ctor_conv = true;
+	return xx;
+      }
+    }
+    return 0;
   }
 
   typedef const pointer_type PT;

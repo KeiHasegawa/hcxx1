@@ -44,19 +44,75 @@ namespace cxx_compiler {
       code.push_back(new loff3ac(x, xoff, tmp));
     }
   };
-  var* aggregate_conv(const type* T, var* y)
+  var* ctor_code(const type* Tx, var* u, var* v)
+  {
+    if (scope::current->m_id != scope::BLOCK)
+      return v;
+    int cvr = 0;
+    const type* Ty = v->result_type();
+    Ty = Ty->unqualified(&cvr);
+    usr* copy_ctor = get_copy_ctor(Tx->qualified(cvr));
+    if (!copy_ctor)
+      return v;
+    const type* T = pointer_type::create(Tx);
+    var* t0 = new var(T);
+    var* t1 = new var(T);
+    block* b = static_cast<block*>(scope::current);
+    b->m_vars.push_back(t0);
+    b->m_vars.push_back(t1);
+    code.push_back(new addr3ac(t0, u));
+    code.push_back(new addr3ac(t1, v));
+    code.push_back(new param3ac(t0));
+    code.push_back(new param3ac(t1));
+    usr::flag_t flag = copy_ctor->m_flag;
+    if (flag & usr::HAS_DEFAULT_ARG) {
+      using namespace declarations::declarators::function;
+      typedef map<usr*, vector<var*> >::const_iterator IT;
+      IT p = default_arg_table.find(copy_ctor);
+      assert(p != default_arg_table.end());
+      const vector<var*>& v = p->second;
+      assert(!v.empty());
+      for_each(begin(v)+1, end(v), [](var* v)
+	       {
+		 if (v)
+		   code.push_back(new param3ac(v));
+	       });
+    }
+    copy_ctor = instantiate_if(copy_ctor);
+    code.push_back(new call3ac(0, copy_ctor));
+    if (!error::counter && !cmdline::no_inline_sub) {
+      if (flag & usr::INLINE) {
+	using namespace declarations::declarators::function;
+	using namespace definition::static_inline;
+	skip::table_t::const_iterator p = skip::stbl.find(copy_ctor);
+	if (p != skip::stbl.end()) {
+	  using definition::static_inline::info_t;
+	  if (info_t* info = p->second)
+	    substitute(code, code.size()-1, info);
+	}
+      }
+    }
+    return v;
+  }
+
+  var* aggregate_conv(const type* T, var* y, bool ctor_conv, var* res)
   {
     using namespace expressions::primary::literal;
     const type* Tx = T->unqualified();
     const type* Ty = y->result_type();
     Ty = Ty->unqualified();
-    if (compatible(Tx, Ty))
+    if (compatible(Tx, Ty)) {
+      if (res)
+	return ctor_code(Tx, res, y);
       return y;
+    }
     assert(Tx->m_id == type::RECORD);
     typedef const record_type REC;
     REC* xrec = static_cast<REC*>(Tx);
+    if (ctor_conv)
+      return expressions::assignment::ctor_conv_common(xrec, y, false, 0, res);
     if (Ty->m_id != type::RECORD)
-      return expressions::assignment::ctor_conv_common(xrec, y, false, 0);
+      return y;
     REC* yrec = static_cast<REC*>(Ty);
     vector<route_t> dummy;
     bool ambiguous = false;
@@ -77,6 +133,8 @@ namespace cxx_compiler {
       const map<REC*, int>& xvco = xrec->virt_common_offset();
       const map<REC*, int>& yvco = yrec->virt_common_offset();
       for_each(begin(va), end(va), set_va(x, y, xvco, yvco));
+      if (res)
+	return ctor_code(xrec, res, x);
       return x;
     }
     usr* fun = cast_impl::conversion_function(yrec, xrec, true);
@@ -215,7 +273,8 @@ cxx_compiler::var* cxx_compiler::usr::assign(var* op)
   var* y = op->rvalue();
   y->m_type = y->m_type->complete_type();
   bool discard = false;
-  T = expressions::assignment::valid(T, y, &discard, true, 0);
+  bool ctor_conv = false;
+  T = expressions::assignment::valid(T, y, &discard, &ctor_conv, 0);
   if (!T) {
     invalid(parse::position,this,discard);
     T = int_type::create();
@@ -223,7 +282,7 @@ cxx_compiler::var* cxx_compiler::usr::assign(var* op)
   if (m_type->m_id == type::REFERENCE)
     code.push_back(new invladdr3ac(this,y));
   else {
-    y = T->aggregate() ? aggregate_conv(T, y) : y->cast(T);
+    y = T->aggregate() ? aggregate_conv(T, y, ctor_conv, 0) : y->cast(T);
     const type* Ty = y->m_type;
     Ty = Ty->unqualified();
     var tmp(Ty);
@@ -275,13 +334,14 @@ cxx_compiler::var* cxx_compiler::ref::assign(var* op)
   }
   bool discard = false;
   var* y = op->rvalue();
-  T = expressions::assignment::valid(T, y, &discard, true, 0);
+  bool ctor_conv = false;
+  T = expressions::assignment::valid(T, y, &discard, &ctor_conv, 0);
   if (!T) {
     using namespace error::expressions::assignment;
     invalid(parse::position,0,discard);
     T = int_type::create();
   }
-  y = T->aggregate() ? aggregate_conv(T, y) : y->cast(T);
+  y = T->aggregate() ? aggregate_conv(T, y, ctor_conv, 0) : y->cast(T);
   code.push_back(new invladdr3ac(this,y));
   if ( !y->isconstant() )
     return y;
@@ -312,13 +372,15 @@ cxx_compiler::var* cxx_compiler::refaddr::assign(var* op)
   }
   bool discard = false;
   var* z = op->rvalue();
-  const type* res = expressions::assignment::valid(T, z, &discard, true, 0);
+  bool ctor_conv = false;
+  const type* res =
+    expressions::assignment::valid(T, z, &discard, &ctor_conv, 0);
   if (!res) {
     using namespace error::expressions::assignment;
     invalid(parse::position,0,discard);
     res = int_type::create();
   }
-  z = res->aggregate() ? aggregate_conv(res, z) : z->cast(res);
+  z = res->aggregate() ? aggregate_conv(res, z, ctor_conv, 0) : z->cast(res);
   using namespace expressions::primary::literal;
   int offset = m_addrof.m_offset;
   var* y = integer::create(offset);
@@ -435,13 +497,14 @@ cxx_compiler::var* cxx_compiler::refsomewhere::assign(var* op)
   op = op->rvalue();
   const type* T = m_result;
   bool discard = false;
-  T = expressions::assignment::valid(T, op, &discard, true, 0);
+  bool ctor_conv = false;
+  T = expressions::assignment::valid(T, op, &discard, &ctor_conv, 0);
   if ( !T ){
     using namespace error::expressions::assignment;
     invalid(parse::position,0,discard);
     T = int_type::create();
   }
-  op = T->aggregate() ? aggregate_conv(T, op) : op->cast(T);
+  op = T->aggregate() ? aggregate_conv(T, op, ctor_conv, 0) : op->cast(T);
   vector<route_t> dummy;
   var* x = expressions::primary::action(m_ref, dummy);
   if (x != m_ref) {

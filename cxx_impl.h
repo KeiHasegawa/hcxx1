@@ -106,7 +106,7 @@ namespace parse {
     extern map<usr*, save_t> stbl;
     extern save_t* saved;
     extern void save(usr*);
-    extern void save_brace(read_t*);
+    extern pair<int, int> save_brace(read_t*);
     extern int get_token();
   } // end of namespace member_function_body
   namespace templ {
@@ -125,6 +125,7 @@ namespace parse {
     extern bool param;
     extern int arg;
     extern bool func();
+    extern void patch_13_2(save_t*, const read_t& pr, pair<int, int>);
   } // end of namespace templ
   extern bool base_clause;
 } // end of namespace parse
@@ -492,7 +493,7 @@ extern int calc_offset(const record_type* drec,
 		       const std::vector<route_t>& route,
 		       bool* ambiguous);
 
-extern var* aggregate_conv(const type* T, var* y);
+extern var* aggregate_conv(const type* T, var* y, bool ctor_conv, var* res);
 
 extern void check_abstract_obj(usr*);
 
@@ -1118,9 +1119,9 @@ namespace expressions {
     };
   } // end of namespace conditional
   namespace assignment {
-    extern const type* valid(const type*, var*, bool*, bool, usr**);
+    extern const type* valid(const type*, var*, bool*, bool*, usr**);
     extern bool include(int cvr_x, int cvr_y);
-    extern var* ctor_conv_common(const record_type*, var*, bool, usr**);
+    extern var* ctor_conv_common(const record_type*, var*, bool, usr**, var*);
   } // end of namespace assignment
   extern bool constant_flag;
 } // end of namespace expressions
@@ -1634,10 +1635,18 @@ struct partial_ordering : usr {
 struct partial_special_tag;
 
 struct template_tag : templ_base, tag {
+  struct info_t {
+    template_tag* m_tt;
+    instantiated_tag* m_it;
+    instantiated_tag::SEED m_seed;
+    info_t(template_tag* tt, instantiated_tag* it,
+	   const instantiated_tag::SEED& seed)
+    : m_tt(tt), m_it(it), m_seed(seed) {}
+  };
 #ifndef __GNUC__
-  static vector<pair<template_tag*, instantiated_tag*> > nest;
+  static vector<info_t> nest;
 #else  // __GNUC__
-  static list<pair<template_tag*, instantiated_tag*> > nest;
+  static list<info_t> nest;
 #endif  // __GNUC__
   typedef map<KEY, tag*> table_t;
   table_t m_table;

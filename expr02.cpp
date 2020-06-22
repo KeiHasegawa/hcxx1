@@ -328,7 +328,8 @@ cxx_compiler::var* cxx_compiler::expressions::unary::new_expr::gen()
     expressions::base* expr = (*m_exprs)[0];
     var* src = expr->gen();
     bool discard = false;
-    if (!expressions::assignment::valid(ET, src, &discard, true, 0))
+    bool ctor_conv = false;
+    if (!expressions::assignment::valid(ET, src, &discard, &ctor_conv, 0))
       error::not_implemented();
     code.push_back(new invladdr3ac(ret, src));
     return ret;

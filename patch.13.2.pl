@@ -63,18 +63,29 @@ print <<EOF
         const type* T = ptr->m_types.second;
         if (!T) {
           using namespace parse;
-          if (!templ::save_t::nest.empty()) {
+          using namespace templ;
+          if (!save_t::nest.empty()) {
             YYDPRINTF((stderr, "patch.13.2 is applied\\n"));
-	    templ::save_t* p = templ::save_t::nest.back();
-	    p->m_patch_13_2 = true;
-	    identifier::mode = identifier::peeking;
-	    member_function_body::save_brace(&p->m_read);
-	    identifier::mode = identifier::look;
+            save_t* p = save_t::nest.back();
+            p->m_patch_13_2 = true;
+            identifier::mode = identifier::peeking;
+            pair<int, int> ret = member_function_body::save_brace(&p->m_read);
+            identifier::mode = identifier::look;
             yychar = ';';
+#ifndef __GNUC__
+            typedef vector<save_t*>::iterator IT;
+#else // __GNUC__
+            typedef list<save_t*>::iterator IT;
+#endif // __GNUC__
+            IT it = end(save_t::nest);
+            --it;
+	    const read_t& pr = p->m_read;
+            for_each(begin(save_t::nest), it,
+		     [pr, ret](save_t* ptr){ patch_13_2(ptr, pr, ret); });
             yyn = $aaa + 1;
             goto yyreduce;
           }
-	}
+        }
       }
     }
   }

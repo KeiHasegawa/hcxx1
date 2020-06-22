@@ -1803,7 +1803,7 @@ namespace cxx_compiler {
     };
     void add_copy_ctor(tag* ptr)
     {
-      string tgn = ptr->m_name;
+      string tgn = tor_name(ptr);
       const func_type* ft = copy_ctor_type(ptr, true);
       usr::flag_t flag =
         usr::flag_t(usr::CTOR | usr::FUNCTION | usr::INLINE);
@@ -2736,11 +2736,45 @@ cxx_compiler::record_type::create(tag* ptr)
   return ret;
 }
 
+namespace cxx_compiler {
+  bool templ_copy_ctor(usr* u, instantiated_tag* y)
+  {
+    usr::flag2_t flag2 = u->m_flag2;
+    if (!(flag2 & usr::TEMPLATE))
+      return false;
+    const type* T = u->m_type;
+    assert(T->m_id == type::FUNC);
+    typedef const func_type FT;
+    FT* ft = static_cast<FT*>(T);
+    assert(!ft->return_type());
+    const vector<const type*>& param = ft->param();
+    if (param.size() != 1)
+      return false;
+    T = param[0];
+    if (T->m_id != type::REFERENCE)
+      return false;
+    typedef const reference_type REF;
+    REF* ref = static_cast<REF*>(T);
+    T = ref->referenced_type();
+    T = T->unqualified();
+    tag* ptr = T->get_tag();
+    if (!ptr)
+      return false;
+    tag::flag_t flag = ptr->m_flag;
+    if (!(flag & tag::INSTANTIATE))
+      return false;
+    instantiated_tag* x = static_cast<instantiated_tag*>(ptr);
+    assert(x->m_src);
+    assert(y->m_src);
+    return x->m_src == y->m_src;
+  }
+} // end of namespace cxx_compiler
+
 void cxx_compiler::handle_copy_ctor(tag* ptr)
 {
   using namespace std;
   using namespace record_impl;
-  string name = ptr->m_name;
+  string name = tor_name(ptr);
   const map<string, vector<usr*> >& usrs = ptr->m_usrs;
   map<string, vector<usr*> >::const_iterator p = usrs.find(name);
   if (p == usrs.end())
@@ -2750,6 +2784,17 @@ void cxx_compiler::handle_copy_ctor(tag* ptr)
   IT q = find_if(begin(v), end(v), bind2nd(ptr_fun(canbe_copy_ctor), ptr));
   if (q != end(v))
     return;
+  if (ptr->m_flag & tag::INSTANTIATE) {
+    instantiated_tag* it = static_cast<instantiated_tag*>(ptr);
+    IT r = find_if(begin(v), end(v), bind2nd(ptr_fun(templ_copy_ctor), it));
+    if (r != end(v)) {
+      usr* u = *r;
+      assert(u->m_flag2 & usr::TEMPLATE);
+      template_usr* tu = static_cast<template_usr*>(u);
+      tu->instantiate(it->m_seed);
+      return;
+    }
+  }
   add_copy_ctor(ptr);
 }
 
