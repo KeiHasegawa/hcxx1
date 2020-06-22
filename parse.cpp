@@ -490,7 +490,7 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
     cxx_compiler_lval.m_usr = u;
     usr::flag_t flag = u->m_flag;
     if (flag & usr::TYPEDEF) {
-      if (mode == member || mode == mem_ini) {
+      if (mode == mem_ini) {
 	const type* T = u->m_type;
 	if (tag* ptr = T->get_tag()) {
 	  cxx_compiler_lval.m_tag = ptr;
@@ -580,16 +580,22 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
       if (int r = base_lookup::action(name, ptag))
 	return r;
     }
-    if (ptr->m_parent) {
-      if (int r = lookup(name, ptr->m_parent)) {
-	return r;
+    using namespace expressions::postfix;
+    assert(!member::handling.empty());
+    member::info_t* info = member::handling.top();
+    mode = no_err;
+    int r = lookup(name, info->m_scope);
+    if (r == TYPEDEF_NAME_LEX) {
+      usr* u = cxx_compiler_lval.m_usr;
+      const type* T = u->m_type;
+      if (tag* ptr = T->get_tag()) {
+	cxx_compiler_lval.m_tag = ptr;
+	return CLASS_NAME_LEX;
       }
     }
-    error::undeclared(parse::position,name);
-    int r = create(name,int_type::create());
-    usr* u = cxx_compiler_lval.m_usr;
-    scope::current->m_usrs[name].push_back(u);
-    return r;
+    if (r == CLASS_NAME_LEX)
+      return r;
+    return 0;
   }
 
   if (ptr->m_id == scope::TAG) {
