@@ -945,8 +945,39 @@ namespace cxx_compiler {
 	return new scope::tps_t::val2_t(p->second);
       }
     };
+    struct cmp_helper {
+      template_tag::KEY& m_key;
+      map<tag*, const type*>& m_table;
+      cmp_helper(template_tag::KEY& key, map<tag*, const type*>& table)
+	: m_key(key), m_table(table) {}
+      bool operator()(const scope::tps_t::val2_t& x,
+		      const scope::tps_t::val2_t& y)
+      {
+	if (const type* Tx = x.first) {
+	  const type* Ty = y.first;
+	  assert(Tx && Ty);
+	  tag* xtag = Tx->get_tag();
+	  assert(xtag);
+	  map<tag*, const type*>::const_iterator p = m_table.find(xtag);
+	  if (p != m_table.end()) {
+	    const type* Tz = p->second;
+	    return Ty == Tz;
+	  }
+	  m_key.push_back(y);
+	  return true;
+	}
+	else {
+	  var* vx = x.second;
+	  var* vy = y.second;
+	  assert(vx && vy);
+	  error::not_implemented();
+	  return false;
+	}
+      }
+    };
     struct cmp {
       template_tag::KEY& m_key;
+      map<tag*, const type*> m_table;
       cmp(template_tag::KEY& key) : m_key(key) {}
       bool
       operator()(const scope::tps_t::val2_t& x, const scope::tps_t::val2_t* y)
@@ -957,9 +988,23 @@ namespace cxx_compiler {
 	  tag* xtag = Tx->get_tag();
 	  assert(xtag);
 	  tag* ytag = Ty->get_tag();
-	  if (!ytag)
+	  if (!ytag) {
+	    if (Tx->m_id == type::TEMPLATE_PARAM) {
+	      map<tag*, const type*>::const_iterator p = m_table.find(xtag);
+	      if (p != m_table.end()) {
+		const type* Tz = p->second;
+		if (Ty != Tz)
+		  error::not_implemented();
+		return true;
+	      }
+	      m_table[xtag] = Ty;
+	      m_key.push_back(scope::tps_t::val2_t(Ty, 0));
+	      return true;
+	    }
 	    return false;
-	  assert(xtag->m_flag & tag::INSTANTIATE);
+	  }
+	  if (!(xtag->m_flag & tag::INSTANTIATE))
+	    return false;
 	  instantiated_tag* itx = static_cast<instantiated_tag*>(xtag);
 	  if (!(ytag->m_flag & tag::INSTANTIATE))
 	    return false;
@@ -968,9 +1013,12 @@ namespace cxx_compiler {
 	  template_tag* tty = ity->m_src;
 	  if (ttx != tty)
 	    return false;
-	  const template_tag::KEY& src = ity->m_seed;
-	  copy(begin(src), end(src), back_inserter(m_key));
-	  return true;
+	  const template_tag::KEY& xs = itx->m_seed;
+	  const template_tag::KEY& ys = ity->m_seed;
+	  typedef template_tag::KEY::const_iterator IT;
+	  pair<IT, IT> ret = mismatch(begin(xs), end(xs), begin(ys),
+				      cmp_helper(m_key, m_table));
+	  return ret == make_pair(end(xs), end(ys));
 	}
 	else {
 	  var* vx = x.second;
@@ -995,7 +1043,16 @@ namespace cxx_compiler {
 	typedef vector<scope::tps_t::val2_t*>::iterator ITy;
 	pair<ITx, ITy> ret = mismatch(begin(key), end(key), begin(*m_pv),
 				      cmp(m_key));
-	return ret == make_pair(end(key), end(*m_pv));
+	if (ret != make_pair(end(key), end(*m_pv))) {
+	  m_key.clear();
+	  return false;
+	}
+	const vector<string>& order = ps->templ_base::m_tps.m_order;
+	if (order.size() != m_key.size()) {
+	  m_key.clear();
+	  return false;
+	}
+	return true;
       }
     };
     struct instantiate {
@@ -1059,10 +1116,10 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
   }
 
   KEY res;
-  typedef vector<partial_special_tag*>::iterator IT;
-  IT it = find_if(begin(m_partial_special), end(m_partial_special),
+  typedef vector<partial_special_tag*>::reverse_iterator IT;
+  IT it = find_if(rbegin(m_partial_special), rend(m_partial_special),
 		  template_tag_impl:: match(pv, res));
-  if (it != end(m_partial_special)) {
+  if (it != rend(m_partial_special)) {
     vector<scope::tps_t::val2_t*>* pv2 = new vector<scope::tps_t::val2_t*>;
     transform(begin(res), end(res), back_inserter(*pv2),
       [](scope::tps_t::val2_t& x){ return new scope::tps_t::val2_t(x); });
@@ -1091,7 +1148,7 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
 		 bind1st(ptr_fun(template_tag_impl::modify), this));
       }
     }
- 
+
     if (order.size() != pv->size())
       error::not_implemented();
   }

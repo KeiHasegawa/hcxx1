@@ -349,7 +349,10 @@ namespace cxx_compiler {
         file_t org = position;
 	identifier::mode_t org2 = identifier::mode;
 	identifier::mode = identifier::look;
+	bool org3 = expressions::constant_flag;
+	expressions::constant_flag = false;
         cxx_compiler_parse();
+	expressions::constant_flag = org3;
 	identifier::mode = org2;
         position = org;
         member_function_body::saved = 0;
