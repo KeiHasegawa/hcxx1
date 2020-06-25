@@ -1216,8 +1216,7 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
 		     [](usr* u){ return u->m_flag2 & usr::TEMPLATE; });
       if (p != end(cand))
 	prev = *p;
-      else {
-	assert(!template_usr::s_stack.empty());
+      else if (!template_usr::s_stack.empty()) {
 	template_usr::info_t& info = template_usr::s_stack.top();
 	template_usr* tu = info.m_tu;
 	prev = tu;
