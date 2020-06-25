@@ -675,35 +675,70 @@ int cxx_compiler::parse::peek()
   return r;
 }
 
+namespace cxx_compiler {
+  namespace parse {
+    namespace templ_colon_impl {
+      bool common_case()
+      {
+	if (peek() != '<')
+	  return false;
+
+	identifier::mode_t org = identifier::mode;
+	var* org2 = cxx_compiler_lval.m_var;
+	identifier::mode = identifier::peeking;
+
+	int c;
+	while ((c = lex_and_save()) != EOF) {
+	  if (c == '>')
+	    break;
+	  if (c == '<')
+	    error::not_implemented();
+	}
+
+	if (c != '>')
+	  error::not_implemented();
+
+	c = lex_and_save();
+
+	identifier::mode = org;
+	cxx_compiler_lval.m_var = org2;
+
+	return c == COLONCOLON_MK;
+      }
+      bool templ_ptr_case()
+      {
+	const list<pair<int, file_t> >& token = templ::ptr->m_read.m_token;
+	typedef list<pair<int, file_t> >::const_iterator IT;
+	IT p = token.begin(); assert(p != token.end());
+	if (p->first != '<')
+	  return false;
+	++p; assert(p != token.end());
+	for ( ; p->first != EOF ; ++p, assert(p != token.end())) {
+	  if (p->first == '>')
+	    break;
+	  if (p->first == '<')
+	    error::not_implemented();
+	}
+	if (p->first != '>')
+	  error::not_implemented();
+	++p; assert(p != token.end());
+	return p->first == COLONCOLON_MK;
+      }
+    } // end of namespace templ_colon_impl
+  } // end of namespace parse
+} // end of namespace cxx_compiler
+
 bool cxx_compiler::parse::templ_arg_and_coloncolon()
 {
-  if (g_read.m_token.size() != 1)
-    error::not_implemented();
+  using namespace templ_colon_impl;
+  if (g_read.m_token.size() == 1)
+    return common_case();
 
-  if (peek() != '<')
-    return false;
+  if (templ::ptr)
+    return templ_ptr_case();
 
-  identifier::mode_t org = identifier::mode;
-  var* org2 = cxx_compiler_lval.m_var;
-  identifier::mode = identifier::peeking;
-
-  int c;
-  while ((c = lex_and_save()) != EOF) {
-    if (c == '>')
-      break;
-    if (c == '<')
-      error::not_implemented();
-  }
-
-  if (c != '>')
-    error::not_implemented();
-
-  c = lex_and_save();
-
-  identifier::mode = org;
-  cxx_compiler_lval.m_var = org2;
-
-  return c == COLONCOLON_MK;
+  error::not_implemented();
+  return false;
 }
 
 namespace cxx_compiler {
