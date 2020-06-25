@@ -490,15 +490,15 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
     cxx_compiler_lval.m_usr = u;
     usr::flag_t flag = u->m_flag;
     if (flag & usr::TYPEDEF) {
-      if (mode == mem_ini) {
+      type_def* tdef = static_cast<type_def*>(u);
+      tdef->m_refed.push_back(parse::position);
+      if (mode == mem_ini || peek() == COLONCOLON_MK) {
 	const type* T = u->m_type;
 	if (tag* ptr = T->get_tag()) {
 	  cxx_compiler_lval.m_tag = ptr;
 	  return CLASS_NAME_LEX;
 	}
       }
-      type_def* tdef = static_cast<type_def*>(u);
-      tdef->m_refed.push_back(parse::position);
       return TYPEDEF_NAME_LEX;
     }
     if (flag & usr::CTOR) {
