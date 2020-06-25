@@ -813,7 +813,7 @@ namespace cxx_compiler {
                                block* pb, bool is_dtor, int offset,
                                const vector<const record_type*>& exclude)
     {
-      string tgn = ptr->m_name;
+      string tgn = tor_name(ptr);
       if (is_dtor)
         tgn = '~' + tgn;
       map<string, vector<usr*> >& usrs = ptr->m_usrs;
@@ -1456,7 +1456,7 @@ namespace cxx_compiler {
     {
       if (has_ctor_dtor(ptr, is_dtor))
         return 0;
-      string tgn = ptr->m_name;
+      string tgn = tor_name(ptr);
       if (is_dtor)
         tgn = '~' + tgn;
       const func_type* ft = default_ctor_type();
