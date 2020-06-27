@@ -488,8 +488,8 @@ cxx_compiler::tag* cxx_compiler::class_or_namespace_name::conv(tag* ptr)
   const type* T = ptr->m_types.second;
   if (!T)
     return ptr;
-  ptr = T->get_tag();
-  assert(ptr);
+  if (tag* ret = T->get_tag())
+    return ret;
   return ptr;
 }
 

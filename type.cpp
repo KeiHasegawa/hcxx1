@@ -1769,6 +1769,9 @@ cxx_compiler::pointer_member_type::collect_tmp(std::vector<const type*>& vt)
 void cxx_compiler::
 template_param_type::decl(std::ostream& os, std::string name) const
 {
+  const type* T = m_tag->m_types.second;
+  if (T && T != this)
+    return T->decl(os, name);
   record_impl::decl(os, name, m_tag);
 }
 

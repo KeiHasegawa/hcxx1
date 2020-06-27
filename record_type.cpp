@@ -126,6 +126,16 @@ namespace cxx_compiler {
         current(usr* member = 0, const type* T = 0)
           : m_member(member), m_integer(T), m_position(0) {}
       } m_current;
+      static const type* element(const array_type* at)
+      {
+	const type* T = at->element_type();
+	if (T->m_id == type::ARRAY) {
+	  typedef const array_type AT;
+	  AT* tmp = static_cast<AT*>(T);
+	  return element(tmp);
+	}
+	return T;
+      }
       int operator()(int, usr*);
       layouter(insert_iterator<map<string, pair<int, usr*> > > XX,
                insert_iterator<map<usr*, int> > YY,
@@ -2293,6 +2303,17 @@ int cxx_compiler::record_impl::layouter::operator()(int offset, usr* member)
       }
       for_each(code.begin()+n,code.end(),[](tac* p){ delete p; });
       code.resize(n);
+      if (array)
+	T = element(array);
+      if (tag* ptr = T->get_tag()) {
+	tag::flag_t flag = ptr->m_flag;
+	if (flag & tag::TYPENAMED) {
+	  *X++ = make_pair(name,make_pair(offset,member));
+	  T = int_type::create();
+	  offset += T->size();
+	  return offset;
+	}
+      }
       using namespace error::classes;
       incomplete_member(member);
       T = member->m_type = int_type::create();

@@ -978,6 +978,55 @@ namespace cxx_compiler {
     struct cmp {
       template_tag::KEY& m_key;
       map<tag*, const type*> m_table;
+      bool cmp_type(const type* Tx, const type* Ty)
+      {
+	tag* xtag = Tx->get_tag();
+	if (!xtag) {
+	  if (Tx->m_id == Ty->m_id) {
+	    if (Tx->m_id == type::POINTER) {
+	      typedef const pointer_type PT;
+	      PT* ptx = static_cast<PT*>(Tx);
+	      Tx = ptx->referenced_type();
+	      PT* pty = static_cast<PT*>(Ty);
+	      Ty = pty->referenced_type();
+	      return cmp_type(Tx, Ty);
+	    }
+	  }
+	  return false;
+	}
+	tag* ytag = Ty->get_tag();
+	if (!ytag) {
+	  if (Tx->m_id == type::TEMPLATE_PARAM) {
+	    map<tag*, const type*>::const_iterator p = m_table.find(xtag);
+	    if (p != m_table.end()) {
+	      const type* Tz = p->second;
+	      if (Ty != Tz)
+		error::not_implemented();
+	      return true;
+	    }
+	    m_table[xtag] = Ty;
+	    m_key.push_back(scope::tps_t::val2_t(Ty, 0));
+	    return true;
+	  }
+	  return false;
+	}
+	if (!(xtag->m_flag & tag::INSTANTIATE))
+	  return false;
+	instantiated_tag* itx = static_cast<instantiated_tag*>(xtag);
+	if (!(ytag->m_flag & tag::INSTANTIATE))
+	  return false;
+	instantiated_tag* ity = static_cast<instantiated_tag*>(ytag);
+	template_tag* ttx = itx->m_src;
+	template_tag* tty = ity->m_src;
+	if (ttx != tty)
+	  return false;
+	const template_tag::KEY& xs = itx->m_seed;
+	const template_tag::KEY& ys = ity->m_seed;
+	typedef template_tag::KEY::const_iterator IT;
+	pair<IT, IT> ret = mismatch(begin(xs), end(xs), begin(ys),
+				    cmp_helper(m_key, m_table));
+	return ret == make_pair(end(xs), end(ys));
+      }
       cmp(template_tag::KEY& key) : m_key(key) {}
       bool
       operator()(const scope::tps_t::val2_t& x, const scope::tps_t::val2_t* y)
@@ -985,40 +1034,7 @@ namespace cxx_compiler {
 	if (const type* Tx = x.first) {
 	  const type* Ty = y->first;
 	  assert(Tx && Ty);
-	  tag* xtag = Tx->get_tag();
-	  assert(xtag);
-	  tag* ytag = Ty->get_tag();
-	  if (!ytag) {
-	    if (Tx->m_id == type::TEMPLATE_PARAM) {
-	      map<tag*, const type*>::const_iterator p = m_table.find(xtag);
-	      if (p != m_table.end()) {
-		const type* Tz = p->second;
-		if (Ty != Tz)
-		  error::not_implemented();
-		return true;
-	      }
-	      m_table[xtag] = Ty;
-	      m_key.push_back(scope::tps_t::val2_t(Ty, 0));
-	      return true;
-	    }
-	    return false;
-	  }
-	  if (!(xtag->m_flag & tag::INSTANTIATE))
-	    return false;
-	  instantiated_tag* itx = static_cast<instantiated_tag*>(xtag);
-	  if (!(ytag->m_flag & tag::INSTANTIATE))
-	    return false;
-	  instantiated_tag* ity = static_cast<instantiated_tag*>(ytag);
-	  template_tag* ttx = itx->m_src;
-	  template_tag* tty = ity->m_src;
-	  if (ttx != tty)
-	    return false;
-	  const template_tag::KEY& xs = itx->m_seed;
-	  const template_tag::KEY& ys = ity->m_seed;
-	  typedef template_tag::KEY::const_iterator IT;
-	  pair<IT, IT> ret = mismatch(begin(xs), end(xs), begin(ys),
-				      cmp_helper(m_key, m_table));
-	  return ret == make_pair(end(xs), end(ys));
+	  return cmp_type(Tx, Ty);
 	}
 	else {
 	  var* vx = x.second;
@@ -1576,8 +1592,11 @@ const cxx_compiler::type* cxx_compiler::typenamed::action(var* v)
   usr* u = static_cast<usr*>(v);
   const type* T = u->m_type;
   usr::flag_t flag = u->m_flag;
-  if (flag & usr::TYPEDEF)
+  if (flag & usr::TYPEDEF) {
+    if (tag* ptr = T->get_tag())
+      ptr->m_flag = tag::flag_t(ptr->m_flag | tag::TYPENAMED);
     return T;
+  }
   assert(T->m_id == type::BACKPATCH);
   string name = u->m_name;
   tag* ptr = new tag(tag::TYPENAME, name, parse::position, 0);
