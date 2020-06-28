@@ -451,8 +451,8 @@ function::definition::begin(declarations::specifier_seq::info_t* p, var* v)
     u = c.back();
     flag2 = u->m_flag2;
   }
-  auto_ptr<declarations::specifier_seq::info_t>
-    sweeper(p);
+  bool b = declarations::specifier_seq::info_t::s_stack.empty();
+  auto_ptr<declarations::specifier_seq::info_t> sweeper(b ? 0 : p);
   vector<scope*>& children = scope::current->m_children;
   if (children.empty()) {
     using namespace error::declarations::declarators::function::definition;

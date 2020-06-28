@@ -239,7 +239,8 @@ simple_declaration
   : decl_specifier_seq init_declarator_list ';'
     {
       using namespace cxx_compiler;
-      delete $1;
+      if (!declarations::specifier_seq::info_t::s_stack.empty())
+	delete $1;
       parse::identifier::mode = parse::identifier::look;
       $$ = $2;
     }

@@ -679,7 +679,6 @@ cxx_compiler::template_usr::instantiate(const KEY& key)
   s_stack.pop();
   if (m_patch_13_2) {
     assert(m_flag & usr::INLINE);
-    assert(!(ret->m_flag & usr::INLINE));
     ret->m_flag = usr::flag_t(ret->m_flag | usr::INLINE);
   }
   assert(ret->m_src == this);
