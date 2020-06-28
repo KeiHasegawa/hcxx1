@@ -2758,7 +2758,25 @@ cxx_compiler::record_type::create(tag* ptr)
 }
 
 namespace cxx_compiler {
-  bool templ_copy_ctor(usr* u, instantiated_tag* y)
+  bool cmp(const scope::tps_t::val2_t& x, const scope::tps_t::val2_t& y,
+	   instantiated_tag::SEED& seed)
+  {
+    if (const type* Tx = x.first) {
+      const type* Ty = y.first;
+      if (Tx->m_id == type::TEMPLATE_PARAM) {
+	if (Ty->m_id != type::TEMPLATE_PARAM)
+	  seed.push_back(scope::tps_t::val2_t(Ty, 0));
+	return true;
+      }
+      assert(Tx == Ty);
+      return true;
+    }
+
+    error::not_implemented();
+    return true;
+  }
+  bool templ_copy_ctor(usr* u, instantiated_tag* y,
+		       instantiated_tag::SEED& seed)
   {
     usr::flag2_t flag2 = u->m_flag2;
     if (!(flag2 & usr::TEMPLATE))
@@ -2787,7 +2805,15 @@ namespace cxx_compiler {
     instantiated_tag* x = static_cast<instantiated_tag*>(ptr);
     assert(x->m_src);
     assert(y->m_src);
-    return x->m_src == y->m_src;
+    if (x->m_src != y->m_src)
+      return false;
+    const instantiated_tag::SEED& xs = x->m_seed;
+    const instantiated_tag::SEED& ys = y->m_seed;
+    assert(xs.size() == ys.size());
+    mismatch(begin(xs), end(xs), begin(ys), [&seed]
+	     (const scope::tps_t::val2_t& x, const scope::tps_t::val2_t& y)
+	     { return cmp(x, y, seed); });
+    return true;
   }
 } // end of namespace cxx_compiler
 
@@ -2807,12 +2833,14 @@ void cxx_compiler::handle_copy_ctor(tag* ptr)
     return;
   if (ptr->m_flag & tag::INSTANTIATE) {
     instantiated_tag* it = static_cast<instantiated_tag*>(ptr);
-    IT r = find_if(begin(v), end(v), bind2nd(ptr_fun(templ_copy_ctor), it));
+    template_usr::KEY key;
+    IT r = find_if(begin(v), end(v), [it, &key](usr* u)
+		   { return templ_copy_ctor(u, it, key); });
     if (r != end(v)) {
       usr* u = *r;
       assert(u->m_flag2 & usr::TEMPLATE);
       template_usr* tu = static_cast<template_usr*>(u);
-      tu->instantiate(it->m_seed);
+      tu->instantiate(key);
       return;
     }
   }

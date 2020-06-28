@@ -1006,6 +1006,16 @@ namespace cxx_compiler {
     {
       read_t& r = p->m_read;
       r.m_token.push_back(make_pair(last_token, parse::position));
+      if (last_token == CLASS_NAME_LEX) {
+	tag* ptr = cxx_compiler_lval.m_tag;
+	const type* T = ptr->m_types.first;
+	if (T->m_id == type::TEMPLATE_PARAM) {
+	  if (const type* T2 = ptr->m_types.second) {
+	    tag* ptr2 = new tag(*ptr);
+	    cxx_compiler_lval.m_tag = ptr2;
+	  }
+	}
+      }
       save_common(last_token, r.m_lval, 0, true);
     }
     inline int save_for_retry()

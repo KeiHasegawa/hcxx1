@@ -172,11 +172,6 @@ namespace cxx_compiler {
 	typedef const template_param_type TP;
 	TP* tp = static_cast<TP*>(Tx);
 	tag* ptr = tp->get_tag();
-	typedef map<string, scope::tps_t::value_t>::const_iterator IT;
-	IT p = find_if(begin(table), end(table),
-		       [ptr](const pair<string, scope::tps_t::value_t>& x)
-		       { return x.second.first == ptr; });
-	assert(p != end(table));
 	if (ptr->m_types.second)
 	  return ptr->m_types.second == Ty;
 	ptr->m_types.second = Ty;
