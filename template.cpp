@@ -1589,9 +1589,14 @@ const cxx_compiler::type* cxx_compiler::typenamed::action(var* v)
   if (flag & usr::TYPEDEF) {
     if (tag* ptr = T->get_tag())
       ptr->m_flag = tag::flag_t(ptr->m_flag | tag::TYPENAMED);
-    return T;
+    assert(!class_or_namespace_name::before.empty());
+    scope* p = class_or_namespace_name::before.back();
+    if (p->m_id != scope::TAG)
+      return T;
+    tag* ptr = static_cast<tag*>(p);
+    if (!(ptr->m_flag & tag::TEMPLATE))
+      return T;
   }
-  assert(T->m_id == type::BACKPATCH);
   string name = u->m_name;
   tag* ptr = new tag(tag::TYPENAME, name, parse::position, 0);
   assert(!class_or_namespace_name::before.empty());

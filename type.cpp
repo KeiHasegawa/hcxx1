@@ -787,21 +787,22 @@ cxx_compiler::func_type::composite(const type* T) const
   return create(this->m_T->composite(that->m_T),param);
 }
 
-const cxx_compiler::type* cxx_compiler::func_type::patch(const type* T, usr* u) const
+const cxx_compiler::type*
+cxx_compiler::func_type::patch(const type* T, usr* u) const
 {
   if ( T && m_T )
     T = m_T->patch(T,u);
-  if ( T && T->m_id == type::FUNC ){
+  if (T && T->m_id == type::FUNC) {
     using namespace error::declarations::declarators::function;
-    of_function(parse::position,u);
+    of_function(parse::position, u);
     if (T->backpatch())
       T = backpatch_type::create();
     else
       T = int_type::create();
   }
-  if ( T && T->m_id == type::ARRAY ){
+  if (T && T->m_id == type::ARRAY) {
     using namespace error::declarations::declarators::function;
-    of_array(parse::position,u);
+    of_array(parse::position, u);
     if (T->backpatch())
       T = backpatch_type::create();
     else
@@ -809,7 +810,7 @@ const cxx_compiler::type* cxx_compiler::func_type::patch(const type* T, usr* u) 
   }
   if (u)
     u->m_flag = usr::flag_t(u->m_flag | usr::FUNCTION);
-  return create(T,m_param);
+  return create(T, m_param);
 }
 
 const cxx_compiler::type* cxx_compiler::func_type::qualified(int cvr) const

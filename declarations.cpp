@@ -1439,17 +1439,11 @@ cxx_compiler::declarations::exchange(bool installed, usr* new_one, usr* org)
     return new_one;
   }
 
-  if (parse::templ::save_t::nest.size() <= 1)
-    delete org;
-
-  if (!parse::templ::save_t::nest.empty()) {
-    parse::templ::save_t* p = parse::templ::save_t::nest.back();
-    parse::read_t& r = p->m_read;
-    list<void*>& lv = r.m_lval;
-    if (!lv.empty()) {
-      if (org == lv.back())
-	lv.back() = new_one;
-    }
+  delete org;
+  using namespace parse::templ;
+  for (auto p : save_t::nest) {
+    list<void*>& lv = p->m_read.m_lval;
+    replace(begin(lv), end(lv), org, new_one);
   }
 
   return new_one;
