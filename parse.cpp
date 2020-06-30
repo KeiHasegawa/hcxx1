@@ -678,27 +678,50 @@ int cxx_compiler::parse::peek()
 namespace cxx_compiler {
   namespace parse {
     namespace templ_colon_impl {
+      typedef list<pair<int, file_t> >::const_iterator IT;
+      int get(IT& p, IT finish)
+      {
+	if (p != finish) {
+	  int c = p->first;
+	  ++p;
+	  return c;
+	}
+	return lex_and_save();
+      }
+      int skip(IT& p, IT finish)
+      {
+	int c;
+	while ((c = get(p, finish)) != EOF) {
+	  if (c == '>')
+	    break;
+	  if (c == '<') {
+	    c = skip(p, finish);
+	    if (c != '>')
+	      error::not_implemented();
+	  }
+	}
+	return c;
+      }
       bool common_case()
       {
-	if (peek() != '<')
+	const list<pair<int, file_t> >& token = g_read.m_token;
+	IT p = token.begin();
+	IT finish = token.end();
+
+	assert(p != finish);
+	if (p->first != '<')
 	  return false;
+	++p;
 
 	identifier::mode_t org = identifier::mode;
 	var* org2 = cxx_compiler_lval.m_var;
 	identifier::mode = identifier::peeking;
 
-	int c;
-	while ((c = lex_and_save()) != EOF) {
-	  if (c == '>')
-	    break;
-	  if (c == '<')
-	    error::not_implemented();
-	}
-
+	int c = skip(p, finish);
 	if (c != '>')
 	  error::not_implemented();
 
-	c = lex_and_save();
+	c = get(p, finish);
 
 	identifier::mode = org;
 	cxx_compiler_lval.m_var = org2;
@@ -731,14 +754,7 @@ namespace cxx_compiler {
 bool cxx_compiler::parse::templ_arg_and_coloncolon()
 {
   using namespace templ_colon_impl;
-  if (g_read.m_token.size() == 1)
-    return common_case();
-
-  if (templ::ptr)
-    return templ_ptr_case();
-
-  error::not_implemented();
-  return false;
+  return templ::ptr ? templ_ptr_case() : common_case();
 }
 
 namespace cxx_compiler {
@@ -1058,7 +1074,6 @@ namespace cxx_compiler {
 	ITy ey = rd.m_lval.end();
 	ITy by = ey;
 	int m = x.second;
-	assert(m);
 	while (m--)
 	  --by;
 	copy(by, ey, back_inserter(p->m_read.m_lval));

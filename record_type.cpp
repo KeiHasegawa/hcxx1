@@ -2766,8 +2766,7 @@ namespace cxx_compiler {
     if (const type* Tx = x.first) {
       const type* Ty = y.first;
       if (Tx->m_id == type::TEMPLATE_PARAM) {
-	if (Ty->m_id != type::TEMPLATE_PARAM)
-	  seed.push_back(scope::tps_t::val2_t(Ty, 0));
+	seed.push_back(scope::tps_t::val2_t(Ty, 0));
 	return true;
       }
       assert(Tx == Ty);
