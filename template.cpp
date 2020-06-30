@@ -972,6 +972,20 @@ namespace cxx_compiler {
     struct cmp {
       template_tag::KEY& m_key;
       map<tag*, const type*> m_table;
+      bool cmp_type(const type* Tx, tag* xtag, const type* Ty)
+      {
+	if (Tx->m_id == type::TEMPLATE_PARAM) {
+	  map<tag*, const type*>::const_iterator p = m_table.find(xtag);
+	  if (p != m_table.end()) {
+	    const type* Tz = p->second;
+	    return compatible(Ty, Tz);
+	  }
+	  m_table[xtag] = Ty;
+	  m_key.push_back(scope::tps_t::val2_t(Ty, 0));
+	  return true;
+	}
+	return false;
+      }
       bool cmp_type(const type* Tx, const type* Ty)
       {
 	tag* xtag = Tx->get_tag();
@@ -989,23 +1003,12 @@ namespace cxx_compiler {
 	  return false;
 	}
 	tag* ytag = Ty->get_tag();
-	if (!ytag) {
-	  if (Tx->m_id == type::TEMPLATE_PARAM) {
-	    map<tag*, const type*>::const_iterator p = m_table.find(xtag);
-	    if (p != m_table.end()) {
-	      const type* Tz = p->second;
-	      if (Ty != Tz)
-		error::not_implemented();
-	      return true;
-	    }
-	    m_table[xtag] = Ty;
-	    m_key.push_back(scope::tps_t::val2_t(Ty, 0));
-	    return true;
-	  }
-	  return false;
-	}
+	if (!ytag)
+	  return cmp_type(Tx, xtag, Ty);
+
 	if (!(xtag->m_flag & tag::INSTANTIATE))
-	  return false;
+	  return cmp_type(Tx, xtag, Ty);
+
 	instantiated_tag* itx = static_cast<instantiated_tag*>(xtag);
 	if (!(ytag->m_flag & tag::INSTANTIATE))
 	  return false;

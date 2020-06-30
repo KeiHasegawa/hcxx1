@@ -1272,7 +1272,7 @@ namespace cxx_compiler {
 void cxx_compiler::
 incomplete_tagged_type::decl(std::ostream& os, std::string name) const
 {
-  record_impl::decl(os, name, m_tag);
+  record_impl::decl(os, name, m_tag, false);
 }
 
 void cxx_compiler::incomplete_tagged_type::encode(std::ostream& os) const
@@ -1376,7 +1376,7 @@ const cxx_compiler::incomplete_tagged_type* cxx_compiler::incomplete_tagged_type
 
 void cxx_compiler::enum_type::decl(std::ostream& os, std::string name) const
 {
-  record_impl::decl(os, name, m_tag);
+  record_impl::decl(os, name, m_tag, false);
 }
 
 void cxx_compiler::enum_type::encode(std::ostream& os) const
@@ -1771,9 +1771,13 @@ void cxx_compiler::
 template_param_type::decl(std::ostream& os, std::string name) const
 {
   const type* T = m_tag->m_types.second;
-  if (T && T != this)
+  if (T && T != this) {
+    if (T->m_id == type::TEMPLATE_PARAM)
+      return record_impl::decl(os, name, m_tag, true);
     return T->decl(os, name);
-  record_impl::decl(os, name, m_tag);
+  }
+
+  record_impl::decl(os, name, m_tag, false);
 }
 
 void cxx_compiler::

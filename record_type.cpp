@@ -2424,13 +2424,15 @@ namespace cxx_compiler {
 	return "";
       }
     }
-    void decl(ostream& os, string name, const tag* ptr)
+    void decl(ostream& os, string name, const tag* ptr, bool addr)
     {
       os << tag::keyword(ptr->m_kind) << ' ';
       string sn = scope_name(ptr->m_parent);
       if (!sn.empty())
 	os << sn << "::";
       os << ptr->m_name;
+      if (addr)
+	os << '.' << ptr;
       if (!name.empty())
 	os << ' ' << name;
     }
@@ -2439,7 +2441,7 @@ namespace cxx_compiler {
 
 void cxx_compiler::record_type::decl(std::ostream& os, std::string name) const
 {
-  record_impl::decl(os, name, m_tag);
+  record_impl::decl(os, name, m_tag, false);
 }
 
 void cxx_compiler::record_impl::encode(std::ostream& os, const tag* ptr)
