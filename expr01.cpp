@@ -930,8 +930,16 @@ cxx_compiler::var* cxx_compiler::call_impl::convert::operator()(var* arg)
   }
   else {
     arg = aggregate_conv(T, arg, ctor_conv, 0);
-    if (m_trial_cost)
+    if (m_trial_cost) {
       ++*m_trial_cost;
+      T = T->unqualified();
+      if (tag* ptr = T->get_tag()) {
+	if (ptr->m_flag & tag::TYPENAMED) {
+	  if (T->m_id == type::INCOMPLETE_TAGGED)
+	    ++*m_trial_cost;
+	}
+      }
+    }
   }
   if (U->m_id == type::REFERENCE) {
     typedef const reference_type RT;
@@ -2073,6 +2081,14 @@ assignment::valid(const type* T, var* src, bool* discard, bool* ctor_conv,
   yy = yy->unqualified();
   xx = xx->complete_type();
   yy = yy->complete_type();
+
+  if (tag* ptr = xx->get_tag()) {
+    if (ptr->m_flag & tag::TYPENAMED) {
+      if (xx->m_id == type::INCOMPLETE_TAGGED)
+	return T;
+    }
+  }
+
   if ( xx->arithmetic() && yy->arithmetic() )
     return xx;
 
@@ -2486,7 +2502,7 @@ namespace cxx_compiler {
 	    code.push_back(new assign3ac(x, y));
 	  return true;
 	}
-	var* operator_code(const record_type* recx, var* y)
+	var* operator_code(const type* Tx, var* y)
 	{
 	  const type* Ty = y->m_type;
 	  Ty = Ty->unqualified();
@@ -2502,7 +2518,7 @@ namespace cxx_compiler {
 	  REC* recy = static_cast<REC*>(Ty);
 	  tag* ptr = recy->get_tag();
 	  const map<string, vector<usr*> >& usrs = ptr->m_usrs;
-	  string name = conversion_name(recx);
+	  string name = conversion_name(Tx);
 	  typedef map<string, vector<usr*> >::const_iterator IT;
 	  IT p = usrs.find(name);
 	  if (p == usrs.end())
@@ -2559,10 +2575,12 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::fcast::gen()
   else
     garbage.push_back(ret);
 
-  assert(m_type->m_id == type::RECORD);
-  typedef const record_type REC;
-  REC* rec = static_cast<REC*>(m_type);
-  tag* ptr = rec->get_tag();
+  tag* ptr = m_type->get_tag();
+  if (ptr->m_flag & tag::TYPENAMED) {
+    if (m_type->m_id == type::INCOMPLETE_TAGGED)
+      return ret;
+  }
+
   usr* ctor = has_ctor_dtor(ptr, false);
   if (ctor) {
     usr::flag_t flag = ctor->m_flag;
@@ -2585,7 +2603,7 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::fcast::gen()
   if (!ctor && fcast_impl::copy_code(ret, y))
     return ret;
 
-  return fcast_impl::operator_code(rec, y);
+  return fcast_impl::operator_code(m_type, y);
 }
 
 namespace cxx_compiler {

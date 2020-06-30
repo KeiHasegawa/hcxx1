@@ -772,8 +772,7 @@ namespace cxx_compiler {
       assert(!ga->m_appear_templ);
       ga->m_appear_templ = true;
     }
-    void save_common(int n, list<void*>& lval, list<void*>* src = 0,
-		     bool save_genaddr = false)
+    inline bool save_cond(int n)
     {
       switch (n) {
       case IDENTIFIER_LEX:
@@ -789,6 +788,14 @@ namespace cxx_compiler {
       case ORIGINAL_NAMESPACE_NAME_LEX:
       case NAMESPACE_ALIAS_LEX:
       case TEMPLATE_NAME_LEX:
+	return true;
+      }
+      return false;
+    }
+    void save_common(int n, list<void*>& lval, list<void*>* src = 0,
+		     bool save_genaddr = false)
+    {
+      if (save_cond(n)) {
         if (src) {
           assert(!src->empty());
           lval.push_back(src->front());
@@ -804,7 +811,6 @@ namespace cxx_compiler {
 	  }
 	  lval.push_back(v);
 	}
-        break;
       }
     }
     inline int get_id_from_mem_fun_body(int n)
@@ -892,12 +898,6 @@ namespace cxx_compiler {
 	  last_token = identifier::lookup(name, scope::current);
 	  if (!templ)
 	    delete u;
-	  if (!templ::save_t::nest.empty()) {
-	    templ::save_t* p = templ::save_t::nest.back();
-	    list<void*>& lval = p->m_read.m_lval;
-	    assert(lval.back() == u);
-	    lval.pop_back();
-	  }
 	}
         return n;
       case INTEGER_LITERAL_LEX:
@@ -1056,7 +1056,8 @@ namespace cxx_compiler {
 	tag* ptr = p->m_tag;
 	assert(ptr);
 	pair<int, file_t>& b = p->m_read.m_token.back();
-	assert(b.first == '{');
+	char c = b.first;
+	assert(c == '{' || c == ':' || c == TRY_KW);
 	tag::flag_t flag = ptr->m_flag;
 	if (!(flag & tag::TEMPLATE)) {
 	  b.first = ';';
@@ -1525,8 +1526,14 @@ namespace cxx_compiler {
       if (b)
 	--n;
       assert(n >= 0);
-      for (int i = 0 ; i != n ; ++i)
-	r.m_token.pop_back();
+      list<pair<int, file_t> >& token = r.m_token;
+      list<void*>& lval = r.m_lval;
+      for (int i = 0 ; i != n ; ++i) {
+	pair<int, file_t> x = token.back();
+	token.pop_back();
+	if (save_cond(x.first))
+	  lval.pop_back();
+      }
     }
     void restore(int* state, short** b0, short** t0, short* a0,
                  YYSTYPE** b1, YYSTYPE** t1, YYSTYPE* a1, bool b)

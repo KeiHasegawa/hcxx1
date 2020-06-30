@@ -537,10 +537,11 @@ namespace cxx_compiler {
 		transform(begin(*p), end(*p), back_inserter(arg),
 			  mem_fun(&expressions::base::gen));
 	      const type* T = dst->result_type();
-	      assert(T->m_id == type::RECORD);
-	      typedef const record_type REC;
-	      REC* rec = static_cast<REC*>(T);
-	      tag* ptr = rec->get_tag();
+	      tag* ptr = T->get_tag();
+	      if (ptr->m_flag & tag::TYPENAMED) {
+		if (T->m_id == type::INCOMPLETE_TAGGED)
+		  return;
+	      }
 	      usr* ctor = has_ctor_dtor(ptr, false);
 	      usr::flag_t flag = ctor->m_flag;
 	      if (flag & usr::OVERLOAD) {

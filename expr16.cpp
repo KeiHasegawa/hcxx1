@@ -106,6 +106,14 @@ namespace cxx_compiler {
 	return ctor_code(Tx, res, y);
       return y;
     }
+
+    if (tag* ptr = Tx->get_tag()) {
+      if (ptr->m_flag & tag::TYPENAMED) {
+	if (Tx->m_id == type::INCOMPLETE_TAGGED)
+	  return y;
+      }
+    }
+
     assert(Tx->m_id == type::RECORD);
     typedef const record_type REC;
     REC* xrec = static_cast<REC*>(Tx);
