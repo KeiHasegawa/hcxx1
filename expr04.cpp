@@ -34,6 +34,22 @@ namespace cxx_compiler {
     usr* op_fun = static_cast<usr*>(v);
     return op_fun;
   }
+  usr* operator_function(int op)
+  {
+    string name = operator_name(op);
+    parse::identifier::mode_t org = parse::identifier::mode;
+    parse::identifier::mode = parse::identifier::no_err;
+    int r = parse::identifier::lookup(name, scope::current);
+    parse::identifier::mode = org;
+    if (!r)
+      return 0;
+    var* v = cxx_compiler_lval.m_var;
+    if (genaddr* ga = v->genaddr_cast())
+      v = ga->m_ref;
+    assert(v->usr_cast());
+    usr* op_fun = static_cast<usr*>(v);
+    return op_fun;
+  }
 } // end of namespace cxx_compiler
 
 cxx_compiler::var* cxx_compiler::expressions::binary::info_t::gen()

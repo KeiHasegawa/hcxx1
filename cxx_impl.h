@@ -520,6 +520,8 @@ extern string conversion_name(const type*);
 
 extern usr* operator_function(const type* T, int op);
 
+extern usr* operator_function(int op);
+
 extern usr* conversion_function(const type* T);
 
 extern void call_default_ctor(var*);
