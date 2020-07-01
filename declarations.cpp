@@ -578,22 +578,17 @@ cxx_compiler::declarations::action1(var* v, bool ini)
     }
   }
   else {
-    if (flag & usr::DTOR) {
-      assert(T->m_id == type::FUNC);
-      if (installed) {
-        typedef const func_type FT;
-        FT* ft = static_cast<FT*>(T);
-        assert(!ft->return_type());
-      }
-      else {
-        assert(T->backpatch());
-        u->m_type = T = T->patch(0,u);
-      }
+    usr::flag_t mask = usr::flag_t(usr::CTOR | usr::DTOR);
+    assert(flag & mask);
+    assert(T->m_id == type::FUNC);
+    if (installed) {
+      typedef const func_type FT;
+      FT* ft = static_cast<FT*>(T);
+      assert(!ft->return_type());
     }
     else {
-      // Rare case. Maybe already error happened.
-      if (T->backpatch())
-        u->m_type = T = T->patch(int_type::create(),u);
+      assert(T->backpatch());
+      u->m_type = T = T->patch(0,u);
     }
   }
   if (flag & usr::TYPEDEF) {

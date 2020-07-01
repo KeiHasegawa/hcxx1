@@ -803,6 +803,13 @@ namespace cxx_compiler {
               }
 	      usr* u = x->first;
 	      tag* ptr = x->second;
+	      if (ptr) {
+		const type* T = ptr->m_types.first;
+		if (T->m_id == type::TEMPLATE_PARAM) {
+		  if (T = ptr->m_types.second)
+		    ptr = T->get_tag();
+		}
+	      }
 	      u ? id_action(u, exprs, ctor) : tag_action(ptr, exprs, ctor);
             }
           } // end of namespace mem_initializer
