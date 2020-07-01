@@ -210,7 +210,10 @@ namespace cxx_compiler {
       assert(!(bp->m_flag & usr::VIRTUAL));
       tag* ptr = bp->m_tag;
       const type* T = ptr->m_types.second;
-      assert(T);
+      if (!T) {
+	T = ptr->m_types.first;
+	assert(T->m_id == type::TEMPLATE_PARAM);
+      }
       int m = T->size();
       assert(m);
       m -= accumulate(begin(tmp), end(tmp), 0, add_size);
@@ -302,7 +305,11 @@ namespace cxx_compiler {
       {
         tag* ptr = bp->m_tag;
         const type* T = ptr->m_types.second;
-        assert(T);
+	if (!T) {
+	  T = ptr->m_types.first;
+	  assert(T->m_id == type::TEMPLATE_PARAM);
+	  return n;
+	}
         assert(T->m_id == type::RECORD);
         typedef const record_type REC;
         REC* rec = static_cast<REC*>(T);
@@ -2389,7 +2396,10 @@ bool cxx_compiler::record_impl::base_modifiable(base* bp, bool partially)
 {
   tag* ptr = bp->m_tag;
   const type* T = ptr->m_types.second;
-  assert(T);
+  if (!T) {
+    T = ptr->m_types.first;
+    assert(T->m_id == type::TEMPLATE_PARAM);
+  }
   return T->modifiable(partially);
 }
 

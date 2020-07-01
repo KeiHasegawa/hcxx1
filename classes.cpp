@@ -221,6 +221,21 @@ namespace cxx_compiler {
       scope::current = tcurr;
       declarations::specifier_seq::info_t::clear();
     }
+    void update(base* bp)
+    {
+      tag* ptr = bp->m_tag;
+      const type* T = ptr->m_types.first;
+      if (T->m_id != type::TEMPLATE_PARAM) {
+	T = ptr->m_types.second;
+	assert(T);
+	return;
+      }
+      T = ptr->m_types.second;
+      if (!T)
+	return;
+      tag* ptr2 = T->get_tag();
+      bp->m_tag = ptr2;
+    }
   } // end of namespace classes_impl
 } // end of namespace cxx_compiler
 
@@ -233,6 +248,8 @@ cxx_compiler::classes::specifier::begin(int keyword, var* v,
   auto_ptr<usr> sweeper(parse::templ::save_t::nest.empty() ? u : 0);
   tag::kind_t kind = get(keyword);
   string name = classes_impl::get_name(u);
+  if (bases)
+    for_each(begin(*bases), end(*bases), classes_impl::update);
   const file_t& file = u ? u->m_file : parse::position;
   map<string, tag*>& tags = scope::current->m_tags;
   map<string, tag*>::const_iterator p = tags.find(name);
