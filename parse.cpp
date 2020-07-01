@@ -813,6 +813,16 @@ namespace cxx_compiler {
 	}
       }
     }
+    inline instantiated_tag* get_itag(scope* p)
+    {
+      assert(p);
+      if (p->m_id != scope::TAG)
+	return get_itag(p->m_parent);
+      tag* ptr = static_cast<tag*>(p);
+      if (ptr->m_flag & tag::INSTANTIATE)
+	return static_cast<instantiated_tag*>(ptr);
+      return get_itag(p->m_parent);
+    }
     inline int get_id_from_mem_fun_body(int n)
     {
       assert(n == PEEKED_NAME_LEX || n == IDENTIFIER_LEX);
@@ -822,7 +832,16 @@ namespace cxx_compiler {
         assert(v->genaddr_cast());
         return IDENTIFIER_LEX;
       }
-      return identifier::judge(u->m_name);
+      int r = identifier::judge(u->m_name);
+      if (r != CLASS_NAME_LEX)
+	return r;
+      tag* ptr = cxx_compiler_lval.m_tag;
+      tag::flag_t flag = ptr->m_flag;
+      if (flag & tag::TEMPLATE) {
+	instantiated_tag* it = get_itag(scope::current);
+	cxx_compiler_lval.m_tag = it;
+      }
+      return r;
     }
     inline bool inside_templ(scope* p)
     {
@@ -836,16 +855,6 @@ namespace cxx_compiler {
       if (ptr->m_flag & mask)
 	return true;
       return inside_templ(ptr->m_parent);
-    }
-    inline instantiated_tag* get_itag(scope* p)
-    {
-      assert(p);
-      if (p->m_id != scope::TAG)
-	return get_itag(p->m_parent);
-      tag* ptr = static_cast<tag*>(p);
-      if (ptr->m_flag & tag::INSTANTIATE)
-	return static_cast<instantiated_tag*>(ptr);
-      return get_itag(p->m_parent);
     }
     inline bool should_lookup_templ()
     {
