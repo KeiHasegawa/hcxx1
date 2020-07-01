@@ -2184,7 +2184,7 @@ assignment::valid(const type* T, var* src, bool* discard, bool* ctor_conv,
     REF* ref = static_cast<REF*>(xx);
     const type* T = ref->referenced_type();
     const type* X = src->result_type();
-    if (T == X)
+    if (compatible(T, X))
       return T;
     if (!T->modifiable() || !X->modifiable()) {
       if (const type* r = valid(T, src, discard, ctor_conv, exp_ctor)) {
