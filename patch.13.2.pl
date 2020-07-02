@@ -69,7 +69,8 @@ print <<EOF
             save_t* p = save_t::nest.back();
             p->m_patch_13_2 = true;
             identifier::mode = identifier::peeking;
-            pair<int, int> ret = member_function_body::save_brace(&p->m_read);
+            pair<int, int> ret =
+		member_function_body::save_brace(&p->m_read, yychar == '{');
             identifier::mode = identifier::look;
             yychar = ';';
 #ifndef __GNUC__

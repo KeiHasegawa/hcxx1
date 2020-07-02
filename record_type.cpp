@@ -962,7 +962,10 @@ namespace cxx_compiler {
 
         handle_pbc(q->second, m_param, m_block);
         tac* ptac = code.back();
-        assert(ptac->m_id == tac::CALL);
+	if (ptac->m_id != tac::CALL) {
+	  // Play Old Type. No constructor is declared.
+	  return true;
+	}
         assert(ptac->y->usr_cast());
         usr* tor = static_cast<usr*>(ptac->y);
         vector<REC*> ex;

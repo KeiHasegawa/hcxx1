@@ -106,7 +106,7 @@ namespace parse {
     extern map<usr*, save_t> stbl;
     extern save_t* saved;
     extern void save(usr*);
-    extern pair<int, int> save_brace(read_t*);
+    extern pair<int, int> save_brace(read_t*, bool);
     extern int get_token();
   } // end of namespace member_function_body
   namespace templ {

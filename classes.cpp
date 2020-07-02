@@ -635,11 +635,6 @@ namespace cxx_compiler {
 	    void gen(tag* ptr, var* this_ptr, int offset, EXPRS* exprs)
 	    {
               using namespace expressions::primary::literal;
-	      string name = tor_name(ptr);
-	      typedef map<string, vector<usr*> >::const_iterator IT;
-	      IT p = ptr->m_usrs.find(name);
-	      if (p == ptr->m_usrs.end())
-		error::not_implemented();
 	      if (offset) {
 		var* off = integer::create(offset);
 		const type* T = this_ptr->m_type;
@@ -650,13 +645,32 @@ namespace cxx_compiler {
 		code.push_back(new add3ac(tmp, this_ptr, off));
 		this_ptr = tmp;
 	      }
-	      const vector<usr*>& v = p->second;
-	      usr* ctor = v.back();
-	      usr::flag_t flag = ctor->m_flag;
 	      vector<var*> arg;
 	      if (exprs)
 		transform(begin(*exprs), end(*exprs), back_inserter(arg),
 			  mem_fun(&expressions::base::gen));
+	      string name = tor_name(ptr);
+	      typedef map<string, vector<usr*> >::const_iterator IT;
+	      IT p = ptr->m_usrs.find(name);
+	      if (p == ptr->m_usrs.end()) {
+		// Plain Old Type. No constructor is declared.
+		if (arg.size() != 1)
+		  error::not_implemented();
+		var* z = arg[0];
+		z = z->rvalue();
+		const type* T = z->m_type;
+		T = pointer_type::create(T);
+		var* y = new var(T);
+		assert(scope::current->m_id == scope::BLOCK);
+		block* b = static_cast<block*>(scope::current);
+		b->m_vars.push_back(y);
+		code.push_back(new cast3ac(y, this_ptr, T));
+		code.push_back(new invladdr3ac(y, z));
+		return;
+	      }
+	      const vector<usr*>& v = p->second;
+	      usr* ctor = v.back();
+	      usr::flag_t flag = ctor->m_flag;
 	      if (flag & usr::OVERLOAD) {
 		overload* ovl = static_cast<overload*>(ctor);
 		ovl->m_obj = this_ptr;
@@ -666,7 +680,7 @@ namespace cxx_compiler {
 		    usr::flag_t flag = u->m_flag;
 		    org.push_back(flag);
 		    u->m_flag = usr::flag_t(flag & ~usr::INLINE);
- 		  });             // (*1)
+		  });             // (*1)
 		ovl->call(&arg);
 		int i = 0;
 		for (auto u : cand)

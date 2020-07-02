@@ -273,8 +273,11 @@ namespace cxx_compiler {
           void operator()(base* bp)
           {
             tag* ptr = bp->m_tag;
-            if (lookup(ptr->m_usrs, bp))
-              return;
+
+	    if (parse::identifier::mode != mem_ini) {
+	      if (lookup(ptr->m_usrs, bp))
+		return;
+	    }
             
             if (lookup(ptr->m_tags, bp))
               return;
@@ -1408,13 +1411,13 @@ void cxx_compiler::parse::member_function_body::save(usr* key)
   read_t* pr = get(key, param);
 
   identifier::mode = identifier::peeking;
-  save_brace(pr);
+  save_brace(pr, cxx_compiler_char == '{');
   identifier::mode = identifier::look;
   scope::current = ptr;
 }
 
 std::pair<int, int>
-cxx_compiler::parse::member_function_body::save_brace(read_t* ptr)
+cxx_compiler::parse::member_function_body::save_brace(read_t* ptr, bool b)
 {
   using namespace std;
   list<pair<int, file_t> >& token = ptr->m_token;
@@ -1446,8 +1449,12 @@ cxx_compiler::parse::member_function_body::save_brace(read_t* ptr)
     }
 
     if (n == '{') {
-      save_brace(ptr);
-      break;
+      if (b) {
+	save_brace(ptr, false);
+	break;
+      }
+      else
+	b = true;
     }
     if (n == '}')
       break;

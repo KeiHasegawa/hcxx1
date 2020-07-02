@@ -579,16 +579,17 @@ cxx_compiler::declarations::action1(var* v, bool ini)
   }
   else {
     usr::flag_t mask = usr::flag_t(usr::CTOR | usr::DTOR);
-    assert(flag & mask);
-    assert(T->m_id == type::FUNC);
-    if (installed) {
-      typedef const func_type FT;
-      FT* ft = static_cast<FT*>(T);
-      assert(!ft->return_type());
-    }
-    else {
-      assert(T->backpatch());
-      u->m_type = T = T->patch(0,u);
+    if (flag & mask) {
+      assert(T->m_id == type::FUNC);
+      if (installed) {
+	typedef const func_type FT;
+	FT* ft = static_cast<FT*>(T);
+	assert(!ft->return_type());
+      }
+      else {
+	assert(T->backpatch());
+	u->m_type = T = T->patch(0, u);
+      }
     }
   }
   if (flag & usr::TYPEDEF) {
