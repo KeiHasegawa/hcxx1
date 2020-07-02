@@ -185,8 +185,16 @@ namespace cxx_compiler {
 	operator()(const scope::tps_t::val2_t& x,
 		   const scope::tps_t::val2_t& y)
 	{
-	  if (x.second) {
+	  if (var* v = x.second) {
 	    assert(y.second);
+	    assert(v->usr_cast());
+	    usr* u = static_cast<usr*>(v);
+	    string name = u->m_name;
+	    typedef map<string, scope::tps_t::value_t>::const_iterator IT;
+	    IT p = m_table.find(name);
+	    assert(p != m_table.end());
+	    const scope::tps_t::value_t& value = p->second;
+	    value.second->second = y.second;
 	    return true;
 	  }
 	  const type* Tx = x.first;
