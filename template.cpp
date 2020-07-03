@@ -60,6 +60,7 @@ void cxx_compiler::declarations::templ::decl_begin()
 }
 
 namespace cxx_compiler {
+  map<template_usr*, template_usr*> template_usr::prev;
   namespace declarations {
     namespace templ {
       inline instantiated_tag* get(scope* p)
@@ -76,6 +77,26 @@ namespace cxx_compiler {
 	}
 	return get(ptr->m_parent);
       }
+      inline
+      void instantiate_if(template_usr* tu, const template_usr::KEY& key)
+      {
+	template_usr::KEY::const_iterator p =
+	  find_if(begin(key), end(key), template_param);
+	if (p == end(key))
+	  tu->instantiate(key);
+      }
+      inline void after_instantiate(template_usr* tu)
+      {
+	typedef map<template_usr*, template_usr*>::const_iterator IT;
+	IT p = template_usr::prev.find(tu);
+	if (p == template_usr::prev.end())
+	  return;
+	template_usr* prev = p->second;;
+	map<template_usr::KEY, usr*>& table = prev->m_table;
+	for_each(begin(table), end(table),
+		 [tu](const pair<template_usr::KEY, usr*>& p)
+		 { instantiate_if(tu, p.first); });
+      }
       inline void handle(usr* u, const parse::read_t& r)
       {
 	assert(u->m_flag2 & usr::TEMPLATE);
@@ -83,6 +104,7 @@ namespace cxx_compiler {
 	assert(!tu->m_decled);
 	tu->m_decled = scope::current;
 	tu->m_read = r;
+	after_instantiate(tu);
 	if (!(u->m_flag & usr::STATIC_DEF))
 	  return;
 	scope* p = u->m_scope;
@@ -172,6 +194,7 @@ namespace cxx_compiler {
 	typedef const template_param_type TP;
 	TP* tp = static_cast<TP*>(Tx);
 	tag* ptr = tp->get_tag();
+	Ty = Ty->unqualified();
 	if (ptr->m_types.second)
 	  return ptr->m_types.second == Ty;
 	ptr->m_types.second = Ty;

@@ -1610,6 +1610,11 @@ struct template_usr : usr, templ_base {
   table_t m_table;
   bool m_patch_13_2;
   scope* m_decled;
+
+  // To avoid bug. Should be non-static member like bellow:
+  // template_usr* m_prev;
+  static map<template_usr*, template_usr*> prev;
+
   template_usr(usr& u, const scope::tps_t& tps, bool patch_13_2)
     : usr(u), templ_base(tps), m_patch_13_2(patch_13_2), m_decled(0)
   {
@@ -1648,7 +1653,7 @@ struct template_tag : templ_base, tag {
 #ifndef __GNUC__
   static vector<info_t> nest;
 #else  // __GNUC__
-  static list<info_t> nest;
+  static list<info_t> nest;    // To avoid bug. Should be vector
 #endif  // __GNUC__
   typedef map<KEY, tag*> table_t;
   table_t m_table;

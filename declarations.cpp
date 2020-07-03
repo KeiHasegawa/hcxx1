@@ -766,6 +766,11 @@ void cxx_compiler::declarations::check_object(usr* u)
     tag::flag_t flag = ptr->m_flag;
     if (flag & tag::TYPENAMED)
       return;
+    if (ptr->m_kind == tag::TYPENAME) {
+      using namespace parse::templ;
+      if (!save_t::nest.empty())
+	return;
+    }
   }
   int size = T->size();
   if (!size) {
@@ -1115,9 +1120,12 @@ namespace cxx_compiler {
 	  else
 	    assert(b == x);
 	  v.pop_back();
-	  assert(v.back() == xi);
-	  v.pop_back();
-	  v.push_back(b);
+	  if (v.back() == xi) {
+	    v.pop_back();
+	    v.push_back(b);
+	  }
+	  else
+	    v.push_back(b);
 	}
 	else {
 	  assert(v.size() == 1);
@@ -1253,6 +1261,7 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
       template_usr* ctu = static_cast<template_usr*>(curr);
       if (const type* T = composite_tu(ptu, ctu)) {
 	ctu->m_type = T;
+	template_usr::prev[ctu] = ptu;
 	return ctu;
       }
       string name = curr->m_name;

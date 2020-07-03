@@ -767,13 +767,18 @@ namespace cxx_compiler {
     {
       typedef vector<var*>::reverse_iterator IT;
       IT p = find(rbegin(garbage), rend(garbage), ga);
-      assert(p != rend(garbage));
-      vector<var*>::iterator q = p.base() - 1;
-      garbage.erase(q);
-      assert(!ga->m_code_copied);
-      ga->m_code_copied = true;
-      assert(!ga->m_appear_templ);
-      ga->m_appear_templ = true;
+      if (p != rend(garbage)) {
+	vector<var*>::iterator q = p.base() - 1;
+	garbage.erase(q);
+	assert(!ga->m_code_copied);
+	ga->m_code_copied = true;
+	assert(!ga->m_appear_templ);
+	ga->m_appear_templ = true;
+      }
+      else {
+	assert(ga->m_code_copied);
+	assert(ga->m_appear_templ);
+      }
     }
     inline bool save_cond(int n)
     {
