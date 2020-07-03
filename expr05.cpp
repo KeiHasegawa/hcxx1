@@ -38,10 +38,15 @@ namespace cxx_compiler { namespace var_impl {
     if (!op_fun) {
       const type* Tz = z->result_type();
       op_fun = operator_function(Tz, op);
-      if (!op_fun)
-	return 0;
-      if (var* tmp = aggregate_conv(Tz, y->rvalue(), true, 0))
-	y = tmp;
+      if (op_fun) {
+	if (var* tmp = aggregate_conv(Tz, y->rvalue(), true, 0))
+	  y = tmp;
+	else {
+	  op_fun = operator_function(op);
+	  if (!op_fun)
+	    return 0;
+	}
+      }
       else {
 	op_fun = operator_function(op);
 	if (!op_fun)

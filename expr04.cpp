@@ -48,6 +48,12 @@ namespace cxx_compiler {
       v = ga->m_ref;
     assert(v->usr_cast());
     usr* op_fun = static_cast<usr*>(v);
+    scope* ps = op_fun->m_scope;
+    if (ps->m_id == scope::TAG) {
+      usr::flag_t flag = op_fun->m_flag;
+      if (!(flag & usr::STATIC))
+	return 0;
+    }
     return op_fun;
   }
 } // end of namespace cxx_compiler
