@@ -433,7 +433,11 @@ namespace cxx_compiler {
       stack<declarations::specifier_seq::info_t*> m_stack1;
       vector<scope*> m_before;
       scope* m_last;
-      list<parse::templ::save_t*> m_nest;
+#ifdef _GNUC_
+	  list<parse::templ::save_t*> m_nest;
+#else // _GNUC_
+	  vector<parse::templ::save_t*> m_nest;
+#endif // _GNUC_
       int m_yychar;
       parse::read_t m_read;
       map<int, bool> m_retry;
