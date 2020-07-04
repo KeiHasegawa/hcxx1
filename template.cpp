@@ -89,12 +89,28 @@ namespace cxx_compiler {
       {
 	typedef map<template_usr*, template_usr*>::const_iterator IT;
 	IT p = template_usr::prev.find(tu);
-	if (p == template_usr::prev.end())
+	if (p != template_usr::prev.end()) {
+	  template_usr* prev = p->second;;
+	  map<template_usr::KEY, usr*>& table = prev->m_table;
+	  for_each(begin(table), end(table),
+		   [tu](const pair<template_usr::KEY, usr*>& p)
+		   { instantiate_if(tu, p.first); });
+	}
+
+	if (tu->m_patch_13_2)
 	  return;
-	template_usr* prev = p->second;;
-	map<template_usr::KEY, usr*>& table = prev->m_table;
+	scope* ps = tu->m_scope;
+	if (ps->m_id != scope::TAG)
+	  return;
+	tag* ptr = static_cast<tag*>(ps);
+	tag::flag_t flag = ptr->m_flag;
+	if (!(flag & tag::INSTANTIATE))
+	  return;
+	instantiated_tag* it = static_cast<instantiated_tag*>(ptr);
+	template_tag* tt = it->m_src;
+	map<template_tag::KEY, tag*>& table = tt->m_table;
 	for_each(begin(table), end(table),
-		 [tu](const pair<template_usr::KEY, usr*>& p)
+		 [tu](const pair<template_tag::KEY, tag*>& p)
 		 { instantiate_if(tu, p.first); });
       }
       inline void handle(usr* u, const parse::read_t& r)
@@ -104,13 +120,14 @@ namespace cxx_compiler {
 	assert(!tu->m_decled);
 	tu->m_decled = scope::current;
 	tu->m_read = r;
-	after_instantiate(tu);
-	if (!(u->m_flag & usr::STATIC_DEF))
-	  return;
-	scope* p = u->m_scope;
-	instantiated_tag* it = get(p);
-	template_tag* tt = it->m_src;
-	tt->m_static_def.push_back(tu);
+	if (u->m_flag & usr::STATIC_DEF) {
+	  scope* p = u->m_scope;
+	  instantiated_tag* it = get(p);
+	  template_tag* tt = it->m_src;
+	  tt->m_static_def.push_back(tu);
+	}
+	else
+	  after_instantiate(tu);
       }
       inline scope::tps_t::val2_t* create(const scope::tps_t::val2_t& x)
       {
