@@ -239,6 +239,7 @@
     <None Include="patch.11.p2" />
     <None Include="patch.12.p" />
     <None Include="patch.13.p" />
+    <None Include="patch.13.2.p" />
     <None Include="patch.14.p" />
     <None Include="patch.15.p" />
   </ItemGroup>
