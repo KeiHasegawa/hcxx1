@@ -8,7 +8,10 @@ void cxx_compiler::type_parameter::action(var* v, const type* T)
   assert(v->usr_cast());
   usr* u = static_cast<usr*>(v);
   string name = u->m_name;
-  map<string, scope::tps_t::value_t>& table = scope::current->m_tps.m_table;
+  vector<scope::tps_t>& tps = scope::current->m_tps;
+  assert(!tps.empty());
+  scope::tps_t& b = tps.back();
+  map<string, scope::tps_t::value_t>& table = b.m_table;
   map<string, scope::tps_t::value_t>::const_iterator p = table.find(name);
   if (p != table.end())
     error::not_implemented();
@@ -20,11 +23,10 @@ void cxx_compiler::type_parameter::action(var* v, const type* T)
   children.push_back(ptr);
   ptr->m_types.first = template_param_type::create(ptr);
   table[name].first = ptr;
-  vector<string>& order = scope::current->m_tps.m_order;
+  vector<string>& order = b.m_order;
   order.push_back(name);
   if (T) {
-    map<string, pair<const type*, var*> >& def =
-      scope::current->m_tps.m_default;
+    map<string, pair<const type*, var*> >& def = b.m_default;
     def[name] = make_pair(T, (var*)0);
     parse::identifier::mode = parse::identifier::new_obj;
   }
@@ -40,19 +42,23 @@ templ_parameter::action(pair<const type*, expressions::base*>* p)
   auto_ptr<expressions::base> sweeper2(expr);
   var* v = expr->gen();
   v = v->rvalue();
-  scope::tps_t& tps = scope::current->m_tps;
-  const vector<string>& order = tps.m_order;
+  vector<scope::tps_t>& tps = scope::current->m_tps;
+  assert(!tps.empty());
+  scope::tps_t& b = tps.back();
+  const vector<string>& order = b.m_order;
   assert(!order.empty());
   string name = order.back();
-  map<string, pair<const type*, var*> >& def = tps.m_default;
+  map<string, pair<const type*, var*> >& def = b.m_default;
   assert(def.find(name) == def.end());
   def[name] = make_pair((const type*)0, v);
 }
 
 void cxx_compiler::declarations::templ::decl_begin()
 {
-  const map<string, scope::tps_t::value_t>& table =
-    scope::current->m_tps.m_table;
+  const vector<scope::tps_t>& tps = scope::current->m_tps;
+  assert(!tps.empty());
+  const scope::tps_t& b = tps.back();
+  const map<string, scope::tps_t::value_t>& table = b.m_table;
   if (!table.empty()) {
     using namespace parse::templ;
     save_t::nest.push_back(new save_t);
@@ -60,7 +66,9 @@ void cxx_compiler::declarations::templ::decl_begin()
 }
 
 namespace cxx_compiler {
-  map<template_usr*, template_usr*> template_usr::prev;
+#ifdef __GNUC__
+  map<template_usr*, usr*> template_usr::prev;
+#endif // __GNUC__
   namespace declarations {
     namespace templ {
       inline instantiated_tag* get(scope* p)
@@ -85,21 +93,9 @@ namespace cxx_compiler {
 	if (p == end(key))
 	  tu->instantiate(key);
       }
-      inline void after_instantiate(template_usr* tu)
+      inline void class_templ_member(usr* prev, template_usr* tu)
       {
-	typedef map<template_usr*, template_usr*>::const_iterator IT;
-	IT p = template_usr::prev.find(tu);
-	if (p != template_usr::prev.end()) {
-	  template_usr* prev = p->second;;
-	  map<template_usr::KEY, usr*>& table = prev->m_table;
-	  for_each(begin(table), end(table),
-		   [tu](const pair<template_usr::KEY, usr*>& p)
-		   { instantiate_if(tu, p.first); });
-	}
-
-	if (tu->m_patch_13_2)
-	  return;
-	scope* ps = tu->m_scope;
+	scope* ps = prev->m_scope;
 	if (ps->m_id != scope::TAG)
 	  return;
 	tag* ptr = static_cast<tag*>(ps);
@@ -109,9 +105,40 @@ namespace cxx_compiler {
 	instantiated_tag* it = static_cast<instantiated_tag*>(ptr);
 	template_tag* tt = it->m_src;
 	map<template_tag::KEY, tag*>& table = tt->m_table;
-	for_each(begin(table), end(table),
-		 [tu](const pair<template_tag::KEY, tag*>& p)
-		 { instantiate_if(tu, p.first); });
+	for (const auto& p : table)
+	  instantiate_if(tu, p.first);
+      }
+      inline void after_instantiate(template_usr* tu)
+      {
+#ifndef __GNUC__
+	if (template_usr* prev = tu->m_prev) {
+	  map<template_usr::KEY, usr*>& table = prev->m_table;
+	  for (const auto& p : table)
+	    instantiate_if(tu, p.first);
+	}
+#else // __GNUC__
+	typedef map<template_usr*, usr*>::const_iterator IT;
+	IT p = template_usr::prev.find(tu);
+	if (p != template_usr::prev.end()) {
+	  usr* prev = p->second;
+	  if (prev->m_flag & usr::FRIEND) {
+	    friend_func* ff = static_cast<friend_func*>(prev);
+	    if (usr* org = ff->m_org)
+	      prev = org;
+	  }
+	    
+	  if (prev->m_flag2 & usr::TEMPLATE) {
+	    template_usr* tp = static_cast<template_usr*>(prev);
+	    map<template_usr::KEY, usr*>& table = tp->m_table;
+	    for (const auto& p : table)
+	      instantiate_if(tu, p.first);
+	    return;
+	  }
+
+	  class_templ_member(prev, tu);
+	}
+#endif // __GNUC__
+
       }
       inline void handle(usr* u, const parse::read_t& r)
       {
@@ -155,25 +182,63 @@ namespace cxx_compiler {
 	  for_each(begin(table), end(table), bind2nd(ptr_fun(dispatch), tt));
 	}
       }
+      inline void instantiate_if2(template_usr* tu,
+				  const template_tag::KEY& key,
+				  const scope::tps_t& tps,
+				  const parse::read_t& r)
+      {
+	template_usr::KEY::const_iterator p =
+	  find_if(begin(key), end(key), template_param);
+	if (p != end(key))
+	  return;
+	template_usr* tu2 = new template_usr(*tu, tps, false);
+	tu2->m_decled = scope::current;
+	tu2->m_read = r;
+	tu2->instantiate(key);
+      }
     } // end of namespace templ
   } // end of namespace declarations
 } // end of namespace cxx_compiler
 
 void cxx_compiler::declarations::templ::decl_end()
 {
-  map<string, scope::tps_t::value_t>& table = scope::current->m_tps.m_table;
-  if (table.empty())
+  vector<scope::tps_t>& tps = scope::current->m_tps;
+  assert(!tps.empty());
+  scope::tps_t& b = tps.back();
+  map<string, scope::tps_t::value_t>& table = b.m_table;
+  if (table.empty()) {
+    tps.pop_back();
     return;
+  }
 
   using namespace parse::templ;
   assert(!save_t::nest.empty());
   save_t* p = save_t::nest.back();
+  static usr* last;
   if (usr* u = p->m_usr)
-    handle(u, p->m_read);
-  else
+    handle(last = u, p->m_read);
+  else if (p->m_tag)
     handle(p->m_tag, p->m_read);
+  else {
+    assert(last);
+    scope* ps = last->m_scope;
+    assert(ps->m_id == scope::TAG);
+    tag* ptr = static_cast<tag*>(ps);
+    assert(ptr->m_flag & tag::INSTANTIATE);
+    instantiated_tag* it = static_cast<instantiated_tag*>(ptr);
+    template_tag* tt = it->m_src;
+    const template_tag::table_t& table = tt->m_table;
+    assert(last->m_flag2 & usr::TEMPLATE);
+    template_usr* tu = static_cast<template_usr*>(last);
+    const parse::read_t& rd = p->m_read;
+    for (const auto& p : table)
+      instantiate_if2(tu, p.first, b, rd);
+  }
   delete p;
   save_t::nest.pop_back();
+
+  if (save_t::nest.empty())
+    last = 0;
 
   vector<scope*>& children = scope::current->m_children;
   for (const auto& p : table) {
@@ -187,11 +252,7 @@ void cxx_compiler::declarations::templ::decl_end()
     }
   }
 
-  table.clear();
-  vector<string>& order = scope::current->m_tps.m_order;
-  order.clear();
-  map<string, pair<const type*, var*> >& def = scope::current->m_tps.m_default;
-  def.clear();
+  tps.pop_back();
 }
 
 namespace cxx_compiler {
@@ -422,7 +483,7 @@ namespace cxx_compiler {
       }
     };
     struct sweeper_b {
-      scope::tps_t m_tps;
+      vector<scope::tps_t> m_tps;
       scope* m_current;
       scope* m_del;
       file_t m_file;
@@ -433,11 +494,11 @@ namespace cxx_compiler {
       stack<declarations::specifier_seq::info_t*> m_stack1;
       vector<scope*> m_before;
       scope* m_last;
-#ifdef _GNUC_
-	  list<parse::templ::save_t*> m_nest;
-#else // _GNUC_
-	  vector<parse::templ::save_t*> m_nest;
-#endif // _GNUC_
+#ifndef __GNUC__
+      vector<parse::templ::save_t*> m_nest;
+#else // __GNUC__
+      list<parse::templ::save_t*> m_nest;
+#endif // __GNUC__
       int m_yychar;
       parse::read_t m_read;
       map<int, bool> m_retry;
@@ -497,10 +558,8 @@ namespace cxx_compiler {
 	  m_nest(parse::templ::save_t::nest), m_yychar(cxx_compiler_char),
 	  m_read(parse::g_read), m_retry(parse::context_t::retry)
       {
-	scope::tps_t& tps = scope::current->m_tps;
-	tps.m_table.clear();
-	tps.m_order.clear();
-	tps.m_default.clear();
+	vector<scope::tps_t>& tps = scope::current->m_tps;
+	tps.clear();
 	scope::current = p;
 	fundef::current = 0;
 	parse::templ::ptr = q;
@@ -653,7 +712,7 @@ cxx_compiler::template_usr::instantiate(std::vector<var*>* arg, KEY* trial)
   if (it != m_table.end())
     return it->second;
   it = find_if(m_table.begin(), m_table.end(),
-	       [key](const pair<KEY, usr*>& x)
+	       [&key](const pair<KEY, usr*>& x)
 	       { return template_usr_impl::match(key, x.first); });
   if (it != m_table.end())
     return m_table[key] = it->second;
@@ -716,7 +775,7 @@ cxx_compiler::template_usr::instantiate(const KEY& key)
   if (p != m_table.end())
     return p->second;
   p = find_if(m_table.begin(), m_table.end(),
-	      [key](const pair<KEY, usr*>& x)
+	      [&key](const pair<KEY, usr*>& x)
 	       { return template_usr_impl::match(key, x.first); });
   if (p != m_table.end())
     return p->second;
@@ -729,6 +788,10 @@ cxx_compiler::template_usr::instantiate(const KEY& key)
   cxx_compiler_parse();
   instantiated_usr* ret = s_stack.top().m_iu;
   s_stack.pop();
+  if (!ret) {
+    assert(parse::templ::ptr);
+    return 0;
+  }
   if (m_patch_13_2) {
     assert(m_flag & usr::INLINE);
     ret->m_flag = usr::flag_t(ret->m_flag | usr::INLINE);
@@ -1231,7 +1294,7 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
     return p->second;
 
   p = find_if(m_table.begin(), m_table.end(),
-	      [key](const pair<KEY, tag*>& x)
+	      [&key](const pair<KEY, tag*>& x)
 	      { return template_usr_impl::match(key, x.first); });
   if (p != m_table.end())
     return m_table[key] = p->second;
@@ -1239,14 +1302,17 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
   if (special_ver) {
     string name = instantiated_name();
     special_ver_tag* sv = new special_ver_tag(name, this, key);
-    const scope::tps_t& tps = scope::current->m_tps;
-    if (!tps.m_table.empty()) {
-      partial_special_tag* ps = new partial_special_tag(sv, tps, this);
-      m_partial_special.push_back(ps);
-      using namespace parse::templ;
-      assert(!save_t::nest.empty());
-      save_t* p = save_t::nest.back();
-      p->m_tag = ps;
+    const vector<scope::tps_t>& tps = scope::current->m_tps;
+    if (!tps.empty()) {
+      const scope::tps_t& b = tps.back();
+      if (!b.m_table.empty()) {
+	partial_special_tag* ps = new partial_special_tag(sv, b, this);
+	m_partial_special.push_back(ps);
+	using namespace parse::templ;
+	assert(!save_t::nest.empty());
+	save_t* p = save_t::nest.back();
+	p->m_tag = ps;
+      }
     }
     return m_table[key] = sv;
   }
@@ -1439,7 +1505,7 @@ instantiate_common(vector<scope::tps_t::val2_t*>* pv, info_t::mode_t mode)
   if (it != m_table.end())
     return it->second;
   it = find_if(m_table.begin(), m_table.end(),
-	       [key](const pair<KEY, usr*>& x)
+	       [&key](const pair<KEY, usr*>& x)
 	       { return template_usr_impl::match(key, x.first); });
   if (it != m_table.end())
     return m_table[key] = it->second;

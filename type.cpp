@@ -1796,8 +1796,15 @@ cxx_compiler::template_param_type::complete_type() const
   return T ? T : this;
 }
 
+namespace cxx_compiler {
+  template_param_type::table_t template_param_type::table;
+} // end of namespace cxx_compiler
+
 const cxx_compiler::template_param_type*
 cxx_compiler::template_param_type::create(tag* ptr)
 {
-  return new template_param_type(ptr);
+  table_t::const_iterator p = table.find(ptr);
+  if (p != table.end())
+    return p->second;
+  return table[ptr] = new template_param_type(ptr);
 }

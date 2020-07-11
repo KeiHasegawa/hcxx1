@@ -1714,6 +1714,8 @@ enter_templ_param
       parse::identifier::mode = parse::identifier::new_obj;
       assert(!parse::templ::param);
       parse::templ::param = true;
+      vector<scope::tps_t>& tps = scope::current->m_tps;
+      tps.resize(tps.size()+1);
     }
   ;
 

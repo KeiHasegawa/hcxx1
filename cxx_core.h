@@ -24,7 +24,7 @@ struct scope {
     std::vector<std::string> m_order;
     std::map<std::string, std::pair<const type*, var*> > m_default;
   };
-  tps_t m_tps;
+  std::vector<tps_t> m_tps;
 
   static scope* current;
   static scope root;
@@ -1819,7 +1819,7 @@ public:
 
 class template_param_type : public type {
   tag* m_tag;
-  struct table_t;
+  typedef std::map<tag*, template_param_type*> table_t;
   static table_t table;
   template_param_type(tag* ptr) : type(TEMPLATE_PARAM), m_tag(ptr) {}
 public:

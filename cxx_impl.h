@@ -1611,12 +1611,16 @@ struct template_usr : usr, templ_base {
   bool m_patch_13_2;
   scope* m_decled;
 
-  // To avoid bug. Should be non-static member like bellow:
-  // template_usr* m_prev;
-  static map<template_usr*, template_usr*> prev;
-
+#ifndef __GNUC__
+  usr* m_prev;
+  template_usr(usr& u, const scope::tps_t& tps, bool patch_13_2)
+    : usr(u), templ_base(tps), m_patch_13_2(patch_13_2), m_decled(0), m_prev(0)
+#else // __GNUC__
+  // To avoid bug.
+  static map<template_usr*, usr*> prev;
   template_usr(usr& u, const scope::tps_t& tps, bool patch_13_2)
     : usr(u), templ_base(tps), m_patch_13_2(patch_13_2), m_decled(0)
+#endif // __GNUC__
   {
     m_flag2 = usr::flag2_t(m_flag2 | usr::TEMPLATE);
     if (m_patch_13_2)
@@ -1709,6 +1713,12 @@ struct ini_term : usr {
   ini_term(string name, const type* T, flag_t flag, const file_t& file,
 	   flag2_t flag2, usr* obj)
     : usr(name, T, flag, file, flag2), m_obj(obj) {}
+};
+
+struct friend_func : usr {
+  usr* m_org;
+  tag* m_tag;
+ friend_func(usr* u, tag* ptr) : usr(*u), m_org(u), m_tag(ptr) {}
 };
 
 } // end of namespace cxx_compiler

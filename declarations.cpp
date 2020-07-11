@@ -498,6 +498,25 @@ std::stack<cxx_compiler::declarations::specifier_seq::info_t*>
 cxx_compiler::declarations::specifier_seq::info_t::s_stack;
 
 namespace cxx_compiler {
+  void debug_stack()
+  {
+    using namespace declarations::specifier_seq;
+    stack<info_t*> tmp;
+    while (!info_t::s_stack.empty()) {
+      info_t* p = info_t::s_stack.top();
+      tmp.push(p);
+      info_t::s_stack.pop();
+    }
+
+    while (!tmp.empty()) {
+      info_t* p = tmp.top();
+      info_t::s_stack.push(p);
+      tmp.pop();
+    }
+  }
+} // end of namespace cxx_compiler
+
+namespace cxx_compiler {
   namespace declarations {
     usr* check_installed(usr*, specifier_seq::info_t*, bool*);
     usr* exchange(bool installed, usr* new_one, usr* org);
@@ -716,26 +735,33 @@ cxx_compiler::declarations::action1(var* v, bool ini)
   if (!parse::templ::param) {
     assert(!class_or_namespace_name::before.empty());
     scope* ptr = class_or_namespace_name::before.back();
-    const scope::tps_t& tps = ptr->m_tps;
-    if (!tps.m_table.empty()) {
-      using namespace parse::templ;
-      assert(!save_t::nest.empty());
-      save_t* p = save_t::nest.back();
-      assert(!p->m_usr);
-      p->m_usr = u = new template_usr(*u, tps, p->m_patch_13_2);
+    const vector<scope::tps_t>& tps = ptr->m_tps;
+    if (!tps.empty()) {
+      const scope::tps_t& b = tps.back();
+      if (!b.m_table.empty()) {
+	using namespace parse::templ;
+	assert(!save_t::nest.empty());
+	save_t* p = save_t::nest.back();
+	assert(!p->m_usr);
+	p->m_usr = u = new template_usr(*u, b, p->m_patch_13_2);
+      }
     }
   }
 
   if (!installed) {
     if (parse::templ::param) {
-      map<string, scope::tps_t::value_t>& table =
-	scope::current->m_tps.m_table;
-      map<string, scope::tps_t::value_t>::const_iterator p = table.find(name);
-      if (p != table.end())
-	error::not_implemented();
-      table[name].second = new scope::tps_t::val2_t(T, 0);
-      vector<string>& order = scope::current->m_tps.m_order;
-      order.push_back(name);
+      vector<scope::tps_t>& tps = scope::current->m_tps;
+      if (!tps.empty()) {
+	scope::tps_t& b = tps.back();
+	map<string, scope::tps_t::value_t>& table = b.m_table;
+	map<string, scope::tps_t::value_t>::const_iterator p =
+	  table.find(name);
+	if (p != table.end())
+	  error::not_implemented();
+	table[name].second = new scope::tps_t::val2_t(T, 0);
+	vector<string>& order = b.m_order;
+	order.push_back(name);
+      }
     }
     else
       u = action2(u);
@@ -794,11 +820,6 @@ namespace cxx_compiler { namespace declarations {
       return true;
     return name == operator_name(DELETE_ARRAY_LEX);
   }
-  struct friend_func : usr {
-    usr* m_org;
-    tag* m_tag;
-    friend_func(usr* u, tag* ptr) : usr(*u), m_org(u), m_tag(ptr) {}
-  };
 } } // end of namespace declarations and cxx_compiler
 
 cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr)
@@ -1245,6 +1266,11 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
 	  curr->m_flag2 =
 	    usr::flag2_t(curr->m_flag2 | usr::EXPLICIT_INSTANTIATE);
 	}
+	return curr;
+      }
+      if (curr->m_flag2 & usr::TEMPLATE) {
+	template_usr* ctu = static_cast<template_usr*>(curr);
+	template_usr::prev[ctu] = prev;
       }
       return curr;
     }
@@ -1261,7 +1287,11 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
       template_usr* ctu = static_cast<template_usr*>(curr);
       if (const type* T = composite_tu(ptu, ctu)) {
 	ctu->m_type = T;
+#ifndef __GNUC__
+	ctu->m_prev = ptu;
+#else // __GNUC__
 	template_usr::prev[ctu] = ptu;
+#endif // __GNUC__
 	return ctu;
       }
       string name = curr->m_name;
@@ -1454,15 +1484,25 @@ cxx_compiler::declarations::exchange(bool installed, usr* new_one, usr* org)
   return new_one;
 }
 
+namespace cxx_compiler {
+  inline bool del()
+  {
+    const vector<scope::tps_t>& tps = scope::current->m_tps;
+    if (tps.empty())
+      return true;
+    const scope::tps_t& b = tps.back();
+    const map<string, scope::tps_t::value_t>& table = b.m_table;
+    return table.empty();
+  }
+} // end of namespace cxx_compiler
+
 const cxx_compiler::type*
 cxx_compiler::declarations::elaborated::action(int keyword, var* v)
 {
   using namespace std;
   assert(v->usr_cast());
   usr* u = static_cast<usr*>(v);
-  const map<string, scope::tps_t::value_t>& table =
-    scope::current->m_tps.m_table;
-  auto_ptr<usr> sweeper(table.empty() ? u : 0);
+  auto_ptr<usr> sweeper(del() ? u : 0);
   string name = u->m_name;
   tag* T = lookup(name, scope::current);
   if (T) {
@@ -1474,17 +1514,21 @@ cxx_compiler::declarations::elaborated::action(int keyword, var* v)
     tag::kind_t kind = classes::specifier::get(keyword);
     const file_t& file = u->m_file;
     tag* ptr = new tag(kind,name,file,0);
-    const scope::tps_t& tps = scope::current->m_tps;
-    if (!tps.m_table.empty()) {
-      using namespace parse::templ;
-      assert(!save_t::nest.empty());
-      save_t* p = save_t::nest.back();
-      assert(!p->m_tag);
-      assert(!class_or_namespace_name::before.empty());
-      assert(class_or_namespace_name::before.back() == ptr);
-      p->m_tag = ptr = new template_tag(*ptr, tps);
-      class_or_namespace_name::before.back() = ptr;
+    const vector<scope::tps_t>& tps = scope::current->m_tps;
+    if (!tps.empty()) {
+      const scope::tps_t& b = tps.back();
+      if (!b.m_table.empty()) {
+	using namespace parse::templ;
+	assert(!save_t::nest.empty());
+	save_t* p = save_t::nest.back();
+	assert(!p->m_tag);
+	assert(!class_or_namespace_name::before.empty());
+	assert(class_or_namespace_name::before.back() == ptr);
+	p->m_tag = ptr = new template_tag(*ptr, b);
+	class_or_namespace_name::before.back() = ptr;
+      }
     }
+
     parent->m_tags[name] = ptr;
     ptr->m_parent = parent;
     parent->m_children.push_back(ptr);

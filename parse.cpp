@@ -477,10 +477,22 @@ int
 cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
 {
   using namespace std;
-  const map<string, scope::tps_t::value_t>& table = ptr->m_tps.m_table;
-  map<string, scope::tps_t::value_t>::const_iterator r = table.find(name);
-  if (r != table.end())
-    return templ_param_lex(name, r->second, false);
+  const vector<scope::tps_t>& tps = ptr->m_tps;
+  typedef vector<scope::tps_t>::const_reverse_iterator IT;
+  int n = 0;
+  IT r = find_if(rbegin(tps), rend(tps),
+		 [&n, name](const scope::tps_t& x)
+		 {
+		   const map<string, scope::tps_t::value_t>& table = x.m_table;
+		   map<string, scope::tps_t::value_t>::const_iterator p =
+		   table.find(name);
+		   if (p == table.end())
+		     return false;
+		   n = templ_param_lex(name, p->second, false);
+		   return n != 0;
+		 });
+  if (r != rend(tps))
+    return n;
 
   if (int r = templ_usr_param(name, ptr))
     return r;
@@ -776,8 +788,10 @@ namespace cxx_compiler {
 	ga->m_appear_templ = true;
       }
       else {
-	assert(ga->m_code_copied);
-	assert(ga->m_appear_templ);
+	if (!parse::templ::ptr) {
+	  assert(ga->m_code_copied);
+	  assert(ga->m_appear_templ);
+	}
       }
     }
     inline bool save_cond(int n)
@@ -973,6 +987,15 @@ namespace cxx_compiler {
 	    cxx_compiler_lval.m_tag = it;
 	    return CLASS_NAME_LEX;
 	  }
+	  if (!templ::save_t::nest.empty()) {
+	    string name = ptr->m_name;
+	    identifier::mode = identifier::no_err;
+	    int r = identifier::lookup(name, scope::current);
+	    if (r) {
+	      assert(r == CLASS_NAME_LEX);
+	      return r;
+	    }
+	  }
 	}
 	return n;
       case ENUM_NAME_LEX:
@@ -1115,12 +1138,13 @@ int cxx_compiler::parse::get_token()
     else
       get_common(last_token, g_read.m_lval, false, false);
     if (last_token == COLONCOLON_MK) {
-      // Ex1 : pt->T::~T()
-      //     2nd `T' must be lookuped
-      // Ex2 : template<class T> vector<T>::~vector(){ ... }
-      //     2nd `vector' must be lookuped
-      if (scope::current->m_id != scope::TAG && peek() != '*')
-        identifier::mode = identifier::look;
+      // Ex : template<class T> vector<T>::~vector(){ ... }
+      //      2nd `vector' must be lookuped
+      using namespace declarations::specifier_seq;
+      if (info_t::s_stack.empty()) {
+	if (scope::current->m_id != scope::TAG && peek() != '*')
+	  identifier::mode = identifier::look;
+      }
     }
     return save_for_retry();
   }

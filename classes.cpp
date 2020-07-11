@@ -154,18 +154,21 @@ namespace cxx_compiler {
       }
 
       tag* ret = new tag(kind, name, file, bases);
-      const scope::tps_t& tps = scope::current->m_tps;
-      if (!tps.m_table.empty()) {
-	using namespace parse::templ;
-	assert(!save_t::nest.empty());
-	save_t* p = save_t::nest.back();
-	assert(!p->m_tag);
-	assert(!class_or_namespace_name::before.empty());
-	assert(class_or_namespace_name::before.back() == ret);
-	template_tag* curr = new template_tag(*ret, tps);
-	p->m_tag = ret = curr;
-	class_or_namespace_name::before.back() = ret;
-	return ret;
+      const vector<scope::tps_t>& tps = scope::current->m_tps;
+      if (!tps.empty()) {
+	const scope::tps_t& b = tps.back();
+	if (!b.m_table.empty()) {
+	  using namespace parse::templ;
+	  assert(!save_t::nest.empty());
+	  save_t* p = save_t::nest.back();
+	  assert(!p->m_tag);
+	  assert(!class_or_namespace_name::before.empty());
+	  assert(class_or_namespace_name::before.back() == ret);
+	  template_tag* curr = new template_tag(*ret, b);
+	  p->m_tag = ret = curr;
+	  class_or_namespace_name::before.back() = ret;
+	  return ret;
+	}
       }
       return ret;
     }
@@ -305,15 +308,19 @@ const cxx_compiler::type* cxx_compiler::classes::specifier::action()
   assert(scope::current->m_id == scope::TAG);
   tag* ptr = static_cast<tag*>(scope::current);
   scope* ps = ptr->m_parent;
-  const map<string, scope::tps_t::value_t>& table = ps->m_tps.m_table;
-  if (!table.empty()) {
-    if (ptr->m_flag & tag::TEMPLATE) {
-      template_tag* tt = static_cast<template_tag*>(ptr);
-      assert(!before.empty());
-      assert(scope::current == before.back());
-      before.pop_back();
-      scope::current = ptr->m_parent;
-      return ptr->m_types.first;
+  vector<scope::tps_t>& tps = ps->m_tps;
+  if (!tps.empty()) {
+    scope::tps_t& b = tps.back();
+    const map<string, scope::tps_t::value_t>& table = b.m_table;
+    if (!table.empty()) {
+      if (ptr->m_flag & tag::TEMPLATE) {
+	template_tag* tt = static_cast<template_tag*>(ptr);
+	assert(!before.empty());
+	assert(scope::current == before.back());
+	before.pop_back();
+	scope::current = ptr->m_parent;
+	return ptr->m_types.first;
+      }
     }
   }
 
