@@ -1331,6 +1331,7 @@ namespace cxx_compiler {
             {
               using namespace call_impl;
               using namespace substitute_impl;
+              assert(pos < vt.size());
               tac* call = vt[pos];
               assert(call->m_id == tac::CALL);
               fundef* fdef = info->m_fundef;
@@ -1353,7 +1354,6 @@ namespace cxx_compiler {
               const vector<var*>& vars = pb->m_vars;
               assert(vars.size() == n);
               assert(pos >= n);
-              assert(pos < vt.size());
               transform(&vt[pos-n],&vt[pos],vars.begin(),&vt[pos-n],
                         param2assign);
               const vector<tac*>& v = info->m_code;

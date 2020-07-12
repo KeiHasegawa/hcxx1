@@ -800,6 +800,24 @@ void cxx_compiler::declarations::check_object(usr* u)
   }
   int size = T->size();
   if (!size) {
+    if (tag* x = T->get_tag()) {
+      scope* parent = x->m_parent;
+      if (parent->m_id == scope::TAG) {
+	tag* y = static_cast<tag*>(parent);
+	tag::flag_t flag = y->m_flag;
+	if (flag & tag::INSTANTIATE) {
+	  string name = x->m_name;
+	  int r = parse::identifier::lookup(name, parent);
+	  assert(r == TYPEDEF_NAME_LEX);
+	  usr* v = cxx_compiler_lval.m_usr;
+	  const type* T = v->m_type;
+	  u->m_type = T;
+	  size = T->size();
+	}
+      }
+    }
+  }
+  if (!size) {
     using namespace error::declarations;
     not_object(u,T);
     u->m_type = int_type::create();

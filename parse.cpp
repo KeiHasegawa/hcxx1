@@ -1013,13 +1013,15 @@ namespace cxx_compiler {
 	  if (tag* ptr = cxx_compiler_lval.m_ut->second) {
 	    assert(ptr->m_flag & tag::TEMPLATE);
 	    template_tag* tt = static_cast<template_tag*>(ptr);
+	    string name = tt->m_name;
+	    using namespace identifier;
 	    if (tt->m_created) {
-	      string name = tt->m_name;
-	      using namespace identifier;
 	      last_token = should_lookup_templ() ?
 		lookup(name, scope::current) : create_templ(name);
-	      assert(last_token == n);
 	    }
+	    else
+	      last_token = lookup(name, scope::current);
+	    assert(last_token == n);
 	  }
 	}
         return n;
