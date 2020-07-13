@@ -1321,15 +1321,16 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
 	template_usr::explicit_instantiating(key)) {
       instantiated_usr* ret = new instantiated_usr(*curr, ptu, key);
       if (parse::templ::ptr) {
-	assert(!template_usr::s_stack.empty());
-	template_usr::info_t& info = template_usr::s_stack.top();
-	assert(ptu == info.m_tu);
-	assert(key == info.m_key);
-	info.m_iu = ret;
-	if (info.m_mode == template_usr::info_t::EXPLICIT)
-	  ret->m_flag2 =
-	    usr::flag2_t(ret->m_flag2 | usr::EXPLICIT_INSTANTIATE);
-	return ret;
+	if (!template_usr::s_stack.empty()) {
+	  template_usr::info_t& info = template_usr::s_stack.top();
+	  assert(ptu == info.m_tu);
+	  assert(key == info.m_key);
+	  info.m_iu = ret;
+	  if (info.m_mode == template_usr::info_t::EXPLICIT)
+	    ret->m_flag2 =
+	      usr::flag2_t(ret->m_flag2 | usr::EXPLICIT_INSTANTIATE);
+	  return ret;
+	}
       }
       ret->m_flag2 = usr::flag2_t(ret->m_flag2 | usr::SPECIAL_VER);
       ptu->m_table[key] = ret;
