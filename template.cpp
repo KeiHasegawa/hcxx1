@@ -82,20 +82,14 @@ namespace cxx_compiler {
 	}
 	return get(ptr->m_parent);
       }
+      static usr* ins_if_res;
       inline
       void instantiate_if(template_usr* tu, const template_usr::KEY& key)
       {
 	template_usr::KEY::const_iterator p =
 	  find_if(begin(key), end(key), template_param);
-	if (p == end(key)) {
-	  usr* ret = tu->instantiate(key);
-	  if (!template_usr::s_stack.empty()) {
-	    template_usr::info_t& info = template_usr::s_stack.top();
-	    assert(ret->m_flag2 & usr::INSTANTIATE);
-	    instantiated_usr* iu = static_cast<instantiated_usr*>(ret);
-	    info.m_iu = iu;
-	  }
-	}
+	if (p == end(key))
+	  ins_if_res = tu->instantiate(key);
       }
       inline void class_templ_member(usr* prev, template_usr* tu)
       {
@@ -776,16 +770,25 @@ cxx_compiler::template_usr::instantiate(const KEY& key)
 
   templ_base tmp = *this;
   template_usr_impl::sweeper_b sweeper_b(m_decled, &tmp);
+  declarations::templ::ins_if_res = 0;
   s_stack.push(info_t(this, 0, info_t::NONE, key));
   tinfos.push_back(make_pair(&s_stack.top(),(template_tag::info_t*)0));
   cxx_compiler_parse();
   tinfos.pop_back();
   instantiated_usr* ret = s_stack.top().m_iu;
   s_stack.pop();
+  if (!ret) {
+    assert(declarations::templ::ins_if_res);
+    usr* r = declarations::templ::ins_if_res;
+    declarations::templ::ins_if_res = 0;
+    return r;
+  }
   if (m_patch_13_2) {
     assert(m_flag & usr::INLINE);
     ret->m_flag = usr::flag_t(ret->m_flag | usr::INLINE);
   }
+  assert(ret->m_src == this);
+  assert(ret->m_seed == key);
   assert(!(ret->m_flag2 & usr::EXPLICIT_INSTANTIATE));
   return m_table[key] = ret;
 }
