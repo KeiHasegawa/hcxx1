@@ -247,6 +247,7 @@ cxx_compiler::classes::specifier::begin(int keyword, var* v,
 					std::vector<base*>* bases)
 {
   using namespace std;
+  assert(!v || v->usr_cast());
   usr* u = static_cast<usr*>(v);
   auto_ptr<usr> sweeper(parse::templ::save_t::nest.empty() ? u : 0);
   tag::kind_t kind = get(keyword);
@@ -456,6 +457,7 @@ void cxx_compiler::classes::members::bit_field(var* v, expressions::base* expr)
 {
   using namespace std;
   using namespace error::classes::bit_field;
+  assert(!v || v->usr_cast());
   usr* u = static_cast<usr*>(v);
   auto_ptr<expressions::base> sweeper(expr);
   expressions::constant_flag = true;

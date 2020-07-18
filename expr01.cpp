@@ -135,6 +135,8 @@ namespace cxx_compiler {
     var* funop_code(var* fun, vector<var*>* arg)
     {
       const type* T = fun->result_type();
+      if (!T)
+	return 0;
       usr* op_fun = operator_function(T, '(');
       if (!op_fun)
 	return 0;
@@ -435,6 +437,8 @@ cxx_compiler::usr* cxx_compiler::instantiate_if(usr* fun)
   tag* ptr2 = p->second;
   assert(find_if(++p, end(tbl), [fun](const pair<template_tag::KEY, tag*>& x)
 		 { return has_templ(x,fun); } ) == end(tbl));
+  if (tu->m_outer)
+    tu = tu->m_outer;
   return tu->instantiate(it->m_seed);
 }
 

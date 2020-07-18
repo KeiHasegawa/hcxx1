@@ -138,6 +138,7 @@ int cxx_compiler::statements::_case::info_t::gen()
   const type* T = expr->m_type;
   if ( T->backpatch() ){
     using namespace error;
+    assert(expr->usr_cast());
     usr* u = static_cast<usr*>(expr);
     string name = u->m_name;
     undeclared(u->m_file,name);

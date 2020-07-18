@@ -281,6 +281,11 @@ cxx_compiler::declarations::declarators::array::action(const type* T,
 {
   using namespace std;
   using namespace error::declarations::declarators::array;
+  if (v) {
+    if (genaddr* ga = v->genaddr_cast())
+      v = ga->m_ref;
+  }
+  assert(!v || v->usr_cast());
   usr* u = static_cast<usr*>(v);
   auto_ptr<expressions::base> sweepr(expr);
   const type* bt = backpatch_type::create();
@@ -401,7 +406,8 @@ namespace cxx_compiler {
 	    pair<ITx, ITy> ret = 
 	      mismatch(begin(param), end(param), begin(order) + n,
 		       [](const type* T, const usr* u)
-		       { return compatible(T, u->m_type); });
+		       { return compatible(T, u->m_type) ||
+			 T->m_id == type::TEMPLATE_PARAM; });
 	    return ret == make_pair(end(param), end(order));
 	  }
 	  inline bool check_now(usr* fun)
@@ -475,7 +481,7 @@ function::definition::begin(declarations::specifier_seq::info_t* p, var* v)
     const vector<usr*>& c = ovl->m_candidacy;
     typedef vector<usr*>::const_iterator IT;
     IT p = find_if(begin(c), end(c),
-		   [order](const usr* u){ return match(u, order); });
+		   [&order](const usr* u){ return match(u, order); });
     assert(p != end(c));
     u = *p;
   }
@@ -501,7 +507,9 @@ function::definition::begin(declarations::specifier_seq::info_t* p, var* v)
     scope* ptr = u->m_scope;
     if (ptr->m_id == scope::BLOCK)
       ptr = &scope::root;
-    key_t key(name, ptr, &param, get_seed(u));
+    vector<const type*> ip;
+    transform(begin(param), end(param), back_inserter(ip), ins_if);
+    key_t key(name, ptr, ip, get_seed(u));
     table_t::const_iterator p = dtbl.find(key);
     if (p != dtbl.end()) {
       using namespace error::declarations::declarators::function::definition;
@@ -728,7 +736,9 @@ namespace cxx_compiler {
 
     using namespace declarations::declarators::function::definition;
     const vector<const type*>& parameter = ft->param();
-    key_t key(name, ptr, &parameter, get_seed(func));
+    vector<const type*> ip;
+    transform(begin(parameter), end(parameter), back_inserter(ip), ins_if);
+    key_t key(name, ptr, ip, get_seed(func));
     dtbl[key] = u;
 
     using namespace class_or_namespace_name;
@@ -821,9 +831,12 @@ function::definition::action(fundef* fdef, std::vector<tac*>& vc)
   if (flag2 & usr::TEMPLATE) {
     assert(fundef::current == fdef);
     using namespace parse::templ;
-    assert(!save_t::nest.empty());
-    save_t* p = save_t::nest.back();
-    assert(p->m_usr == u);
+    if (!save_t::nest.empty()) {
+      save_t* p = save_t::nest.back();
+      assert(p->m_usr == u);
+    }
+    else
+      assert(parse::templ::ptr);
     scope* param = fdef->m_param;
     vector<scope*>& children = param->m_parent->m_children;
     assert(children.back() == param);
@@ -871,6 +884,20 @@ function::definition::action(fundef* fdef, std::vector<tac*>& vc)
       cout << '\t', dump::tacx(cout, p), cout << '\n';
     cout << '\n';
     dump::scopex();
+  }
+
+  scope* ps = u->m_scope;
+  if (ps->m_id == scope::TAG) {
+    tag* ptr = static_cast<tag*>(ps);
+    tag::flag_t flag = ptr->m_flag;
+    if (flag & tag::INSTANTIATE) {
+      instantiated_tag* it = static_cast<instantiated_tag*>(ptr);
+      const instantiated_tag::SEED& seed = it->m_seed;
+      typedef instantiated_tag::SEED::const_iterator IT;
+      IT p = find_if(begin(seed), end(seed), template_param);
+      if (p != end(seed))
+	return;
+    }
   }
 
   using namespace mem_initializer;
@@ -984,7 +1011,9 @@ namespace cxx_compiler {
 	      FT* ft = static_cast<FT*>(T);
 	      scope* ps = get(u);
 	      const vector<const type*>& param = ft->param();
-	      key_t key(name, ps, &param, get_seed(u));
+	      vector<const type*> ip;
+	      transform(begin(param), end(param), back_inserter(ip), ins_if);
+	      key_t key(name, ps, ip, get_seed(u));
 	      if (definition::dtbl.find(key) != definition::dtbl.end())
 		return;
 
@@ -1051,8 +1080,10 @@ namespace cxx_compiler { namespace declarations { namespace declarators { namesp
 	    FT* ft = static_cast<FT*>(T);
 	    const vector<const type*>& param = ft->param();
 	    instantiated_usr::SEED seed = get_seed(fn);
+	    vector<const type*> ip;
+	    transform(begin(param), end(param), back_inserter(ip), ins_if);
             if (fn->m_name == key.m_name && ps == key.m_scope &&
-		&param == key.m_param && seed == key.m_seed) {
+		ip == key.m_param && seed == key.m_seed) {
               int before = vc.size();
               if (!error::counter && !cmdline::no_inline_sub)
                 substitute(vc, n, callee);
@@ -1097,7 +1128,9 @@ namespace cxx_compiler { namespace declarations { namespace declarators { namesp
 	typedef const func_type FT;
 	FT* ft = static_cast<FT*>(T);
 	const vector<const type*>& param = ft->param();
-	key_t key(u->m_name, get(u), &param, get_seed(u));
+	vector<const type*> ip;
+	transform(begin(param), end(param), back_inserter(ip), ins_if);
+	key_t key(u->m_name, get(u), ip, get_seed(u));
         map<key_t, vector<ref_t> >::iterator p = refs.find(key);
         if (p == refs.end())
           return;

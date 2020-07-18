@@ -1945,11 +1945,11 @@ void cxx_compiler::error::expressions::primary::underscore_func::declared(const 
   using namespace std;
   switch ( lang ){
   case jpn:
-#ifndef __GNUC__
+#ifndef __GNUC__  // for garbled characters gcc version 7.3.0
     header(file,"エラー");
     cerr << "予約識別子 `__func__' が宣言されています.\n";
     break;
-#endif // __GNUC__
+#endif // __GNUC__ for garbled characters gcc version 7.3.0
   default:
     header(file,"error");
     cerr << "reserved identifier `__func__' is declared.\n";
@@ -2045,12 +2045,12 @@ void cxx_compiler::error::expressions::va::invalid(std::string op, const file_t&
   using namespace std;
   const usr* u = dynamic_cast<const usr*>(v);
   switch ( lang ){
-#ifndef __GNUC__
+#ifndef __GNUC__  // for garbled characters gcc version 7.3.0
   case jpn:
     header(file,"エラー");
     cerr << op << " の第一引数が変更可能なポインタではありません.\n";
     break;
-#endif // __GNUC__
+#endif // __GNUC__ for garbled characters gcc version 7.3.0
   default:
     header(file,"error");
     cerr << "1st expression of " << op << " is not modifiable pointer.\n";
@@ -2065,7 +2065,7 @@ void cxx_compiler::error::expressions::postfix::member::not_record(const file_t&
   const usr* u = dynamic_cast<const usr*>(v);
   switch ( lang ){
   case jpn:
-#ifndef __GNUC__
+#ifndef __GNUC__  // for garbled characters gcc version 7.3.0
     header(file,"エラー");
     cerr << "構造体でない";
     if ( u )
@@ -2074,7 +2074,7 @@ void cxx_compiler::error::expressions::postfix::member::not_record(const file_t&
       cerr << "もの";
     cerr << "に対してメンバーが参照されています.\n";
     break;
-#endif // __GNUC__
+#endif // __GNUC__ for garbled characters gcc version 7.3.0
   default:
     header(file,"error");
     cerr << "member is required for ";

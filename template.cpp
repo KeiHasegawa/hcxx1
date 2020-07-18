@@ -66,9 +66,6 @@ void cxx_compiler::declarations::templ::decl_begin()
 }
 
 namespace cxx_compiler {
-#ifdef __GNUC__
-  map<template_usr*, usr*> template_usr::prev;
-#endif // __GNUC__
   namespace declarations {
     namespace templ {
       inline instantiated_tag* get(scope* p)
@@ -90,8 +87,15 @@ namespace cxx_compiler {
       {
 	template_usr::KEY::const_iterator p =
 	  find_if(begin(key), end(key), template_param);
-	if (p == end(key))
-	  tu->instantiate(key);
+	if (p == end(key)) {
+	  usr* ret = tu->instantiate(key);
+	  if (!template_usr::s_stack.empty()) {
+	    template_usr::info_t& info = template_usr::s_stack.top();
+	    assert(ret->m_flag2 & usr::INSTANTIATE);
+	    instantiated_usr* iu = static_cast<instantiated_usr*>(ret);
+	    info.m_iu = iu;
+	  }
+	}
       }
       inline void class_templ_member(usr* prev, template_usr* tu)
       {
@@ -110,35 +114,24 @@ namespace cxx_compiler {
       }
       inline void after_instantiate(template_usr* tu)
       {
-#ifndef __GNUC__
-	if (template_usr* prev = tu->m_prev) {
-	  map<template_usr::KEY, usr*>& table = prev->m_table;
+	usr* prev = tu->m_prev;
+	if (!prev)
+	  return;
+	if (prev->m_flag & usr::FRIEND) {
+	  friend_func* ff = static_cast<friend_func*>(prev);
+	  if (usr* org = ff->m_org)
+	    prev = org;
+	}
+
+	if (prev->m_flag2 & usr::TEMPLATE) {
+	  template_usr* tp = static_cast<template_usr*>(prev);
+	  map<template_usr::KEY, usr*>& table = tp->m_table;
 	  for (const auto& p : table)
 	    instantiate_if(tu, p.first);
+	  return;
 	}
-#else // __GNUC__
-	typedef map<template_usr*, usr*>::const_iterator IT;
-	IT p = template_usr::prev.find(tu);
-	if (p != template_usr::prev.end()) {
-	  usr* prev = p->second;
-	  if (prev->m_flag & usr::FRIEND) {
-	    friend_func* ff = static_cast<friend_func*>(prev);
-	    if (usr* org = ff->m_org)
-	      prev = org;
-	  }
-	    
-	  if (prev->m_flag2 & usr::TEMPLATE) {
-	    template_usr* tp = static_cast<template_usr*>(prev);
-	    map<template_usr::KEY, usr*>& table = tp->m_table;
-	    for (const auto& p : table)
-	      instantiate_if(tu, p.first);
-	    return;
-	  }
 
-	  class_templ_member(prev, tu);
-	}
-#endif // __GNUC__
-
+	class_templ_member(prev, tu);
       }
       inline void handle(usr* u, const parse::read_t& r)
       {
@@ -183,18 +176,12 @@ namespace cxx_compiler {
 	}
       }
       inline void instantiate_if2(template_usr* tu,
-				  const template_tag::KEY& key,
-				  const scope::tps_t& tps,
-				  const parse::read_t& r)
+				  const template_tag::KEY& key)
       {
-	template_usr::KEY::const_iterator p =
-	  find_if(begin(key), end(key), template_param);
-	if (p != end(key))
-	  return;
-	template_usr* tu2 = new template_usr(*tu, tps, false);
-	tu2->m_decled = scope::current;
-	tu2->m_read = r;
-	tu2->instantiate(key);
+	typedef template_usr::KEY::const_iterator IT;
+	IT p = find_if(begin(key), end(key), template_param);
+	if (p == end(key))
+	  tu->instantiate(key);
       }
     } // end of namespace templ
   } // end of namespace declarations
@@ -231,8 +218,11 @@ void cxx_compiler::declarations::templ::decl_end()
     assert(last->m_flag2 & usr::TEMPLATE);
     template_usr* tu = static_cast<template_usr*>(last);
     const parse::read_t& rd = p->m_read;
+    template_usr* tu2 = new template_usr(*tu, b, false);
+    tu->m_outer = tu2;
+    handle(tu2, rd);
     for (const auto& p : table)
-      instantiate_if2(tu, p.first, b, rd);
+      instantiate_if2(tu2, p.first);
   }
   delete p;
   save_t::nest.pop_back();
@@ -494,11 +484,7 @@ namespace cxx_compiler {
       stack<declarations::specifier_seq::info_t*> m_stack1;
       vector<scope*> m_before;
       scope* m_last;
-#ifndef __GNUC__
       vector<parse::templ::save_t*> m_nest;
-#else // __GNUC__
-      list<parse::templ::save_t*> m_nest;
-#endif // __GNUC__
       int m_yychar;
       parse::read_t m_read;
       map<int, bool> m_retry;
@@ -724,7 +710,9 @@ cxx_compiler::template_usr::instantiate(std::vector<var*>* arg, KEY* trial)
   templ_base tmp = *this;
   template_usr_impl::sweeper_b sweeper_b(m_scope, &tmp);
   s_stack.push(info_t(this, 0, info_t::NONE, key));
+  tinfos.push_back(make_pair(&s_stack.top(),(template_tag::info_t*)0));
   cxx_compiler_parse();
+  tinfos.pop_back();
   instantiated_usr* ret = s_stack.top().m_iu;
   s_stack.pop();
   assert(ret->m_src == this);
@@ -789,19 +777,15 @@ cxx_compiler::template_usr::instantiate(const KEY& key)
   templ_base tmp = *this;
   template_usr_impl::sweeper_b sweeper_b(m_decled, &tmp);
   s_stack.push(info_t(this, 0, info_t::NONE, key));
+  tinfos.push_back(make_pair(&s_stack.top(),(template_tag::info_t*)0));
   cxx_compiler_parse();
+  tinfos.pop_back();
   instantiated_usr* ret = s_stack.top().m_iu;
   s_stack.pop();
-  if (!ret) {
-    assert(parse::templ::ptr);
-    return 0;
-  }
   if (m_patch_13_2) {
     assert(m_flag & usr::INLINE);
     ret->m_flag = usr::flag_t(ret->m_flag | usr::INLINE);
   }
-  assert(ret->m_src == this);
-  assert(ret->m_seed == key);
   assert(!(ret->m_flag2 & usr::EXPLICIT_INSTANTIATE));
   return m_table[key] = ret;
 }
@@ -1014,11 +998,7 @@ namespace cxx_compiler {
     };
   } // end of namespace template_tag_impl
 
-#ifndef __GNUC__
   vector<template_tag::info_t> template_tag::nest;
-#else  // __GNUC__
-  list<template_tag::info_t> template_tag::nest;
-#endif  // __GNUC__
 
   struct special_ver_tag : tag {
     template_tag* m_src;
@@ -1343,7 +1323,9 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
   templ_base tmp = *this;
   template_usr_impl::sweeper_b sweeper_b(m_parent, &tmp);
   nest.push_back(info_t(this, (instantiated_tag*)0, key));
+  tinfos.push_back(make_pair((template_usr::info_t*)0,&nest.back()));
   cxx_compiler_parse();
+  tinfos.pop_back();
   instantiated_tag* ret = nest.back().m_it;
   nest.pop_back();
   if (!ret) {
@@ -1366,6 +1348,11 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
 	   template_tag_impl::instantiate(key));
   return ret;
 }
+
+namespace cxx_compiler {
+  using namespace std;
+  vector<pair<template_usr::info_t*, template_tag::info_t*> > tinfos;
+} // end of namespace cxx_compiler
 
 namespace cxx_compiler {
   namespace template_tag_impl {
@@ -1519,7 +1506,9 @@ instantiate_common(vector<scope::tps_t::val2_t*>* pv, info_t::mode_t mode)
   templ_base tmp = *this;
   template_usr_impl::sweeper_b sweeper_b(m_scope, &tmp);
   s_stack.push(info_t(this, 0, mode, key));
+  tinfos.push_back(make_pair(&s_stack.top(), (template_tag::info_t*)0));
   cxx_compiler_parse();
+  tinfos.pop_back();
   assert(!s_stack.empty());
   instantiated_usr* ret = s_stack.top().m_iu;
   s_stack.pop();
@@ -1702,6 +1691,18 @@ cxx_compiler::instance_of(template_usr* tu, usr* ins, templ_base::KEY& key)
   const vector<string>& order = tu->m_tps.m_order;
   transform(begin(order), end(order), back_inserter(key),
 	    template_usr_impl::decide(table));
+  if (key.size() == 1) {
+    const type* T = void_type::create();
+    if (key[0].first == T) {
+      if (vi.size() == 1) {
+	if (vi[0] == T) {
+	  assert(vt.size() == 1);
+	  if (vt[0]->m_id == type::TEMPLATE_PARAM)
+	    return false;
+	}
+      }
+    }
+  }
   return true;
 }
 

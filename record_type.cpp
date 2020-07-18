@@ -750,7 +750,9 @@ namespace cxx_compiler {
         FT* ft = static_cast<FT*>(T);
         using namespace declarations::declarators::function::definition;
         const vector<const type*>& parameter = ft->param();
-        key_t key(sn, ptr, &parameter, get_seed(scd));
+	vector<const type*> ip;
+	transform(begin(parameter), end(parameter), back_inserter(ip), ins_if);
+        key_t key(sn, ptr, ip, get_seed(scd));
         dtbl[key] = scd;
 
         using namespace class_or_namespace_name;
@@ -1487,7 +1489,9 @@ namespace cxx_compiler {
       ptr->m_usrs[tgn].push_back(tor);
       using namespace declarations::declarators::function::definition;
       const vector<const type*>& parameter = ft->param();
-      key_t key(tgn, ptr, &parameter, get_seed(tor));
+      vector<const type*> ip;
+      transform(begin(parameter), end(parameter), back_inserter(ip), ins_if);
+      key_t key(tgn, ptr, ip, get_seed(tor));
       dtbl[key] = tor;
 
       *param = new scope(scope::PARAM);
@@ -1841,7 +1845,9 @@ namespace cxx_compiler {
 
       using namespace declarations::declarators::function::definition;
       const vector<const type*>& parameter = ft->param();
-      key_t key(tgn, ptr, &parameter, get_seed(ctor));
+      vector<const type*> ip;
+      transform(begin(parameter), end(parameter), back_inserter(ip), ins_if);
+      key_t key(tgn, ptr, ip, get_seed(ctor));
       dtbl[key] = ctor;
 
       using namespace class_or_namespace_name;

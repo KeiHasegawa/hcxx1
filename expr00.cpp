@@ -1243,7 +1243,8 @@ from_member(usr* u, const std::vector<route_t>& route)
 {
   using namespace expressions::primary::literal;
   usr::flag_t flag = u->m_flag;
-  if (flag & usr::STATIC)
+  usr::flag_t mask = usr::flag_t(usr::STATIC | usr::OVERLOAD);
+  if (flag & mask)
     return u;
   usr* func = fundef::current->m_usr;
   assert(func);
@@ -1490,7 +1491,9 @@ cxx_compiler::unqualified_id::operator_function_id(int op)
 
   using namespace declarations::declarators::function::definition;
   const vector<const type*>& parameter = ft->param();
-  key_t key(opn, ptr, &parameter, get_seed(u));
+  vector<const type*> ip;
+  transform(begin(parameter), end(parameter), back_inserter(ip), ins_if);
+  key_t key(opn, ptr, ip, get_seed(u));
   dtbl[key] = u;
 
   using namespace class_or_namespace_name;

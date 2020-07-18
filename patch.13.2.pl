@@ -73,11 +73,7 @@ print <<EOF
 		member_function_body::save_brace(&p->m_read, yychar == '{');
             identifier::mode = identifier::look;
             yychar = ';';
-#ifndef __GNUC__
             typedef vector<save_t*>::iterator IT;
-#else // __GNUC__
-            typedef list<save_t*>::iterator IT;
-#endif // __GNUC__
             IT it = end(save_t::nest);
             --it;
 	    const read_t& pr = p->m_read;

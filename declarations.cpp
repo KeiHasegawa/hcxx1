@@ -1145,26 +1145,33 @@ namespace cxx_compiler {
 	  return 0;
 	template_usr::KEY key;
 	transform(begin(yo), end(yo), back_inserter(key), templ_arg(ytps));
+	typedef template_usr::info_t X;
+	typedef template_tag::info_t Y;
+	tinfos.push_back(make_pair((X*)0, (Y*)1));
 	usr* xi = x->instantiate(key);
+	tinfos.pop_back();
 	scope* ps = xi->m_scope;
 	map<string, vector<usr*> >& usrs = ps->m_usrs;
 	map<string, vector<usr*> >::iterator p = usrs.find(xi->m_name);
 	vector<usr*>& v = p->second;
 	if (v.size() >= 2) {
 	  usr* b = v.back();
-	  if (b->m_flag & usr::FRIEND) {
-	    friend_func* ff = static_cast<friend_func*>(b);
-	    assert(ff->m_org == x);
-	  }
-	  else
-	    assert(b == x);
-	  v.pop_back();
-	  if (v.back() == xi) {
+	  usr::flag_t flag = b->m_flag;
+	  if (!(flag & usr::OVERLOAD)) {
+	    if (flag & usr::FRIEND) {
+	      friend_func* ff = static_cast<friend_func*>(b);
+	      assert(ff->m_org == x);
+	    }
+	    else
+	      assert(b == x);
 	    v.pop_back();
-	    v.push_back(b);
+	    if (v.back() == xi) {
+	      v.pop_back();
+	      v.push_back(b);
+	    }
+	    else
+	      v.push_back(b);
 	  }
-	  else
-	    v.push_back(b);
 	}
 	else {
 	  assert(v.size() == 1);
@@ -1250,6 +1257,7 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
   }
 
   usr::flag_t flag = prev->m_flag;
+  usr* old_prev = prev;
   if (flag & usr::OVERLOAD) {
     overload* ovl = static_cast<overload*>(prev);
     const vector<usr*>& cand = ovl->m_candidacy;
@@ -1263,6 +1271,16 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
 	template_usr::info_t& info = template_usr::s_stack.top();
 	template_usr* tu = info.m_tu;
 	prev = tu;
+      }
+    }
+    else {
+      usr::flag2_t flag2 = curr->m_flag2;
+      if (flag2 & usr::TEMPLATE) {
+	typedef vector<usr*>::const_iterator IT;
+	IT p = find_if(begin(cand), end(cand),
+		       [](usr* u){ return u->m_flag2 & usr::TEMPLATE; });
+	if (p != end(cand))
+	  prev = *p;
       }
     }
   }
@@ -1288,7 +1306,7 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
       }
       if (curr->m_flag2 & usr::TEMPLATE) {
 	template_usr* ctu = static_cast<template_usr*>(curr);
-	template_usr::prev[ctu] = prev;
+	ctu->m_prev = prev;
       }
       return curr;
     }
@@ -1305,11 +1323,12 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
       template_usr* ctu = static_cast<template_usr*>(curr);
       if (const type* T = composite_tu(ptu, ctu)) {
 	ctu->m_type = T;
-#ifndef __GNUC__
 	ctu->m_prev = ptu;
-#else // __GNUC__
-	template_usr::prev[ctu] = ptu;
-#endif // __GNUC__
+	if (old_prev->m_flag & usr::OVERLOAD) {
+	  string name = curr->m_name;
+	  scope::current->m_usrs[name].push_back(curr);
+	  return new overload(old_prev, curr);
+	}
 	return ctu;
       }
       string name = curr->m_name;
@@ -1604,12 +1623,14 @@ void cxx_compiler::declarations::linkage::action(var* v, bool brace)
     // check `v' is "C"
     map<int,var*>::const_iterator a = value.find(0);
     assert(a != value.end());
+    assert(a->second->usr_cast());
     usr* b = static_cast<usr*>(a->second);
     constant<char>* c = static_cast<constant<char>*>(b);
     if (c->m_value != 'C')
       error::not_implemented();
     map<int,var*>::const_iterator d = value.find(1);
     assert(d != value.end());
+    assert(d->second->usr_cast());
     usr* e = static_cast<usr*>(d->second);
     constant<char>* f = static_cast<constant<char>*>(e);
     assert(f->m_value == '\0');
@@ -1619,24 +1640,28 @@ void cxx_compiler::declarations::linkage::action(var* v, bool brace)
     // check `v' is "C++"
     map<int,var*>::const_iterator a = value.find(0);
     assert(a != value.end());
+    assert(a->second->usr_cast());
     usr* b = static_cast<usr*>(a->second);
     constant<char>* c = static_cast<constant<char>*>(b);
     if (c->m_value != 'C')
       error::not_implemented();
     map<int,var*>::const_iterator d = value.find(1);
     assert(d != value.end());
+    assert(d->second->usr_cast());
     usr* e = static_cast<usr*>(d->second);
     constant<char>* f = static_cast<constant<char>*>(e);
     if (f->m_value != '+')
       error::not_implemented();
     map<int,var*>::const_iterator g = value.find(2);
     assert(g != value.end());
+    assert(g->second->usr_cast());
     usr* h = static_cast<usr*>(g->second);
     constant<char>* i = static_cast<constant<char>*>(h);
     if (i->m_value != '+')
       error::not_implemented();
     map<int,var*>::const_iterator j = value.find(3);
     assert(j != value.end());
+    assert(j->second->usr_cast());
     usr* k = static_cast<usr*>(j->second);
     constant<char>* l = static_cast<constant<char>*>(k);
     assert(l->m_value == '\0');
@@ -1687,6 +1712,7 @@ namespace cxx_compiler { namespace declarations { namespace enumeration {
 cxx_compiler::tag* cxx_compiler::declarations::enumeration::begin(var* v)
 {
   using namespace std;
+  assert(!v || v->usr_cast());
   usr* u = static_cast<usr*>(v);
   using namespace expressions::primary::literal;
   prev = integer::create(0);
@@ -1718,6 +1744,7 @@ enumeration::definition(var* v, expressions::base* expr)
 {
   using namespace std;
   using namespace error::declarations::enumeration;
+  assert(v->usr_cast());
   usr* u = static_cast<usr*>(v);
   auto_ptr<usr> sweeper1(parse::templ::save_t::nest.empty() ? u : 0);
   auto_ptr<expressions::base> sweeper2(expr);
@@ -1738,12 +1765,14 @@ enumeration::definition(var* v, expressions::base* expr)
     v = prev;
   u->m_type = const_type::create(int_type::create());
   u->m_flag = usr::ENUM_MEMBER;
-  enum_member* member = new enum_member(*u,static_cast<usr*>(v));
+  assert(v->usr_cast());
+  enum_member* member = new enum_member(*u, static_cast<usr*>(v));
   declarations::action2(member);
   using namespace expressions::primary::literal;
   var* one = integer::create(1);
   conversion::arithmetic::gen(&v, &one);
   v = v->add(one);
+  assert(v->usr_cast());
   prev = static_cast<usr*>(v);
 }
 

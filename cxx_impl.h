@@ -116,11 +116,7 @@ namespace parse {
       tag* m_tag;
       bool m_patch_13_2;
       save_t() : m_usr(0), m_tag(0), m_patch_13_2(false) {}
-#ifndef __GNUC__
       static vector<save_t*> nest;
-#else  // __GNUC__
-      static list<save_t*> nest;
-#endif  // __GNUC__
     };
     extern bool param;
     extern int arg;
@@ -647,9 +643,9 @@ namespace declarations {
 	struct key_t {
 	  string m_name;
 	  scope* m_scope;
-	  const vector<const type*>* m_param;
+	  vector<const type*> m_param;
 	  instantiated_usr::SEED m_seed;
-	  key_t(string name, scope* ps, const vector<const type*>* param,
+	  key_t(string name, scope* ps, const vector<const type*>& param,
 		const instantiated_usr::SEED& seed)
 	  : m_name(name), m_scope(ps), m_param(param), m_seed(seed) {}
 	};
@@ -668,6 +664,16 @@ namespace declarations {
 	  if (x.m_param > y.m_param)
 	    return false;
 	  return x.m_seed < y.m_seed;
+	}
+	inline const type* ins_if(const type* T)
+	{
+	  if (T->m_id != type::TEMPLATE_PARAM)
+	    return T;
+	  tag* ptr = T->get_tag();
+	  const type* T2 = ptr->m_types.second;
+	  if (T2)
+	    return T2;
+	  return T;
 	}
 	inline instantiated_usr::SEED get_seed(usr* u)
 	{
@@ -806,7 +812,8 @@ namespace declarations {
         expressions::base* m_expr;
         usr* m_usr;
         info_t(expressions::base* expr, var* v)
-          : m_expr(expr), m_usr(static_cast<usr*>(v)) {}
+          : m_expr(expr),
+	    m_usr((assert(!v || v->usr_cast()), static_cast<usr*>(v))) {}
         ~info_t();
       };
     } // end of namespace designator
@@ -1300,7 +1307,8 @@ namespace statements {
   namespace goto_stmt {
     struct info_t : base {
       usr* m_label;
-      info_t(var* v) : m_label(static_cast<usr*>(v)) {}
+      info_t(var* v)
+	: m_label((assert(v->usr_cast()), static_cast<usr*>(v))) {}
       int gen();
       ~info_t(){ delete m_label; }
     };
@@ -1610,17 +1618,11 @@ struct template_usr : usr, templ_base {
   table_t m_table;
   bool m_patch_13_2;
   scope* m_decled;
-
-#ifndef __GNUC__
   usr* m_prev;
+  template_usr* m_outer;
   template_usr(usr& u, const scope::tps_t& tps, bool patch_13_2)
-    : usr(u), templ_base(tps), m_patch_13_2(patch_13_2), m_decled(0), m_prev(0)
-#else // __GNUC__
-  // To avoid bug.
-  static map<template_usr*, usr*> prev;
-  template_usr(usr& u, const scope::tps_t& tps, bool patch_13_2)
-    : usr(u), templ_base(tps), m_patch_13_2(patch_13_2), m_decled(0)
-#endif // __GNUC__
+    : usr(u), templ_base(tps), m_patch_13_2(patch_13_2), m_decled(0),
+      m_prev(0), m_outer(0)
   {
     m_flag2 = usr::flag2_t(m_flag2 | usr::TEMPLATE);
     if (m_patch_13_2)
@@ -1654,11 +1656,7 @@ struct template_tag : templ_base, tag {
 	   const instantiated_tag::SEED& seed)
     : m_tt(tt), m_it(it), m_seed(seed) {}
   };
-#ifndef __GNUC__
   static vector<info_t> nest;
-#else  // __GNUC__
-  static list<info_t> nest;    // To avoid bug. Should be vector
-#endif  // __GNUC__
   typedef map<KEY, tag*> table_t;
   table_t m_table;
   template_tag* m_prev;
@@ -1675,6 +1673,8 @@ struct template_tag : templ_base, tag {
   { return common(pv, true); }
   virtual string instantiated_name() const;
 };
+
+extern vector<pair<template_usr::info_t*, template_tag::info_t*> > tinfos;
 
 inline string tor_name(tag* ptr)
 {

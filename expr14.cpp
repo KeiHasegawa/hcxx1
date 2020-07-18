@@ -388,6 +388,7 @@ cxx_compiler::var* cxx_compiler::var_impl::cond(var* expr1, int y, var* expr2, i
   expr2 = expr2->rvalue();
   if ( expr2->m_type->backpatch() ){
     using namespace error;
+    assert(expr2->usr_cast());
     usr* u = static_cast<usr*>(expr2);
     string name = u->m_name;
     file_t file = u->m_file;
@@ -549,6 +550,7 @@ cxx_compiler::var* cxx_compiler::var01::cond(int y, int x, var* expr2, var* expr
   }
   if ( expr2->m_type->backpatch() ){
     using namespace error;
+    assert(expr2->usr_cast());
     usr* u = static_cast<usr*>(expr2);
     string name = u->m_name;
     file_t file = u->m_file;

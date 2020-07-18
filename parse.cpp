@@ -544,6 +544,12 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
 	  return TEMPLATE_NAME_LEX;
 	}
       }
+      if (mode == new_obj)
+	return create(name);
+      if (!declarations::specifier_seq::info_t::s_stack.empty()) {
+	if (declarations::specifier_seq::info_t::s_stack.top())
+	  return create(name);
+      }
       return IDENTIFIER_LEX;
     }
     if (flag & usr::NAMESPACE) {
@@ -900,7 +906,9 @@ namespace cxx_compiler {
         if (from_mem_fun_body)
           return get_id_from_mem_fun_body(n);
         {
-          usr* u = static_cast<usr*>(cxx_compiler_lval.m_var);
+	  var* v = cxx_compiler_lval.m_var;
+	  assert(v->usr_cast());
+          usr* u = static_cast<usr*>(v);
           assert(u->m_type->m_id == type::BACKPATCH);
           string name = u->m_name;
           last_token = identifier::judge(name);
@@ -925,7 +933,9 @@ namespace cxx_compiler {
 	}
 	if (context_t::retry[DECL_FCAST_CONFLICT_STATE] ||
 	    context_t::retry[TYPE_NAME_CONFLICT_STATE] ) {
-	  usr* u = static_cast<usr*>(cxx_compiler_lval.m_var);
+	  var* v = cxx_compiler_lval.m_var;
+	  assert(v->usr_cast());
+	  usr* u = static_cast<usr*>(v);
 	  assert(u->m_type->backpatch());
 	  string name = u->m_name;
 	  last_token = identifier::lookup(name, scope::current);
@@ -936,20 +946,20 @@ namespace cxx_compiler {
       case INTEGER_LITERAL_LEX:
       case CHARACTER_LITERAL_LEX:
       case FLOATING_LITERAL_LEX:
-        assert(!lval.empty());
-        cxx_compiler_lval.m_usr = static_cast<usr*>(lval.front());
-        lval.pop_front();
-        return n;
+	assert(!lval.empty());
+	cxx_compiler_lval.m_usr = static_cast<usr*>(lval.front());
+	lval.pop_front();
+	return n;
       case TYPEDEF_NAME_LEX:
-        assert(!lval.empty());
-        cxx_compiler_lval.m_usr = static_cast<usr*>(lval.front());
-        lval.pop_front();
+	assert(!lval.empty());
+	cxx_compiler_lval.m_usr = static_cast<usr*>(lval.front());
+	lval.pop_front();
 	if (templ) {
 	  usr* u = cxx_compiler_lval.m_usr;
 	  string name = u->m_name;
 	  last_token = identifier::lookup(name, scope::current);
 	}
-        return n;
+	return n;
       case STRING_LITERAL_LEX:
         assert(!lval.empty());
         cxx_compiler_lval.m_var = static_cast<var*>(lval.front());
@@ -965,6 +975,14 @@ namespace cxx_compiler {
 	  tag* ptr = cxx_compiler_lval.m_tag;
 	  tag::flag_t flag = ptr->m_flag;
 	  if (flag & tag::INSTANTIATE) {
+	    assert(!tinfos.empty());
+	    int n = tinfos.size();
+	    if (n >= 2) {
+	      if (tinfos[n-1].first) {
+		if (tinfos[n-2].second)
+		  return CLASS_NAME_LEX;
+	      }
+	    }
 	    instantiated_tag* it = static_cast<instantiated_tag*>(ptr);
 	    const instantiated_tag::SEED& seed = it->m_seed;
 	    typedef instantiated_tag::SEED::const_iterator IT;
@@ -1316,7 +1334,7 @@ namespace cxx_compiler { namespace parse { namespace block {
 void cxx_compiler::parse::block::enter()
 {
   using namespace std;
-
+  identifier::mode = identifier::look;
   scope::id_t id = scope::current->m_id;
   switch (id) {
   case scope::NONE: case scope::NAMESPACE:
@@ -1619,11 +1637,7 @@ namespace cxx_compiler {
 namespace cxx_compiler {
   namespace parse {
     namespace templ {
-#ifndef __GNUC__
       vector<save_t*> save_t::nest;
-#else  // __GNUC__
-      list<save_t*> save_t::nest;
-#endif  // __GNUC__
     } // end of namespace templ
   } // end of namespace parse
 } // end of namespace cxx_compiler
