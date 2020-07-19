@@ -976,6 +976,20 @@ cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr)
       v.push_back(ins);
     }
   }
+
+  usr::flag2_t flag2 = curr->m_flag2;
+  if (flag2 & usr::TEMPLATE) {
+    vector<usr*>& v = usrs[name];
+    int n = v.size();
+    if (n >= 2) {
+      assert(v[n-1] == curr);
+      usr* prev = v[n-2];
+      if (prev->m_flag2 & usr::PARTIAL_ORDERING) {
+	swap(v[n-1], v[n-2]);
+      }
+    }
+  }
+
   return curr;
 }
 
@@ -991,7 +1005,9 @@ bool cxx_compiler::declarations::conflict(usr* x, usr* y)
 {
   if (conflict(x->m_flag,y->m_flag)) {
     if (!x->m_type) {
-      assert(x->m_flag & usr::OVERLOAD);
+      usr::flag_t flag = x->m_flag;
+      usr::flag2_t flag2 = x->m_flag2;
+      assert((flag & usr::OVERLOAD) || (flag2 & usr::PARTIAL_ORDERING));
       return false;
     }
     if (x->m_type->m_id != type::FUNC)
@@ -1162,8 +1178,17 @@ namespace cxx_compiler {
 	      friend_func* ff = static_cast<friend_func*>(b);
 	      assert(ff->m_org == x);
 	    }
-	    else
-	      assert(b == x);
+	    else {
+	      usr::flag2_t flag2 = b->m_flag2;
+	      if (flag2 & usr::PARTIAL_ORDERING) {
+		partial_ordering* po = static_cast<partial_ordering*>(b);
+		const vector<template_usr*>& c = po->m_candidacy;
+		assert(!c.empty());
+		assert(find(begin(c), end(c), x) != end(c));
+	      }
+	      else
+		assert(b == x);
+	    }
 	    v.pop_back();
 	    if (v.back() == xi) {
 	      v.pop_back();
@@ -1307,6 +1332,10 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
       if (curr->m_flag2 & usr::TEMPLATE) {
 	template_usr* ctu = static_cast<template_usr*>(curr);
 	ctu->m_prev = prev;
+	if (prev->m_flag2 & usr::TEMPLATE) {
+	  template_usr* ptu = static_cast<template_usr*>(prev);
+	  ptu->m_next = ctu;
+	}
       }
       return curr;
     }
@@ -1324,6 +1353,7 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
       if (const type* T = composite_tu(ptu, ctu)) {
 	ctu->m_type = T;
 	ctu->m_prev = ptu;
+	ptu->m_next = ctu;
 	if (old_prev->m_flag & usr::OVERLOAD) {
 	  string name = curr->m_name;
 	  scope::current->m_usrs[name].push_back(curr);
@@ -1365,7 +1395,9 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
       template_usr::info_t& info = template_usr::s_stack.top();
       template_usr* tu = info.m_tu;
       const vector<template_usr*>& c = po->m_candidacy;
-      assert(find(begin(c), end(c), tu) != end(c));
+      assert((find(begin(c), end(c), tu) != end(c)) ||
+	     (find_if(begin(c), end(c), [tu](template_usr* ptu)
+		      { return composite_tu(ptu, tu); }) != end(c)));
       templ_base::KEY key;
       bool b = instance_of(tu, curr, key);
       assert(b);
@@ -1374,10 +1406,22 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
       assert(info.m_mode == template_usr::info_t::NONE);
       return ret;
     }
-    template_usr* tu = static_cast<template_usr*>(curr);
+
+    template_usr* ctu = static_cast<template_usr*>(curr);
+    const vector<template_usr*>& c = po->m_candidacy;
+    typedef vector<template_usr*>::const_iterator IT;
+    IT p = find_if(begin(c), end(c), [ctu](template_usr* ptu)
+		   { return composite_tu(ptu, ctu); });
+    if (p != end(c)) {
+      template_usr* ptu = *p;
+      ctu->m_prev = ptu;
+      ptu->m_next = ctu;
+      return ctu;
+    }
+
     string name = curr->m_name;
     scope::current->m_usrs[name].push_back(curr);
-    return new partial_ordering(po, tu);
+    return new partial_ordering(po, ctu);
   }
 
   string name = curr->m_name;
@@ -1421,14 +1465,16 @@ namespace cxx_compiler {
       m_candidacy.push_back(curr);
   }
   partial_ordering::partial_ordering(template_usr* prev, template_usr* curr)
-    : usr(curr->m_name, 0, usr::NONE, curr->m_file, usr::PARTIAL_ORDERING)
+    : usr(curr->m_name, 0, usr::NONE, curr->m_file, usr::PARTIAL_ORDERING),
+      m_obj(0)
   {
     m_candidacy.push_back(prev);
     m_candidacy.push_back(curr);
   }
   partial_ordering::partial_ordering(partial_ordering* prev,
 				     template_usr* curr)
-    : usr(curr->m_name, 0, usr::NONE, curr->m_file, usr::PARTIAL_ORDERING)
+    : usr(curr->m_name, 0, usr::NONE, curr->m_file, usr::PARTIAL_ORDERING),
+      m_obj(0)
   {
     m_candidacy = prev->m_candidacy;
     m_candidacy.push_back(curr);

@@ -569,8 +569,15 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
 	  return create(name);
       }
     }
-    if (flag2 & usr::PARTIAL_ORDERING)
+    if (flag2 & usr::PARTIAL_ORDERING) {
+      if (mode == new_obj)
+	return create(name);
+      if (!declarations::specifier_seq::info_t::s_stack.empty()) {
+	if (declarations::specifier_seq::info_t::s_stack.top())
+	  return create(name);
+      }
       return IDENTIFIER_LEX;
+    }
     const type* T = u->m_type;
     if (const pointer_type* G = T->ptr_gen()) {
       cxx_compiler_lval.m_var = new genaddr(G,T,u,0);

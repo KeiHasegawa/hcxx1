@@ -1619,10 +1619,11 @@ struct template_usr : usr, templ_base {
   bool m_patch_13_2;
   scope* m_decled;
   usr* m_prev;
+  template_usr* m_next;
   template_usr* m_outer;
   template_usr(usr& u, const scope::tps_t& tps, bool patch_13_2)
     : usr(u), templ_base(tps), m_patch_13_2(patch_13_2), m_decled(0),
-      m_prev(0), m_outer(0)
+      m_prev(0), m_next(0), m_outer(0)
   {
     m_flag2 = usr::flag2_t(m_flag2 | usr::TEMPLATE);
     if (m_patch_13_2)
@@ -1640,6 +1641,7 @@ struct template_usr : usr, templ_base {
 
 struct partial_ordering : usr {
   vector<template_usr*> m_candidacy;
+  var* m_obj;
   partial_ordering(template_usr* prev, template_usr* curr);
   partial_ordering(partial_ordering* prev, template_usr* curr);
   var* call(vector<var*>*);

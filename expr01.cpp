@@ -586,6 +586,22 @@ cxx_compiler::var* cxx_compiler::partial_ordering::call(std::vector<var*>* arg)
   assert(p != end(m_candidacy));
   template_usr* tu = *p;
   usr* ins = tu->instantiate(arg, 0);
+
+  if (template_usr* next = tu->m_next) {
+    assert(ins->m_flag2 & usr::INSTANTIATE);
+    instantiated_usr* iu = static_cast<instantiated_usr*>(ins);
+    next->instantiate(iu->m_seed);
+  }
+  scope* ps = ins->m_scope;
+  if (ps->m_id == scope::TAG) {
+    usr::flag_t flag = ins->m_flag;
+    if (!(flag & usr::STATIC)) {
+      assert(m_obj);
+      member_function* mf = new member_function(m_obj, ins, false);
+      return mf->call(arg);
+    }
+  }
+
   return call_impl::wrapper(ins, arg, 0);
 }
 
@@ -1613,6 +1629,11 @@ cxx_compiler::var::member(var* expr, bool dot,
   }
   const type* Mt = member->m_type;
   if (!Mt) {
+    if (member->m_flag2 & usr::PARTIAL_ORDERING) {
+      partial_ordering* po = static_cast<partial_ordering*>(member);
+      po->m_obj = this;
+      return po;
+    }
     assert(flag & usr::OVERLOAD);
     overload* ovl = static_cast<overload*>(member);
     ovl->m_obj = this;

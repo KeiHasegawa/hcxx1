@@ -1187,7 +1187,9 @@ inline bool is_external_declaration(var* v)
       if (!T) {
         assert(v->usr_cast());
         usr* u = static_cast<usr*>(v);
-        assert(u->m_flag & usr::OVERLOAD);
+	usr::flag_t flag = u->m_flag;
+	usr::flag2_t flag2 = u->m_flag2;
+        assert((flag & usr::OVERLOAD) || (flag2 & usr::PARTIAL_ORDERING));
         return true;
       }
       if (T->m_id == type::FUNC)

@@ -1980,6 +1980,18 @@ namespace cxx_compiler {
         m_tag->m_order.push_back(vdel);
       }
     };
+    inline bool isdata(const usr* u)
+    {
+      usr::flag_t flag = u->m_flag;
+      usr::flag_t mask =
+       usr::flag_t(usr::FUNCTION | usr::STATIC | usr::OVERLOAD | usr::TYPEDEF);
+      if (flag & mask)
+	return false;
+      usr::flag2_t flag2 = u->m_flag2;
+      if (flag2 & usr::PARTIAL_ORDERING)
+	return false;
+      return true;
+    }
   } // end of namespace record_imp
 } // end of namespace cxx_compiler
 
@@ -2115,13 +2127,8 @@ cxx_compiler::record_type::record_type(tag* ptr)
     accumulate(begin(order), end(order), offset, own_vf(vftbl->m_value));
   }
 
-  copy_if(begin(order),end(order),back_inserter(m_member),
-          [](usr* u) {
-            usr::flag_t flag = u->m_flag;
-            usr::flag_t mask =
-              usr::flag_t(usr::FUNCTION | usr::STATIC | usr::OVERLOAD | usr::TYPEDEF);
-            return !(flag & mask);
-          });
+  copy_if(begin(order),end(order),back_inserter(m_member), isdata);
+
   if (!bases && m_member.empty()) {
     string name = ".dummy";
     const type* T = char_type::create();
