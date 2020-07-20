@@ -1372,7 +1372,7 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
       if (parse::templ::ptr) {
 	if (!template_usr::s_stack.empty()) {
 	  template_usr::info_t& info = template_usr::s_stack.top();
-	  assert(ptu == info.m_tu);
+	  assert(ptu == info.m_tu || ptu->m_prev == info.m_tu);
 	  assert(key == info.m_key);
 	  info.m_iu = ret;
 	  if (info.m_mode == template_usr::info_t::EXPLICIT)

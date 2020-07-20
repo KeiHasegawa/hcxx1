@@ -255,6 +255,14 @@ cxx_compiler::member_function::call(std::vector<var*>* arg)
       if (flag2 & usr::TEMPLATE) {
 	template_usr* tu = static_cast<template_usr*>(u);
 	fun = tu->instantiate(arg, 0);
+	if (template_usr* next = tu->m_next) {
+	  assert(fun->usr_cast());
+	  usr* u = static_cast<usr*>(fun);
+	  assert(u->m_flag2 & usr::INSTANTIATE);
+	  instantiated_usr* iu = static_cast<instantiated_usr*>(u);
+	  const instantiated_usr::SEED& seed = iu->m_seed;
+	  next->instantiate(seed);
+	}
 	T = fun->m_type;
 	assert(T->m_id == type::FUNC); 
 	ft = static_cast<FT*>(T);
@@ -438,8 +446,10 @@ cxx_compiler::usr* cxx_compiler::instantiate_if(usr* fun)
   tag* ptr2 = p->second;
   assert(find_if(++p, end(tbl), [fun](const pair<template_tag::KEY, tag*>& x)
 		 { return has_templ(x,fun); } ) == end(tbl));
-  if (template_usr* outer = tu->m_outer)
-    tu = outer;
+  if (template_usr* outer = tu->m_outer) {
+    usr* ret = outer->instantiate(it->m_seed);
+    return ret ? ret : fun;
+  }
   return tu->instantiate(it->m_seed);
 }
 

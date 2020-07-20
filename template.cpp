@@ -709,7 +709,7 @@ cxx_compiler::template_usr::instantiate(std::vector<var*>* arg, KEY* trial)
   tinfos.pop_back();
   instantiated_usr* ret = s_stack.top().m_iu;
   s_stack.pop();
-  assert(ret->m_src == this);
+  assert(ret->m_src == this || ret->m_src == m_next);
   assert(ret->m_seed == key);
   assert(!(ret->m_flag2 & usr::EXPLICIT_INSTANTIATE));
   return m_table[key] = ret;
@@ -778,7 +778,6 @@ cxx_compiler::template_usr::instantiate(const KEY& key)
   instantiated_usr* ret = s_stack.top().m_iu;
   s_stack.pop();
   if (!ret) {
-    assert(declarations::templ::ins_if_res);
     usr* r = declarations::templ::ins_if_res;
     declarations::templ::ins_if_res = 0;
     return r;
