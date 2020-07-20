@@ -59,10 +59,9 @@ void cxx_compiler::declarations::templ::decl_begin()
   assert(!tps.empty());
   const scope::tps_t& b = tps.back();
   const map<string, scope::tps_t::value_t>& table = b.m_table;
-  if (!table.empty()) {
-    using namespace parse::templ;
-    save_t::nest.push_back(new save_t);
-  }
+  assert(!table.empty());
+  using namespace parse::templ;
+  save_t::nest.push_back(new save_t);
 }
 
 namespace cxx_compiler {

@@ -1237,6 +1237,41 @@ namespace cxx_compiler {
       const type* Ty = y->m_type;
       return composite(Tx, Ty);
     }
+    usr::flag_t combine(scope::id_t id, usr::flag_t prev, usr::flag_t curr)
+    {
+      switch (id) {
+      case scope::NONE: case scope::NAMESPACE:
+	{
+	  if (prev == usr::NONE && curr == usr::NONE)
+	    return usr::EXTERN;
+	  else if (prev & usr::STATIC)
+	    return usr::flag_t(curr | usr::STATIC);
+	  else if (prev & usr::INLINE)
+	    return usr::flag_t(curr | usr::INLINE);
+	  if (prev & usr::C_SYMBOL)
+	    return usr::flag_t(curr | usr::C_SYMBOL);
+	  return curr;
+	}
+	break;
+      case scope::TAG:
+	{
+	  if (prev & usr::STATIC) {
+	    if (prev & usr::FUNCTION) {
+	      assert(curr & usr::FUNCTION);
+	      return usr::flag_t(curr | usr::STATIC);
+	    }
+	    else {
+	      assert(!(curr & usr::FUNCTION));
+	      return usr::flag_t(curr | usr::STATIC_DEF);
+	    }
+	  }
+	}
+	return curr;
+	break;
+      default:
+	return curr;
+      }
+    }
   } // end of namespace declarations
 } // end of namespace cxx_compiler
 
@@ -1247,38 +1282,7 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
   const type* Tc = curr->m_type;
   if (Tp && Tc && compatible(Tp, Tc)) {
     scope::id_t id = curr->m_scope->m_id;
-    switch (id) {
-    case scope::NONE: case scope::NAMESPACE:
-      {
-	usr::flag_t a = prev->m_flag;
-	usr::flag_t b = curr->m_flag;
-	if (a == usr::NONE && b == usr::NONE)
-	  curr->m_flag = usr::EXTERN;
-	else if (a & usr::STATIC)
-	  curr->m_flag = usr::flag_t(b | usr::STATIC);
-	else if (a & usr::INLINE)
-	  curr->m_flag = usr::flag_t(b | usr::INLINE);
-	if (a & usr::C_SYMBOL)
-	  curr->m_flag = usr::flag_t(b | usr::C_SYMBOL);
-      }
-      break;
-    case scope::TAG:
-      {
-	usr::flag_t a = prev->m_flag;
-	usr::flag_t b = curr->m_flag;
-	if (a & usr::STATIC) {
-	  if (a & usr::FUNCTION) {
-	    assert(b & usr::FUNCTION);
-	    curr->m_flag = usr::flag_t(b | usr::STATIC);
-	  }
-	  else {
-	    assert(!(b & usr::FUNCTION));
-	    curr->m_flag = usr::flag_t(b | usr::STATIC_DEF);
-	  }
-	}
-      }
-      break;
-    }
+    curr->m_flag = combine(id, prev->m_flag, curr->m_flag);
   }
 
   usr::flag_t flag = prev->m_flag;
@@ -1300,7 +1304,7 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
     }
     else {
       usr::flag2_t flag2 = curr->m_flag2;
-      if (flag2 & usr::TEMPLATE) {
+      if ((flag2 & usr::TEMPLATE) || !templ::specialization::nest.empty()) {
 	typedef vector<usr*>::const_iterator IT;
 	IT p = find_if(begin(cand), end(cand),
 		       [](usr* u){ return u->m_flag2 & usr::TEMPLATE; });
@@ -1368,6 +1372,8 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
     templ_base::KEY key;
     if (instance_of(ptu, curr, key) ||
 	template_usr::explicit_instantiating(key)) {
+      scope::id_t id = curr->m_scope->m_id;
+      curr->m_flag = combine(id, prev->m_flag, curr->m_flag);
       instantiated_usr* ret = new instantiated_usr(*curr, ptu, key);
       if (parse::templ::ptr) {
 	if (!template_usr::s_stack.empty()) {

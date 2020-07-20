@@ -543,11 +543,21 @@ cxx_compiler::var* cxx_compiler::overload::call(std::vector<var*>* arg,
   var* ret = res[m];
   assert(ret);
   vector<tac*>& v = tmp[m];
-  copy(begin(v), end(v), back_inserter(code));
-  v.clear();
   usr* u = cand[m];
   u = instantiate_if(u);
   usr::flag_t flag = u->m_flag;
+  if ((flag & usr::STATIC) && m_obj) {
+    assert(v.size() >= 2);
+    tac* p0 = v[0];
+    assert(p0->m_id == tac::ADDR);
+    assert(p0->y == obj);
+    tac* p1 = v[1];
+    assert(p1->m_id == tac::PARAM);
+    assert(p1->y == p0->x);
+    v.erase(begin(v), begin(v)+2);
+  }
+  copy(begin(v), end(v), back_inserter(code));
+  v.clear();
   if (!error::counter && !cmdline::no_inline_sub) {
     if (flag & usr::INLINE) {
       using namespace declarations::declarators::function;
