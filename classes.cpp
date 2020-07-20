@@ -445,6 +445,8 @@ void cxx_compiler::classes::members::action(var* v, expressions::base* expr)
     scope* ptr = *p;
     scope::id_t id = ptr->m_id;
     if (id == scope::PARAM) {
+      if (!parse::templ::save_t::nest.empty())
+	ptr->m_usrs.clear();
       delete ptr;
       p = children.erase(p);
     }
