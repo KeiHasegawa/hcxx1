@@ -1350,6 +1350,9 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
     if (flag & usr::FRIEND) {
       friend_func* ff = static_cast<friend_func*>(prev);
       prev = ff->m_org;
+#if 1 // add 2020.07.26 14:24
+      prev->m_flag = usr::flag_t(prev->m_flag & ~usr::FRIEND);
+#endif
     }
     template_usr* ptu = static_cast<template_usr*>(prev);
     if (curr->m_flag2 & usr::TEMPLATE) {
