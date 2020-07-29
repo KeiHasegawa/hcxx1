@@ -1852,7 +1852,9 @@ struct tac {
     ADDR, INVLADDR, INVRADDR, LOFF, ROFF,
     ALLOCA,
     ASM,
-    VASTART, VAARG, VAEND
+    VASTART, VAARG, VAEND,
+    ALLOCE, THROW, TRY_BEGIN, TRY_END, HERE, HERE_REASON, HERE_INFO,
+    UNWIND_RESUME, CATCH_BEGIN, CATCH_END
   };
   id_t m_id;
   var* x;
@@ -2015,6 +2017,57 @@ struct va_arg3ac : tac {
 struct va_end3ac : tac {
   va_end3ac(var* y) : tac(VAEND, 0, y, 0) {}
   tac* new3ac() { return new va_end3ac(*this); }
+};
+
+struct alloce3ac : tac {
+  alloce3ac(var* x, var* y) : tac(ALLOCE, x, y, 0) {}
+  tac* new3ac() { return new alloce3ac(*this); }
+};
+
+struct throw3ac : tac {
+  const type* m_type;
+  throw3ac(var* y, const type* T) : tac(THROW, 0, y, 0), m_type(T) {}
+  tac* new3ac() { return new throw3ac(*this); }
+};
+
+struct try_begin3ac : tac {
+  try_begin3ac() : tac(TRY_BEGIN, 0, 0, 0) {}
+  tac* new3ac() { return new try_begin3ac(*this); }
+};
+
+struct try_end3ac : tac {
+  try_end3ac() : tac(TRY_END, 0, 0, 0) {}
+  tac* new3ac() { return new try_end3ac(*this); }
+};
+
+struct here3ac : tac {
+  here3ac() : tac(HERE, 0, 0, 0) {}
+  tac* new3ac() { return new here3ac(*this); }
+};
+
+struct here_reason3ac : tac {
+  here_reason3ac(var* x) : tac(HERE_REASON, x, 0, 0) {}
+  tac* new3ac() { return new here_reason3ac(*this); }
+};
+
+struct here_info3ac : tac {
+  here_info3ac(var* x) : tac(HERE_INFO, x, 0, 0) {}
+  tac* new3ac() { return new here_info3ac(*this); }
+};
+
+struct unwind_resume3ac : tac {
+  unwind_resume3ac(var* y) : tac(UNWIND_RESUME, 0, y, 0) {}
+  tac* new3ac() { return new unwind_resume3ac(*this); }
+};
+
+struct catch_begin3ac : tac {
+  catch_begin3ac(var* x, var* y) : tac(CATCH_BEGIN, x, y, 0) {}
+  tac* new3ac() { return new catch_begin3ac(*this); }
+};
+
+struct catch_end3ac : tac {
+  catch_end3ac() : tac(CATCH_END, 0, 0, 0) {}
+  tac* new3ac() { return new catch_end3ac(*this); }
 };
 
 namespace generator {

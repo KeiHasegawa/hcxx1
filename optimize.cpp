@@ -317,9 +317,14 @@ void cxx_compiler::optimize::basic_block::dag::mknode(tac** pp, mknode_t* mt)
     mt->ret = true;
   var* y = ptr->y;
   if (!y) {
-    // Special case. return3ac, goto3ac, to3ac or asm3ac.
+    // Special case. return3ac, goto3ac, to3ac, asm3ac,
+    // here3ac, here_reason3ac or here_info3ac
     dag::info_t* p = new dag::info_t;
     p->m_tac = ptr;
+#if 0 // add 2020.07.24 7:06
+    if (id == tac::HERE_REASON || id == tac::HERE_INFO)
+      p->m_vars.push_back(ptr->x);
+#endif
     return;
   }
   map<var*, dag::info_t*>* node = mt->node;
@@ -726,6 +731,11 @@ cxx_compiler::optimize::basic_block::dag::generate::inorder(dag::info_t* d, acti
   }
   int n = conv.size();
   conv.push_back(ptr);
+#if 1  // add 2020.07.24 7:48
+  if (ptr->m_id == tac::HERE_REASON || ptr->m_id == tac::HERE_INFO) {
+    return result[d] = ptr->x;
+  }
+#endif
   var* x = ptr->x = assigns(d,act);
   if (!x || !d->m_parents.empty())
     return result[d] = x;

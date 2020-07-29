@@ -32,6 +32,7 @@ SRCS =	cxx_l.cpp \
 	declarators.cpp \
 	dump.cpp \
 	$(ERROR_CPP) \
+	exception.cpp \
 	expr00.cpp \
 	expr01.cpp \
 	expr02.cpp \

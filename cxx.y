@@ -127,6 +127,9 @@ namespace cxx_compiler {
   typedef cxx_compiler::scope::tps_t::val2_t val2_t;
   val2_t* m_templ_arg;
   std::vector<val2_t*>* m_templ_arg_list;
+  typedef std::pair<var*, stmt*> handler;
+  handler* m_handler;
+  std::list<handler*>* m_handlers;
 }
 
 %type<m_var> IDENTIFIER_LEX unqualified_id id_expression declarator_id
@@ -151,7 +154,7 @@ namespace cxx_compiler {
 %type<m_expression> logical_or_expression conditional_expression
 %type<m_expression> assignment_expression expression constant_expression
 %type<m_expression> constant_initializer condition
-%type<m_expression> new_expression delete_expression
+%type<m_expression> new_expression delete_expression throw_expression
 %type<m_member> member_access_begin
 %type<m_statement> labeled_statement expression_statement compound_statement
 %type<m_statement> selection_statement iteration_statement jump_statement
@@ -185,6 +188,9 @@ namespace cxx_compiler {
 %type<m_new_declarator> new_declarator
 %type<m_templ_arg> template_argument
 %type<m_templ_arg_list> template_argument_list
+%type<m_handler> handler
+%type<m_handlers> handler_seq
+%type<m_var> exception_declaration
 
 %%
 
@@ -1902,12 +1908,14 @@ explicit_specialization
 
 try_block
   : TRY_KW compound_statement handler_seq
-    { cxx_compiler::error::not_implemented(); }
+  { cxx_compiler::exception::try_block::action($2, $3); }
   ;
 
 throw_expression
   : THROW_KW assignment_expression
+    { $$ = new cxx_compiler::expressions::throw_impl::info_t($2); }
   | THROW_KW
+    { $$ = new cxx_compiler::expressions::throw_impl::info_t(0); }
   ;
 
 primary_expression
@@ -2644,7 +2652,6 @@ assignment_expression
   | logical_or_expression assignment_operator assignment_expression
     { $$ = new cxx_compiler::expressions::binary::info_t($1,$2,$3); }
   | throw_expression
-    { cxx_compiler::error::not_implemented(); }
   ;
 
 assignment_operator
@@ -2712,18 +2719,38 @@ function_try_block
 
 handler_seq
   : handler handler_seq
+    {
+      $$ = $2;
+      $$->push_front($1);
+    }
   | handler
+    {
+      using namespace cxx_compiler;
+      $$ = new std::list<pair<var*, statements::base*>*>;
+      $$->push_front($1);
+    }
   ;
 
 handler
-  : CATCH_KW '(' exception_declaration ')' compound_statement
+  : CATCH_KW '(' enter_block exception_declaration ')'
+    compound_statement leave_block
+    {
+      using namespace cxx_compiler;
+      $$ = new std::pair<var*, statements::base*>($4, $6);
+    }
   ;
 
 exception_declaration
   : type_specifier_seq declarator
+    {
+      $$ = cxx_compiler::exception::declaration::action($1, $2);
+    }
   | type_specifier_seq abstract_declarator
+    { cxx_compiler::error::not_implemented(); }
   | type_specifier_seq
+    { cxx_compiler::error::not_implemented(); }
   | DOTS_MK
+    { cxx_compiler::error::not_implemented(); }
   ;
 
 statement
@@ -2759,7 +2786,10 @@ compound_statement
 
 statement_seq
   : statement
-    { $$ = new std::vector<cxx_compiler::statements::base*>; $$->push_back($1); }
+    {
+      $$ = new std::vector<cxx_compiler::statements::base*>;
+      $$->push_back($1);
+    }
   | statement_seq statement
     { $$ = $1; $$->push_back($2); }
   ;
@@ -2776,15 +2806,21 @@ condition
   ;
 
 iteration_statement
-  : WHILE_KW '(' condition ')' statement { $$ = new cxx_compiler::statements::while_stmt::info_t($3,$5); }
-  | DO_KW statement WHILE_KW '(' expression ')' ';' { $$ = new cxx_compiler::statements::do_stmt::info_t($2,$5); }
-  | FOR_KW '(' for_init_statement condition ';' expression ')' statement leave_block
+  : WHILE_KW '(' condition ')' statement
+    { $$ = new cxx_compiler::statements::while_stmt::info_t($3,$5); }
+  | DO_KW statement WHILE_KW '(' expression ')' ';'
+    { $$ = new cxx_compiler::statements::do_stmt::info_t($2,$5); }
+  | FOR_KW '(' for_init_statement condition ';' expression ')'
+      statement leave_block
     { $$ = new cxx_compiler::statements::for_stmt::info_t($3,$4,$6,$8); }
-  | FOR_KW '(' for_init_statement condition ';'            ')' statement leave_block
+  | FOR_KW '(' for_init_statement condition ';'            ')'
+      statement leave_block
     { $$ = new cxx_compiler::statements::for_stmt::info_t($3,$4,0,$7); }
-  | FOR_KW '(' for_init_statement           ';' expression ')' statement leave_block
+  | FOR_KW '(' for_init_statement           ';' expression ')'
+      statement leave_block
     { $$ = new cxx_compiler::statements::for_stmt::info_t($3,0,$5,$7); }
-  | FOR_KW '(' for_init_statement           ';'            ')' statement leave_block
+  | FOR_KW '(' for_init_statement           ';'            ')'
+      statement leave_block
     { $$ = new cxx_compiler::statements::for_stmt::info_t($3,0,0,$6); }
   ;
 

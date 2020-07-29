@@ -1133,6 +1133,17 @@ namespace expressions {
     extern var* ctor_conv_common(const record_type*, var*, bool, usr**, var*);
   } // end of namespace assignment
   extern bool constant_flag;
+
+  namespace throw_impl {
+    struct info_t : base {
+      base* m_expr;
+      file_t m_file;
+      var* gen();
+      const file_t& file() const;
+      info_t(base* expr);
+      ~info_t(){ delete m_expr; }
+    };
+  } // end of namespace throw_impl
 } // end of namespace expressions
 
 namespace statements {
@@ -1722,6 +1733,15 @@ struct friend_func : usr {
   tag* m_tag;
  friend_func(usr* u, tag* ptr) : usr(*u), m_org(u), m_tag(ptr) {}
 };
+
+namespace exception {
+  namespace declaration {
+    var* action(declarations::type_specifier_seq::info_t*, var*);
+  } // end of nmaepsace declaration
+  namespace try_block {
+    void action(statements::base*, list<pair<var*, statements::base*>*>*);
+  } // end of nmaepsace try_block
+} // end  of namespace exception
 
 } // end of namespace cxx_compiler
 
