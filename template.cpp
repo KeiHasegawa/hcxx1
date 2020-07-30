@@ -112,13 +112,8 @@ namespace cxx_compiler {
 	  return;
 	if (prev->m_flag & usr::FRIEND) {
 	  friend_func* ff = static_cast<friend_func*>(prev);
-#if 1 // add 2020.07.28 6:03
 	  assert(ff->m_org);
 	  prev = ff->m_org;
-#else
-	  if (usr* org = ff->m_org)
-	    prev = org;
-#endif
 	}
 
 	if (prev->m_flag2 & usr::TEMPLATE) {

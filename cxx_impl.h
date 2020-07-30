@@ -1731,15 +1731,11 @@ struct ini_term : usr {
 struct friend_func : usr {
   usr* m_org;
   tag* m_tag;
-#if 1 // add 2020.07.28 5:56
   friend_func(usr* u, tag* ptr) : usr(*u), m_org(u), m_tag(ptr)
   {
       assert(!(u->m_flag & usr::FRIEND));
       m_flag = usr::flag_t(m_flag | usr::FRIEND);
   }
-#else
-  friend_func(usr* u, tag* ptr) : usr(*u), m_org(u), m_tag(ptr) {}
-#endif
 };
 
 namespace exception {
