@@ -131,6 +131,7 @@ namespace cxx_compiler {
 
     usr* new_func = new usr(name, ft, flag, parse::position,
 			    usr::GENED_BY_COMP);
+    new_func->m_scope = &scope::root;
     map<string, vector<usr*> >& usrs = scope::root.m_usrs;
     typedef map<string, vector<usr*> >::const_iterator IT;
     IT p = usrs.find(name);
