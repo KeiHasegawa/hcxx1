@@ -716,7 +716,8 @@ cxx_compiler::declarations::action1(var* v, bool ini)
   if (T) {
     const type* U = T->unqualified();
     if (U->m_id == type::REFERENCE) {
-      if (!(flag & usr::EXTERN)) {
+      usr::flag2_t flag2 = u->m_flag2;
+      if (!(flag & usr::EXTERN) && !(flag2 & usr::DECLED_HANDLER)) {
 	switch (scope::current->m_id) {
 	case scope::PARAM:
 	case scope::TAG:
