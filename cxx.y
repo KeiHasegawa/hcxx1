@@ -2750,7 +2750,7 @@ exception_declaration
   | type_specifier_seq
     { cxx_compiler::error::not_implemented(); }
   | DOTS_MK
-    { cxx_compiler::error::not_implemented(); }
+    { $$ = 0; }
   ;
 
 statement

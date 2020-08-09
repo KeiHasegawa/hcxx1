@@ -643,9 +643,12 @@ void cxx_compiler::dump::unwind_resume(std::ostream& os, const tac* ptr)
 void cxx_compiler::dump::catch_begin(std::ostream& os, const tac* ptr)
 {
   using namespace std;
-  string x = names::ref(ptr->x);
   string y = names::ref(ptr->y);
-  os << x << " := catch_begin " << y;
+  if (ptr->x) {
+    string x = names::ref(ptr->x);
+    os << x << " := ";
+  }
+  os << "catch_begin " << y;
 }
 
 void cxx_compiler::dump::catch_end(std::ostream& os, const tac* ptr)

@@ -107,32 +107,43 @@ namespace cxx_compiler {
 	code.push_back(go);
 	here3ac* here = new here3ac;
 	code.push_back(here);
-	var* t0 = new var(int_type::create());
+
+	var* t0 = 0;
+	typedef HANDLERS::const_iterator IT;
+	HANDLERS& v = *handlers;
+	IT it = find_if(begin(v), end(v), [](HANDLER* h){ return h->first;});
+	if (it != end(v)) {
+	  t0 = new var(int_type::create());
+	  if (scope::current->m_id == scope::BLOCK) {
+	    block* b = static_cast<block*>(scope::current);
+	    b->m_vars.push_back(t0);
+	  }
+	  else
+	    garbage.push_back(t0);
+	  here_reason3ac* here_reason = new here_reason3ac(t0);
+	  code.push_back(here_reason);
+	}
 	const type* vp = pointer_type::create(void_type::create());
 	var* t1 = new var(vp);
 	if (scope::current->m_id == scope::BLOCK) {
 	  block* b = static_cast<block*>(scope::current);
-	  b->m_vars.push_back(t0);
 	  b->m_vars.push_back(t1);
 	}
-	else {
-	  garbage.push_back(t0);
+	else
 	  garbage.push_back(t1);
-	}
-	here_reason3ac* here_reason = new here_reason3ac(t0);
-	code.push_back(here_reason);
 	here_info3ac* here_info = new here_info3ac(t1);
 	code.push_back(here_info);
-	using namespace expressions::primary::literal;
-	var* one = integer::create(1);
-	goto3ac* go2 = new goto3ac(goto3ac::EQ, t0, one);
-	to3ac* to2 = new to3ac;
-	go2->m_to = to2;
-	to2->m_goto.push_back(go2);
-	code.push_back(go2);
-	code.push_back(new unwind_resume3ac(t1));
-	code.push_back(to2);
-	HANDLERS& v = *handlers;
+	if (it != end(v)) {
+	  using namespace expressions::primary::literal;
+	  var* one = integer::create(1);
+	  goto3ac* go2 = new goto3ac(goto3ac::EQ, t0, one);
+	  to3ac* to2 = new to3ac;
+	  go2->m_to = to2;
+	  to2->m_goto.push_back(go2);
+	  code.push_back(go2);
+	  code.push_back(new unwind_resume3ac(t1));
+	  code.push_back(to2);
+	}
 	for_each(begin(v), end(v), bind2nd(ptr_fun(catch1), t1));
 	code.push_back(to);
       }
