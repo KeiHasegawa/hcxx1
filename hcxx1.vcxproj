@@ -129,6 +129,7 @@
     <ClCompile Include="declarators.cpp" />
     <ClCompile Include="dump.cpp" />
     <ClCompile Include="error.cpp" />
+    <ClCompile Include="exception.cpp" />
     <ClCompile Include="expr00.cpp" />
     <ClCompile Include="expr01.cpp" />
     <ClCompile Include="expr02.cpp" />
