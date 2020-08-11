@@ -1854,8 +1854,8 @@ struct tac {
     ALLOCA,
     ASM,
     VASTART, VAARG, VAEND,
-    ALLOCE, THROW, TRY_BEGIN, TRY_END, HERE, HERE_REASON, HERE_INFO,
-    UNWIND_RESUME, CATCH_BEGIN, CATCH_END
+    ALLOCE, THROW, RETHROW, TRY_BEGIN, TRY_END, HERE, HERE_REASON, HERE_INFO,
+    THERE, UNWIND_RESUME, CATCH_BEGIN, CATCH_END
   };
   id_t m_id;
   var* x;
@@ -2031,6 +2031,11 @@ struct throw3ac : tac {
   tac* new3ac() { return new throw3ac(*this); }
 };
 
+struct rethrow3ac : tac {
+  rethrow3ac() : tac(RETHROW, 0, 0, 0) {}
+  tac* new3ac() { return new rethrow3ac(*this); }
+};
+
 struct try_begin3ac : tac {
   try_begin3ac() : tac(TRY_BEGIN, 0, 0, 0) {}
   tac* new3ac() { return new try_begin3ac(*this); }
@@ -2054,6 +2059,11 @@ struct here_reason3ac : tac {
 struct here_info3ac : tac {
   here_info3ac(var* x) : tac(HERE_INFO, x, 0, 0) {}
   tac* new3ac() { return new here_info3ac(*this); }
+};
+
+struct there3ac : tac {
+  there3ac() : tac(THERE, 0, 0, 0) {}
+  tac* new3ac() { return new there3ac(*this); }
 };
 
 struct unwind_resume3ac : tac {

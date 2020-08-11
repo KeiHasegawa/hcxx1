@@ -3,6 +3,9 @@
 #include "cxx_impl.h"
 
 namespace cxx_compiler {
+  namespace rethrow {
+    to3ac* to;
+  } // end of namespace rethrow
   namespace expressions {
     namespace throw_impl {
       info_t::info_t(base* expr) : m_expr(expr), m_file(parse::position) {}
@@ -12,8 +15,17 @@ namespace cxx_compiler {
       }
       var* info_t::gen()
       {
-	if (!m_expr)
-	  error::not_implemented();
+	if (!m_expr) {
+	  code.push_back(new rethrow3ac);
+	  goto3ac* go = new goto3ac;
+	  code.push_back(go);
+	  assert(rethrow::to);
+	  go->m_to = rethrow::to;
+	  rethrow::to->m_goto.push_back(go);
+	  var* ret = new var(void_type::create());
+	  garbage.push_back(ret);
+	  return ret;
+	}
 	var* expr = m_expr->gen();
 	expr = expr->rvalue();
 	const type* T = expr->m_type;
@@ -85,13 +97,17 @@ namespace cxx_compiler {
 	  delete m_handlers;
 	}
       };
-      inline void catch1(HANDLER* p, var* info)
+      inline void gen_catch(HANDLER* p, var* info, to3ac* to)
       {
 	var* v = p->first;
 	code.push_back(new catch_begin3ac(v, info));
 	statements::base* stmt = p->second;
 	stmt->gen();
 	code.push_back(new catch_end3ac);
+	goto3ac* go = new goto3ac;
+	go->m_to = to;
+	to->m_goto.push_back(go);
+	code.push_back(go);
       }
       void action(statements::base* stmt, HANDLERS* handlers)
       {
@@ -144,7 +160,29 @@ namespace cxx_compiler {
 	  code.push_back(new unwind_resume3ac(t1));
 	  code.push_back(to2);
 	}
-	for_each(begin(v), end(v), bind2nd(ptr_fun(catch1), t1));
+	assert(!rethrow::to);
+	rethrow::to = new to3ac;
+	for (auto p : v)
+	  gen_catch(p, t1, to);
+	if (!rethrow::to->m_goto.empty()) {
+	  code.push_back(rethrow::to);
+	  there3ac* there = new there3ac;
+	  code.push_back(there);
+	  var* t2 = new var(vp);
+	  if (scope::current->m_id == scope::BLOCK) {
+	    block* b = static_cast<block*>(scope::current);
+	    b->m_vars.push_back(t2);
+	  }
+	  else
+	    garbage.push_back(t2);
+	  here_info3ac* here_info2 = new here_info3ac(t2);
+	  code.push_back(here_info2);
+	  code.push_back(new catch_end3ac);
+	  code.push_back(new unwind_resume3ac(t2));
+	}
+	else
+	  delete rethrow::to;
+	rethrow::to = 0;
 	code.push_back(to);
       }
     } // end of nmaepsace try_block

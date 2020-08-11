@@ -187,11 +187,13 @@ namespace cxx_compiler { namespace dump {
   void _va_end(ostream&, const tac*);
   void alloce(ostream&, const tac*);
   void throwe(ostream&, const tac*);
+  void rethrow(ostream&, const tac*);
   void try_begin(ostream&, const tac*);
   void try_end(ostream&, const tac*);
   void here(ostream&, const tac*);
   void here_reason(ostream&, const tac*);
   void here_info(ostream&, const tac*);
+  void there(ostream&, const tac*);
   void unwind_resume(ostream&, const tac*);
   void catch_begin(ostream&, const tac*);
   void catch_end(ostream&, const tac*);
@@ -230,11 +232,13 @@ cxx_compiler::dump::table_t::table_t()
   (*this)[tac::VAEND] = _va_end;
   (*this)[tac::ALLOCE] = alloce;
   (*this)[tac::THROW] = throwe;
+  (*this)[tac::RETHROW] = rethrow;
   (*this)[tac::TRY_BEGIN] = try_begin;
   (*this)[tac::TRY_END] = try_end;
   (*this)[tac::HERE] = here;
   (*this)[tac::HERE_REASON] = here_reason;
   (*this)[tac::HERE_INFO] = here_info;
+  (*this)[tac::THERE] = there;
   (*this)[tac::UNWIND_RESUME] = unwind_resume;
   (*this)[tac::CATCH_BEGIN] = catch_begin;
   (*this)[tac::CATCH_END] = catch_end;
@@ -601,6 +605,12 @@ void cxx_compiler::dump::throwe(std::ostream& os, const tac* ptr)
   os << ')';
 }
 
+void cxx_compiler::dump::rethrow(std::ostream& os, const tac* ptr)
+{
+  using namespace std;
+  os << "rethrow";
+}
+
 void cxx_compiler::dump::try_begin(std::ostream& os, const tac* ptr)
 {
   using namespace std;
@@ -631,6 +641,12 @@ void cxx_compiler::dump::here_info(std::ostream& os, const tac* ptr)
   using namespace std;
   string x = names::ref(ptr->x);
   os << x << " := here_info";
+}
+
+void cxx_compiler::dump::there(std::ostream& os, const tac* ptr)
+{
+  using namespace std;
+  os << "there";
 }
 
 void cxx_compiler::dump::unwind_resume(std::ostream& os, const tac* ptr)
