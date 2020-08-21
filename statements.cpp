@@ -226,19 +226,43 @@ int cxx_compiler::statements::expression::info_t::gen()
 int cxx_compiler::statements::compound::info_t::gen()
 {
   using namespace std;
+  int tb = code.size();
   scope* org = scope::current;
   scope::current = m_scope;
   if (m_bases) {
     const vector<base*>& v = *m_bases;
     for_each(v.begin(),v.end(),mem_fun(&base::gen));
   }
+  int te = code.size();
   assert(scope::current->m_id == scope::BLOCK);
   block* b = static_cast<block*>(scope::current);
   typedef map<block*, vector<var*> >::iterator IT;
   IT p = block_impl::dtor_tbl.find(b);
   if (p != block_impl::dtor_tbl.end()) {
     const vector<var*>& v = p->second;
+    int n = code.size();
     for_each(rbegin(v), rend(v), call_dtor);
+    int m = code.size();
+    if (n != m) {
+      code.insert(code.begin()+te, new try_end3ac);
+      code.insert(code.begin()+tb, new try_begin3ac);
+      goto3ac* go = new goto3ac;
+      to3ac* to = new to3ac;
+      go->m_to = to;
+      to->m_goto.push_back(go);
+      code.push_back(go);
+      here3ac* here = new here3ac;
+      here->m_for_dest = true;
+      code.push_back(here);
+      const type* vp = void_type::create();
+      vp = pointer_type::create(vp);
+      var* t0 = new var(vp);
+      b->m_vars.push_back(t0);
+      code.push_back(new here_info3ac(t0));
+      for_each(rbegin(v), rend(v), call_dtor);
+      code.push_back(new unwind_resume3ac(t0));
+      code.push_back(to);
+    }
     block_impl::dtor_tbl.erase(p);
   }
   scope* parent = scope::current->m_parent;

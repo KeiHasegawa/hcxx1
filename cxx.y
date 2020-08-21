@@ -2748,7 +2748,9 @@ exception_declaration
   | type_specifier_seq abstract_declarator
     { cxx_compiler::error::not_implemented(); }
   | type_specifier_seq
-    { cxx_compiler::error::not_implemented(); }
+    {
+      $$ = cxx_compiler::exception::declaration::action($1, 0);
+    }
   | DOTS_MK
     { $$ = 0; }
   ;

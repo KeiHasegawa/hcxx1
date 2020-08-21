@@ -307,18 +307,23 @@ void cxx_compiler::optimize::basic_block::dag::mknode(tac** pp, mknode_t* mt)
   tac* ptr = *pp;
   tac::id_t id = ptr->m_id;
   if (mt->ret) {
-    if (id != tac::TO && id != tac::GOTO) {
+    switch (id) {
+    case tac::TO:
+    case tac::GOTO:
+      mt->ret = false;
+      break;
+    case tac::TRY_END:
+      break;
+    default:
       delete ptr;
       return;
     }
-    mt->ret = false;
   }
   if (id == tac::RETURN)
     mt->ret = true;
   var* y = ptr->y;
   if (!y) {
-    // Special case. return3ac, goto3ac, to3ac, asm3ac,
-    // here3ac, here_reason3ac or here_info3ac
+    // Special case. For example, return3ac, goto3ac, to3ac, asm3ac
     dag::info_t* p = new dag::info_t;
     p->m_tac = ptr;
     return;
@@ -727,7 +732,9 @@ cxx_compiler::optimize::basic_block::dag::generate::inorder(dag::info_t* d, acti
   }
   int n = conv.size();
   conv.push_back(ptr);
-  if (ptr->m_id == tac::HERE_REASON || ptr->m_id == tac::HERE_INFO) {
+  tac::id_t id = ptr->m_id;
+  switch (id) {
+  case tac::HERE_REASON: case tac::HERE_INFO: case tac::CATCH_BEGIN:
     return result[d] = ptr->x;
   }
   var* x = ptr->x = assigns(d,act);
@@ -742,7 +749,6 @@ cxx_compiler::optimize::basic_block::dag::generate::inorder(dag::info_t* d, acti
   const set<var*>& addr = act->mt->pa->addr;
   if (addr.find(x) != addr.end())
     return result[d] = x;
-  tac::id_t id = ptr->m_id;
   switch (id) {
   case tac::CALL:
     if ( !b ){

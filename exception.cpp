@@ -76,10 +76,17 @@ namespace cxx_compiler {
 	typedef specifier_seq::info_t Y;
 	Y* q = new specifier_seq::info_t(0, sp);
 	auto_ptr<Y> sweeper2(q);
-	assert(v->usr_cast());
-	usr* u = static_cast<usr*>(v);
-	u->m_flag2 = usr::flag2_t(u->m_flag2 | usr::DECLED_HANDLER);
-	return declarations::action1(v, false);
+	if (v) {
+	  assert(v->usr_cast());
+	  usr* u = static_cast<usr*>(v);
+	  u->m_flag2 = usr::flag2_t(u->m_flag2 | usr::DECLED_HANDLER);
+	  return declarations::action1(v, false);
+	}
+	v = new var(T);
+	assert(scope::current->m_id == scope::BLOCK);
+	block* b = static_cast<block*>(scope::current);
+	b->m_vars.push_back(v);
+	return v;
       }
     } // end of namespace declaration
     namespace try_block {
