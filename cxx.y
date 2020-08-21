@@ -127,9 +127,8 @@ namespace cxx_compiler {
   typedef cxx_compiler::scope::tps_t::val2_t val2_t;
   val2_t* m_templ_arg;
   std::vector<val2_t*>* m_templ_arg_list;
-  typedef std::pair<var*, stmt*> handler;
-  handler* m_handler;
-  std::list<handler*>* m_handlers;
+  cxx_compiler::statements::try_block::HANDLER* m_handler;
+  cxx_compiler::statements::try_block::HANDLERS* m_handlers;
 }
 
 %type<m_var> IDENTIFIER_LEX unqualified_id id_expression declarator_id
@@ -1908,7 +1907,7 @@ explicit_specialization
 
 try_block
   : TRY_KW compound_statement handler_seq
-  { cxx_compiler::exception::try_block::action($2, $3); }
+  { $$ = new cxx_compiler::statements::try_block::info_t($2, $3); }
   ;
 
 throw_expression

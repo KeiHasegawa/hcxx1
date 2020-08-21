@@ -1332,6 +1332,18 @@ namespace statements {
       ~info_t(){ delete m_usrs; }
     };
   };
+  namespace try_block {
+    typedef pair<var*, base*> HANDLER;
+    typedef list<HANDLER*> HANDLERS;
+    struct info_t : base {
+      base* m_stmt;
+      HANDLERS* m_handlers;
+      int gen();
+      info_t(base* stmt, HANDLERS* handlers)
+	: m_stmt(stmt), m_handlers(handlers) {}
+      ~info_t();
+    };
+  } // end of namespace try_block
 } // end of namespace statements
 
 namespace classes {

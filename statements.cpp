@@ -1303,3 +1303,19 @@ int cxx_compiler::statements::declaration::info_t::gen()
     for_each(m_usrs->begin(),m_usrs->end(),mem_fun(&usr::initialize));
   return 0;
 }
+
+int cxx_compiler::statements::try_block::info_t::gen()
+{
+  exception::try_block::action(m_stmt, m_handlers);
+  return 0;
+}
+
+cxx_compiler::statements::try_block::info_t::~info_t()
+{
+  delete m_stmt;
+  for (auto p : *m_handlers) {
+    delete p->second;
+    delete p;
+  }
+  delete m_handlers;
+}

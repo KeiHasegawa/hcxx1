@@ -90,20 +90,7 @@ namespace cxx_compiler {
       }
     } // end of namespace declaration
     namespace try_block {
-      typedef pair<var*, statements::base*> HANDLER;
-      typedef list<HANDLER*> HANDLERS;
-      struct sweeper {
-	HANDLERS* m_handlers;
-	sweeper(HANDLERS* handlers) : m_handlers(handlers) {}
-	~sweeper()
-	{
-	  for (auto p : *m_handlers) {
-	    delete p->second;
-	    delete p;
-	  }
-	  delete m_handlers;
-	}
-      };
+      typedef statements::try_block::HANDLER HANDLER;
       inline void gen_catch(HANDLER* p, var* info, to3ac* to)
       {
 	var* v = p->first;
@@ -116,12 +103,11 @@ namespace cxx_compiler {
 	to->m_goto.push_back(go);
 	code.push_back(go);
       }
+      typedef statements::try_block::HANDLERS HANDLERS;
       void action(statements::base* stmt, HANDLERS* handlers)
       {
-	sweeper sweeper(handlers);
 	code.push_back(new try_begin3ac);
 	stmt->gen();
-	delete stmt;
 	code.push_back(new try_end3ac);
 	to3ac* to = new to3ac;
 	goto3ac* go = new goto3ac;
@@ -195,4 +181,3 @@ namespace cxx_compiler {
     } // end of nmaepsace try_block
   } // end of namespace exception
 } // end of namespace cxx_compiler
-
