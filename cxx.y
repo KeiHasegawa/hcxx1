@@ -1081,13 +1081,20 @@ end_array
   ;
 
 exception_specification
-  : THROW_KW '(' type_id_list ')'
-  | THROW_KW '('              ')'
+  : THROW_KW '(' enter_exception_specification type_id_list ')'
+  | THROW_KW '(' enter_exception_specification              ')'
   ;
 
 type_id_list
   : type_id
   | type_id_list ',' type_id
+  ;
+
+enter_exception_specification
+  : {
+      using namespace cxx_compiler;
+      parse::identifier::mode = parse::identifier::look;
+    }
   ;
 
 initializer
