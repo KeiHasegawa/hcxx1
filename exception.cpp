@@ -91,28 +91,61 @@ namespace cxx_compiler {
     } // end of namespace declaration
     namespace try_block {
       typedef statements::try_block::HANDLER HANDLER;
-      inline void gen_catch(HANDLER* p, var* info, to3ac* to)
-      {
-	var* v = p->first;
-	code.push_back(new catch_begin3ac(v, info));
-	statements::base* stmt = p->second;
-	stmt->gen();
-	code.push_back(new catch_end3ac);
-	goto3ac* go = new goto3ac;
-	go->m_to = to;
-	to->m_goto.push_back(go);
-	code.push_back(go);
-      }
+      struct gen_goto {
+	var* m_reason;
+	int m_cnt;
+	gen_goto(var* v) : m_reason(v), m_cnt(0) {}
+	to3ac* operator()(HANDLER* h)
+	{
+	  ++m_cnt;
+	  if (!h->first)
+	    return 0;
+	  using namespace expressions::primary::literal;
+	  var* value = integer::create(m_cnt);
+	  goto3ac* go = new goto3ac(goto3ac::EQ, m_reason, value);
+	  to3ac* to = new to3ac;
+	  go->m_to = to;
+	  to->m_goto.push_back(go);
+	  code.push_back(go);
+	  return to;
+	}
+      };
+      struct gen_catch {
+	var* m_info;
+	to3ac* m_finish;
+	gen_catch(var* info, to3ac* finish)
+	  : m_info(info), m_finish(finish) {}
+	void subr(HANDLER* p, to3ac* start)
+	{
+	  if (start)
+	    code.push_back(start);
+	  var* v = p->first;
+	  code.push_back(new catch_begin3ac(v, m_info));
+	  statements::base* stmt = p->second;
+	  stmt->gen();
+	  code.push_back(new catch_end3ac);
+	  goto3ac* go = new goto3ac;
+	  go->m_to = m_finish;
+	  m_finish->m_goto.push_back(go);
+	  code.push_back(go);
+	}
+	bool operator()(HANDLER* p, to3ac* start)
+	{
+	  if (start)
+	    subr(p, start);
+	  return true;
+	}
+      };
       typedef statements::try_block::HANDLERS HANDLERS;
       void action(statements::base* stmt, HANDLERS* handlers)
       {
 	code.push_back(new try_begin3ac);
 	stmt->gen();
 	code.push_back(new try_end3ac);
-	to3ac* to = new to3ac;
 	goto3ac* go = new goto3ac;
-	go->m_to = to;
-	to->m_goto.push_back(go);
+	to3ac* finish = new to3ac;
+	go->m_to = finish;
+	finish->m_goto.push_back(go);
 	code.push_back(go);
 	here3ac* here = new here3ac;
 	code.push_back(here);
@@ -142,21 +175,19 @@ namespace cxx_compiler {
 	  garbage.push_back(t1);
 	here_info3ac* here_info = new here_info3ac(t1);
 	code.push_back(here_info);
-	if (it != end(v)) {
-	  using namespace expressions::primary::literal;
-	  var* one = integer::create(1);
-	  goto3ac* go2 = new goto3ac(goto3ac::EQ, t0, one);
-	  to3ac* to2 = new to3ac;
-	  go2->m_to = to2;
-	  to2->m_goto.push_back(go2);
-	  code.push_back(go2);
-	  code.push_back(new unwind_resume3ac(t1));
-	  code.push_back(to2);
-	}
+	vector<to3ac*> tos;
+	transform(begin(v), end(v), back_inserter(tos), gen_goto(t0));
 	assert(!rethrow::to);
 	rethrow::to = new to3ac;
-	for (auto p : v)
-	  gen_catch(p, t1, to);
+	IT it2 = find_if(begin(v), end(v), [](HANDLER* h){ return !h->first;});
+	if (it2 != end(v)) {
+	  gen_catch tmp(t1, finish);
+	  HANDLER* h = *it2;
+	  tmp.subr(h, 0);
+	}
+	else
+	  code.push_back(new unwind_resume3ac(t1));
+	mismatch(begin(v), end(v), begin(tos), gen_catch(t1, finish));
 	if (!rethrow::to->m_goto.empty()) {
 	  code.push_back(rethrow::to);
 	  there3ac* there = new there3ac;
@@ -176,7 +207,7 @@ namespace cxx_compiler {
 	else
 	  delete rethrow::to;
 	rethrow::to = 0;
-	code.push_back(to);
+	code.push_back(finish);
       }
     } // end of nmaepsace try_block
   } // end of namespace exception

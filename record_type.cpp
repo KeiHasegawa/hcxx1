@@ -2485,6 +2485,31 @@ void cxx_compiler::record_type::decl(std::ostream& os, std::string name) const
   record_impl::decl(os, name, m_tag, false);
 }
 
+namespace cxx_compiler {
+  namespace record_impl {
+    namespace encode_impl {
+      using namespace std;
+      void output(const scope::tps_t::val2_t& p, ostream& os)
+      {
+	if (const type* T = p.first) {
+	  T->encode(os);
+	  return;
+	}
+	var* v = p.second;
+	assert(v->usr_cast());
+	usr* u = static_cast<usr*>(v);
+	assert(u->isconstant());
+	os << 'L';
+	const type* T = u->m_type;
+	T = T->unqualified();
+	T->encode(os);
+	os << u->value();
+	os << 'E';
+      }
+    } // end of namespace encode_impl
+  } //end of namespace record_impl
+} // end of namespace cxx_compiler
+
 void cxx_compiler::record_impl::encode(std::ostream& os, const tag* ptr)
 {
   string name = ptr->m_name;
@@ -2500,10 +2525,9 @@ void cxx_compiler::record_impl::encode(std::ostream& os, const tag* ptr)
   os << name.length() << name;
   os << 'I';
   const vector<scope::tps_t::val2_t>& seed = it->m_seed;
-  for (auto p : seed) {
-    if (const type* T = p.first)
-      T->encode(os);
-  }
+  using namespace encode_impl;
+  for_each(begin(seed), end(seed),
+	   [&os](const scope::tps_t::val2_t& v){ output(v, os); });
   os << 'E';
 }
 
