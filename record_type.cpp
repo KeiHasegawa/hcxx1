@@ -2496,6 +2496,13 @@ namespace cxx_compiler {
 	  return;
 	}
 	var* v = p.second;
+	if (addrof* a = v->addrof_cast()) {
+	  v = a->m_ref;
+	  assert(v->usr_cast());
+	  usr* u = static_cast<usr*>(v);
+	  os << u->m_name;
+	  return;
+	}
 	assert(v->usr_cast());
 	usr* u = static_cast<usr*>(v);
 	assert(u->isconstant());
@@ -2514,14 +2521,17 @@ void cxx_compiler::record_impl::encode(std::ostream& os, const tag* ptr)
 {
   string name = ptr->m_name;
   tag::flag_t flag = ptr->m_flag;
-  if (!flag) {
+  if (!(flag & tag::INSTANTIATE)) {
     os << name.length() << name;
     return;
   }
-  assert(flag & tag::INSTANTIATE);
   const instantiated_tag* it = static_cast<const instantiated_tag*>(ptr);
   const template_tag* tt = it->m_src;
   name = tt->m_name;
+  if (tt->m_flag & tag::PARTIAL_SPECIAL) {
+    string::size_type p = name.find_first_of('<');
+    name.erase(p);
+  }
   os << name.length() << name;
   os << 'I';
   const vector<scope::tps_t::val2_t>& seed = it->m_seed;
