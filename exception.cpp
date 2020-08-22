@@ -17,11 +17,12 @@ namespace cxx_compiler {
       {
 	if (!m_expr) {
 	  code.push_back(new rethrow3ac);
-	  goto3ac* go = new goto3ac;
-	  code.push_back(go);
-	  assert(rethrow::to);
-	  go->m_to = rethrow::to;
-	  rethrow::to->m_goto.push_back(go);
+	  if (rethrow::to) {
+	    goto3ac* go = new goto3ac;
+	    code.push_back(go);
+	    go->m_to = rethrow::to;
+	    rethrow::to->m_goto.push_back(go);
+	  }
 	  var* ret = new var(void_type::create());
 	  garbage.push_back(ret);
 	  return ret;
