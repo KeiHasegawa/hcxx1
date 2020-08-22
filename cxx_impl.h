@@ -5,13 +5,6 @@ union YYSTYPE;
 
 namespace cxx_compiler {
 
-struct base {
-  usr::flag_t m_flag;
-  usr::flag2_t m_access;
-  tag* m_tag;
-  base(int access, bool virt, tag* ptr);
-};
-
 using namespace std;  
 extern vector<tac*> code;
 

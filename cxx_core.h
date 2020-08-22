@@ -1128,6 +1128,13 @@ struct instantiated_usr : usr {
   }
 };
 
+struct base {
+  usr::flag_t m_flag;
+  usr::flag2_t m_access;
+  tag* m_tag;
+  base(int access, bool virt, tag* ptr);
+};
+
 struct type {
   enum id_t {
     VOID, CHAR, SCHAR, UCHAR, WCHAR, BOOL, SHORT, USHORT, INT, UINT,
