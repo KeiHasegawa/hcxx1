@@ -1159,6 +1159,7 @@ return_stmt::gather(scope* ptr, std::vector<var*>& res)
     if (p != block_impl::dtor_tbl.end()) {
       const vector<var*>& v = p->second;
       copy(rbegin(v), rend(v), back_inserter(res));
+      block_impl::dtor_tbl.erase(p);
     }
   }
   else if (id == scope::PARAM) {

@@ -719,11 +719,10 @@ void cxx_compiler::func_type::encode(std::ostream& os) const
 {
   using namespace std;
   os << 'F';
-  if ( m_T )
+  if (m_T)
     m_T->encode(os);
-  typedef vector<const type*>::const_iterator IT;
-  for ( IT p = m_param.begin() ; p != m_param.end() ; ++p )
-    (*p)->encode(os);
+  for (auto T : m_param)
+    T->encode(os);
   os << 'E';
 }
 

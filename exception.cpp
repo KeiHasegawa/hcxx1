@@ -87,6 +87,7 @@ namespace cxx_compiler {
 	assert(scope::current->m_id == scope::BLOCK);
 	block* b = static_cast<block*>(scope::current);
 	b->m_vars.push_back(v);
+	block_impl::dtor_tbl[b].push_back(v);
 	return v;
       }
     } // end of namespace declaration
@@ -116,14 +117,27 @@ namespace cxx_compiler {
 	to3ac* m_finish;
 	gen_catch(var* info, to3ac* finish)
 	  : m_info(info), m_finish(finish) {}
-	void subr(HANDLER* p, to3ac* start)
+	void subr(HANDLER* h, to3ac* start)
 	{
 	  if (start)
 	    code.push_back(start);
-	  var* v = p->first;
-	  code.push_back(new catch_begin3ac(v, m_info));
-	  statements::base* stmt = p->second;
+	  var* x = h->first;
+	  code.push_back(new catch_begin3ac(x, m_info));
+	  statements::base* stmt = h->second;
 	  stmt->gen();
+	  if (x) {
+	    scope* ps = x->m_scope;
+	    assert(ps->m_id == scope::BLOCK);
+	    block* b = static_cast<block*>(ps);
+	    typedef map<block*, vector<var*> >::iterator IT;
+	    IT p = block_impl::dtor_tbl.find(b);
+	    assert(p != block_impl::dtor_tbl.end());
+	    const vector<var*>& v = p->second;
+	    assert(v.size() == 1);
+	    assert(v[0] == x);
+	    call_dtor(x);
+	    block_impl::dtor_tbl.erase(p);
+	  }
 	  code.push_back(new catch_end3ac);
 	  goto3ac* go = new goto3ac;
 	  go->m_to = m_finish;
