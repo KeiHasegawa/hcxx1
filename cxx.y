@@ -531,7 +531,11 @@ enum_specifier
 enum_specifier_begin
   : enum_key IDENTIFIER_LEX '{'
     { $$ = cxx_compiler::declarations::enumeration::begin($2); }
+  | enum_key enum_base IDENTIFIER_LEX '{'
+    { $$ = cxx_compiler::declarations::enumeration::begin($3); }
   | enum_key '{'
+    { $$ = cxx_compiler::declarations::enumeration::begin(0); }
+  | enum_key enum_base '{'
     { $$ = cxx_compiler::declarations::enumeration::begin(0); }
   ;
 
@@ -542,6 +546,10 @@ enum_key
       $$ = ENUM_KW;
       parse::identifier::mode = parse::identifier::new_obj;
     }
+  ;
+
+enum_base
+  : ':' type_specifier_seq
   ;
 
 enumerator_list
