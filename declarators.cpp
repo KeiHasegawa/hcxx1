@@ -47,9 +47,13 @@ cxx_compiler::declarations::declarators::pointer::action(const type* X,
   return T;
 }
 
-const cxx_compiler::type* cxx_compiler::declarations::declarators::reference::action()
+const cxx_compiler::type*
+cxx_compiler::declarations::declarators::reference::action(bool twice)
 {
-  return reference_type::create(backpatch_type::create());
+  const type* T = reference_type::create(backpatch_type::create());
+  if (twice)
+    T = reference_type::create(T);
+  return T;
 }
 
 const cxx_compiler::type* cxx_compiler::declarations::declarators::

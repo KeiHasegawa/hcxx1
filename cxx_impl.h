@@ -622,7 +622,7 @@ namespace declarations {
       extern const type* action(vector<int>*, bool pm);
     } // end of namespace pointer
     namespace reference {
-      extern const type* action();
+      extern const type* action(bool);
     } // end of namespace reference
     namespace function {
       extern map<usr*, vector<var*> > default_arg_table;
@@ -864,6 +864,7 @@ namespace declarations {
       extern stack<scope*> nest;
     } // end of namespace specialization
   } // end of namespace templ
+  type_specifier* decl_type(expressions::base*);
 } // end of namespace declarations
 
 namespace conversion {
@@ -1324,7 +1325,7 @@ namespace statements {
       info_t(vector<usr*>*, bool);
       ~info_t(){ delete m_usrs; }
     };
-  };
+  } // end of namespace declaration
   namespace try_block {
     typedef pair<var*, base*> HANDLER;
     typedef list<HANDLER*> HANDLERS;

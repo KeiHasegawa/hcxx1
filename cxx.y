@@ -59,6 +59,8 @@ namespace cxx_compiler {
 %token DYNAMIC_CAST_KW STATIC_CAST_KW REINTERPRET_CAST_KW CONST_CAST_KW
 %token TYPEID_KW
 
+%token STATIC_ASSERT_KW DECLTYPE_KW
+
 %token ARROW_MK
 %token THIS_KW
 %token TRY_KW
@@ -226,6 +228,7 @@ declaration
       assert(!before.empty());
       before.pop_back();
     }
+  | static_assert_declaration
   | error ';'
   ;
 
@@ -351,6 +354,10 @@ simple_type_specifier
     { $$ = new cxx_compiler::declarations::type_specifier(DOUBLE_KW); }
   | VOID_KW
     { $$ = new cxx_compiler::declarations::type_specifier(VOID_KW); }
+  | DECLTYPE_KW '(' expression ')'
+    { $$ = cxx_compiler::declarations::decl_type($3); }
+  | DECLTYPE_KW '(' AUTO_KW ')'
+    { cxx_compiler::error::not_implemented(); }
   ;
 
 type_name
@@ -817,7 +824,9 @@ ptr_operator
       $$ = pointer::action(0, false);
      }
   | '&'
-    { $$ = cxx_compiler::declarations::declarators::reference::action(); }
+    { $$ = cxx_compiler::declarations::declarators::reference::action(false); }
+  | ANDAND_MK
+    { $$ = cxx_compiler::declarations::declarators::reference::action(true); }
   | COLONCOLON_MK move_to_root nested_name_specifier '*' cvr_qualifier_seq
     {
       using namespace cxx_compiler;
@@ -1348,6 +1357,7 @@ member_declaration
       using namespace cxx_compiler::parse;
       context_t::clear();
     }
+  | static_assert_declaration
   ;
 
 member_declarator_list
@@ -1764,7 +1774,16 @@ templ_decl_end
 
 template_parameter_list
   : template_parameter
-  | template_parameter_list ',' template_parameter
+  | template_parameter_list ',' 
+    {
+      using namespace cxx_compiler;
+      int c = parse::peek();
+      if (c == CLASS_KW || c == TYPENAME_KW)
+	parse::identifier::mode = parse::identifier::new_obj;
+      else
+        parse::identifier::mode = parse::identifier::look;
+    }
+    template_parameter
   ;
 
 template_parameter
@@ -2888,6 +2907,11 @@ enter_block
 
 leave_block
   : { cxx_compiler::parse::block::leave(); }
+  ;
+
+static_assert_declaration
+  : STATIC_ASSERT_KW '(' constant_expression ',' STRING_LITERAL_LEX ')' ';'
+  | STATIC_ASSERT_KW '(' constant_expression ')' ';'
   ;
 
 %%

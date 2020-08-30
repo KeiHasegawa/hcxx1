@@ -115,6 +115,7 @@ class               { return CLASS_KW; }
 const_cast          { return CONST_CAST_KW; }
 const               { return CONST_KW; }
 continue            { return CONTINUE_KW; }
+decltype            { return DECLTYPE_KW; }
 default             { cxx_compiler_lval.m_file = new cxx_compiler::file_t(cxx_compiler::parse::position); return DEFAULT_KW; }
 delete              { return DELETE_KW; }
 double              { return DOUBLE_KW; }
@@ -148,6 +149,7 @@ return              { return RETURN_KW; }
 short               { return SHORT_KW; }
 signed              { return SIGNED_KW; }
 sizeof              { return SIZEOF_KW; }
+static_assert       { return STATIC_ASSERT_KW; }
 static_cast         { return STATIC_CAST_KW; }
 static              { return STATIC_KW; }
 struct              { return STRUCT_KW; }

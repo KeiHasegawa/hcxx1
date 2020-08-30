@@ -1719,6 +1719,7 @@ void cxx_compiler::declarations::linkage::action(var* v, bool brace)
     usr* k = static_cast<usr*>(j->second);
     constant<char>* l = static_cast<constant<char>*>(k);
     assert(l->m_value == '\0');
+    braces.push_back(brace);
   }
   else
     error::not_implemented();
@@ -1965,3 +1966,16 @@ action(type_specifier_seq::info_t* p, LIST* q)
   code.resize(n);
   return T;
 }
+
+namespace cxx_compiler {
+  namespace declarations {
+    type_specifier* decl_type(expressions::base* expr)
+    {
+      int n = code.size();
+      var* v = expr->gen();
+      for_each(begin(code) + n, end(code), [](tac* ptr){ delete ptr; });
+      const type* T = v->result_type();
+      return new type_specifier(T);
+    }
+  } // end of namespace declarations
+} // end of namespace cxx_compiler
