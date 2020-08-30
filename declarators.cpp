@@ -403,16 +403,22 @@ namespace cxx_compiler {
 	      const type* T = param.back();
 	      return T->m_id == type::VOID;
 	    }
-	    if (param.size() != order.size() - n)
+	    int m = param.size();
+	    assert(m);
+	    const type* Tb = param.back();
+	    if (Tb->m_id == type::ELLIPSIS)
+	      --m;
+	    if (m != order.size() - n)
 	      return false;
 	    typedef vector<const type*>::const_iterator ITx;
 	    typedef vector<usr*>::const_iterator ITy;
+	    ITx fin = begin(param) + m;
 	    pair<ITx, ITy> ret = 
-	      mismatch(begin(param), end(param), begin(order) + n,
+	      mismatch(begin(param), fin, begin(order) + n,
 		       [](const type* T, const usr* u)
 		       { return compatible(T, u->m_type) ||
 			 T->m_id == type::TEMPLATE_PARAM; });
-	    return ret == make_pair(end(param), end(order));
+	    return ret == make_pair(fin, end(order));
 	  }
 	  inline bool check_now(usr* fun)
 	  {

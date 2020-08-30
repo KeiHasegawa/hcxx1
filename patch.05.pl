@@ -15,6 +15,7 @@
 #    TEMPLATE_NAME_LEX            shift, and go to state SSS5
 #    ENUM_NAME_LEX                shift, and go to state SSS6
 #    COLONCOLON_MK                shift, and go to state SSS7
+#    ANDAND_MK                    shift, and go to state SSS7x
 #    OPERATOR_KW                  shift, and go to state SSS8
 #    '('                          shift, and go to state SSS9
 #    '*'                          shift, and go to state SSS10
@@ -71,6 +72,8 @@ while ( <> ){
     next if ( !/ENUM_NAME_LEX +shift, and go to state [0-9]+/);
     $_ = <>; chop;
     next if ( !/COLONCOLON_MK  +shift, and go to state [0-9]+/);
+    $_ = <>; chop;
+    next if ( !/ANDAND_MK  +shift, and go to state [0-9]+/);
     $_ = <>; chop;
     next if ( !/OPERATOR_KW +shift, and go to state [0-9]+/);
     $_ = <>; chop;

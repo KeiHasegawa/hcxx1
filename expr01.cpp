@@ -2474,7 +2474,17 @@ fcast::fcast(declarations::type_specifier* ptr, std::vector<base*>* list)
   }
 
   if (context_t::retry[DECL_FCAST_CONFLICT_STATE]) {
-    assert(!specifier_seq::info_t::s_stack.empty());
+    if (specifier_seq::info_t::s_stack.empty()) {
+      // `ptr' is aready deleted when
+      // type-id : type-specifier abstract-declarator
+      // is reduced.
+      const type* T = reinterpret_cast<const type*>(ptr);
+      assert(T->m_id == type::FUNC);
+      typedef const func_type FT;
+      FT* ft = static_cast<FT*>(T);
+      m_type = ft->return_type();
+      return;
+    }
     specifier_seq::info_t::s_stack.pop();
   }
 
