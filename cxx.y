@@ -651,6 +651,12 @@ using_declaration
   | USING_KW COLONCOLON_MK move_to_root nested_name_specifier
     unqualified_id ';'
    { cxx_compiler::error::not_implemented(); }
+  | USING_KW COLONCOLON_MK move_to_root nested_name_specifier
+    TYPEDEF_NAME_LEX ';'
+   {
+      cxx_compiler::class_or_namespace_name::after(false);
+      cxx_compiler::declarations::use::action($5);
+   }
   | USING_KW typenaming nested_name_specifier unqualified_id ';'
    {
      cxx_compiler::error::not_implemented();
