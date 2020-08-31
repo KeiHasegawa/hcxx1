@@ -238,7 +238,7 @@ block_declaration
   | namespace_alias_definition
     { cxx_compiler::error::not_implemented(); }
   | using_declaration
-    { cxx_compiler::error::not_implemented(); }
+    { $$ = 0; }
   | using_directive
     { cxx_compiler::error::not_implemented(); }
   ;
@@ -661,6 +661,11 @@ using_declaration
    { cxx_compiler::error::not_implemented(); }
   | USING_KW COLONCOLON_MK move_to_root unqualified_id ';'
    { cxx_compiler::error::not_implemented(); }
+  | USING_KW nested_name_specifier TYPEDEF_NAME_LEX ';'
+    {
+      cxx_compiler::class_or_namespace_name::after(false);
+      cxx_compiler::declarations::use::action($3);
+    }
   ;
 
 using_directive

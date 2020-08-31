@@ -1979,3 +1979,25 @@ namespace cxx_compiler {
     }
   } // end of namespace declarations
 } // end of namespace cxx_compiler
+
+namespace cxx_compiler {
+  namespace declarations {
+    namespace use {
+      void action(usr* u)
+      {
+	usr::flag_t flag = u->m_flag;
+	assert(flag & usr::TYPEDEF);
+	string name = u->m_name;
+	map<string, vector<usr*> >& usrs = scope::current->m_usrs;
+	typedef map<string, vector<usr*> >::const_iterator IT;
+	IT p = usrs.find(name);
+	if (p != usrs.end())
+	  error::not_implemented();
+	usr* uu = new usr(*u);
+	type_def* td = new type_def(*uu);
+	td->m_scope = scope::current;
+	usrs[name].push_back(td);
+      }
+    } // end of namespace declarations
+  } // end of namespace declarations
+} // end of namespace cxx_compiler

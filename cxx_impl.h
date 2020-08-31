@@ -865,6 +865,9 @@ namespace declarations {
     } // end of namespace specialization
   } // end of namespace templ
   type_specifier* decl_type(expressions::base*);
+  namespace use {
+    void action(usr*);
+  } // end of namespace use
 } // end of namespace declarations
 
 namespace conversion {
