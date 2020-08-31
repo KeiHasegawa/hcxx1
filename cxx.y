@@ -2258,7 +2258,7 @@ postfix_expression
   | REINTERPRET_CAST_KW '<' type_id '>' '(' expression ')'
     { cxx_compiler::error::not_implemented(); }
   | CONST_CAST_KW '<' type_id '>' '(' expression ')'
-    { cxx_compiler::error::not_implemented(); }
+    { $$ = new cxx_compiler::expressions::cast::info_t($3,$6); }
   | TYPEID_KW '(' expression ')'
     { cxx_compiler::error::not_implemented(); }
   | TYPEID_KW '(' type_id ')'
