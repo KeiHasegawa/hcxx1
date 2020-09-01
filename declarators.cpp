@@ -1223,8 +1223,11 @@ function::definition::static_inline::gencode(info_t* info)
     ~ss()
     {
       vector<scope*>& ch = scope::root.m_children;
-      if (!ch.empty())
-        ch.pop_back();
+      if (!ch.empty()) {
+	scope* ps = ch.back();
+	if (ps->m_id == scope::PARAM)
+	  ch.pop_back();
+      }
       else
         assert(generator::last);
       if (m_org)
