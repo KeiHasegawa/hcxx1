@@ -1205,7 +1205,8 @@ function::definition::static_inline::gencode(info_t* info)
   scope* param = info->m_fundef->m_param;
   struct ss {
     scope* m_org;
-    ss(scope* ptr) : m_org(0)
+    info_t* m_info;
+    ss(scope* ptr, info_t* info) : m_org(0), m_info(info)
     {
       vector<scope*>& ch = scope::root.m_children;
       typedef vector<scope*>::reverse_iterator IT;
@@ -1232,8 +1233,9 @@ function::definition::static_inline::gencode(info_t* info)
         assert(generator::last);
       if (m_org)
         ch.push_back(m_org);
+      delete m_info;
     }
-  } ss(param);
+  } ss(param, info);
   if (cmdline::output_medium) {
     if (cmdline::output_optinfo)
       cout << "\nAfter optimization\n";
@@ -1261,7 +1263,6 @@ function::definition::static_inline::gencode(info_t* info)
       info = 0;
     }
   }
-  delete info;
 }
 
 namespace cxx_compiler { namespace declarations { namespace declarators { namespace function { namespace definition { namespace static_inline { namespace symtab {
