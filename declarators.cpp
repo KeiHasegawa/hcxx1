@@ -1204,38 +1204,22 @@ function::definition::static_inline::gencode(info_t* info)
   }
   scope* param = info->m_fundef->m_param;
   struct ss {
-    scope* m_org;
-    info_t* m_info;
-    ss(scope* ptr, info_t* info) : m_org(0), m_info(info)
+    vector<scope*> m_org;
+    ss(scope* ptr) : m_org(scope::root.m_children)
     {
       vector<scope*>& ch = scope::root.m_children;
-      typedef vector<scope*>::reverse_iterator IT;
-      IT p = find_if(rbegin(ch), rend(ch),
+      typedef vector<scope*>::iterator IT;
+      IT p = find_if(begin(ch), end(ch),
 		     bind2nd(ptr_fun(cmp), scope::PARAM));
-      if (p == rend(ch))
-        ch.push_back(ptr);
-      else {
-	vector<scope*>::iterator q = p.base() - 1;
-        assert(q+1 == end(ch));
-        m_org = *p;
-        *p = ptr;
-      }
+      if (p != end(ch))
+	ch.erase(p);
+      ch.push_back(ptr);
     }
     ~ss()
     {
-      vector<scope*>& ch = scope::root.m_children;
-      if (!ch.empty()) {
-	scope* ps = ch.back();
-	if (ps->m_id == scope::PARAM)
-	  ch.pop_back();
-      }
-      else
-        assert(generator::last);
-      if (m_org)
-        ch.push_back(m_org);
-      delete m_info;
+      scope::root.m_children = m_org;
     }
-  } ss(param, info);
+  } ss(param);
   if (cmdline::output_medium) {
     if (cmdline::output_optinfo)
       cout << "\nAfter optimization\n";
@@ -1263,6 +1247,7 @@ function::definition::static_inline::gencode(info_t* info)
       info = 0;
     }
   }
+  delete info;
 }
 
 namespace cxx_compiler { namespace declarations { namespace declarators { namespace function { namespace definition { namespace static_inline { namespace symtab {
