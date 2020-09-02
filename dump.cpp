@@ -66,6 +66,10 @@ void cxx_compiler::dump::usrx(const usr* u, int ntab)
   }
   if (flag2 & usr::PARTIAL_ORDERING)
     return;
+  if (flag2 & usr::ALIAS) {
+    cout << "alias " << name << '\n';
+    return;
+  }
   const type* T = u->m_type;
   if (!T) {
     assert(flag & usr::NAMESPACE);

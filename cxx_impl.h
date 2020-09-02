@@ -866,7 +866,7 @@ namespace declarations {
   } // end of namespace templ
   type_specifier* decl_type(expressions::base*);
   namespace use {
-    void action(usr*);
+    void action(var*);
   } // end of namespace use
 } // end of namespace declarations
 
@@ -1755,6 +1755,14 @@ namespace exception {
     void action(statements::base*, list<pair<var*, statements::base*>*>*);
   } // end of nmaepsace try_block
 } // end  of namespace exception
+
+struct alias : usr {
+  usr* m_org;
+ alias(usr* u) : usr(*u), m_org(u)
+  {
+    m_flag2 = usr::flag2_t(m_flag2 | usr::ALIAS);
+  }
+};
 
 } // end of namespace cxx_compiler
 

@@ -1983,20 +1983,21 @@ namespace cxx_compiler {
 namespace cxx_compiler {
   namespace declarations {
     namespace use {
-      void action(usr* u)
+      void action(var* v)
       {
-	usr::flag_t flag = u->m_flag;
-	assert(flag & usr::TYPEDEF);
+	if (genaddr* ga = v->genaddr_cast()) {
+	  v = ga->m_ref;
+	}
+	assert(v->usr_cast());
+	usr* u = static_cast<usr*>(v);
 	string name = u->m_name;
 	map<string, vector<usr*> >& usrs = scope::current->m_usrs;
 	typedef map<string, vector<usr*> >::const_iterator IT;
 	IT p = usrs.find(name);
 	if (p != usrs.end())
 	  error::not_implemented();
-	usr* uu = new usr(*u);
-	type_def* td = new type_def(*uu);
-	td->m_scope = scope::current;
-	usrs[name].push_back(td);
+	alias* al = new alias(u);
+	usrs[name].push_back(al);
       }
     } // end of namespace declarations
   } // end of namespace declarations

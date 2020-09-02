@@ -3,11 +3,23 @@
 #include "cxx_impl.h"
 #include "yy.h"
 
+namespace cxx_compiler {
+  namespace type_parameter {
+    using namespace std;
+    string param_name(var* v)
+    {
+      if (!v)
+	return new_name(".tag");
+      assert(v->usr_cast());
+      usr* u = static_cast<usr*>(v);
+      return u->m_name;
+    }
+  } // end of namespace type_parameter
+} // end of namespace cxx_compiler
+
 void cxx_compiler::type_parameter::action(var* v, const type* T)
 {
-  assert(v->usr_cast());
-  usr* u = static_cast<usr*>(v);
-  string name = u->m_name;
+  string name = param_name(v);
   vector<scope::tps_t>& tps = scope::current->m_tps;
   assert(!tps.empty());
   scope::tps_t& b = tps.back();

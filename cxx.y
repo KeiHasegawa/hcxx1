@@ -621,6 +621,13 @@ original_namespace_definition
       using namespace cxx_compiler;
       scope::current = scope::current->m_parent;
     }
+  | INLINE_KW NAMESPACE_KW IDENTIFIER_LEX '{'
+    { cxx_compiler::original_namespace_definition($3); }
+    namespace_body '}'
+    {
+      using namespace cxx_compiler;
+      scope::current = scope::current->m_parent;
+    }
   ;
 
 namespace_name
@@ -644,13 +651,25 @@ using_declaration
   : USING_KW typenaming COLONCOLON_MK move_to_root
     nested_name_specifier unqualified_id ';'
    {
-     cxx_compiler::error::not_implemented();
      --cxx_compiler::parse::identifier::typenaming;
      assert(cxx_compiler::parse::identifier::typenaming >= 0);
+     cxx_compiler::class_or_namespace_name::after(false);
+     cxx_compiler::declarations::use::action($6);
+   }
+  | USING_KW typenaming COLONCOLON_MK move_to_root
+    nested_name_specifier TYPEDEF_NAME_LEX ';'
+   {
+     --cxx_compiler::parse::identifier::typenaming;
+     assert(cxx_compiler::parse::identifier::typenaming >= 0);
+     cxx_compiler::class_or_namespace_name::after(false);
+     cxx_compiler::declarations::use::action($6);
    }
   | USING_KW COLONCOLON_MK move_to_root nested_name_specifier
     unqualified_id ';'
-   { cxx_compiler::error::not_implemented(); }
+   {
+     cxx_compiler::class_or_namespace_name::after(false);
+     cxx_compiler::declarations::use::action($5);
+   }
   | USING_KW COLONCOLON_MK move_to_root nested_name_specifier
     TYPEDEF_NAME_LEX ';'
    {
@@ -659,14 +678,26 @@ using_declaration
    }
   | USING_KW typenaming nested_name_specifier unqualified_id ';'
    {
-     cxx_compiler::error::not_implemented();
      --cxx_compiler::parse::identifier::typenaming;
      assert(cxx_compiler::parse::identifier::typenaming >= 0);
+     cxx_compiler::class_or_namespace_name::after(false);
+     cxx_compiler::declarations::use::action($4);
+   }
+  | USING_KW COLONCOLON_MK move_to_root unqualified_id ';'
+   {
+      cxx_compiler::class_or_namespace_name::after(false);
+      cxx_compiler::declarations::use::action($4);
+   }
+  | USING_KW COLONCOLON_MK move_to_root TYPEDEF_NAME_LEX ';'
+   {
+      cxx_compiler::class_or_namespace_name::after(false);
+      cxx_compiler::declarations::use::action($4);
    }
   | USING_KW nested_name_specifier unqualified_id ';'
-   { cxx_compiler::error::not_implemented(); }
-  | USING_KW COLONCOLON_MK move_to_root unqualified_id ';'
-   { cxx_compiler::error::not_implemented(); }
+    {
+      cxx_compiler::class_or_namespace_name::after(false);
+      cxx_compiler::declarations::use::action($3);
+    }
   | USING_KW nested_name_specifier TYPEDEF_NAME_LEX ';'
     {
       cxx_compiler::class_or_namespace_name::after(false);
@@ -1828,7 +1859,7 @@ type_parameter
     }
   | typenaming
     {
-      cxx_compiler::error::not_implemented();
+      cxx_compiler::type_parameter::action(0, 0);
       --cxx_compiler::parse::identifier::typenaming;
       assert(cxx_compiler::parse::identifier::typenaming >= 0);
     }

@@ -503,6 +503,10 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
     const vector<usr*>& v = p->second;
     usr* u = v.back();
     cxx_compiler_lval.m_usr = u;
+    if (u->m_flag2 & usr::ALIAS) {
+      alias* al = static_cast<alias*>(u);
+      u = al->m_org;
+    }
     usr::flag_t flag = u->m_flag;
     if (flag & usr::TYPEDEF) {
       type_def* tdef = static_cast<type_def*>(u);

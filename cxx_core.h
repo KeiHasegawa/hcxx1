@@ -367,6 +367,7 @@ struct usr : var {
     EXPLICIT_INSTANTIATE = 1 << 16,
     PARTIAL_ORDERING     = 1 << 17,
     DECLED_HANDLER       = 1 << 18,
+    ALIAS                = 1 << 19,
   };
   flag2_t m_flag2;
   file_t m_file;

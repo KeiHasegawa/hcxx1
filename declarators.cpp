@@ -1134,7 +1134,10 @@ namespace cxx_compiler { namespace declarations { namespace declarators { namesp
           return;
 
 	const type* T = u->m_type;
-	assert(T->m_id == type::FUNC);
+	if (T->m_id != type::FUNC) {
+	  assert(error::counter);
+	  return;
+	}
 	typedef const func_type FT;
 	FT* ft = static_cast<FT*>(T);
 	const vector<const type*>& param = ft->param();
