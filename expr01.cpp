@@ -472,12 +472,34 @@ namespace cxx_compiler {
       typedef const func_type FT;
       FT* ft = static_cast<FT*>(T);
       int n = code.size();
-      cost.resize(cost.size()+1);
-      var* ret = call_impl::common(ft, u, arg, &cost.back(), obj, false, 0);
+      int m = 0;
+      var* ret = call_impl::common(ft, u, arg, &m, obj, false, 0);
+      cost.push_back(m);
       tmp.resize(tmp.size()+1);
       copy(begin(code)+n, end(code), back_inserter(tmp.back()));
       code.resize(n);
       return ret;
+    }
+    int chose(const vector<var*>& res, const vector<int>& cost)
+    {
+      auto ok = [](var* v){ return v; };
+      typedef vector<var*>::const_iterator ITx;
+      ITx p = find_if(begin(res), end(res), ok);
+      if (p == end(res))
+	return -1;
+      ITx q = find_if(p+1, end(res), ok);
+      if (q == end(res))
+	return p - begin(res);
+
+      typedef vector<int>::const_iterator ITy;
+      ITy r = min_element(begin(cost), end(cost));
+      assert(r != end(cost));
+      int min_cost = *r;
+      int n = count_if(begin(cost), end(cost),
+		       [min_cost](int c){ return c == min_cost; });
+      if (n != 1)
+	error::not_implemented();
+      return r - begin(cost);
     }
   } // end of namespace overload_impl
 } // end of namespace cxx_compiler
@@ -509,9 +531,8 @@ cxx_compiler::var* cxx_compiler::overload::call(std::vector<var*>* arg,
   vector<int> cost;
   transform(begin(cand), end(cand), back_inserter(res),
   [arg, obj, &tmp, &cost](usr* u){ return do_trial(u, arg, obj, tmp, cost); });
-  auto ok = [](var* v){ return v; };
-  int n = count_if(begin(res), end(res), ok);
-  if (!n) {
+  int m = chose(res, cost);
+  if (m < 0) {
     using namespace error::expressions::postfix::call;
     overload_not_match(this);
     var* ret = new var(int_type::create());
@@ -523,21 +544,6 @@ cxx_compiler::var* cxx_compiler::overload::call(std::vector<var*>* arg,
       garbage.push_back(ret);
     return ret;
   }
-  if (n != 1) {
-    vector<int>::const_iterator p = min_element(begin(cost), end(cost));
-    assert(p != end(cost));
-    int min_cost = *p;
-    n = count_if(begin(cost), end(cost),
-		 [min_cost](int c){ return c == min_cost; });
-  }
-  if (n != 1)
-    error::not_implemented();
-
-  typedef vector<var*>::const_iterator IT;
-  IT p = find_if(begin(res), end(res), ok);
-  assert(p != end(res));
-  assert(*p);
-  int m = p - begin(res);
   if (ind)
     *ind = m;
   var* ret = res[m];
@@ -972,8 +978,11 @@ cxx_compiler::var* cxx_compiler::call_impl::convert::operator()(var* arg)
   else {
     arg = aggregate_conv(T, arg, ctor_conv, 0);
     if (m_trial_cost) {
-      ++*m_trial_cost;
       T = T->unqualified();
+      const type* Ty = arg->result_type();
+      Ty = Ty->unqualified();
+      if (!compatible(T, Ty))
+	++*m_trial_cost;
       if (tag* ptr = T->get_tag()) {
 	if (ptr->m_flag & tag::TYPENAMED) {
 	  if (T->m_id == type::INCOMPLETE_TAGGED)

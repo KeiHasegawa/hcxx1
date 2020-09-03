@@ -118,10 +118,35 @@ namespace cxx_compiler {
     }
   }
   static bool new_installed = false;
+  inline bool integer_arg(const usr* u)
+  {
+    const type* T = u->m_type;
+    assert(T->m_id == type::FUNC);
+    typedef const func_type FT;
+    FT* ft = static_cast<FT*>(T);
+    const vector<const type*>& param = ft->param();
+    assert(!param.empty());
+    if (param.size() != 1)
+      return false;
+    T = param.back();
+    return T->integer();
+  }
   inline usr* install_new()
   {
     assert(!new_installed);
     string name = "new";
+    map<string, vector<usr*> >& usrs = scope::root.m_usrs;
+    typedef map<string, vector<usr*> >::const_iterator IT;
+    IT p = usrs.find(name);
+    if (p != usrs.end()) {
+      const vector<usr*>& v = p->second;
+      typedef vector<usr*>::const_iterator IT2;
+      IT2 q = find_if(begin(v), end(v), integer_arg);
+      if (q != end(v)) {
+	// user defined new(size_t) exists.
+	return v.back();  // if overloaded, return it
+      }
+    }
     vector<const type*> param;
     param.push_back(sizeof_type());
     const type* T = void_type::create();
@@ -132,11 +157,7 @@ namespace cxx_compiler {
     usr* new_func = new usr(name, ft, flag, parse::position,
 			    usr::GENED_BY_COMP);
     new_func->m_scope = &scope::root;
-    map<string, vector<usr*> >& usrs = scope::root.m_usrs;
-    typedef map<string, vector<usr*> >::const_iterator IT;
-    IT p = usrs.find(name);
     if (p == usrs.end()) {
-      new_func->m_scope = &scope::root;
       usrs[name].push_back(new_func);
       return new_func;
     }
