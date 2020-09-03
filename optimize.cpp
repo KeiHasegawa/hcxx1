@@ -1082,6 +1082,9 @@ namespace cxx_compiler { namespace optimize { namespace symtab { namespace liter
 
 void cxx_compiler::optimize::mark(usr* u)
 {
+  string name = u->m_name;
+  if (name == "\"C\"" || name == "\"C++\"")
+    return;  // work around
   symtab::literal::canbe_erased.insert(u);
 }
 
