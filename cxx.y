@@ -615,14 +615,14 @@ extension_namespace_definition
 
 original_namespace_definition
   : NAMESPACE_KW IDENTIFIER_LEX '{'
-    { cxx_compiler::original_namespace_definition($2); }
+    { cxx_compiler::original_namespace_definition($2, false); }
     namespace_body '}'
     {
       using namespace cxx_compiler;
       scope::current = scope::current->m_parent;
     }
   | INLINE_KW NAMESPACE_KW IDENTIFIER_LEX '{'
-    { cxx_compiler::original_namespace_definition($3); }
+    { cxx_compiler::original_namespace_definition($3, true); }
     namespace_body '}'
     {
       using namespace cxx_compiler;

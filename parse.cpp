@@ -473,6 +473,151 @@ namespace cxx_compiler {
   }  // end of namespace parse
 }  // end of namespace cxx_compiler
 
+namespace cxx_compiler {
+  namespace parse {
+    namespace identifier {
+      using namespace std;
+      int get_here(string name, scope* ptr)
+      {
+	const map<string, vector<usr*> >& usrs = ptr->m_usrs;
+	map<string, vector<usr*> >::const_iterator p = usrs.find(name);
+	if (p != usrs.end()) {
+	  const vector<usr*>& v = p->second;
+	  usr* u = v.back();
+	  cxx_compiler_lval.m_usr = u;
+	  if (u->m_flag2 & usr::ALIAS) {
+	    alias* al = static_cast<alias*>(u);
+	    u = al->m_org;
+	  }
+	  usr::flag_t flag = u->m_flag;
+	  if (flag & usr::TYPEDEF) {
+	    type_def* tdef = static_cast<type_def*>(u);
+	    tdef->m_refed.push_back(parse::position);
+	    if (mode == mem_ini || peek() == COLONCOLON_MK) {
+	      const type* T = u->m_type;
+	      if (tag* ptr = T->get_tag()) {
+		cxx_compiler_lval.m_tag = ptr;
+		return CLASS_NAME_LEX;
+	      }
+	    }
+	    return TYPEDEF_NAME_LEX;
+	  }
+	  if (flag & usr::CTOR) {
+	    assert(ptr->m_id == scope::TAG);
+	    tag* ptag = static_cast<tag*>(ptr);
+	    if ((ptag->m_flag & tag::INSTANTIATE) && peek() == '<')
+	      return lookup(name, ptr->m_parent);
+	    return lookup(ptag->m_name, ptr->m_parent);
+	  }
+	  if (flag & usr::OVERLOAD) {
+	    overload* ovl = static_cast<overload*>(u);
+	    const vector<usr*>& v = ovl->m_candidacy;
+	    assert(!v.empty());
+	    usr* uu = v.back();
+	    if (uu->m_flag & usr::CTOR) {
+	      assert(ptr->m_id == scope::TAG);
+	      tag* ptag = static_cast<tag*>(ptr);
+	      if ((ptag->m_flag & tag::INSTANTIATE) && peek() == '<')
+		return lookup(name, ptr->m_parent);
+	      return lookup(ptag->m_name, ptr->m_parent);
+	    }
+	    if (peek() == '<') {
+	      typedef vector<usr*>::const_iterator IT;
+	      IT p = find_if(begin(v), end(v),
+			     [](usr* u){ return u->m_flag2 & usr::TEMPLATE; });
+	      if (p != end(v)) {
+		cxx_compiler_lval.m_ut = new pair<usr*, tag*>(*p, 0);
+		return TEMPLATE_NAME_LEX;
+	      }
+	    }
+	    if (mode == new_obj)
+	      return create(name);
+	    if (!declarations::specifier_seq::info_t::s_stack.empty()) {
+	      if (declarations::specifier_seq::info_t::s_stack.top())
+		return create(name);
+	    }
+	    return IDENTIFIER_LEX;
+	  }
+	  if (flag & usr::NAMESPACE) {
+	    cxx_compiler_lval.m_name_space = static_cast<name_space*>(u);
+	    return ORIGINAL_NAMESPACE_NAME_LEX;
+	  }
+	  usr::flag2_t flag2 = u->m_flag2;
+	  if (flag2 & usr::TEMPLATE) {
+	    if (peek() == '<') {
+	      cxx_compiler_lval.m_ut = new pair<usr*, tag*>(u, 0);
+	      return TEMPLATE_NAME_LEX;
+	    }
+	    if (mode == new_obj)
+	      return create(name);
+	    if (parse::templ::ptr) {
+	      if (!template_usr::s_stack.empty())
+		return create(name);
+	    }
+	  }
+	  if (flag2 & usr::PARTIAL_ORDERING) {
+	    if (mode == new_obj)
+	      return create(name);
+	    if (!declarations::specifier_seq::info_t::s_stack.empty()) {
+	      if (declarations::specifier_seq::info_t::s_stack.top())
+		return create(name);
+	    }
+	    return IDENTIFIER_LEX;
+	  }
+	  const type* T = u->m_type;
+	  if (const pointer_type* G = T->ptr_gen()) {
+	    cxx_compiler_lval.m_var = new genaddr(G,T,u,0);
+	    if (template_usr::s_stack.empty())
+	      garbage.push_back(cxx_compiler_lval.m_var);
+	  }
+	  return IDENTIFIER_LEX;
+	}
+	const map<string, tag*>& tags = ptr->m_tags;
+	map<string, tag*>::const_iterator q = tags.find(name);
+	if (q != tags.end()) {
+	  tag* ptag = q->second;
+	  cxx_compiler_lval.m_tag = ptag;
+	  if (ptag->m_kind == tag::ENUM)
+	    return ENUM_NAME_LEX;
+	  if (!(ptag->m_flag & tag::TEMPLATE))
+	    return CLASS_NAME_LEX;
+	  if (peek() != '<')
+	    return CLASS_NAME_LEX;
+	  cxx_compiler_lval.m_ut = new pair<usr*, tag*>(0, ptag);
+	  return TEMPLATE_NAME_LEX;
+	}
+	return 0;
+      }
+    } // end of namespace identifier
+  } // end of namespace parse
+  namespace inline_namespace {
+    using namespace std;
+    bool helper(string name, scope* ptr, int *res)
+    {
+      if (ptr->m_id != scope::NAMESPACE)
+	return false;
+      name_space* ns = static_cast<name_space*>(ptr);
+      usr::flag_t flag = ns->m_flag;
+      if (!(flag & usr::INLINE))
+	return false;
+      return *res = parse::identifier::get_here(name, ns);
+    }
+    int lookup(string name, scope* ptr)
+    {
+      const vector<scope*>& c = ptr->m_children;
+      typedef vector<scope*>::const_iterator IT;
+      int n = 0;
+      IT p = find_if(begin(c), end(c),
+		     [name, &n](scope* ps){ return helper(name, ps, &n); });
+      if (p != end(c))
+	return n;
+      if (scope* parent = ptr->m_parent)
+	return lookup(name, parent);
+      return 0;
+    }
+  } // end of namespace inline_namespace
+} // end of namespace cxx_compiler
+
 int
 cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
 {
@@ -497,113 +642,9 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
   if (int r = templ_usr_param(name, ptr))
     return r;
 
-  const map<string, vector<usr*> >& usrs = ptr->m_usrs;
-  map<string, vector<usr*> >::const_iterator p = usrs.find(name);
-  if (p != usrs.end()) {
-    const vector<usr*>& v = p->second;
-    usr* u = v.back();
-    cxx_compiler_lval.m_usr = u;
-    if (u->m_flag2 & usr::ALIAS) {
-      alias* al = static_cast<alias*>(u);
-      u = al->m_org;
-    }
-    usr::flag_t flag = u->m_flag;
-    if (flag & usr::TYPEDEF) {
-      type_def* tdef = static_cast<type_def*>(u);
-      tdef->m_refed.push_back(parse::position);
-      if (mode == mem_ini || peek() == COLONCOLON_MK) {
-	const type* T = u->m_type;
-	if (tag* ptr = T->get_tag()) {
-	  cxx_compiler_lval.m_tag = ptr;
-	  return CLASS_NAME_LEX;
-	}
-      }
-      return TYPEDEF_NAME_LEX;
-    }
-    if (flag & usr::CTOR) {
-      assert(ptr->m_id == scope::TAG);
-      tag* ptag = static_cast<tag*>(ptr);
-      if ((ptag->m_flag & tag::INSTANTIATE) && peek() == '<')
-	return lookup(name, ptr->m_parent);
-      return lookup(ptag->m_name, ptr->m_parent);
-    }
-    if (flag & usr::OVERLOAD) {
-      overload* ovl = static_cast<overload*>(u);
-      const vector<usr*>& v = ovl->m_candidacy;
-      assert(!v.empty());
-      usr* uu = v.back();
-      if (uu->m_flag & usr::CTOR) {
-	assert(ptr->m_id == scope::TAG);
-	tag* ptag = static_cast<tag*>(ptr);
-	if ((ptag->m_flag & tag::INSTANTIATE) && peek() == '<')
-	  return lookup(name, ptr->m_parent);
-	return lookup(ptag->m_name, ptr->m_parent);
-      }
-      if (peek() == '<') {
-	typedef vector<usr*>::const_iterator IT;
-	IT p = find_if(begin(v), end(v),
-		       [](usr* u){ return u->m_flag2 & usr::TEMPLATE; });
-	if (p != end(v)) {
-	  cxx_compiler_lval.m_ut = new pair<usr*, tag*>(*p, 0);
-	  return TEMPLATE_NAME_LEX;
-	}
-      }
-      if (mode == new_obj)
-	return create(name);
-      if (!declarations::specifier_seq::info_t::s_stack.empty()) {
-	if (declarations::specifier_seq::info_t::s_stack.top())
-	  return create(name);
-      }
-      return IDENTIFIER_LEX;
-    }
-    if (flag & usr::NAMESPACE) {
-      cxx_compiler_lval.m_name_space = static_cast<name_space*>(u);
-      return ORIGINAL_NAMESPACE_NAME_LEX;
-    }
-    usr::flag2_t flag2 = u->m_flag2;
-    if (flag2 & usr::TEMPLATE) {
-      if (peek() == '<') {
-	cxx_compiler_lval.m_ut = new pair<usr*, tag*>(u, 0);
-	return TEMPLATE_NAME_LEX;
-      }
-      if (mode == new_obj)
-	return create(name);
-      if (parse::templ::ptr) {
-	if (!template_usr::s_stack.empty())
-	  return create(name);
-      }
-    }
-    if (flag2 & usr::PARTIAL_ORDERING) {
-      if (mode == new_obj)
-	return create(name);
-      if (!declarations::specifier_seq::info_t::s_stack.empty()) {
-	if (declarations::specifier_seq::info_t::s_stack.top())
-	  return create(name);
-      }
-      return IDENTIFIER_LEX;
-    }
-    const type* T = u->m_type;
-    if (const pointer_type* G = T->ptr_gen()) {
-      cxx_compiler_lval.m_var = new genaddr(G,T,u,0);
-      if (template_usr::s_stack.empty())
-	garbage.push_back(cxx_compiler_lval.m_var);
-    }
-    return IDENTIFIER_LEX;
-  }
-  const map<string, tag*>& tags = ptr->m_tags;
-  map<string, tag*>::const_iterator q = tags.find(name);
-  if (q != tags.end()) {
-    tag* ptag = q->second;
-    cxx_compiler_lval.m_tag = ptag;
-    if (ptag->m_kind == tag::ENUM)
-      return ENUM_NAME_LEX;
-    if (!(ptag->m_flag & tag::TEMPLATE))
-      return CLASS_NAME_LEX;
-    if (peek() != '<')
-      return CLASS_NAME_LEX;
-    cxx_compiler_lval.m_ut = new pair<usr*, tag*>(0, ptag);
-    return TEMPLATE_NAME_LEX;
-  }
+  if (int r = get_here(name, ptr))
+    return r;
+
   if (mode == member) {
     if (scope::current->m_id == scope::TAG) {
       tag* ptag = static_cast<tag*>(scope::current);
@@ -667,6 +708,10 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
     return create(name);
   if (last_token == COLONCOLON_MK && typenaming)
     return create(name);
+  if (last_token != COLONCOLON_MK) {
+    if (int r =inline_namespace::lookup(name, scope::current))
+      return r;
+  }
   error::undeclared(parse::position, name);
   int ret = create(name, int_type::create());
   usr* u = cxx_compiler_lval.m_usr;

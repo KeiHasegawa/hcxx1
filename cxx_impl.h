@@ -1587,7 +1587,7 @@ namespace call_impl {
   var* ref_vftbl(usr* vf, var* vp);
 } // end of namespace call_impl
 
-void original_namespace_definition(var*);
+void original_namespace_definition(var*, bool);
 
 void extension_namespace_definition(var*);
 

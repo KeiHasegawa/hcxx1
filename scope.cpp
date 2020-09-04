@@ -132,7 +132,7 @@ cxx_compiler::base::base(int access, bool virt, tag* ptr)
   m_flag = virt ? usr::VIRTUAL : usr::NONE;
 }
 
-void cxx_compiler::original_namespace_definition(var* v)
+void cxx_compiler::original_namespace_definition(var* v, bool inl)
 {
   using namespace std;
   assert(v->usr_cast());
@@ -140,7 +140,9 @@ void cxx_compiler::original_namespace_definition(var* v)
   auto_ptr<usr> sweeper(u);
   string name = u->m_name;
   map<string, vector<usr*> >& usrs = scope::current->m_usrs;
-  name_space* ptr = new name_space(name,parse::position);
+  name_space* ptr = new name_space(name, parse::position);
+  if (inl)
+    ptr->m_flag = usr::flag_t(ptr->m_flag | usr::INLINE);
   usrs[name].push_back(ptr);
   ptr->m_parent = scope::current;
   ptr->m_parent->m_children.push_back(ptr);
