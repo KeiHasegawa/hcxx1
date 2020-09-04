@@ -709,7 +709,7 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
   if (last_token == COLONCOLON_MK && typenaming)
     return create(name);
   if (last_token != COLONCOLON_MK) {
-    if (int r =inline_namespace::lookup(name, scope::current))
+    if (int r = inline_namespace::lookup(name, scope::current))
       return r;
   }
   error::undeclared(parse::position, name);

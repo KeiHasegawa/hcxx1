@@ -64,8 +64,9 @@ namespace cxx_compiler {
     Ty = Fy->return_type();
     if (!Tx || !Ty) {
       assert(Tx || (x->m_flag & usr::DTOR));
-      assert(Ty || (y->m_flag & usr::DTOR));
-      return Tx == Ty;
+      if (Ty || (y->m_flag & usr::DTOR))
+	return Tx == Ty;
+      return false;
     }
     if (compatible(Tx, Ty))
       return true;
