@@ -1278,8 +1278,9 @@ void cxx_compiler::declarations::initializers::common(usr* u, bool ini)
   }
   string name = ini ? "initialize." : "terminate.";
   name += u->m_name;
-  vector<const type*> dummy;
-  const func_type* ft = func_type::create(void_type::create(),dummy);
+  vector<const type*> pt;
+  pt.push_back(void_type::create());
+  const func_type* ft = func_type::create(void_type::create(), pt);
   usr::flag_t flag = usr::flag_t(usr::FUNCTION | usr::STATIC);
   usr::flag2_t flag2 =
     ini ? usr::INITIALIZE_FUNCTION : usr::TERMINATE_FUNCTION;
