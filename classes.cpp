@@ -558,6 +558,44 @@ namespace cxx_compiler {
 		: y->cast(Tx);
               code.push_back(new invladdr3ac(x,y));
             }
+	    template<class C> void zero(var* dst, int offset)
+	    {
+	      using namespace expressions::primary::literal;
+	      const type* T = C::create();
+	      const type* P = pointer_type::create(T);
+	      var* ptr = new var(P);
+	      assert(scope::current->m_id == scope::BLOCK);
+	      block* b = static_cast<block*>(scope::current);
+	      b->m_vars.push_back(ptr);
+	      if (offset) {
+		var* off = integer::create(offset);
+		code.push_back(new add3ac(ptr, dst, off));
+	      }
+	      else
+		code.push_back(new assign3ac(ptr, dst));
+	      var* zero = integer::create(0);
+	      zero = zero->cast(T);
+	      code.push_back(new invladdr3ac(ptr, zero));
+	    }
+	    inline void zero_clear(var* dst)
+	    {
+	      const type* T = dst->result_type();
+	      int size = T->size();
+	      assert(long_long_type::create()->size() == 8);
+	      assert(size);
+	      for (int offset = 0 ; size ; offset += 8) {
+		switch (size) {
+		case 1: return zero<char_type>(dst, offset);
+		case 2: return zero<short_type>(dst, offset);
+		case 4: return zero<int_type>(dst, offset);
+		default:
+		  assert(size >= 8);
+		  zero<long_long_type>(dst, offset);
+		  size -= 8;
+		  break;
+		}
+	      }
+	    }
             void for_aggregate(var* dst, vector<expressions::base*>* p)
             {
 	      vector<var*> arg;
@@ -571,6 +609,8 @@ namespace cxx_compiler {
 		  return;
 	      }
 	      usr* ctor = has_ctor_dtor(ptr, false);
+	      if (!ctor)
+		return zero_clear(dst);
 	      usr::flag_t flag = ctor->m_flag;
 	      if (flag & usr::OVERLOAD) {
 		overload* ovl = static_cast<overload*>(ctor);

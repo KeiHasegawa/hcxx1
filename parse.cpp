@@ -687,7 +687,8 @@ int cxx_compiler::parse::peek()
   if (member_function_body::saved) {
     const list<pair<int, file_t> >& token =
       member_function_body::saved->m_read.m_token;
-    assert(!token.empty());
+    if (token.empty())
+      return 0;  // YYEOF
     parse::position = token.front().second;
     return token.front().first;
   }
