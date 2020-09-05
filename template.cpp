@@ -69,6 +69,9 @@ void cxx_compiler::declarations::templ::decl_begin()
 {
   const vector<scope::tps_t>& tps = scope::current->m_tps;
   assert(!tps.empty());
+  const scope::tps_t& b = tps.back();
+  const map<string, scope::tps_t::value_t>& table = b.m_table;
+  assert(!table.empty());
   using namespace parse::templ;
   save_t::nest.push_back(new save_t);
 }
@@ -1403,7 +1406,8 @@ namespace cxx_compiler {
 	ostringstream os;
 	if (v->isconstant()) {
 	  assert(v->usr_cast());
-	  os << v->value();
+	  usr* u = static_cast<usr*>(v);
+	  os << u->m_name;
 	  return name + os.str() + ',';
 	}
 	addrof* a = v->addrof_cast();

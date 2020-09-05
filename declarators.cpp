@@ -192,8 +192,20 @@ function::parameter(specifier_seq::info_t* p, var* v)
     if (T->size()) {
       string name = new_name(".param");
       usr* u = new usr(name, T, flag, file_t(), usr::NONE2);
-      scope::current->m_usrs[name].push_back(u);
-      scope::current->m_order.push_back(u);
+      if (parse::templ::param) {
+	vector<scope::tps_t>& tps = scope::current->m_tps;
+	assert(!tps.empty());
+	scope::tps_t& b = tps.back();
+	map<string, scope::tps_t::value_t>& table = b.m_table;
+	assert(table.find(name) == table.end());
+	table[name].second = new scope::tps_t::val2_t(T, 0);
+	vector<string>& order = b.m_order;
+	order.push_back(name);
+      }
+      else {
+	scope::current->m_usrs[name].push_back(u);
+	scope::current->m_order.push_back(u);
+      }
     }
     return T;
   }
