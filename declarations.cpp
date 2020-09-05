@@ -1771,7 +1771,8 @@ cxx_compiler::tag* cxx_compiler::declarations::enumeration::begin(var* v)
   usr* u = static_cast<usr*>(v);
   using namespace expressions::primary::literal;
   prev = integer::create(0);
-  auto_ptr<usr> sweeper(u);
+  using namespace parse::templ;
+  auto_ptr<usr> sweeper(save_t::nest.empty() ? u : 0);
   string name = u ? u->m_name : new_name(".tag");
   const file_t& file = u ? u->m_file : parse::position;
   map<string, tag*>& tags = scope::current->m_tags;
@@ -1785,6 +1786,7 @@ cxx_compiler::tag* cxx_compiler::declarations::enumeration::begin(var* v)
     }
     else
       prev->m_file.push_back(file);
+    class_or_namespace_name::before.push_back(prev);
     return prev;
   }
   tag::kind_t kind = tag::ENUM;
@@ -1804,19 +1806,20 @@ enumeration::definition(var* v, expressions::base* expr)
   auto_ptr<usr> sweeper1(parse::templ::save_t::nest.empty() ? u : 0);
   auto_ptr<expressions::base> sweeper2(expr);
   v = 0;
-  if ( expr ){
+  if (expr) {
     v = expr->gen();
     v = v->rvalue();
   }
-  if ( v && !v->isconstant() ){
-    not_constant(u);
+  if (v && !v->isconstant()) {
+    if (parse::templ::save_t::nest.empty())
+      not_constant(u);
     v = 0;
   }
-  if ( v && !v->m_type->integer() ){
+  if (v && !v->m_type->integer()) {
     not_integer(u);
     v = 0;
   }
-  if ( !v )
+  if (!v)
     v = prev;
   u->m_type = const_type::create(int_type::create());
   u->m_flag = usr::ENUM_MEMBER;
@@ -1836,8 +1839,9 @@ cxx_compiler::declarations::enumeration::end(tag* ptr)
 {
   using namespace class_or_namespace_name;
   assert(!before.empty());
-  if (before.back() == ptr)
-    before.pop_back();
+  assert(scope::current == ptr->m_parent);
+  assert(before.back() == ptr);
+  before.pop_back();
   return ptr->m_types.second = enum_type::create(ptr, prev->m_type);
 }
 

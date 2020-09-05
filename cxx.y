@@ -1838,7 +1838,7 @@ type_parameter
   : CLASS_KW IDENTIFIER_LEX
     { cxx_compiler::type_parameter::action($2, 0); }
   | CLASS_KW
-    { cxx_compiler::error::not_implemented(); }
+    { cxx_compiler::type_parameter::action(0, 0); }
   | CLASS_KW IDENTIFIER_LEX '='
     {
       using namespace cxx_compiler;

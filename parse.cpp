@@ -706,8 +706,22 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
     return create(name);
   if (mode == new_obj)
     return create(name);
-  if (last_token == COLONCOLON_MK && typenaming)
-    return create(name);
+  if (last_token == COLONCOLON_MK) {
+    if (typenaming)
+      return create(name);
+    if (!parse::templ::save_t::nest.empty()) {
+      if (scope::current->m_id == scope::TAG) {
+	tag* ptr = static_cast<tag*>(scope::current);
+	const type* T = ptr->m_types.first;
+	if (T->m_id == type::TEMPLATE_PARAM) {
+	  int r = create(name);
+	  usr* u = cxx_compiler_lval.m_usr;
+	  u->m_type = int_type::create();
+	  return r;
+	}
+      }
+    }
+  }
   if (last_token != COLONCOLON_MK) {
     if (int r = inline_namespace::lookup(name, scope::current))
       return r;

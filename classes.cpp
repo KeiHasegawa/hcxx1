@@ -507,18 +507,25 @@ void cxx_compiler::class_or_namespace_name::after(bool set_last)
   if (set_last)
     last = scope::current;
   scope::current = before.back();
+  if (scope::current->m_id == scope::TAG) {
+    tag* ptr = static_cast<tag*>(scope::current);
+    tag::kind_t kind = ptr->m_kind;
+    if (kind == tag::ENUM)
+      scope::current = scope::current->m_parent;
+  }
 }
 
 cxx_compiler::tag* cxx_compiler::class_or_namespace_name::conv(tag* ptr)
 {
-  if (!parse::identifier::typenaming)
+  const type* T1 = ptr->m_types.first;
+  if (T1->m_id != type::TEMPLATE_PARAM)
     return ptr;
-  const type* T = ptr->m_types.second;
-  if (!T)
+  const type* T2 = ptr->m_types.second;
+  if (!T2)
     return ptr;
-  if (tag* ret = T->get_tag())
-    return ret;
-  return ptr;
+  tag* ret = T2->get_tag();
+  assert(ret);
+  return ret;
 }
 
 namespace cxx_compiler {
