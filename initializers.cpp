@@ -18,6 +18,19 @@ namespace cxx_compiler {
         extern int gencode(info_t*, argument*);
       }  // end of namespace clause
       extern int expr_list(vector<expressions::base*>*, argument*);
+      void skipchk(const pair<int, var*>& x)
+      {
+	using namespace declarators::function::definition::static_inline;
+	var* v = x.second;
+	addrof * a = v->addrof_cast();
+	if (!a)
+	  return;
+	var* r = a->m_ref;
+	usr* u = r->usr_cast();
+	addr3ac tmp(0, u);
+	skip::chk_t arg(0);
+	skip::check(&tmp, &arg);
+      }
       inline void handle_with_initial(with_initial* p, const argument& arg,
 				      int n)
       {
@@ -39,6 +52,7 @@ namespace cxx_compiler {
 	if (n == code.size())
 	  return;
 	map<int, var*>& value = p->m_value;
+	for_each(begin(value), end(value), skipchk);
 	if (value.size() != 1)
 	  return;
 	typedef map<int, var*>::const_iterator ITy;
