@@ -80,7 +80,7 @@ struct instantiated_tag : tag {
   typedef std::vector<scope::tps_t::val2_t> SEED;
   SEED m_seed;
   instantiated_tag(kind_t kind, std::string name, const file_t& file,
-		   std::vector<base*>* b, template_tag* tt, const SEED& seed)
+                   std::vector<base*>* b, template_tag* tt, const SEED& seed)
     : tag(kind, name, file, b), m_src(tt), m_seed(seed)
   { m_flag = INSTANTIATE; }
 };
@@ -1196,8 +1196,8 @@ inline bool is_external_declaration(var* v)
       if (!T) {
         assert(v->usr_cast());
         usr* u = static_cast<usr*>(v);
-	usr::flag_t flag = u->m_flag;
-	usr::flag2_t flag2 = u->m_flag2;
+        usr::flag_t flag = u->m_flag;
+        usr::flag2_t flag2 = u->m_flag2;
         assert((flag & usr::OVERLOAD) || (flag2 & usr::PARTIAL_ORDERING));
         return true;
       }
@@ -1726,8 +1726,8 @@ public:
   static void destroy_tmp();
   static void collect_tmp(std::vector<const type*>&);
   void tor_code(usr* tor, scope* param, var* this_ptr, block* pb,
-		bool is_dtor,
-		const std::vector<const record_type*>& exclude) const;
+                bool is_dtor,
+                const std::vector<const record_type*>& exclude) const;
 };
 
 class enum_type : public type {
