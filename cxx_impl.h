@@ -1486,6 +1486,7 @@ struct refsomewhere : ref {
 
 struct enum_member : usr {
   usr* m_value;
+  bool isconstant(bool) const { return true; }
   enum_member(const usr& u, usr* value) : usr(u), m_value(value) {}
 };
 
