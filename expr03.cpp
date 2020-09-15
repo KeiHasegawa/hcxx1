@@ -14,11 +14,8 @@ cxx_compiler::var* cxx_compiler::expressions::cast::info_t::gen()
   const type* T = m_type->unqualified();
   if (T->m_id == type::REFERENCE) {
     const type* Ty = expr->m_type;
-    if (Ty->m_id == type::REFERENCE) {
-      bool ctor_conv = false;
-      const type* res = valid(T, expr, &ctor_conv);
+    if (Ty->m_id == type::REFERENCE)
       return expr->cast(T);
-    }
     if (expr->lvalue()) {
       typedef const reference_type RT;
       RT* rt = static_cast<RT*>(T);
@@ -203,7 +200,7 @@ namespace cxx_compiler {
     var* with_route(const type* Tx, var* y, const vector<route_t>& route)
     {
       const type* Ty = y->m_type;
-      if ( Tx == Ty )
+      if (Tx == Ty)
         return y;
       var* x = new var(Tx);
       if (scope::current->m_id == scope::BLOCK) {
@@ -733,3 +730,15 @@ cxx_compiler::var* cxx_compiler::constant<long double>::cast(const type* T)
 }
 cxx_compiler::var* cxx_compiler::constant<void*>::cast(const type* type)
 { return constant_impl::pcast(type,this); }
+
+cxx_compiler::var* cxx_compiler::refaddr::cast(const type* T)
+{
+  T = T->unqualified();
+  if (T->m_id != type::REFERENCE)
+    return var::cast(T);
+  typedef const reference_type RT;
+  RT* rt = static_cast<RT*>(T);
+  var* ret = new refaddr(rt, m_addrof.m_ref, m_addrof.m_offset);
+  garbage.push_back(ret);
+  return ret;
+}

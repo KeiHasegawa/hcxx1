@@ -1418,6 +1418,7 @@ struct refaddr : ref {
   var* assign(var*);
   var* address();
   var* offref(const type*, var*);
+  var* cast(const type*); 
 };
 
 struct refbit : refaddr {
