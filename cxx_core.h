@@ -85,6 +85,13 @@ struct instantiated_tag : tag {
   { m_flag = INSTANTIATE; }
 };
 
+struct special_ver_tag : tag {
+  template_tag* m_src;
+  typedef instantiated_tag::SEED KEY;
+  KEY m_key;
+  special_ver_tag(std::string name, template_tag* src, const KEY& key);
+};
+
 template<class T> struct constant;
 struct addrof;
 struct generated;

@@ -757,6 +757,12 @@ cxx_compiler::var* cxx_compiler::refaddr::address()
     b = static_cast<block*>(scope::current);
   if (b && !expressions::constant_flag) {
     const type* T = m_type;
+    if (T->m_id == type::REFERENCE) {
+      typedef const reference_type RT;
+      RT* rt = static_cast<RT*>(T);
+      const type* R = rt->referenced_type();
+      T = pointer_type::create(R);
+    }
     var* ret = new var(T);
     b->m_vars.push_back(ret);
     code.push_back(new addr3ac(ret,m_addrof.m_ref));

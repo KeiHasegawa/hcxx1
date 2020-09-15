@@ -1013,17 +1013,14 @@ namespace cxx_compiler {
 
   vector<template_tag::info_t> template_tag::nest;
 
-  struct special_ver_tag : tag {
-    template_tag* m_src;
-    template_tag::KEY m_key;
-    special_ver_tag(string name, template_tag* src,
-		    const template_tag::KEY& key)
-      : tag(src->m_kind, name, parse::position, 0), m_src(src), m_key(key)
-    {
-      m_parent = src->m_parent;
-      m_flag = SPECIAL_VER;
-    }
-  };
+  special_ver_tag::special_ver_tag(string name, template_tag* src,
+				   const KEY& key)
+  : tag(src->m_kind, name, parse::position, 0), m_src(src), m_key(key)
+  {
+    m_parent = src->m_parent;
+    m_flag = SPECIAL_VER;
+  }
+
   struct partial_special_tag : template_tag {
     special_ver_tag* m_sv;
     template_tag* m_primary;

@@ -19,6 +19,13 @@ cxx_compiler::var* cxx_compiler::expressions::cast::info_t::gen()
       const type* res = valid(T, expr, &ctor_conv);
       return expr->cast(T);
     }
+    if (expr->lvalue()) {
+      typedef const reference_type RT;
+      RT* rt = static_cast<RT*>(T);
+      refaddr* ref = new refaddr(rt, expr, 0);
+      garbage.push_back(ref);
+      return ref;
+    }
   }
   expr = expr->rvalue();
   if (T->m_id == type::VOID) {

@@ -2490,6 +2490,37 @@ namespace cxx_compiler {
   namespace record_impl {
     namespace encode_impl {
       using namespace std;
+      template_tag* get_src(const tag* ptr)
+      {
+	tag::flag_t flag = ptr->m_flag;
+	if (flag & tag::INSTANTIATE) {
+	  typedef const instantiated_tag IT;
+	  IT* it = static_cast<IT*>(ptr);
+	  return it->m_src;
+	}
+
+	if (flag & tag::SPECIAL_VER) {
+	  typedef const special_ver_tag SV;
+	  SV* sv = static_cast<SV*>(ptr);
+	  return sv->m_src;
+	}
+
+	return 0;
+      }
+      const vector<scope::tps_t::val2_t>& get_seed(const tag* ptr)
+      {
+	tag::flag_t flag = ptr->m_flag;
+	if (flag & tag::INSTANTIATE) {
+	  typedef const instantiated_tag IT;
+	  IT* it = static_cast<IT*>(ptr);
+	  return it->m_seed;
+	}
+
+	assert(flag & tag::SPECIAL_VER);
+	typedef const special_ver_tag SV;
+	SV* sv = static_cast<SV*>(ptr);
+	return sv->m_key;
+      }
       void output(const scope::tps_t::val2_t& p, ostream& os)
       {
 	if (const type* T = p.first) {
@@ -2520,14 +2551,13 @@ namespace cxx_compiler {
 
 void cxx_compiler::record_impl::encode(std::ostream& os, const tag* ptr)
 {
+  using namespace encode_impl;
   string name = ptr->m_name;
-  tag::flag_t flag = ptr->m_flag;
-  if (!(flag & tag::INSTANTIATE)) {
+  const template_tag* tt = get_src(ptr);
+  if (!tt) {
     os << name.length() << name;
     return;
   }
-  const instantiated_tag* it = static_cast<const instantiated_tag*>(ptr);
-  const template_tag* tt = it->m_src;
   name = tt->m_name;
   if (tt->m_flag & tag::PARTIAL_SPECIAL) {
     string::size_type p = name.find_first_of('<');
@@ -2535,8 +2565,7 @@ void cxx_compiler::record_impl::encode(std::ostream& os, const tag* ptr)
   }
   os << name.length() << name;
   os << 'I';
-  const vector<scope::tps_t::val2_t>& seed = it->m_seed;
-  using namespace encode_impl;
+  const vector<scope::tps_t::val2_t>& seed = get_seed(ptr);
   for_each(begin(seed), end(seed),
 	   [&os](const scope::tps_t::val2_t& v){ output(v, os); });
   os << 'E';
