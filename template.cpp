@@ -924,11 +924,8 @@ namespace cxx_compiler {
 	    return new scope::tps_t::val2_t(T, 0);
 	  if (T->m_id == type::TEMPLATE_PARAM) {
 	    T = ptr->m_types.second;
-	    if (!T) {
-	      using namespace parse::templ;
-	      assert(!save_t::nest.empty());
+	    if (!T)
 	      T = ptr->m_types.first;
-	    }
 	    return new scope::tps_t::val2_t(T, 0);
 	  }
 	  if (ptr->m_flag & tag::INSTANTIATE) {

@@ -753,13 +753,13 @@ reg_list : string_literal
 
 linkage_specification
   : linkage_specification_begin declaration_seq '}'
-    { cxx_compiler::declarations::linkage::braces.pop_back(); }
+    { cxx_compiler::declarations::linkage::infos.pop_back(); }
   | linkage_specification_begin '}'
-    { cxx_compiler::declarations::linkage::braces.pop_back(); }
+    { cxx_compiler::declarations::linkage::infos.pop_back(); }
   | EXTERN_KW STRING_LITERAL_LEX
     { cxx_compiler::declarations::linkage::action($2, false); }
     declaration
-    { cxx_compiler::declarations::linkage::braces.pop_back(); }
+    { cxx_compiler::declarations::linkage::infos.pop_back(); }
   ;
 
 linkage_specification_begin
@@ -1467,13 +1467,12 @@ base_clause
     {
       using namespace cxx_compiler::parse;
       identifier::mode = identifier::look;
-      base_clause = true;
+      ++cxx_compiler::parse::base_clause;
     }
     base_specifier_list
     {
       $$ = $3;
-      using namespace cxx_compiler::parse;
-      base_clause = false;
+      --cxx_compiler::parse::base_clause;
     }
   ;
 

@@ -116,7 +116,7 @@ namespace parse {
     extern bool func();
     extern void patch_13_2(save_t*, const read_t& pr, pair<int, int>);
   } // end of namespace templ
-  extern bool base_clause;
+  extern int base_clause;
 } // end of namespace parse
 
 typedef pair<const fundef*, vector<tac*> > FUNCS_ELEMENT_TYPE;
@@ -612,7 +612,13 @@ namespace declarations {
   } // end of namespace elaborated
   namespace linkage {
     extern void action(var*, bool brace);
-    extern vector<bool> braces;
+    struct info_t {
+      enum kind_t { C, CXX };
+      kind_t m_kind;
+      bool m_brace;
+      info_t(kind_t kind, bool brace) : m_kind(kind), m_brace(brace) {}
+    };
+    extern vector<info_t> infos;
   } // end of namespace linkage
   extern void check_object(usr*);
   extern usr* action1(var*, bool);

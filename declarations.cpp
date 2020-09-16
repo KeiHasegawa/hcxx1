@@ -855,14 +855,14 @@ cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr)
     if ( !(flag & usr::TYPEDEF ) ){
       if (name == "main")
         curr->m_flag = usr::flag_t(flag | usr::C_SYMBOL);
-      else if (!declarations::linkage::braces.empty()) {
+      else if (!declarations::linkage::infos.empty()) {
+	using namespace declarations::linkage;
+	const info_t& info = infos.back();
         switch (scope::current->m_id) {
         case scope::NONE: case scope::NAMESPACE:
           {
-            curr->m_flag = usr::flag_t(flag | usr::C_SYMBOL);
-            bool brace = declarations::linkage::braces.back();
-            if (!brace)
-              curr->m_flag = usr::flag_t(curr->m_flag | usr::EXTERN);
+	    if (info.m_kind == info_t::C)
+	      curr->m_flag = usr::flag_t(flag | usr::C_SYMBOL);
           }
         }
       }
@@ -914,8 +914,8 @@ cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr)
         skip::table_t::iterator r = skip::stbl.find(prev);
         if (r != skip::stbl.end()) {
           info_t* info = r->second;
-          usr::flag_t& flag = info->m_fundef->m_usr->m_flag;
-          flag = usr::flag_t(flag | usr::EXTERN);
+	  usr* u = info->m_fundef->m_usr;
+          u->m_flag = usr::flag_t(u->m_flag | usr::EXTERN);
           skip::stbl.erase(r);
           gencode(info);
         }
@@ -1602,7 +1602,7 @@ cxx_compiler::declarations::elaborated::action(int keyword, var* v)
     return p.second ? p.second : p.first;
   }
   else {
-    scope* parent = linkage::braces.empty() ? scope::current : &scope::root;
+    scope* parent = linkage::infos.empty() ? scope::current : &scope::root;
     tag::kind_t kind = classes::specifier::get(keyword);
     const file_t& file = u->m_file;
     tag* ptr = new tag(kind,name,file,0);
@@ -1688,7 +1688,7 @@ void cxx_compiler::declarations::linkage::action(var* v, bool brace)
     usr* e = static_cast<usr*>(d->second);
     constant<char>* f = static_cast<constant<char>*>(e);
     assert(f->m_value == '\0');
-    braces.push_back(brace);
+    infos.push_back(info_t(info_t::C, brace));
   }
   else if (value.size() == 4) {
     // check `v' is "C++"
@@ -1719,13 +1719,18 @@ void cxx_compiler::declarations::linkage::action(var* v, bool brace)
     usr* k = static_cast<usr*>(j->second);
     constant<char>* l = static_cast<constant<char>*>(k);
     assert(l->m_value == '\0');
-    braces.push_back(brace);
+    infos.push_back(info_t(info_t::CXX, brace));
   }
   else
     error::not_implemented();
 }
 
-std::vector<bool> cxx_compiler::declarations::linkage::braces;
+namespace cxx_compiler {
+  namespace declarations {
+    using namespace std;
+    vector<linkage::info_t> linkage::infos;
+  }  // end of namespace declarations
+}  // end of namespace cxx_compiler
 
 cxx_compiler::declarations::type_specifier_seq::info_t::info_t(type_specifier* specifier, info_t* follow)
 {
