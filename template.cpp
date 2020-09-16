@@ -1130,6 +1130,16 @@ namespace cxx_compiler {
 				    cmp_helper(m_key, m_table));
 	return ret == make_pair(end(xs), end(ys));
       }
+      bool cmp_var(var* vx, var* vy)
+      {
+	assert(vx->usr_cast());
+	usr* ux = static_cast<usr*>(vx);
+	string nx = ux->m_name;
+	assert(vy->usr_cast());
+	usr* uy = static_cast<usr*>(vy);
+	string ny = uy->m_name;
+	return nx == ny;
+      }
       cmp(template_tag::KEY& key) : m_key(key) {}
       bool
       operator()(const scope::tps_t::val2_t& x, const scope::tps_t::val2_t* y)
@@ -1143,8 +1153,7 @@ namespace cxx_compiler {
 	  var* vx = x.second;
 	  var* vy = y->second;
 	  assert(vx && vy);
-	  error::not_implemented();
-	  return false;
+	  return cmp_var(vx, vy);
 	}
       }
     };
@@ -1465,8 +1474,10 @@ namespace cxx_compiler {
       }
       string var_case(string name, var* v)
       {
-	error::not_implemented();
-	return name;
+	assert(v->usr_cast());
+	usr* u = static_cast<usr*>(v);
+	string s = u->m_name;
+	return name + s + ',';
       }
       string operator()(string name, const scope::tps_t::val2_t& p)
       {
