@@ -387,17 +387,9 @@ namespace cxx_compiler {
   } // end of namespace classes
 } // end of namespace cxx_compiler
 
-void cxx_compiler::classes::members::action(var* v, expressions::base* expr)
+void cxx_compiler::classes::members::action(var* v)
 {
   using namespace std;
-  usr* cons = 0;
-  if ( expr ){
-    var* cexpr = expr->gen();
-    cexpr = cexpr->rvalue();
-    if ( !cexpr->isconstant() )
-      error::not_implemented();
-    cons = cexpr->usr_cast();
-  }
   assert(v->usr_cast());
   usr* u = static_cast<usr*>(v);
   u = declarations::action1(u, false);
@@ -405,40 +397,6 @@ void cxx_compiler::classes::members::action(var* v, expressions::base* expr)
     using namespace declarations::specifier_seq;
     assert(!info_t::s_stack.empty());
     delete info_t::s_stack.top();
-  }
-
-  if (cons) {
-    usr::flag_t flag = u->m_flag;
-    usr::flag_t mask = usr::flag_t(usr::STATIC | usr::VIRTUAL);
-    if (!(flag & mask))
-      error::not_implemented();
-    if ((flag & usr::STATIC) && (flag & usr::VIRTUAL))
-      error::not_implemented();
-    if (flag & usr::STATIC) {
-      if (parse::templ::save_t::nest.empty()) {
-        with_initial* wi = new with_initial(*u);
-        wi->m_value[0] = cons;
-        scope* p = u->m_scope;
-        string name = u->m_name;
-        assert(p->m_order.back() == u);
-        p->m_order.back() = wi;
-        assert(p->m_usrs[name].back() == u);
-        p->m_usrs[name].back() = wi;
-        wi->m_flag = usr::flag_t(flag | usr::WITH_INI | usr::STATIC_DEF);
-        delete u;
-        u = wi;
-      }
-    }
-    if (flag & usr::VIRTUAL) {
-      const type* T = cons->m_type;
-      T = T->unqualified();
-      if (T->m_id != type::INT)
-        error::not_implemented();
-      constant<int>* c = static_cast<constant<int>*>(cons);
-      if (c->m_value != 0)
-        error::not_implemented();
-      u->m_flag = usr::flag_t(flag | usr::PURE_VIRT);
-    }
   }
   vector<scope*>& children = scope::current->m_children;
   typedef vector<scope*>::iterator IT;
@@ -453,6 +411,55 @@ void cxx_compiler::classes::members::action(var* v, expressions::base* expr)
     }
     else
       ++p;
+  }
+}
+
+void cxx_compiler::classes::members::action2(var* v, expressions::base* expr)
+{
+  using namespace std;
+  var* cexpr = expr->gen();
+  cexpr = cexpr->rvalue();
+  if (!cexpr->isconstant()) {
+    if (parse::templ::save_t::nest.empty() &&
+	!record_impl::instantiate_with_template_param())
+      error::not_implemented();
+  }
+  usr* cons = cexpr->usr_cast();
+  if (!cons)
+    return;
+  assert(v->usr_cast());
+  usr* u = static_cast<usr*>(v);
+
+  usr::flag_t flag = u->m_flag;
+  usr::flag_t mask = usr::flag_t(usr::STATIC | usr::VIRTUAL);
+  if (!(flag & mask))
+    error::not_implemented();
+  if ((flag & usr::STATIC) && (flag & usr::VIRTUAL))
+    error::not_implemented();
+  if (flag & usr::STATIC) {
+    if (parse::templ::save_t::nest.empty()) {
+      with_initial* wi = new with_initial(*u);
+      wi->m_value[0] = cons;
+      scope* p = u->m_scope;
+      string name = u->m_name;
+      assert(p->m_order.back() == u);
+      p->m_order.back() = wi;
+      assert(p->m_usrs[name].back() == u);
+      p->m_usrs[name].back() = wi;
+      wi->m_flag = usr::flag_t(flag | usr::WITH_INI | usr::STATIC_DEF);
+      delete u;
+      u = wi;
+    }
+  }
+  if (flag & usr::VIRTUAL) {
+    const type* T = cons->m_type;
+    T = T->unqualified();
+    if (T->m_id != type::INT)
+      error::not_implemented();
+    constant<int>* c = static_cast<constant<int>*>(cons);
+    if (c->m_value != 0)
+      error::not_implemented();
+    u->m_flag = usr::flag_t(flag | usr::PURE_VIRT);
   }
 }
 

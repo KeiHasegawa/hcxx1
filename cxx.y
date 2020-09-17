@@ -1409,21 +1409,18 @@ member_declarator_list
 
 member_declarator
   : declarator
-    { cxx_compiler::classes::members::action($1,0); }
+    { cxx_compiler::classes::members::action($1); }
   | declarator
     {
+      cxx_compiler::classes::members::action($1);
       using namespace cxx_compiler::parse;
       identifier::mode = identifier::look;
-      using namespace cxx_compiler::declarations::specifier_seq;
-      info_t::s_stack.push(0);
     } constant_initializer
     {
       using namespace cxx_compiler;
       using namespace parse;
       identifier::mode = identifier::new_obj;
-      using namespace cxx_compiler::declarations::specifier_seq;
-      info_t::s_stack.pop();
-      cxx_compiler::classes::members::action($1,$3);
+      cxx_compiler::classes::members::action2($1, $3);
     }
   | IDENTIFIER_LEX ':'
     {

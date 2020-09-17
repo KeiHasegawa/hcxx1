@@ -2257,7 +2257,7 @@ cxx_compiler::record_type::record_type(tag* ptr)
 
 namespace cxx_compiler {
   namespace record_impl {
-    inline bool instantiate_with_template_param()
+    bool instantiate_with_template_param()
     {
       if (template_tag::nest.empty())
 	return false;

@@ -563,6 +563,7 @@ namespace record_impl {
     typedef map<vector<const record_type*>, usr*> VALUE_TYPE;
     extern map<usr*, VALUE_TYPE> scd_tbl;  // key is ctor or dtor
   } // end of namespace special_ctor_dtor
+  bool instantiate_with_template_param();
 } // end of namespace record_impl
 
 namespace expressions {
@@ -1359,7 +1360,8 @@ namespace classes {
     extern void  member_function_definition(pair<usr* const, parse::member_function_body::save_t>&);
   } // end of namespace specifier
   namespace members {
-    extern void action(var*, expressions::base*);
+    extern void action(var*);
+    extern void action2(var*, expressions::base*);
     extern void bit_field(var*, expressions::base*);
   } // end of namespace members
 } // end of namespace classes
