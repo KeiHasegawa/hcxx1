@@ -1106,7 +1106,7 @@ namespace cxx_compiler {
 	      return cmp_type(Tx, Ty);
 	    }
 	  }
-	  return false;
+	  return compatible(Tx, Ty);
 	}
 	tag* ytag = Ty->get_tag();
 	if (!ytag)
@@ -1166,7 +1166,10 @@ namespace cxx_compiler {
       {
 	const special_ver_tag* sv = ps->m_sv;
 	const template_tag::KEY& key = sv->m_key;
-	assert(key.size() == m_pv->size());
+	if (key.size() != m_pv->size()) {
+	  m_key.clear();
+	  return false;
+	}
 	typedef template_tag::KEY::const_iterator ITx;
 	typedef vector<scope::tps_t::val2_t*>::iterator ITy;
 	pair<ITx, ITy> ret = mismatch(begin(key), end(key), begin(*m_pv),
