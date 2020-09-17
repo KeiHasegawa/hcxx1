@@ -1946,18 +1946,21 @@ template_argument
       using namespace std;
       using namespace cxx_compiler;
       $$ = new scope::tps_t::val2_t(0, $1->gen());
+      parse::identifier::mode = parse::identifier::look;
     }
   | type_id
     {
       using namespace std;
       using namespace cxx_compiler;
       $$ = new scope::tps_t::val2_t($1, 0);
+      parse::identifier::mode = parse::identifier::look;
     }
   | id_expression
     {
       using namespace std;
       using namespace cxx_compiler;
       $$ = new scope::tps_t::val2_t(0, $1);
+      parse::identifier::mode = parse::identifier::look;
     }
   ;
 
