@@ -1983,6 +1983,7 @@ namespace cxx_compiler {
       int n = code.size();
       var* v = expr->gen();
       for_each(begin(code) + n, end(code), [](tac* ptr){ delete ptr; });
+      code.resize(n);
       const type* T = v->result_type();
       return new type_specifier(T);
     }
