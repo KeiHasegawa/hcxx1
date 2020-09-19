@@ -1320,3 +1320,28 @@ cxx_compiler::statements::try_block::info_t::~info_t()
   }
   delete m_handlers;
 }
+
+namespace cxx_compiler {
+  namespace statements {
+    namespace condition {
+      expressions::base* action(declarations::type_specifier_seq::info_t* p,
+				var* v, expressions::base* right)
+      {
+	typedef declarations::type_specifier_seq::info_t X;
+	auto_ptr<X> sweeper(p);
+	p->update();
+	const type* T = p->m_type;
+	using namespace declarations;
+	type_specifier* ts = new type_specifier(T);
+	parse::identifier::mode = parse::identifier::look;
+	specifier* sp = new specifier(ts);
+	typedef specifier_seq::info_t Y;
+	Y* q = new specifier_seq::info_t(0, sp);
+	auto_ptr<Y> sweeper2(q);
+	declarations::action1(v, false);
+	expressions::base* left = new expressions::primary::info_t(v);
+	return new expressions::binary::info_t(left, '=', right);
+      }
+    } // end of  namespace condition
+  } // end of namespace statements
+} // end of namespace cxx_compiler

@@ -1292,7 +1292,8 @@ namespace statements {
 	assert(!children.empty());
 	m_child = children.back();
       }
-      ~info_t(){ delete m_stmt1; delete m_expr2; delete m_expr3; delete m_stmt; }
+      ~info_t()
+      { delete m_stmt1; delete m_expr2; delete m_expr3; delete m_stmt; }
     };
   } // end of namespace do_stmt
   namespace break_stmt {
@@ -1348,6 +1349,11 @@ namespace statements {
       ~info_t();
     };
   } // end of namespace try_block
+  namespace condition {
+    expressions::base*
+    action(declarations::type_specifier_seq::info_t*, var*,
+	   expressions::base*);
+  } // end of  namespace condition
 } // end of namespace statements
 
 namespace classes {

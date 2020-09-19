@@ -2878,7 +2878,13 @@ selection_statement
 
 condition
   : expression
-  | type_specifier_seq declarator '=' assignment_expression { $$ = $4; }
+  | type_specifier_seq declarator '='
+    {
+      using namespace cxx_compiler;
+      parse::identifier::mode = parse::identifier::look;
+    }
+    assignment_expression
+    { $$ = cxx_compiler::statements::condition::action($1, $2, $5); }
   ;
 
 iteration_statement
