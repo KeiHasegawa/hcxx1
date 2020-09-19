@@ -594,7 +594,7 @@ void cxx_compiler::dump::alloce(std::ostream& os, const tac* ptr)
   using namespace std;
   string x = names::ref(ptr->x);
   string y = names::ref(ptr->y);
-  os << x << ":= alloce " << y;
+  os << x << " := alloce " << y;
 }
 
 void cxx_compiler::dump::throwe(std::ostream& os, const tac* ptr)
