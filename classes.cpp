@@ -149,7 +149,7 @@ namespace cxx_compiler {
         template_tag::info_t& x = template_tag::nest.back();
         template_tag* tt = x.m_tt;
         if (!x.m_it) {
-          x.m_it = new instantiated_tag(kind, name, file, bases, tt, x.m_seed);
+          x.m_it = new instantiated_tag(kind, name, file, bases, tt, x.m_key);
           return x.m_it;
         }
       }
@@ -421,7 +421,7 @@ void cxx_compiler::classes::members::action2(var* v, expressions::base* expr)
   cexpr = cexpr->rvalue();
   if (!cexpr->isconstant()) {
     if (parse::templ::save_t::nest.empty() &&
-	!record_impl::instantiate_with_template_param())
+	!instantiate_with_template_param<template_tag>())
       error::not_implemented();
   }
   usr* cons = cexpr->usr_cast();
@@ -438,17 +438,24 @@ void cxx_compiler::classes::members::action2(var* v, expressions::base* expr)
     error::not_implemented();
   if (flag & usr::STATIC) {
     if (parse::templ::save_t::nest.empty()) {
-      with_initial* wi = new with_initial(*u);
-      wi->m_value[0] = cons;
-      scope* p = u->m_scope;
-      string name = u->m_name;
-      assert(p->m_order.back() == u);
-      p->m_order.back() = wi;
-      assert(p->m_usrs[name].back() == u);
-      p->m_usrs[name].back() = wi;
-      wi->m_flag = usr::flag_t(flag | usr::WITH_INI | usr::STATIC_DEF);
-      delete u;
-      u = wi;
+      const type* T = u->m_type;
+      T = T->unqualified();
+      if (T->m_id != type::TEMPLATE_PARAM) {
+	var* tmp = cons->cast(T);
+	assert(tmp->usr_cast());
+	cons = static_cast<usr*>(tmp);
+	with_initial* wi = new with_initial(*u);
+	wi->m_value[0] = cons;
+	scope* p = u->m_scope;
+	string name = u->m_name;
+	assert(p->m_order.back() == u);
+	p->m_order.back() = wi;
+	assert(p->m_usrs[name].back() == u);
+	p->m_usrs[name].back() = wi;
+	wi->m_flag = usr::flag_t(flag | usr::WITH_INI | usr::STATIC_DEF);
+	delete u;
+	u = wi;
+      }
     }
   }
   if (flag & usr::VIRTUAL) {

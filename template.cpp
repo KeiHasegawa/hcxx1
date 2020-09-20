@@ -654,7 +654,7 @@ namespace cxx_compiler {
 } // end of namespace cxx_compiler
 
 namespace cxx_compiler {
-  stack<template_usr::info_t> template_usr::s_stack;
+  vector<template_usr::info_t> template_usr::nest;
 } // end of namespace cxx_compiler
 
 cxx_compiler::usr*
@@ -714,12 +714,12 @@ cxx_compiler::template_usr::instantiate(std::vector<var*>* arg, KEY* trial)
 
   templ_base tmp = *this;
   template_usr_impl::sweeper_b sweeper_b(m_scope, &tmp);
-  s_stack.push(info_t(this, 0, info_t::NONE, key));
-  tinfos.push_back(make_pair(&s_stack.top(),(template_tag::info_t*)0));
+  nest.push_back(info_t(this, 0, info_t::NONE, key));
+  tinfos.push_back(make_pair(&nest.back(),(template_tag::info_t*)0));
   cxx_compiler_parse();
   tinfos.pop_back();
-  instantiated_usr* ret = s_stack.top().m_iu;
-  s_stack.pop();
+  instantiated_usr* ret = nest.back().m_iu;
+  nest.pop_back();
   assert(ret->m_src == this || ret->m_src == m_next);
   assert(ret->m_seed == key);
   assert(!(ret->m_flag2 & usr::EXPLICIT_INSTANTIATE));
@@ -782,12 +782,12 @@ cxx_compiler::template_usr::instantiate(const KEY& key)
   templ_base tmp = *this;
   template_usr_impl::sweeper_b sweeper_b(m_decled, &tmp);
   declarations::templ::ins_if_res = 0;
-  s_stack.push(info_t(this, 0, info_t::NONE, key));
-  tinfos.push_back(make_pair(&s_stack.top(),(template_tag::info_t*)0));
+  nest.push_back(info_t(this, 0, info_t::NONE, key));
+  tinfos.push_back(make_pair(&nest.back(),(template_tag::info_t*)0));
   cxx_compiler_parse();
   tinfos.pop_back();
-  instantiated_usr* ret = s_stack.top().m_iu;
-  s_stack.pop();
+  instantiated_usr* ret = nest.back().m_iu;
+  nest.pop_back();
   if (!ret) {
     usr* r = declarations::templ::ins_if_res;
     declarations::templ::ins_if_res = 0;
@@ -1240,7 +1240,7 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
       if (primary == this) {
 	string name = ps->instantiated_name();
 	x.m_it = new instantiated_tag(m_kind, name, parse::position,
-				      m_bases, ps, x.m_seed);
+				      m_bases, ps, x.m_key);
 	return x.m_it;
       }
     }
@@ -1527,13 +1527,13 @@ instantiate_common(vector<scope::tps_t::val2_t*>* pv, info_t::mode_t mode)
 
   templ_base tmp = *this;
   template_usr_impl::sweeper_b sweeper_b(m_scope, &tmp);
-  s_stack.push(info_t(this, 0, mode, key));
-  tinfos.push_back(make_pair(&s_stack.top(), (template_tag::info_t*)0));
+  nest.push_back(info_t(this, 0, mode, key));
+  tinfos.push_back(make_pair(&nest.back(), (template_tag::info_t*)0));
   cxx_compiler_parse();
   tinfos.pop_back();
-  assert(!s_stack.empty());
-  instantiated_usr* ret = s_stack.top().m_iu;
-  s_stack.pop();
+  assert(!nest.empty());
+  instantiated_usr* ret = nest.back().m_iu;
+  nest.pop_back();
   assert(ret);
   assert(ret->m_src == this);
   assert(ret->m_seed == key);
@@ -1549,9 +1549,9 @@ instantiate_common(vector<scope::tps_t::val2_t*>* pv, info_t::mode_t mode)
 bool
 cxx_compiler::template_usr::explicit_instantiating(KEY& key)
 {
-  if (s_stack.empty())
+  if (nest.empty())
     return false;
-  const info_t& info = s_stack.top();
+  const info_t& info = nest.back();
   if (info.m_mode != info_t::EXPLICIT)
     return false;
   key = info.m_key;
@@ -1635,7 +1635,9 @@ namespace cxx_compiler {
     bool non_func_case(template_usr* tu, usr* ins, templ_base::KEY& key)
     {
       const type* Tt = tu->m_type;
+      Tt = Tt->unqualified();
       const type* Ti = ins->m_type;
+      Ti = Ti->unqualified();
       if (Tt->m_id == type::TEMPLATE_PARAM) {
 	key.push_back(scope::tps_t::val2_t(Ti, 0));
 	return true;

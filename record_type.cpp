@@ -2255,19 +2255,6 @@ cxx_compiler::record_type::record_type(tag* ptr)
            m_virt_common_offset, m_direct_common, vftbl);
 }
 
-namespace cxx_compiler {
-  namespace record_impl {
-    bool instantiate_with_template_param()
-    {
-      if (template_tag::nest.empty())
-	return false;
-      const template_tag::info_t& info = template_tag::nest.back();
-      const template_tag::KEY& key = info.m_seed;
-      return find_if(begin(key), end(key), template_param) != end(key);
-    }
-  } // end of namespace record_impl
-} // end of namespace cxx_compiler
-
 int cxx_compiler::record_impl::layouter::operator()(int offset, usr* member)
 {
   using namespace std;
@@ -2351,7 +2338,7 @@ int cxx_compiler::record_impl::layouter::operator()(int offset, usr* member)
 	  return offset;
 	}
       }
-      if (!instantiate_with_template_param()) {
+      if (!instantiate_with_template_param<template_tag>()) {
 	using namespace error::classes;
 	incomplete_member(member);
       }

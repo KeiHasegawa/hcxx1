@@ -1298,8 +1298,8 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
 		     [](usr* u){ return u->m_flag2 & usr::TEMPLATE; });
       if (p != end(cand))
 	prev = *p;
-      else if (!template_usr::s_stack.empty()) {
-	template_usr::info_t& info = template_usr::s_stack.top();
+      else if (!template_usr::nest.empty()) {
+	template_usr::info_t& info = template_usr::nest.back();
 	template_usr* tu = info.m_tu;
 	prev = tu;
       }
@@ -1322,8 +1322,8 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
     if (const type* z = composite(x, y)) {
       curr->m_type = z;
       if (parse::templ::ptr) {
-	assert(!template_usr::s_stack.empty());
-	template_usr::info_t& info = template_usr::s_stack.top();
+	assert(!template_usr::nest.empty());
+	template_usr::info_t& info = template_usr::nest.back();
 	template_usr* tu = info.m_tu;
 	templ_base::KEY key;
 	if (!instance_of(tu, curr, key))
@@ -1378,8 +1378,8 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
       curr->m_flag = combine(id, prev->m_flag, curr->m_flag);
       instantiated_usr* ret = new instantiated_usr(*curr, ptu, key);
       if (parse::templ::ptr) {
-	if (!template_usr::s_stack.empty()) {
-	  template_usr::info_t& info = template_usr::s_stack.top();
+	if (!template_usr::nest.empty()) {
+	  template_usr::info_t& info = template_usr::nest.back();
 	  assert(ptu == info.m_tu || ptu->m_prev == info.m_tu);
 	  assert(key == info.m_key);
 	  info.m_iu = ret;
@@ -1399,8 +1399,8 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
     partial_ordering* po = static_cast<partial_ordering*>(prev);
     if (!(curr->m_flag2 & usr::TEMPLATE)) {
       assert(parse::templ::ptr);
-      assert(!template_usr::s_stack.empty());
-      template_usr::info_t& info = template_usr::s_stack.top();
+      assert(!template_usr::nest.empty());
+      template_usr::info_t& info = template_usr::nest.back();
       template_usr* tu = info.m_tu;
       const vector<template_usr*>& c = po->m_candidacy;
       assert((find(begin(c), end(c), tu) != end(c)) ||
@@ -1514,8 +1514,8 @@ check_installed(usr* u, specifier_seq::info_t* p, bool* installed)
     map<string, vector<usr*> >& usrs = ps->m_usrs;
     string name = u->m_name;
     if (parse::templ::ptr) {
-      assert(!template_usr::s_stack.empty());
-      template_usr::info_t& info = template_usr::s_stack.top();
+      assert(!template_usr::nest.empty());
+      template_usr::info_t& info = template_usr::nest.back();
       template_usr* tu = info.m_tu;
       templ_base::KEY key;
       if (!instance_of(tu, ret, key))
@@ -1560,8 +1560,8 @@ cxx_compiler::declarations::exchange(bool installed, usr* new_one, usr* org)
     v.back() = new_one;
   }
 
-  if (!template_usr::s_stack.empty()) {
-    const template_usr::info_t& info = template_usr::s_stack.top();
+  if (!template_usr::nest.empty()) {
+    const template_usr::info_t& info = template_usr::nest.back();
     assert(info.m_iu == org);
     return new_one;
   }

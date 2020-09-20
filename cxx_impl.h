@@ -563,7 +563,6 @@ namespace record_impl {
     typedef map<vector<const record_type*>, usr*> VALUE_TYPE;
     extern map<usr*, VALUE_TYPE> scd_tbl;  // key is ctor or dtor
   } // end of namespace special_ctor_dtor
-  bool instantiate_with_template_param();
 } // end of namespace record_impl
 
 namespace expressions {
@@ -1649,7 +1648,7 @@ struct template_usr : usr, templ_base {
 	   const KEY& key)
     : m_tu(tu), m_iu(iu), m_mode(mode), m_key(key) {}
   };
-  static stack<info_t> s_stack;
+  static vector<info_t> nest;
   typedef map<KEY, usr*> table_t;
   table_t m_table;
   bool m_patch_13_2;
@@ -1689,10 +1688,9 @@ struct template_tag : templ_base, tag {
   struct info_t {
     template_tag* m_tt;
     instantiated_tag* m_it;
-    instantiated_tag::SEED m_seed;
-    info_t(template_tag* tt, instantiated_tag* it,
-	   const instantiated_tag::SEED& seed)
-    : m_tt(tt), m_it(it), m_seed(seed) {}
+    KEY m_key;
+    info_t(template_tag* tt, instantiated_tag* it, const KEY& key)
+    : m_tt(tt), m_it(it), m_key(key) {}
   };
   static vector<info_t> nest;
   typedef map<KEY, tag*> table_t;
@@ -1738,6 +1736,16 @@ inline bool template_param(const scope::tps_t::val2_t& x)
   if (!T)
     return false;
   return T->m_id == type::TEMPLATE_PARAM;
+}
+
+template<class C>
+inline bool instantiate_with_template_param()
+{
+  if (C::nest.empty())
+    return false;
+  const typename C::info_t& info = C::nest.back();
+  const typename C::KEY& key = info.m_key;
+  return find_if(begin(key), end(key), template_param) != end(key);
 }
 
 namespace typenamed {

@@ -455,9 +455,9 @@ namespace cxx_compiler {
       }  // end of namespace base_lookup
       int templ_usr_param(string name, scope* ptr)
       {
-	if (template_usr::s_stack.empty())
+	if (template_usr::nest.empty())
 	  return 0;
-	template_usr::info_t& info = template_usr::s_stack.top();
+	template_usr::info_t& info = template_usr::nest.back();
 	const template_usr* tu = info.m_tu;
 	if (tu->m_scope != ptr)
 	  return 0;
@@ -551,7 +551,7 @@ namespace cxx_compiler {
 	    if (mode == new_obj)
 	      return create(name);
 	    if (parse::templ::ptr) {
-	      if (!template_usr::s_stack.empty())
+	      if (!template_usr::nest.empty())
 		return create(name);
 	    }
 	  }
@@ -567,7 +567,7 @@ namespace cxx_compiler {
 	  const type* T = u->m_type;
 	  if (const pointer_type* G = T->ptr_gen()) {
 	    cxx_compiler_lval.m_var = new genaddr(G,T,u,0);
-	    if (template_usr::s_stack.empty())
+	    if (template_usr::nest.empty())
 	      garbage.push_back(cxx_compiler_lval.m_var);
 	  }
 	  return IDENTIFIER_LEX;
