@@ -32,7 +32,7 @@ namespace cxx_compiler {
         skip::check(&tmp, &arg);
       }
       inline void handle_with_initial(with_initial* p, const argument& arg,
-        			      int n)
+                		      int n)
       {
         if (arg.not_constant) {
           initialize_code(p);
@@ -173,7 +173,7 @@ bool cxx_compiler::array_of_tor(const array_type* at, bool ctor)
 
 void
 cxx_compiler::ctor_dtor_common(var* v, const array_type* at, void (*pf)(var*),
-        		       bool ctor)
+                	       bool ctor)
 {
   using namespace expressions::primary::literal;
   const type* T = at->element_type();
@@ -394,9 +394,9 @@ expr_list(std::vector<expressions::base*>* exprs, argument* arg)
       const vector<usr*>& v = ovl->m_candidacy;
       for_each(begin(v), end(v), [&org](usr* u)
                {
-        	 usr::flag_t flag = u->m_flag;
-        	 org.push_back(flag);
-        	 u->m_flag = usr::flag_t(flag & ~usr::INLINE);
+                 usr::flag_t flag = u->m_flag;
+                 org.push_back(flag);
+                 u->m_flag = usr::flag_t(flag & ~usr::INLINE);
                });
     }
     ovl->call(&res);
@@ -1257,7 +1257,7 @@ namespace cxx_compiler {
             if (p != skip::stbl.end()) {
               using definition::static_inline::info_t;
               if (info_t* info = p->second)
-        	substitute(code, n-1, info);
+                substitute(code, n-1, info);
             }
           }
         }

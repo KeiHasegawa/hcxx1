@@ -33,7 +33,7 @@ action(std::vector<int>* p, bool pm)
 
 const cxx_compiler::type*
 cxx_compiler::declarations::declarators::pointer::action(const type* X,
-        						 const type* T)
+                					 const type* T)
 {
   if (T->backpatch())
     return T->patch(X, 0);
@@ -91,25 +91,25 @@ function::action(const type* T,
     if (T->backpatch()) {
       vector<const type*> param;
       transform(begin(*pdc), end(*pdc), back_inserter(param),
-        	[](pair<const type*, expressions::base*>* p)
-        	{ return p->first; });
+                [](pair<const type*, expressions::base*>* p)
+                { return p->first; });
       ret = T->patch(func_type::create(backpatch_type::create(),param),u);
     }
     vector<var*> default_arg;
     transform(begin(*pdc), end(*pdc), back_inserter(default_arg),
               [](pair<const type*, expressions::base*>* p)
               {
-        	expressions::base* bp = p->second;
-        	auto_ptr<expressions::base> sweeper(bp);
-        	if (!bp)
-        	  return (var*)0;
-        	var* v = bp->gen();
-        	const type* T = p->first;
-        	return v->cast(T);
+                expressions::base* bp = p->second;
+                auto_ptr<expressions::base> sweeper(bp);
+                if (!bp)
+                  return (var*)0;
+                var* v = bp->gen();
+                const type* T = p->first;
+                return v->cast(T);
               });
     typedef vector<var*>::const_iterator IT;
     IT p = find_if(begin(default_arg), end(default_arg),
-        	   [](var* v){ return v; });
+                   [](var* v){ return v; });
     if (p != end(default_arg)) {
       if (u) {
         u->m_flag = usr::flag_t(u->m_flag | usr::HAS_DEFAULT_ARG);
@@ -411,7 +411,7 @@ namespace cxx_compiler {
             int n = inc ? 1 : 0;
             if (order.empty() || inc && order.size() == 1) {
               if (param.size() != 1)
-        	return false;
+                return false;
               const type* T = param.back();
               return T->m_id == type::VOID;
             }
@@ -427,9 +427,9 @@ namespace cxx_compiler {
             ITx fin = begin(param) + m;
             pair<ITx, ITy> ret = 
               mismatch(begin(param), fin, begin(order) + n,
-        	       [](const type* T, const usr* u)
-        	       { return compatible(T, u->m_type) ||
-        		 T->m_id == type::TEMPLATE_PARAM; });
+                       [](const type* T, const usr* u)
+                       { return compatible(T, u->m_type) ||
+                	 T->m_id == type::TEMPLATE_PARAM; });
             return ret == make_pair(fin, end(order));
           }
           inline bool check_now(usr* fun)
@@ -503,7 +503,7 @@ function::definition::begin(declarations::specifier_seq::info_t* p, var* v)
     const vector<usr*>& c = ovl->m_candidacy;
     typedef vector<usr*>::const_iterator IT;
     IT p = find_if(begin(c), end(c),
-        	   [&order](const usr* u){ return match(u, order); });
+                   [&order](const usr* u){ return match(u, order); });
     assert(p != end(c));
     u = *p;
   }
@@ -657,11 +657,11 @@ namespace cxx_compiler {
       return false;
     typedef vector<base*>::const_iterator IT;
     IT it = find_if(begin(*bases), end(*bases),
-        	    [](const base* bp){ return bp->m_flag & usr::VIRTUAL; });
+                    [](const base* bp){ return bp->m_flag & usr::VIRTUAL; });
     return it != end(*bases);
   }
   inline void copy_usrs(const map<string, vector<usr*> >& src,
-        		map<string, vector<usr*> >& dst, map<var*, var*>& tbl)
+                	map<string, vector<usr*> >& dst, map<var*, var*>& tbl)
   {
     for (const auto& p : src) {
       for (auto x : p.second) {
@@ -672,7 +672,7 @@ namespace cxx_compiler {
     }
   }
   inline void copy_order(const vector<usr*>& src,
-        		 vector<usr*>& dst, const map<var*, var*>& tbl)
+                	 vector<usr*>& dst, const map<var*, var*>& tbl)
   {
     for (auto x : src) {
       map<var*, var*>::const_iterator p = tbl.find(x);
@@ -684,7 +684,7 @@ namespace cxx_compiler {
     }
   }
   inline void copy_vars(const vector<var*>& src,
-        		vector<var*>& dst, map<var*, var*>& tbl)
+                	vector<var*>& dst, map<var*, var*>& tbl)
   {
     for (auto x : src) {
       var* y = new var(*x);
@@ -967,11 +967,11 @@ namespace cxx_compiler {
               scope::id_t id = ps->m_id;
               assert(id != scope::PARAM);
               if (id == scope::BLOCK)
-        	return &scope::root;
+                return &scope::root;
               if (id == scope::NAMESPACE) {
-        	usr::flag_t flag = u->m_flag;
-        	if ((flag & usr::C_SYMBOL) && (flag & usr::INLINE))
-        	  return &scope::root;
+                usr::flag_t flag = u->m_flag;
+                if ((flag & usr::C_SYMBOL) && (flag & usr::INLINE))
+                  return &scope::root;
               }
               return ps;
             }
@@ -981,51 +981,51 @@ namespace cxx_compiler {
               ++arg->m_pos;
               var* y = ptac->y;
               if (!y)
-        	return;
+                return;
               usr* u = y->usr_cast();
               if (!u)
-        	return;
+                return;
               usr::flag_t flag = u->m_flag;
               if (!(flag & usr::FUNCTION))
-        	return;
+                return;
               usr::flag_t mask = usr::flag_t(usr::STATIC | usr::INLINE);
               if (!(flag & mask))
-        	return;
+                return;
 
               usr::flag_t exclude = usr::flag_t(usr::VIRTUAL | usr::OVERRIDE);
               if (flag & exclude)
-        	return;
+                return;
 
               if ((flag & usr::STATIC) && !(flag & usr::INLINE)) {
-        	if (u->m_scope->m_id == scope::TAG)
-        	  return;
+                if (u->m_scope->m_id == scope::TAG)
+                  return;
               }
 
               table_t::iterator it = stbl.find(u);
               if (it != stbl.end()) {
-        	info_t* info = it->second;
-        	if (info) {
-        	  it->second = 0;
-        	  gencode(info);
-        	}
-        	return;
+                info_t* info = it->second;
+                if (info) {
+                  it->second = 0;
+                  gencode(info);
+                }
+                return;
               }
 
               string name = u->m_name;
               const type* T = u->m_type;
               it = find_if(begin(stbl), end(stbl),
-        		   [name, T](const pair<usr*, info_t*>& p){
-        		     usr* u = p.first;
-        		     if (u->m_name != name)
-        		       return false;
-        		     return  compatible(u->m_type, T); });
+                	   [name, T](const pair<usr*, info_t*>& p){
+                	     usr* u = p.first;
+                	     if (u->m_name != name)
+                	       return false;
+                	     return  compatible(u->m_type, T); });
               if (it != stbl.end()) {
-        	info_t* info = it->second;
-        	if (info) {
-        	  it->second = 0;
-        	  gencode(info);
-        	}
-        	return;
+                info_t* info = it->second;
+                if (info) {
+                  it->second = 0;
+                  gencode(info);
+                }
+                return;
               }
 
               typedef const func_type FT;
@@ -1037,16 +1037,16 @@ namespace cxx_compiler {
               transform(begin(param), end(param), back_inserter(ip), ins_if);
               key_t key(name, ps, ip, get_seed(u));
               if (definition::dtbl.find(key) != definition::dtbl.end())
-        	return;
+                return;
 
               using namespace defer;
               pair<string, scope*> ns(name, ps);
               refs[key].push_back(ref_t(name, flag, u->m_file, ptac->m_file));
               if (ptac->m_id == tac::ADDR)
-        	return;
+                return;
               assert(ptac->m_id == tac::CALL);
               if (!(flag & usr::INLINE))
-        	return;
+                return;
               arg->m_wait_inline = true;
               usr* v = arg->m_fundef->m_usr;
               callers[key].insert(v);
@@ -1065,7 +1065,7 @@ namespace cxx_compiler { namespace declarations { namespace declarators { namesp
     using namespace defer;
     namespace skip {
       void after_substitute(usr* ucaller,
-        		    pair<key_t, info_t*> pcallee)
+                	    pair<key_t, info_t*> pcallee)
       {
         map<usr*, vector<int> >::iterator p = positions.find(ucaller);
         assert(p != positions.end());
@@ -1105,7 +1105,7 @@ namespace cxx_compiler { namespace declarations { namespace declarators { namesp
             vector<const type*> ip;
             transform(begin(param), end(param), back_inserter(ip), ins_if);
             if (fn->m_name == key.m_name && ps == key.m_scope &&
-        	ip == key.m_param && seed == key.m_seed) {
+                ip == key.m_param && seed == key.m_seed) {
               int before = vc.size();
               if (!error::counter && !cmdline::no_inline_sub)
                 substitute(vc, n, callee);
@@ -1225,7 +1225,7 @@ function::definition::static_inline::gencode(info_t* info)
       vector<scope*>& ch = scope::root.m_children;
       typedef vector<scope*>::iterator IT;
       IT p = find_if(begin(ch), end(ch),
-        	     bind2nd(ptr_fun(cmp), scope::PARAM));
+                     bind2nd(ptr_fun(cmp), scope::PARAM));
       if (p != end(ch))
         ch.erase(p);
       ch.push_back(ptr);

@@ -322,7 +322,7 @@ namespace cxx_compiler {
       with_initial* vftbl = static_cast<with_initial*>(u);
       map<int, var*>::const_iterator q =
         find_if(begin(vftbl->m_value), end(vftbl->m_value),
-        	bind2nd(ptr_fun(match_vf),fun));
+                bind2nd(ptr_fun(match_vf),fun));
       assert(q != end(vftbl->m_value));
       int offset = q->first;
       var* off = integer::create(offset);
@@ -439,13 +439,13 @@ cxx_compiler::usr* cxx_compiler::instantiate_if(usr* fun)
   using namespace member_function_impl;
   template_usr* tu = 0;
   IT p = find_if(begin(tbl), end(tbl),
-        	 [fun, &tu](const pair<template_tag::KEY, tag*>& x)
-        	 { return tu = has_templ(x, fun); } );
+                 [fun, &tu](const pair<template_tag::KEY, tag*>& x)
+                 { return tu = has_templ(x, fun); } );
   if (p == end(tbl))
     return fun;
   tag* ptr2 = p->second;
   assert(find_if(++p, end(tbl), [fun](const pair<template_tag::KEY, tag*>& x)
-        	 { return has_templ(x,fun); } ) == end(tbl));
+                 { return has_templ(x,fun); } ) == end(tbl));
   if (template_usr* outer = tu->m_outer) {
     usr* ret = outer->instantiate(it->m_seed);
     return ret ? ret : fun;
@@ -457,7 +457,7 @@ namespace cxx_compiler {
   namespace overload_impl {
     using namespace std;
     var* do_trial(usr* u, vector<var*>* arg, var* obj,
-        	  vector<vector<tac*> >& tmp, vector<int>& cost)
+                  vector<vector<tac*> >& tmp, vector<int>& cost)
     {
       using namespace std;
       usr::flag2_t flag2 = u->m_flag2;
@@ -496,7 +496,7 @@ namespace cxx_compiler {
       assert(r != end(cost));
       int min_cost = *r;
       int n = count_if(begin(cost), end(cost),
-        	       [min_cost](int c){ return c == min_cost; });
+                       [min_cost](int c){ return c == min_cost; });
       if (n != 1)
         error::not_implemented();
       return r - begin(cost);
@@ -510,7 +510,7 @@ cxx_compiler::var* cxx_compiler::overload::call(std::vector<var*>* arg)
 }
 
 cxx_compiler::var* cxx_compiler::overload::call(std::vector<var*>* arg,
-        					int* ind)
+                				int* ind)
 {
   using namespace std;
   using namespace overload_impl;
@@ -608,7 +608,7 @@ cxx_compiler::var* cxx_compiler::partial_ordering::call(std::vector<var*>* arg)
 {
   typedef vector<template_usr*>::const_iterator IT;
   IT p = min_element(begin(m_candidacy), end(m_candidacy),
-        	     partial_ordering_impl::comp(arg));
+                     partial_ordering_impl::comp(arg));
   assert(p != end(m_candidacy));
   template_usr* tu = *p;
   usr* ins = tu->instantiate(arg, 0);
@@ -701,7 +701,7 @@ namespace cxx_compiler {
       return ret;
     }
     inline var* via_obj(var* obj, var* func, bool qualified_func,
-        		var* vftbl_off, const func_type* ft)
+                	var* vftbl_off, const func_type* ft)
     {
       const type* T = obj->result_type();
       if (T->scalar()) {
@@ -1271,7 +1271,7 @@ namespace cxx_compiler {
                   assert(before.back() == ret);
                   before.pop_back();
                 }
-        	assert(scope::current->m_id == scope::BLOCK);
+                assert(scope::current->m_id == scope::BLOCK);
                 ret->m_parent = scope::current;
                 scope::current->m_children.push_back(ret);
                 const vector<usr*>& o = param->m_order;
@@ -2031,7 +2031,7 @@ namespace cxx_compiler {
         return table.find(make_pair(x, y)) != table.end();
       }
       var* ctor_conv_common(const record_type* xx, var* src, bool trial,
-        		    usr** exp_ctor, var* obj)
+                	    usr** exp_ctor, var* obj)
       {
         tag* ptr = xx->get_tag();
         usr* ctor = has_ctor_dtor(ptr, false);
@@ -2061,11 +2061,11 @@ namespace cxx_compiler {
           if (scope::current->m_id != scope::BLOCK) {
             const vector<usr*>& v = ovl->m_candidacy;
             for_each(begin(v), end(v), [&org](usr* u)
-        	     {
-        	       usr::flag_t flag = u->m_flag;
-        	       org.push_back(flag);
-        	       u->m_flag = usr::flag_t(flag & ~usr::INLINE);
-        	     });
+                     {
+                       usr::flag_t flag = u->m_flag;
+                       org.push_back(flag);
+                       u->m_flag = usr::flag_t(flag & ~usr::INLINE);
+                     });
           }
           int ind = -1;
           var* ret = ovl->call(&arg, &ind);
@@ -2081,7 +2081,7 @@ namespace cxx_compiler {
             usr::flag_t flag = u->m_flag;
             if (flag & usr::EXPLICIT) {
               if (exp_ctor)
-        	*exp_ctor = u;
+                *exp_ctor = u;
             }
           }
 
@@ -2113,8 +2113,8 @@ namespace cxx_compiler {
               using namespace definition::static_inline;
               skip::table_t::const_iterator p = skip::stbl.find(ctor);
               if (p != skip::stbl.end()) {
-        	if (info_t* info = p->second)
-        	  substitute(code, code.size()-1, info);
+                if (info_t* info = p->second)
+                  substitute(code, code.size()-1, info);
               }
             }
           }
@@ -2129,7 +2129,7 @@ namespace cxx_compiler {
 const cxx_compiler::type*
 cxx_compiler::expressions::
 assignment::valid(const type* T, var* src, bool* discard, bool* ctor_conv,
-        	  usr** exp_ctor)
+                  usr** exp_ctor)
 {
   const type* xx = T;
   const type* yy = src->result_type();
@@ -2528,7 +2528,7 @@ namespace cxx_compiler {
           int trial_cost = 0;
           int* pi = (arg->size() == 1) ? &trial_cost : 0;
           var* ret = call_impl::common(ft, fun, arg, pi, this_ptr,
-        			       false, 0);
+                		       false, 0);
           if (!ret)
             return 0;
           usr::flag_t flag = fun->m_flag;
@@ -2538,8 +2538,8 @@ namespace cxx_compiler {
               using namespace definition::static_inline;
               skip::table_t::const_iterator p = skip::stbl.find(fun);
               if (p != skip::stbl.end()) {
-        	if (info_t* info = p->second)
-        	  substitute(code, code.size()-1, info);
+                if (info_t* info = p->second)
+                  substitute(code, code.size()-1, info);
               }
             }
           }

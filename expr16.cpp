@@ -74,8 +74,8 @@ namespace cxx_compiler {
       assert(!v.empty());
       for_each(begin(v)+1, end(v), [](var* v)
                {
-        	 if (v)
-        	   code.push_back(new param3ac(v));
+                 if (v)
+                   code.push_back(new param3ac(v));
                });
     }
     copy_ctor = instantiate_if(copy_ctor);
@@ -165,7 +165,7 @@ namespace cxx_compiler {
           var tmp(T);
           int n = code.size();
           var* ret = call_impl::common(ft, op_fun, &arg, &trial_cost, &tmp,
-        			       false, 0);
+                		       false, 0);
           for_each(begin(code)+n, end(code), [](tac* p){ delete p; });
           code.resize(n);
           return ret;
@@ -179,7 +179,7 @@ namespace cxx_compiler {
       const vector<usr*>& member = rec->member();
       typedef vector<usr*>::const_iterator IT;
       IT p = find_if(begin(member), end(member),
-        	     [](usr* u){ return require(u->m_type, 0); });
+                     [](usr* u){ return require(u->m_type, 0); });
       return p != end(member);
     }
     void gen(var* px, var* y, const record_type* rec);

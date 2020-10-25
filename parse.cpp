@@ -153,14 +153,14 @@ namespace cxx_compiler {
     namespace identifier {
       struct templ_param : usr {
         templ_param(string name, const type* T, flag_t flag,
-        	    const file_t& file, flag2_t flag2)
+                    const file_t& file, flag2_t flag2)
           : usr(name, T, flag, file, flag2) {}
         bool isconstant(bool) const { return true; }
         __int64 value() const { return 1; }
       };
       inline int templ_param_lex(string name,
-        			 const scope::tps_t::value_t& x,
-        			 bool instantiate)
+                		 const scope::tps_t::value_t& x,
+                		 bool instantiate)
       {
         if (tag* ptr = x.first) {
           cxx_compiler_lval.m_tag = ptr;
@@ -238,7 +238,7 @@ namespace cxx_compiler {
               assert(!v.empty());
               usr* uu = v.back();
               if (uu->m_flag & usr::CTOR)
-        	return false;
+                return false;
             }
             int kind = (flag & usr::TYPEDEF) ? TYPEDEF_NAME_LEX
               : IDENTIFIER_LEX;
@@ -276,7 +276,7 @@ namespace cxx_compiler {
 
             if (parse::identifier::mode != mem_ini) {
               if (lookup(ptr->m_usrs, bp))
-        	return;
+                return;
             }
             
             if (lookup(ptr->m_tags, bp))
@@ -291,7 +291,7 @@ namespace cxx_compiler {
               vector<info_t> tmp;
               for_each(begin(*bases), end(*bases), gather(m_name, tmp));
               for (auto& info : tmp)
-        	insert(info, bp);
+                insert(info, bp);
               copy(begin(tmp), end(tmp), back_inserter(m_choice));
             }
           }
@@ -352,9 +352,9 @@ namespace cxx_compiler {
             if (q != end(yb)) {
                // If `x' is direct base, `x' is conflict with `y'.
               if (xb.size() != 1)
-        	return false;
+                return false;
               if (x.m_kind != y.m_kind)
-        	error::not_implemented();
+                error::not_implemented();
               return x.m_kind == CLASS_NAME_LEX;
             }
             return true;
@@ -392,18 +392,18 @@ namespace cxx_compiler {
             pit = mismatch(pit.first, rend(xb), pit.second);
             if (pit != last) {
               if (conflict(*pit.first, *pit.second, xres))
-        	return true;
+                return true;
               ++pit.first, ++pit.second;
               assert(pit != last);
               ++pit.first, ++pit.second;
               for ( ; pit != last ; ++pit.first, ++pit.second ) {
-        	if (*pit.first != *pit.second) {
-        	  base* bx = *pit.first;
-        	  typedef vector<route_t>::iterator IT;
-        	  IT p = find(begin(xres), end(xres), route_t(bx,0));
-        	  if (p != end(xres))
-        	    xres.erase(p);
-        	}
+                if (*pit.first != *pit.second) {
+                  base* bx = *pit.first;
+                  typedef vector<route_t>::iterator IT;
+                  IT p = find(begin(xres), end(xres), route_t(bx,0));
+                  if (p != end(xres))
+                    xres.erase(p);
+                }
               }
             }
           }
@@ -422,10 +422,10 @@ namespace cxx_compiler {
             cxx_compiler_lval.m_var = x.m_lval;
             const vector<base*>& v = x.m_base;
             transform(begin(v), end(v), back_inserter(route),
-        	      [](base* bp){
-        		const record_type* zero = 0;
-        		return make_pair(bp, zero);
-        	      });
+                      [](base* bp){
+                	const record_type* zero = 0;
+                	return make_pair(bp, zero);
+                      });
             return x.m_kind;
           }
 
@@ -436,12 +436,12 @@ namespace cxx_compiler {
           const vector<base*>& v = x.m_base;
           vector<route_t> xres;
           transform(begin(v), end(v), back_inserter(xres), [](base* bp) {
-        	      const record_type* zero = 0;
-        	      return make_pair(bp, zero);
-        	    });
+                      const record_type* zero = 0;
+                      return make_pair(bp, zero);
+                    });
           IT q = find_if(begin(choice), end(choice),
-        		 [&x, &xres](const info_t& y)
-        		 { return &x == &y ? false : conflict(x,y,xres); } );
+                	 [&x, &xres](const info_t& y)
+                	 { return &x == &y ? false : conflict(x,y,xres); } );
           if (q != end(choice)) {
             const info_t&  y = *q;
             using namespace error::base_lookup;
@@ -496,8 +496,8 @@ namespace cxx_compiler {
             if (mode == mem_ini || peek() == COLONCOLON_MK) {
               const type* T = u->m_type;
               if (tag* ptr = T->get_tag()) {
-        	cxx_compiler_lval.m_tag = ptr;
-        	return CLASS_NAME_LEX;
+                cxx_compiler_lval.m_tag = ptr;
+                return CLASS_NAME_LEX;
               }
             }
             return TYPEDEF_NAME_LEX;
@@ -518,23 +518,23 @@ namespace cxx_compiler {
               assert(ptr->m_id == scope::TAG);
               tag* ptag = static_cast<tag*>(ptr);
               if ((ptag->m_flag & tag::INSTANTIATE) && peek() == '<')
-        	return lookup(name, ptr->m_parent);
+                return lookup(name, ptr->m_parent);
               return lookup(ptag->m_name, ptr->m_parent);
             }
             if (peek() == '<') {
               typedef vector<usr*>::const_iterator IT;
               IT p = find_if(begin(v), end(v),
-        		     [](usr* u){ return u->m_flag2 & usr::TEMPLATE; });
+                	     [](usr* u){ return u->m_flag2 & usr::TEMPLATE; });
               if (p != end(v)) {
-        	cxx_compiler_lval.m_ut = new pair<usr*, tag*>(*p, 0);
-        	return TEMPLATE_NAME_LEX;
+                cxx_compiler_lval.m_ut = new pair<usr*, tag*>(*p, 0);
+                return TEMPLATE_NAME_LEX;
               }
             }
             if (mode == new_obj)
               return create(name);
             if (!declarations::specifier_seq::info_t::s_stack.empty()) {
               if (declarations::specifier_seq::info_t::s_stack.top())
-        	return create(name);
+                return create(name);
             }
             return IDENTIFIER_LEX;
           }
@@ -552,7 +552,7 @@ namespace cxx_compiler {
               return create(name);
             if (parse::templ::ptr) {
               if (!template_usr::nest.empty())
-        	return create(name);
+                return create(name);
             }
           }
           if (flag2 & usr::PARTIAL_ORDERING) {
@@ -560,7 +560,7 @@ namespace cxx_compiler {
               return create(name);
             if (!declarations::specifier_seq::info_t::s_stack.empty()) {
               if (declarations::specifier_seq::info_t::s_stack.top())
-        	return create(name);
+                return create(name);
             }
             return IDENTIFIER_LEX;
           }
@@ -608,7 +608,7 @@ namespace cxx_compiler {
       typedef vector<scope*>::const_iterator IT;
       int n = 0;
       IT p = find_if(begin(c), end(c),
-        	     [name, &n](scope* ps){ return helper(name, ps, &n); });
+                     [name, &n](scope* ps){ return helper(name, ps, &n); });
       if (p != end(c))
         return n;
       if (scope* parent = ptr->m_parent)
@@ -626,16 +626,16 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
   typedef vector<scope::tps_t>::const_reverse_iterator IT;
   int n = 0;
   IT r = find_if(rbegin(tps), rend(tps),
-        	 [&n, name](const scope::tps_t& x)
-        	 {
-        	   const map<string, scope::tps_t::value_t>& table = x.m_table;
-        	   map<string, scope::tps_t::value_t>::const_iterator p =
-        	   table.find(name);
-        	   if (p == table.end())
-        	     return false;
-        	   n = templ_param_lex(name, p->second, false);
-        	   return n != 0;
-        	 });
+                 [&n, name](const scope::tps_t& x)
+                 {
+                   const map<string, scope::tps_t::value_t>& table = x.m_table;
+                   map<string, scope::tps_t::value_t>::const_iterator p =
+                   table.find(name);
+                   if (p == table.end())
+                     return false;
+                   n = templ_param_lex(name, p->second, false);
+                   return n != 0;
+                 });
   if (r != rend(tps))
     return n;
 
@@ -894,7 +894,7 @@ namespace cxx_compiler {
       return false;
     }
     void save_common(int n, list<void*>& lval, list<void*>* src = 0,
-        	     bool save_genaddr = false)
+                     bool save_genaddr = false)
     {
       if (save_cond(n)) {
         if (src) {
@@ -907,7 +907,7 @@ namespace cxx_compiler {
           if (save_genaddr) {
             if (n == IDENTIFIER_LEX || n == STRING_LITERAL_LEX) {
               if (genaddr* ga = v->genaddr_cast())
-        	save(ga);
+                save(ga);
             }
           }
           lval.push_back(v);
@@ -967,7 +967,7 @@ namespace cxx_compiler {
       return T;
     }
     int get_common(int n, list<void*>& lval, bool from_mem_fun_body,
-        	   bool templ)
+                   bool templ)
     {
       switch (n) {
       case PEEKED_NAME_LEX:
@@ -1050,15 +1050,15 @@ namespace cxx_compiler {
             int n = tinfos.size();
             if (n >= 2) {
               if (tinfos[n-1].first) {
-        	if (tinfos[n-2].second)
-        	  return CLASS_NAME_LEX;
+                if (tinfos[n-2].second)
+                  return CLASS_NAME_LEX;
               }
             }
             instantiated_tag* it = static_cast<instantiated_tag*>(ptr);
             const instantiated_tag::SEED& seed = it->m_seed;
             typedef instantiated_tag::SEED::const_iterator IT;
             IT p = find_if(begin(seed), end(seed),
-        		   not1(ptr_fun(template_param)));
+                	   not1(ptr_fun(template_param)));
             if (p == end(seed)) {
               template_tag* tt = it->m_src;
               string name = tt->m_name;
@@ -1108,7 +1108,7 @@ namespace cxx_compiler {
             using namespace identifier;
             if (tt->m_created) {
               last_token = should_lookup_templ() ?
-        	lookup(name, scope::current) : create_templ(name);
+                lookup(name, scope::current) : create_templ(name);
             }
             else
               last_token = lookup(name, scope::current);
@@ -1436,7 +1436,7 @@ void cxx_compiler::parse::block::enter()
         if (p == usrs.end()) {
           const type* pt = pointer_type::create(T);
           usr* this_ptr = new usr(this_name, pt, usr::NONE, parse::position,
-        			  usr::NONE2);
+                		  usr::NONE2);
           usrs[this_name].push_back(this_ptr);
           vector<usr*>& order = scope::current->m_order;
           vector<usr*> tmp = order;
@@ -1639,7 +1639,7 @@ std::string cxx_compiler::ucn::conv(std::string name)
 namespace cxx_compiler {
   namespace parse {
     context_t::context_t(int state, const vector<short>& vs,
-        		 const vector<void*>& vv, int c)
+                	 const vector<void*>& vv, int c)
     : m_state(state), m_stack0(vs), m_stack1(vv), m_char(c),
       m_scope(scope::current), m_before(class_or_namespace_name::before),
       m_last(class_or_namespace_name::last) {}

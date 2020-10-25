@@ -938,7 +938,7 @@ int cxx_compiler::statements::for_stmt::info_t::gen()
 }
 
 void cxx_compiler::var::for_code(statements::for_stmt::info_t* info,
-        			 to3ac* begin)
+                		 to3ac* begin)
 {
   using namespace std;
   using namespace statements;
@@ -1339,7 +1339,7 @@ namespace cxx_compiler {
   namespace statements {
     namespace condition {
       expressions::base* action(declarations::type_specifier_seq::info_t* p,
-        			var* v, expressions::base* right)
+                		var* v, expressions::base* right)
       {
         typedef declarations::type_specifier_seq::info_t X;
         auto_ptr<X> sweeper(p);

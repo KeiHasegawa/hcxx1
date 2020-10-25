@@ -2668,9 +2668,9 @@ namespace cxx_compiler {
 } // end of namespace cxx_compiler
 
 void cxx_compiler::error::base_lookup::ambiguous(const file_t& file,
-        					 std::string name,
-        					 const std::vector<base*>& x,
-        					 const std::vector<base*>& y)
+                				 std::string name,
+                				 const std::vector<base*>& x,
+                				 const std::vector<base*>& y)
 {
   using namespace std;
   switch (lang) {
@@ -2695,8 +2695,8 @@ void cxx_compiler::error::base_lookup::ambiguous(const file_t& file,
 }
 
 void cxx_compiler::error::ambiguous(const file_t& file,
-        			    const record_type* rx,
-        			    const record_type* ry)
+                		    const record_type* rx,
+                		    const record_type* ry)
 {
   using namespace std;
   tag* xp = rx->get_tag();
@@ -2807,7 +2807,7 @@ namespace cxx_compiler {
 
 void
 cxx_compiler::error::classes::abstract_object(string class_name, usr* obj,
-        				      const vector<usr*>& vf)
+                			      const vector<usr*>& vf)
 {
   using namespace std;
   using namespace abstract_object_impl;
@@ -2832,7 +2832,7 @@ cxx_compiler::error::classes::abstract_object(string class_name, usr* obj,
 
 void
 cxx_compiler::error::classes::abstract_return(string class_name, usr* func,
-        				      const vector<usr*>& vf)
+                			      const vector<usr*>& vf)
 {
   using namespace std;
   using namespace abstract_object_impl;
@@ -2857,7 +2857,7 @@ cxx_compiler::error::classes::abstract_return(string class_name, usr* func,
 
 void
 cxx_compiler::error::classes::abstract_param(string class_name, usr* func,
-        				     const vector<usr*>& vf, int nth)
+                			     const vector<usr*>& vf, int nth)
 {
   using namespace std;
   using namespace abstract_object_impl;

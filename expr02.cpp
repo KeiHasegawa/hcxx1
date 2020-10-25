@@ -155,7 +155,7 @@ namespace cxx_compiler {
     usr::flag_t flag = usr::flag_t(usr::FUNCTION | usr::NEW_SCALAR);
 
     usr* new_func = new usr(name, ft, flag, parse::position,
-        		    usr::GENED_BY_COMP);
+                	    usr::GENED_BY_COMP);
     new_func->m_scope = &scope::root;
     if (p == usrs.end()) {
       usrs[name].push_back(new_func);
@@ -246,7 +246,7 @@ namespace cxx_compiler {
         const vector<usr*>& order = ptr->m_order;
         typedef vector<usr*>::const_iterator IT;
         IT p = find_if(begin(order), end(order),[](usr* u)
-        	       { return u->m_flag & usr::VDEL; });
+                       { return u->m_flag & usr::VDEL; });
         if (p == end(order))
           return 0;
         return *p;
@@ -430,7 +430,7 @@ namespace cxx_compiler {
     const func_type* ft = func_type::create(vt,param);
     usr::flag_t flag = usr::flag_t(usr::FUNCTION | usr::DELETE_SCALAR);
     usr* delete_func = new usr(name, ft, flag, parse::position,
-        		       usr::GENED_BY_COMP);
+                	       usr::GENED_BY_COMP);
     delete_func->m_scope = &scope::root;
     usrs[name].push_back(delete_func);
     return delete_func;

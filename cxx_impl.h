@@ -73,7 +73,7 @@ namespace parse {
     extern int lookup(std::string, scope*);
     extern int judge(string);
     enum mode_t { look, new_obj, member, peeking, no_err, canbe_ctor,
-        	  mem_ini, templ_name };
+                  mem_ini, templ_name };
     extern mode_t mode;
     extern int typenaming;
     namespace base_lookup {
@@ -253,11 +253,11 @@ namespace error {
       extern void duplicate(const file_t&, string name);
     } // end of namespace base
     extern void abstract_object(string class_name, usr* obj,
-        			const vector<usr*>& vf);
+                		const vector<usr*>& vf);
     extern void abstract_return(string class_name, usr* func,
-        			const vector<usr*>& vf);
+                		const vector<usr*>& vf);
     extern void abstract_param(string class_name, usr* func,
-        		       const vector<usr*>& vf, int nth);
+                	       const vector<usr*>& vf, int nth);
   } // end of namespace classes
   namespace expressions {
     namespace primary {
@@ -390,7 +390,7 @@ namespace error {
   } // end of namespace statements
   namespace base_lookup {
     extern void ambiguous(const file_t&, string,
-        		  const vector<base*>&, const vector<base*>&);
+                	  const vector<base*>&, const vector<base*>&);
   } // end of namespace base_lookup
   extern void ambiguous(const file_t&, const record_type*, const record_type*);
   namespace virtual_function {
@@ -478,9 +478,9 @@ namespace type_impl {
 extern bool temporary(const tag*);
 
 extern int calc_offset(const record_type* drec,
-        	       const record_type* brec,
-        	       const std::vector<route_t>& route,
-        	       bool* ambiguous);
+                       const record_type* brec,
+                       const std::vector<route_t>& route,
+                       bool* ambiguous);
 
 extern var* aggregate_conv(const type* T, var* y, bool ctor_conv, var* res);
 
@@ -499,7 +499,7 @@ extern usr* get_copy_ctor(const type*);
 extern bool array_of_tor(const array_type* at, bool ctor);
 
 extern void ctor_dtor_common(var* v, const array_type* at, void (*pf)(var*),
-        		     bool ctor);
+                	     bool ctor);
 
 extern usr* has_ctor_dtor(tag* ptr, bool is_dtor);
 
@@ -645,7 +645,7 @@ namespace declarations {
           vector<const type*> m_param;
           instantiated_usr::SEED m_seed;
           key_t(string name, scope* ps, const vector<const type*>& param,
-        	const instantiated_usr::SEED& seed)
+                const instantiated_usr::SEED& seed)
           : m_name(name), m_scope(ps), m_param(param), m_seed(seed) {}
         };
         inline bool operator<(const key_t& x, const key_t& y)
@@ -1390,7 +1390,7 @@ struct generated : virtual var {
 namespace cast_impl {
   extern var* with_route(const type* Tx, var* src, const vector<route_t>&);
   extern usr* conversion_function(const record_type* rec, const type* T,
-        			  bool other);
+                		  bool other);
 } // end of namespace cast_impl
 
 struct genaddr : generated, addrof {

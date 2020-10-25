@@ -426,7 +426,7 @@ namespace cxx_compiler {
       const map<int, var*>& src = w->m_value;
       const vector<usr*>& order = ptr->m_order;
       int nvf = count_if(begin(order),end(order),
-        		 [](usr* u){ return u->m_flag & usr::VIRTUAL; });
+                	 [](usr* u){ return u->m_flag & usr::VIRTUAL; });
       typedef map<int, var*>::const_iterator ITy;
       ITy it = end(src);
       while (nvf--)
@@ -923,7 +923,7 @@ namespace cxx_compiler {
       base_ctor_dtor(const map<base*, int>& base_offset, var* this_ptr,
                      scope* param, block* b, bool is_dtor, usr* tor,
                      const vector<const record_type*>& exclude, bool for_virt,
-        	     const vector<const record_type*>& dc)
+                     const vector<const record_type*>& dc)
         : m_base_offset(base_offset), m_this(this_ptr), m_param(param),
           m_block(b), m_is_dtor(is_dtor), m_tor(tor), m_exclude(exclude),
           m_for_virt(for_virt), m_direct_common(dc) {}
@@ -1326,9 +1326,9 @@ namespace cxx_compiler {
       }
     };
     inline void set_cd(vector<const record_type*>& cd,
-        	       const vector<const record_type*>& common,
-        	       const vector<const record_type*>& direct_common,
-        	       const vector<const record_type*>& exclude)
+                       const vector<const record_type*>& common,
+                       const vector<const record_type*>& direct_common,
+                       const vector<const record_type*>& exclude)
     {
       auto not_ex = [&exclude](const record_type* rec) {
           return find(begin(exclude), end(exclude), rec) == end(exclude);
@@ -2030,7 +2030,7 @@ cxx_compiler::record_type::record_type(tag* ptr)
       if (nvb) {
         T = pointer_type::create(T);
         usr* vbptr = new usr(vbptr_name, T, usr::NONE, parse::position,
-        		     usr::NONE2);
+                	     usr::NONE2);
         usrs[vbptr_name].push_back(vbptr);
         m_member.push_back(vbptr);
         m_layout[vbptr_name] = make_pair(m_size, vbptr);
@@ -2105,7 +2105,7 @@ cxx_compiler::record_type::record_type(tag* ptr)
     if (nvf) {
       T = pointer_type::create(T);
       usr* vfptr = new usr(vfptr_name, T, usr::NONE, parse::position,
-        		   usr::NONE2);
+                	   usr::NONE2);
       m_tag->m_usrs[vfptr_name].push_back(vfptr);
       m_member.push_back(vfptr);
       m_layout[vfptr_name] = make_pair(vfptr_offset, vfptr);
@@ -2869,7 +2869,7 @@ namespace cxx_compiler {
     return true;
   }
   bool templ_copy_ctor(usr* u, instantiated_tag* y,
-        	       instantiated_tag::SEED& seed)
+                       instantiated_tag::SEED& seed)
   {
     usr::flag2_t flag2 = u->m_flag2;
     if (!(flag2 & usr::TEMPLATE))
@@ -2928,7 +2928,7 @@ void cxx_compiler::handle_copy_ctor(tag* ptr)
     instantiated_tag* it = static_cast<instantiated_tag*>(ptr);
     template_usr::KEY key;
     IT r = find_if(begin(v), end(v), [it, &key](usr* u)
-        	   { return templ_copy_ctor(u, it, key); });
+                   { return templ_copy_ctor(u, it, key); });
     if (r != end(v)) {
       usr* u = *r;
       assert(u->m_flag2 & usr::TEMPLATE);
@@ -3008,7 +3008,7 @@ cxx_compiler::usr* cxx_compiler::get_copy_ctor(const type* T)
   const vector<usr*>& v = p->second;
   typedef vector<usr*>::const_reverse_iterator ITy;
   ITy q = find_if(rbegin(v), rend(v),
-        	  bind2nd(ptr_fun(canbe_copy_ctor), ptr));
+                  bind2nd(ptr_fun(canbe_copy_ctor), ptr));
   if (q == rend(v))
     return 0;
   usr* u1 = *q;
