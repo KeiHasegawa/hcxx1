@@ -39,7 +39,7 @@ cxx_compiler::addrof::addrof(const type* T, var* ref, int offset)
   : var(T), m_ref(ref), m_offset(offset) {}
 
 cxx_compiler::genaddr::genaddr(const pointer_type* G, const type* T,
-			       var* ref, int offset)
+        		       var* ref, int offset)
   : var(G), generated(G,T), addrof(G,ref,offset), m_qualified_func(false)
   , m_appear_templ(false)
 {
@@ -95,9 +95,9 @@ namespace cxx_compiler {
       ptr = ptr->new3ac();
       ptr->x = copied;
       if (!expressions::constant_flag) {
-	code.push_back(ptr);
-	transform(ga->m_code.begin()+1, ga->m_code.end(), back_inserter(code),
-		  [](tac* p){ return p->new3ac(); });
+        code.push_back(ptr);
+        transform(ga->m_code.begin()+1, ga->m_code.end(), back_inserter(code),
+        	  [](tac* p){ return p->new3ac(); });
       }
       return copied;
     }
@@ -118,11 +118,11 @@ cxx_compiler::var* cxx_compiler::genaddr::rvalue()
       vector<var*>& v = garbage;
       vector<var*>::reverse_iterator p = find(v.rbegin(),v.rend(),this);
       if (p != v.rend()) {
-	v.erase(p.base()-1);
-	b->m_vars.push_back(this);
+        v.erase(p.base()-1);
+        b->m_vars.push_back(this);
       }
       else
-	assert(m_code_copied);
+        assert(m_code_copied);
     }
   }
   if (!expressions::constant_flag) {
@@ -132,7 +132,7 @@ cxx_compiler::var* cxx_compiler::genaddr::rvalue()
     }
     else {
       transform(m_code.begin(),m_code.end(),back_inserter(code),
-		[](tac* p){ return p->new3ac(); });
+        	[](tac* p){ return p->new3ac(); });
     }
   }
 

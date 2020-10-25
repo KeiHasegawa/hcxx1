@@ -73,7 +73,7 @@ namespace parse {
     extern int lookup(std::string, scope*);
     extern int judge(string);
     enum mode_t { look, new_obj, member, peeking, no_err, canbe_ctor,
-		  mem_ini, templ_name };
+        	  mem_ini, templ_name };
     extern mode_t mode;
     extern int typenaming;
     namespace base_lookup {
@@ -253,11 +253,11 @@ namespace error {
       extern void duplicate(const file_t&, string name);
     } // end of namespace base
     extern void abstract_object(string class_name, usr* obj,
-				const vector<usr*>& vf);
+        			const vector<usr*>& vf);
     extern void abstract_return(string class_name, usr* func,
-				const vector<usr*>& vf);
+        			const vector<usr*>& vf);
     extern void abstract_param(string class_name, usr* func,
-			       const vector<usr*>& vf, int nth);
+        		       const vector<usr*>& vf, int nth);
   } // end of namespace classes
   namespace expressions {
     namespace primary {
@@ -390,7 +390,7 @@ namespace error {
   } // end of namespace statements
   namespace base_lookup {
     extern void ambiguous(const file_t&, string,
-			  const vector<base*>&, const vector<base*>&);
+        		  const vector<base*>&, const vector<base*>&);
   } // end of namespace base_lookup
   extern void ambiguous(const file_t&, const record_type*, const record_type*);
   namespace virtual_function {
@@ -478,9 +478,9 @@ namespace type_impl {
 extern bool temporary(const tag*);
 
 extern int calc_offset(const record_type* drec,
-		       const record_type* brec,
-		       const std::vector<route_t>& route,
-		       bool* ambiguous);
+        	       const record_type* brec,
+        	       const std::vector<route_t>& route,
+        	       bool* ambiguous);
 
 extern var* aggregate_conv(const type* T, var* y, bool ctor_conv, var* res);
 
@@ -499,7 +499,7 @@ extern usr* get_copy_ctor(const type*);
 extern bool array_of_tor(const array_type* at, bool ctor);
 
 extern void ctor_dtor_common(var* v, const array_type* at, void (*pf)(var*),
-			     bool ctor);
+        		     bool ctor);
 
 extern usr* has_ctor_dtor(tag* ptr, bool is_dtor);
 
@@ -521,7 +521,7 @@ extern bool must_call_default_ctor(usr*);
 
 extern void initialize_ctor_code(usr*);
 
-extern bool must_call_dtor(usr*);
+extern bool must_call_dtor(const type*);
 
 extern void terminate_dtor_code(usr*);
 
@@ -639,50 +639,50 @@ namespace declarations {
         extern void begin(declarations::specifier_seq::info_t*, var*);
         extern void action(statements::base*);
         extern void action(fundef* fdef, vector<tac*>&);
-	struct key_t {
-	  string m_name;
-	  scope* m_scope;
-	  vector<const type*> m_param;
-	  instantiated_usr::SEED m_seed;
-	  key_t(string name, scope* ps, const vector<const type*>& param,
-		const instantiated_usr::SEED& seed)
-	  : m_name(name), m_scope(ps), m_param(param), m_seed(seed) {}
-	};
-	inline bool operator<(const key_t& x, const key_t& y)
-	{
-	  if (x.m_name < y.m_name)
-	    return true;
-	  if (x.m_name > y.m_name)
-	    return false;
-	  if (x.m_scope < y.m_scope)
-	    return true;
-	  if (x.m_scope > y.m_scope)
-	    return false;
-	  if (x.m_param < y.m_param)
-	    return true;
-	  if (x.m_param > y.m_param)
-	    return false;
-	  return x.m_seed < y.m_seed;
-	}
-	inline const type* ins_if(const type* T)
-	{
-	  if (T->m_id != type::TEMPLATE_PARAM)
-	    return T;
-	  tag* ptr = T->get_tag();
-	  const type* T2 = ptr->m_types.second;
-	  if (T2)
-	    return T2;
-	  return T;
-	}
-	inline instantiated_usr::SEED get_seed(usr* u)
-	{
-	  usr::flag2_t flag2 = u->m_flag2;
-	  if (!(flag2 & usr::INSTANTIATE))
-	    return instantiated_usr::SEED();
-	  typedef instantiated_usr IU;
-	  IU* iu = static_cast<IU*>(u);
-	  return iu->m_seed;
-	}
+        struct key_t {
+          string m_name;
+          scope* m_scope;
+          vector<const type*> m_param;
+          instantiated_usr::SEED m_seed;
+          key_t(string name, scope* ps, const vector<const type*>& param,
+        	const instantiated_usr::SEED& seed)
+          : m_name(name), m_scope(ps), m_param(param), m_seed(seed) {}
+        };
+        inline bool operator<(const key_t& x, const key_t& y)
+        {
+          if (x.m_name < y.m_name)
+            return true;
+          if (x.m_name > y.m_name)
+            return false;
+          if (x.m_scope < y.m_scope)
+            return true;
+          if (x.m_scope > y.m_scope)
+            return false;
+          if (x.m_param < y.m_param)
+            return true;
+          if (x.m_param > y.m_param)
+            return false;
+          return x.m_seed < y.m_seed;
+        }
+        inline const type* ins_if(const type* T)
+        {
+          if (T->m_id != type::TEMPLATE_PARAM)
+            return T;
+          tag* ptr = T->get_tag();
+          const type* T2 = ptr->m_types.second;
+          if (T2)
+            return T2;
+          return T;
+        }
+        inline instantiated_usr::SEED get_seed(usr* u)
+        {
+          usr::flag2_t flag2 = u->m_flag2;
+          if (!(flag2 & usr::INSTANTIATE))
+            return instantiated_usr::SEED();
+          typedef instantiated_usr IU;
+          IU* iu = static_cast<IU*>(u);
+          return iu->m_seed;
+        }
         typedef map<key_t,usr*> table_t;
         extern table_t dtbl;
         namespace static_inline {
@@ -735,21 +735,21 @@ namespace declarations {
           } // end of namespace defer
         } // end of namespace static_inline
         namespace mem_initializer {
-	  typedef pair<usr*, tag*> PAIR;
-	  typedef vector<expressions::base*> EXPRS;
+          typedef pair<usr*, tag*> PAIR;
+          typedef vector<expressions::base*> EXPRS;
           typedef vector<pair<PAIR*,EXPRS*> > VALUE;
           extern map<usr*, VALUE> for_parse;  // key is constructor
           void action(PAIR*, EXPRS*);
-	  struct pbc {
-	    scope* m_param;
-	    block* m_block;
-	    vector<tac*> m_code;
-	    pbc(scope* param, block* bp, const vector<tac*>& c)
-	    : m_param(param), m_block(bp), m_code(c) {}
+          struct pbc {
+            scope* m_param;
+            block* m_block;
+            vector<tac*> m_code;
+            pbc(scope* param, block* bp, const vector<tac*>& c)
+            : m_param(param), m_block(bp), m_code(c) {}
   	    pbc() : m_param(0), m_block(0) {}
-	  };
-	  extern map<usr*, map<tag*, pbc> > btbl;
-	  extern map<usr*, map<usr*, pbc> > mtbl;
+          };
+          extern map<usr*, map<tag*, pbc> > btbl;
+          extern map<usr*, map<usr*, pbc> > mtbl;
         } // end of mem_initializer
       } // end of namespace definition
     } // end of namespace function
@@ -812,7 +812,7 @@ namespace declarations {
         usr* m_usr;
         info_t(expressions::base* expr, var* v)
           : m_expr(expr),
-	    m_usr((assert(!v || v->usr_cast()), static_cast<usr*>(v))) {}
+            m_usr((assert(!v || v->usr_cast()), static_cast<usr*>(v))) {}
         ~info_t();
       };
     } // end of namespace designator
@@ -968,15 +968,15 @@ namespace expressions {
         scope* m_scope;
         file_t m_file;
         var* m_member;
-	const type* m_type;
+        const type* m_type;
         vector<route_t> m_route;
-	bool m_qualified;
+        bool m_qualified;
         var* gen();
         const file_t& file() const { return m_file; }
         info_t(const vector<tac*>& c, var* expr, bool dot, scope* s,
-	       const file_t& file)
+               const file_t& file)
           : m_code(c), m_expr(expr), m_dot(dot), m_scope(s), m_file(file),
-	  m_member(0), m_type(0), m_qualified(false) {}
+          m_member(0), m_type(0), m_qualified(false) {}
       };
       extern stack<info_t*> handling;
       extern info_t* begin(base*, bool);
@@ -1039,7 +1039,7 @@ namespace expressions {
       new_expr(const type* T, vector<base*>* exprs, const file_t& file)
         : m_place(0), m_T(T), m_exprs(exprs), m_file(file) {}
       new_expr(vector<base*>* place, const type* T, vector<base*>* exprs,
-	       const file_t& file)
+               const file_t& file)
         : m_place(place), m_T(T), m_exprs(exprs), m_file(file) {}
       var* gen();
     };
@@ -1049,7 +1049,7 @@ namespace expressions {
       bool m_root;
       const file_t& file() const;
       delete_expr(base* expr, bool a, bool r)
-	: m_expr(expr), m_array(a), m_root(r) {}
+        : m_expr(expr), m_array(a), m_root(r) {}
       var* gen();
       ~delete_expr(){ delete m_expr; }
     };
@@ -1072,7 +1072,7 @@ namespace expressions {
       var* gen();
       const file_t& file() const { return m_file; }
       info_t(const type* type,
-	     vector<declarations::initializers::element*>* list)
+             vector<declarations::initializers::element*>* list)
         : m_type(type), m_list(list), m_file(parse::position) {}
       ~info_t();
     };
@@ -1283,13 +1283,13 @@ namespace statements {
       scope* m_child;
       int gen();
       info_t(base* stmt1, expressions::base* expr2, expressions::base* expr3,
-	     base* stmt)
+             base* stmt)
         : m_scope(scope::current), m_stmt1(stmt1), m_expr2(expr2),
-	m_expr3(expr3), m_stmt(stmt)
+        m_expr3(expr3), m_stmt(stmt)
       {
-	const vector<scope*>& children = m_scope->m_children;
-	assert(!children.empty());
-	m_child = children.back();
+        const vector<scope*>& children = m_scope->m_children;
+        assert(!children.empty());
+        m_child = children.back();
       }
       ~info_t()
       { delete m_stmt1; delete m_expr2; delete m_expr3; delete m_stmt; }
@@ -1323,7 +1323,7 @@ namespace statements {
     struct info_t : base {
       usr* m_label;
       info_t(var* v)
-	: m_label((assert(v->usr_cast()), static_cast<usr*>(v))) {}
+        : m_label((assert(v->usr_cast()), static_cast<usr*>(v))) {}
       int gen();
       ~info_t(){ delete m_label; }
     };
@@ -1344,14 +1344,14 @@ namespace statements {
       HANDLERS* m_handlers;
       int gen();
       info_t(base* stmt, HANDLERS* handlers)
-	: m_stmt(stmt), m_handlers(handlers) {}
+        : m_stmt(stmt), m_handlers(handlers) {}
       ~info_t();
     };
   } // end of namespace try_block
   namespace condition {
     expressions::base*
     action(declarations::type_specifier_seq::info_t*, var*,
-	   expressions::base*);
+           expressions::base*);
   } // end of  namespace condition
 } // end of namespace statements
 
@@ -1390,7 +1390,7 @@ struct generated : virtual var {
 namespace cast_impl {
   extern var* with_route(const type* Tx, var* src, const vector<route_t>&);
   extern usr* conversion_function(const record_type* rec, const type* T,
-				  bool other);
+        			  bool other);
 } // end of namespace cast_impl
 
 struct genaddr : generated, addrof {
@@ -1628,6 +1628,7 @@ extern void copy_scope(const scope* src, scope* dst, map<var*, var*>& tbl);
 
 namespace block_impl {
   extern map<block*, vector<var*> > dtor_tbl;
+  extern set<usr*> tried;
 } // end of namespace block_impl
 
 struct templ_base {
@@ -1645,7 +1646,7 @@ struct template_usr : usr, templ_base {
     mode_t m_mode;
     KEY m_key;
     info_t(template_usr* tu, instantiated_usr* iu, mode_t mode,
-	   const KEY& key)
+           const KEY& key)
     : m_tu(tu), m_iu(iu), m_mode(mode), m_key(key) {}
   };
   static vector<info_t> nest;
@@ -1757,7 +1758,7 @@ namespace typenamed {
 struct ini_term : usr {
   usr* m_obj;
   ini_term(string name, const type* T, flag_t flag, const file_t& file,
-	   flag2_t flag2, usr* obj)
+           flag2_t flag2, usr* obj)
     : usr(name, T, flag, file, flag2), m_obj(obj) {}
 };
 

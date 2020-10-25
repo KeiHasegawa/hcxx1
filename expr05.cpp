@@ -13,7 +13,7 @@ namespace cxx_compiler { namespace var_impl {
     struct table_t : vector<string> {
       table_t()
       {
-	push_back("int");
+        push_back("int");
       }
     } table;
   } // end of namespace conversion_function_impl
@@ -39,18 +39,18 @@ namespace cxx_compiler { namespace var_impl {
       const type* Tz = z->result_type();
       op_fun = operator_function(Tz, op);
       if (op_fun) {
-	if (var* tmp = aggregate_conv(Tz, y->rvalue(), true, 0))
-	  y = tmp;
-	else {
-	  op_fun = operator_function(op);
-	  if (!op_fun)
-	    return 0;
-	}
+        if (var* tmp = aggregate_conv(Tz, y->rvalue(), true, 0))
+          y = tmp;
+        else {
+          op_fun = operator_function(op);
+          if (!op_fun)
+            return 0;
+        }
       }
       else {
-	op_fun = operator_function(op);
-	if (!op_fun)
-	  return 0;
+        op_fun = operator_function(op);
+        if (!op_fun)
+          return 0;
       }
     }
     y = y->rvalue();
@@ -64,7 +64,7 @@ namespace cxx_compiler { namespace var_impl {
     if (flag & usr::OVERLOAD) {
       overload* ovl = static_cast<overload*>(op_fun);
       if (p->m_id == scope::TAG)
-	ovl->m_obj = y;
+        ovl->m_obj = y;
       return ovl->call(&arg);
     }
     usr::flag2_t flag2 = op_fun->m_flag2;
@@ -100,7 +100,7 @@ cxx_compiler::usr* cxx_compiler::conversion_function(const type* T)
   IT p = find_if(begin(table), end(table), [&usrs, &res](string name){
       map<string, vector<usr*> >::const_iterator q = usrs.find(name);
       if (q == usrs.end())
-	return false;
+        return false;
       const vector<usr*>& v = q->second;
       assert(v.size() == 1);
       res = v.back();

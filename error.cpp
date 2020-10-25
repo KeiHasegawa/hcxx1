@@ -98,19 +98,19 @@ void cxx_compiler::error::header(const file_t& file, std::string msg)
       usr* u = func->m_usr;
       usr::flag2_t flag2 = u->m_flag2;
       if (!(flag2 & usr::GENED_BY_COMP)) {
-	string name = u->m_name;
-	usr::flag_t flag = u->m_flag;
-	if (flag & usr::CTOR)
-	  name += "::" + name;
-	switch ( lang ){
-	case jpn:
-	  cerr << file.m_name << ": 函数 `" << name << "' :\n";
-	  break;
-	default:
-	  cerr << file.m_name << ": In function `" << name << "' :\n";
-	  break;
-	}
-	headered = true;
+        string name = u->m_name;
+        usr::flag_t flag = u->m_flag;
+        if (flag & usr::CTOR)
+          name += "::" + name;
+        switch ( lang ){
+        case jpn:
+          cerr << file.m_name << ": 函数 `" << name << "' :\n";
+          break;
+        default:
+          cerr << file.m_name << ": In function `" << name << "' :\n";
+          break;
+        }
+        headered = true;
       }
     }
   }
@@ -660,7 +660,7 @@ void cxx_compiler::error::expressions::postfix::call::mismatch_argument(const fi
       string name = u->m_name;
       usr::flag_t flag = u->m_flag;
       if (flag & usr::CTOR)
-	name += "::" + name;
+        name += "::" + name;
       cerr << " `" << name << "' の";
     }
     cerr << "呼び出しの " << n + 1 << " 番目の引数がマッチしません.";
@@ -675,7 +675,7 @@ void cxx_compiler::error::expressions::postfix::call::mismatch_argument(const fi
       string name = u->m_name;
       usr::flag_t flag = u->m_flag;
       if (flag & usr::CTOR)
-	name += "::" + name;
+        name += "::" + name;
       cerr << '`' << name << "' ";
     }
     switch ( n ){
@@ -711,7 +711,7 @@ namespace cxx_compiler {
               break;
             }
             string name = c->m_name;
-	    cerr << "`" << name << "'" << '\n';
+            cerr << "`" << name << "'" << '\n';
           }
         } // end of namespace call
       } // end of namespace postfix
@@ -2661,16 +2661,16 @@ namespace cxx_compiler {
       using namespace std;
       inline string help(const base* bp)
       {
-	return bp->m_tag->m_name + "::";
+        return bp->m_tag->m_name + "::";
       }
     } // end of namespace base_lookup
   } // end of namespace error
 } // end of namespace cxx_compiler
 
 void cxx_compiler::error::base_lookup::ambiguous(const file_t& file,
-						 std::string name,
-						 const std::vector<base*>& x,
-						 const std::vector<base*>& y)
+        					 std::string name,
+        					 const std::vector<base*>& x,
+        					 const std::vector<base*>& y)
 {
   using namespace std;
   switch (lang) {
@@ -2695,8 +2695,8 @@ void cxx_compiler::error::base_lookup::ambiguous(const file_t& file,
 }
 
 void cxx_compiler::error::ambiguous(const file_t& file,
-				    const record_type* rx,
-				    const record_type* ry)
+        			    const record_type* rx,
+        			    const record_type* ry)
 {
   using namespace std;
   tag* xp = rx->get_tag();
@@ -2784,22 +2784,22 @@ namespace cxx_compiler {
   namespace error {
     namespace classes {
       namespace abstract_object_impl {
-	using namespace std;	
-	void help(usr* vf)
-	{
-	  const file_t& vfile = vf->m_file;
-	  string vname = vf->m_name;
-	  switch (lang) {
-	  case jpn:
-	    header(vfile,"");
-	    cerr << "`" << vname << "' は純粋仮想函数です.\n";
-	    break;
-	  default:
-	    header(vfile,"");
-	    cerr << "`" << vname << "' is pure virtual function.\n";
-	    break;
-	  }	  
-	}
+        using namespace std;	
+        void help(usr* vf)
+        {
+          const file_t& vfile = vf->m_file;
+          string vname = vf->m_name;
+          switch (lang) {
+          case jpn:
+            header(vfile,"");
+            cerr << "`" << vname << "' は純粋仮想函数です.\n";
+            break;
+          default:
+            header(vfile,"");
+            cerr << "`" << vname << "' is pure virtual function.\n";
+            break;
+          }	  
+        }
       }  // end of namespace abstract_object_impl
     }  // end of namespace classes
   }  // end of namespace error
@@ -2807,7 +2807,7 @@ namespace cxx_compiler {
 
 void
 cxx_compiler::error::classes::abstract_object(string class_name, usr* obj,
-					      const vector<usr*>& vf)
+        				      const vector<usr*>& vf)
 {
   using namespace std;
   using namespace abstract_object_impl;
@@ -2832,7 +2832,7 @@ cxx_compiler::error::classes::abstract_object(string class_name, usr* obj,
 
 void
 cxx_compiler::error::classes::abstract_return(string class_name, usr* func,
-					      const vector<usr*>& vf)
+        				      const vector<usr*>& vf)
 {
   using namespace std;
   using namespace abstract_object_impl;
@@ -2857,7 +2857,7 @@ cxx_compiler::error::classes::abstract_return(string class_name, usr* func,
 
 void
 cxx_compiler::error::classes::abstract_param(string class_name, usr* func,
-					     const vector<usr*>& vf, int nth)
+        				     const vector<usr*>& vf, int nth)
 {
   using namespace std;
   using namespace abstract_object_impl;

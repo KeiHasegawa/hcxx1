@@ -66,6 +66,7 @@ cxx_compiler::block::~block()
 namespace cxx_compiler {
   namespace block_impl {
     map<block*, vector<var*> > dtor_tbl;
+    set<usr*> tried;
   } // end of namespace block_impl
 } // end of namespace cxx_compiler
 

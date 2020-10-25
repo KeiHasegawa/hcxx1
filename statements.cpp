@@ -223,46 +223,61 @@ int cxx_compiler::statements::expression::info_t::gen()
   return 0;
 }
 
+namespace cxx_compiler {
+  namespace statements {
+    namespace compound {
+      void call_dtor2(var* v)
+      {
+        usr* u = v->usr_cast();
+        if (!u)
+          return call_dtor(v);
+        set<usr*>::iterator p = block_impl::tried.find(u);
+        if (p == block_impl::tried.end())
+          return call_dtor(v);
+        block_impl::tried.erase(p);
+        code.push_back(new try_end3ac);
+        here3ac* here = new here3ac;
+        here->m_for_dest = true;
+        code.push_back(here);
+        const type* vp = void_type::create();
+        vp = pointer_type::create(vp);
+        var* t0 = new var(vp);
+        assert(scope::current->m_id == scope::BLOCK);
+        block* b = static_cast<block*>(scope::current);
+        b->m_vars.push_back(t0);
+        code.push_back(new here_info3ac(t0));
+        call_dtor(v);
+        code.push_back(new unwind_resume3ac(t0));
+      }
+    } // end of namespace compound
+  } // end of namespace statements
+} // end of namespace cxx_compiler
+
 int cxx_compiler::statements::compound::info_t::gen()
 {
   using namespace std;
-  int tb = code.size();
   scope* org = scope::current;
   scope::current = m_scope;
   if (m_bases) {
     const vector<base*>& v = *m_bases;
     for_each(v.begin(),v.end(),mem_fun(&base::gen));
   }
-  int te = code.size();
   assert(scope::current->m_id == scope::BLOCK);
   block* b = static_cast<block*>(scope::current);
   typedef map<block*, vector<var*> >::iterator IT;
   IT p = block_impl::dtor_tbl.find(b);
   if (p != block_impl::dtor_tbl.end()) {
     const vector<var*>& v = p->second;
-    int n = code.size();
     for_each(rbegin(v), rend(v), call_dtor);
-    int m = code.size();
-    if (n != m) {
-      code.insert(code.begin()+te, new try_end3ac);
-      code.insert(code.begin()+tb, new try_begin3ac);
-      goto3ac* go = new goto3ac;
-      to3ac* to = new to3ac;
-      go->m_to = to;
-      to->m_goto.push_back(go);
-      code.push_back(go);
-      here3ac* here = new here3ac;
-      here->m_for_dest = true;
-      code.push_back(here);
-      const type* vp = void_type::create();
-      vp = pointer_type::create(vp);
-      var* t0 = new var(vp);
-      b->m_vars.push_back(t0);
-      code.push_back(new here_info3ac(t0));
-      for_each(rbegin(v), rend(v), call_dtor);
-      code.push_back(new unwind_resume3ac(t0));
-      code.push_back(to);
-    }
+    goto3ac* go = new goto3ac;
+    to3ac* to = new to3ac;
+    go->m_to = to;
+    to->m_goto.push_back(go);
+    code.push_back(go);
+    for_each(rbegin(v), rend(v), call_dtor2);
+    if (b->m_parent->m_id == scope::PARAM)
+      assert(block_impl::tried.empty());
+    code.push_back(to);
     block_impl::dtor_tbl.erase(p);
   }
   scope* parent = scope::current->m_parent;
@@ -923,7 +938,7 @@ int cxx_compiler::statements::for_stmt::info_t::gen()
 }
 
 void cxx_compiler::var::for_code(statements::for_stmt::info_t* info,
-				 to3ac* begin)
+        			 to3ac* begin)
 {
   using namespace std;
   using namespace statements;
@@ -1107,35 +1122,35 @@ namespace cxx_compiler {
       extern void gather(scope*, std::vector<var*>&);
       inline var* copy_ctor(const type* T, var* expr)
       {
-	usr* ctor = get_copy_ctor(T);
-	if (!ctor)
-	  return expr;
-	usr::flag2_t flag2 = ctor->m_flag2;
-	if (flag2 & usr::GENED_BY_COMP)
-	  return expr;
-	const type* Tc = ctor->m_type;
-	assert(Tc->m_id == type::FUNC);
-	typedef const func_type FT;
-	FT* ft = static_cast<FT*>(Tc);
-	const vector<const type*>& param = ft->param();
-	assert(!param.empty());
-	const type* Tp = param[0];
-	var* t0 = new var(Tp);
-	var* t1 = new var(T);
-	if (scope::current->m_id == scope::BLOCK) {
-	  block* b = static_cast<block*>(scope::current);
-	  b->m_vars.push_back(t0);
-	  b->m_vars.push_back(t1);
-	}
-	else {
-	  garbage.push_back(t0);
-	  garbage.push_back(t1);
-	}
-	code.push_back(new addr3ac(t0, expr));
-	vector<var*> arg;
-	arg.push_back(t0);
-	call_impl::wrapper(ctor, &arg, t1);
-	return t1;
+        usr* ctor = get_copy_ctor(T);
+        if (!ctor)
+          return expr;
+        usr::flag2_t flag2 = ctor->m_flag2;
+        if (flag2 & usr::GENED_BY_COMP)
+          return expr;
+        const type* Tc = ctor->m_type;
+        assert(Tc->m_id == type::FUNC);
+        typedef const func_type FT;
+        FT* ft = static_cast<FT*>(Tc);
+        const vector<const type*>& param = ft->param();
+        assert(!param.empty());
+        const type* Tp = param[0];
+        var* t0 = new var(Tp);
+        var* t1 = new var(T);
+        if (scope::current->m_id == scope::BLOCK) {
+          block* b = static_cast<block*>(scope::current);
+          b->m_vars.push_back(t0);
+          b->m_vars.push_back(t1);
+        }
+        else {
+          garbage.push_back(t0);
+          garbage.push_back(t1);
+        }
+        code.push_back(new addr3ac(t0, expr));
+        vector<var*> arg;
+        arg.push_back(t0);
+        call_impl::wrapper(ctor, &arg, t1);
+        return t1;
       }
     } // end of namespace return_stmt
   } // end of namespace statements
@@ -1159,7 +1174,6 @@ return_stmt::gather(scope* ptr, std::vector<var*>& res)
     if (p != block_impl::dtor_tbl.end()) {
       const vector<var*>& v = p->second;
       copy(rbegin(v), rend(v), back_inserter(res));
-      block_impl::dtor_tbl.erase(p);
     }
   }
   else if (id == scope::PARAM) {
@@ -1193,7 +1207,7 @@ int cxx_compiler::statements::return_stmt::info_t::gen()
   if (expr) {
     if (T->m_id == type::VOID) {
       if (expr->m_type->m_id == type::VOID)
-	return 0;
+        return 0;
     }
     bool discard = false;
     bool ctor_conv = false;
@@ -1325,22 +1339,22 @@ namespace cxx_compiler {
   namespace statements {
     namespace condition {
       expressions::base* action(declarations::type_specifier_seq::info_t* p,
-				var* v, expressions::base* right)
+        			var* v, expressions::base* right)
       {
-	typedef declarations::type_specifier_seq::info_t X;
-	auto_ptr<X> sweeper(p);
-	p->update();
-	const type* T = p->m_type;
-	using namespace declarations;
-	type_specifier* ts = new type_specifier(T);
-	parse::identifier::mode = parse::identifier::look;
-	specifier* sp = new specifier(ts);
-	typedef specifier_seq::info_t Y;
-	Y* q = new specifier_seq::info_t(0, sp);
-	auto_ptr<Y> sweeper2(q);
-	declarations::action1(v, false);
-	expressions::base* left = new expressions::primary::info_t(v);
-	return new expressions::binary::info_t(left, '=', right);
+        typedef declarations::type_specifier_seq::info_t X;
+        auto_ptr<X> sweeper(p);
+        p->update();
+        const type* T = p->m_type;
+        using namespace declarations;
+        type_specifier* ts = new type_specifier(T);
+        parse::identifier::mode = parse::identifier::look;
+        specifier* sp = new specifier(ts);
+        typedef specifier_seq::info_t Y;
+        Y* q = new specifier_seq::info_t(0, sp);
+        auto_ptr<Y> sweeper2(q);
+        declarations::action1(v, false);
+        expressions::base* left = new expressions::primary::info_t(v);
+        return new expressions::binary::info_t(left, '=', right);
       }
     } // end of  namespace condition
   } // end of namespace statements

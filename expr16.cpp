@@ -17,7 +17,7 @@ namespace cxx_compiler {
     const map<const record_type*, int>& xvco;
     const map<const record_type*, int>& yvco;
     set_va(var* xx, var* yy, const map<const record_type*, int>& xv,
-	   const map<const record_type*, int>& yv)
+           const map<const record_type*, int>& yv)
       : x(xx), y(yy), xvco(xv), yvco(yv) {}
     void operator()(const record_type* rec)
     {
@@ -30,11 +30,11 @@ namespace cxx_compiler {
       var* yoff = integer::create(yvc_off);
       var* tmp = new var(rec);
       if (scope::current->m_id == scope::BLOCK) {
-	block* b = static_cast<block*>(scope::current);
-	b->m_vars.push_back(tmp);
+        block* b = static_cast<block*>(scope::current);
+        b->m_vars.push_back(tmp);
       }
       else
-	garbage.push_back(tmp);
+        garbage.push_back(tmp);
       code.push_back(new roff3ac(tmp, y, yoff));
       IT px = xvco.find(rec);
       assert(px != xvco.end());
@@ -73,23 +73,23 @@ namespace cxx_compiler {
       const vector<var*>& v = p->second;
       assert(!v.empty());
       for_each(begin(v)+1, end(v), [](var* v)
-	       {
-		 if (v)
-		   code.push_back(new param3ac(v));
-	       });
+               {
+        	 if (v)
+        	   code.push_back(new param3ac(v));
+               });
     }
     copy_ctor = instantiate_if(copy_ctor);
     code.push_back(new call3ac(0, copy_ctor));
     if (!error::counter && !cmdline::no_inline_sub) {
       if (flag & usr::INLINE) {
-	using namespace declarations::declarators::function;
-	using namespace definition::static_inline;
-	skip::table_t::const_iterator p = skip::stbl.find(copy_ctor);
-	if (p != skip::stbl.end()) {
-	  using definition::static_inline::info_t;
-	  if (info_t* info = p->second)
-	    substitute(code, code.size()-1, info);
-	}
+        using namespace declarations::declarators::function;
+        using namespace definition::static_inline;
+        skip::table_t::const_iterator p = skip::stbl.find(copy_ctor);
+        if (p != skip::stbl.end()) {
+          using definition::static_inline::info_t;
+          if (info_t* info = p->second)
+            substitute(code, code.size()-1, info);
+        }
       }
     }
     return v;
@@ -103,14 +103,14 @@ namespace cxx_compiler {
     Ty = Ty->unqualified();
     if (compatible(Tx, Ty)) {
       if (res)
-	return ctor_code(Tx, res, y);
+        return ctor_code(Tx, res, y);
       return y;
     }
 
     if (tag* ptr = Tx->get_tag()) {
       if (ptr->m_flag & tag::TYPENAMED) {
-	if (Tx->m_id == type::INCOMPLETE_TAGGED)
-	  return y;
+        if (Tx->m_id == type::INCOMPLETE_TAGGED)
+          return y;
       }
     }
 
@@ -130,11 +130,11 @@ namespace cxx_compiler {
     if (offset >= 0) {
       var* x = new var(xrec);
       if (scope::current->m_id == scope::BLOCK) {
-	block* b = static_cast<block*>(scope::current);
-	b->m_vars.push_back(x);
+        block* b = static_cast<block*>(scope::current);
+        b->m_vars.push_back(x);
       }
       else
-	garbage.push_back(x);
+        garbage.push_back(x);
       var* off = integer::create(offset);
       code.push_back(new roff3ac(x, y, off));
       const vector<REC*>& va = xrec->virt_ancestor();
@@ -142,7 +142,7 @@ namespace cxx_compiler {
       const map<REC*, int>& yvco = yrec->virt_common_offset();
       for_each(begin(va), end(va), set_va(x, y, xvco, yvco));
       if (res)
-	return ctor_code(xrec, res, x);
+        return ctor_code(xrec, res, x);
       return x;
     }
     usr* fun = cast_impl::conversion_function(yrec, xrec, true);
@@ -154,32 +154,32 @@ namespace cxx_compiler {
     {
       T = T->unqualified();
       if (usr* op_fun = operator_function(T, '=')) {
-	if (y) {
-	  const type* T2 = op_fun->m_type;
-	  assert(T2->m_id == type::FUNC);
-	  typedef const func_type FT;
-	  FT* ft = static_cast<FT*>(T2);
-	  vector<var*> arg;
-	  arg.push_back(y);
-	  int trial_cost = 0;
-	  var tmp(T);
-	  int n = code.size();
-	  var* ret = call_impl::common(ft, op_fun, &arg, &trial_cost, &tmp,
-				       false, 0);
-	  for_each(begin(code)+n, end(code), [](tac* p){ delete p; });
-	  code.resize(n);
-	  return ret;
-	}
-	return true;
+        if (y) {
+          const type* T2 = op_fun->m_type;
+          assert(T2->m_id == type::FUNC);
+          typedef const func_type FT;
+          FT* ft = static_cast<FT*>(T2);
+          vector<var*> arg;
+          arg.push_back(y);
+          int trial_cost = 0;
+          var tmp(T);
+          int n = code.size();
+          var* ret = call_impl::common(ft, op_fun, &arg, &trial_cost, &tmp,
+        			       false, 0);
+          for_each(begin(code)+n, end(code), [](tac* p){ delete p; });
+          code.resize(n);
+          return ret;
+        }
+        return true;
       }
       if (T->m_id != type::RECORD)
-	return false;
+        return false;
       typedef const record_type REC;
       REC* rec = static_cast<REC*>(T);
       const vector<usr*>& member = rec->member();
       typedef vector<usr*>::const_iterator IT;
       IT p = find_if(begin(member), end(member),
-		     [](usr* u){ return require(u->m_type, 0); });
+        	     [](usr* u){ return require(u->m_type, 0); });
       return p != end(member);
     }
     void gen(var* px, var* y, const record_type* rec);
@@ -188,84 +188,84 @@ namespace cxx_compiler {
       var* py;
       const record_type* m_rec;
       recursive(var* x, var* y, const record_type* rec)
-	: px(x), py(y), m_rec(rec) {}
+        : px(x), py(y), m_rec(rec) {}
       void operator()(usr* member)
       {
-	using namespace expressions::primary::literal;
-	string name = member->m_name;
-	pair<int, usr*> off = m_rec->offset(name);
-	int offset = off.first;
-	assert(offset >= 0);
-	const type* T = member->m_type;
-	const reference_type* rt = reference_type::create(T);
-	var* src = new ref(rt);
-	const type* pt = pointer_type::create(T);
-	var* dst = new var(pt);
-	if (scope::current->m_id == scope::BLOCK) {
-	  block* b = static_cast<block*>(scope::current);
-	  b->m_vars.push_back(src);
-	  b->m_vars.push_back(dst);
-	}
-	else {
-	  garbage.push_back(src);
-	  garbage.push_back(dst);
-	}
-	code.push_back(new cast3ac(src, py, rt));
-	code.push_back(new cast3ac(dst, px, pt));
-	if (offset) {
-	  var* off = integer::create(offset);
-	  var* t0 = new ref(rt);
-	  var* t1 = new var(pt);
-	  if (scope::current->m_id == scope::BLOCK) {
-	    block* b = static_cast<block*>(scope::current);
-	    b->m_vars.push_back(t0);
-	    b->m_vars.push_back(t1);
-	  }
-	  else {
-	    garbage.push_back(t0);
-	    garbage.push_back(t1);
-	  }
-	  code.push_back(new add3ac(t0, src, off));
-	  code.push_back(new add3ac(t1, dst, off));
-	  src = t0;
-	  dst = t1;
-	}
-	var* tmp = new var(T);
-	if (scope::current->m_id == scope::BLOCK) {
-	  block* b = static_cast<block*>(scope::current);
-	  b->m_vars.push_back(tmp);
-	}
-	else
-	  garbage.push_back(tmp);
-	if (require(T, src)) {
-	  assert(T->m_id == type::RECORD);
-	  typedef const record_type REC;
-	  REC* rec = static_cast<REC*>(T);
-	  gen(dst, src, rec);
-	}
-	else {
-	  code.push_back(new invraddr3ac(tmp, src));
-	  code.push_back(new invladdr3ac(dst, tmp));
-	}
+        using namespace expressions::primary::literal;
+        string name = member->m_name;
+        pair<int, usr*> off = m_rec->offset(name);
+        int offset = off.first;
+        assert(offset >= 0);
+        const type* T = member->m_type;
+        const reference_type* rt = reference_type::create(T);
+        var* src = new ref(rt);
+        const type* pt = pointer_type::create(T);
+        var* dst = new var(pt);
+        if (scope::current->m_id == scope::BLOCK) {
+          block* b = static_cast<block*>(scope::current);
+          b->m_vars.push_back(src);
+          b->m_vars.push_back(dst);
+        }
+        else {
+          garbage.push_back(src);
+          garbage.push_back(dst);
+        }
+        code.push_back(new cast3ac(src, py, rt));
+        code.push_back(new cast3ac(dst, px, pt));
+        if (offset) {
+          var* off = integer::create(offset);
+          var* t0 = new ref(rt);
+          var* t1 = new var(pt);
+          if (scope::current->m_id == scope::BLOCK) {
+            block* b = static_cast<block*>(scope::current);
+            b->m_vars.push_back(t0);
+            b->m_vars.push_back(t1);
+          }
+          else {
+            garbage.push_back(t0);
+            garbage.push_back(t1);
+          }
+          code.push_back(new add3ac(t0, src, off));
+          code.push_back(new add3ac(t1, dst, off));
+          src = t0;
+          dst = t1;
+        }
+        var* tmp = new var(T);
+        if (scope::current->m_id == scope::BLOCK) {
+          block* b = static_cast<block*>(scope::current);
+          b->m_vars.push_back(tmp);
+        }
+        else
+          garbage.push_back(tmp);
+        if (require(T, src)) {
+          assert(T->m_id == type::RECORD);
+          typedef const record_type REC;
+          REC* rec = static_cast<REC*>(T);
+          gen(dst, src, rec);
+        }
+        else {
+          code.push_back(new invraddr3ac(tmp, src));
+          code.push_back(new invladdr3ac(dst, tmp));
+        }
       }
     };
     void gen(var* px, var* y, const record_type* rec)
     {
       if (usr* op_fun = operator_function(rec, '=')) {
-	vector<var*> arg;
-	arg.push_back(y);
-	call_impl::wrapper(op_fun, &arg, px);
+        vector<var*> arg;
+        arg.push_back(y);
+        call_impl::wrapper(op_fun, &arg, px);
       }
       else {
-	const vector<usr*>& member = rec->member();
-	var* py = new var(px->m_type);
-	if (scope::current->m_id == scope::BLOCK) {
-	  block* b = static_cast<block*>(scope::current);
-	  b->m_vars.push_back(py);
-	}
-	else
-	  garbage.push_back(py);
-	for_each(begin(member), end(member), recursive(px, py, rec));
+        const vector<usr*>& member = rec->member();
+        var* py = new var(px->m_type);
+        if (scope::current->m_id == scope::BLOCK) {
+          block* b = static_cast<block*>(scope::current);
+          b->m_vars.push_back(py);
+        }
+        else
+          garbage.push_back(py);
+        for_each(begin(member), end(member), recursive(px, py, rec));
       }
     }
   } // end of namespace operator_assign
@@ -298,11 +298,11 @@ cxx_compiler::var* cxx_compiler::usr::assign(var* op)
       const type* pt = pointer_type::create(T);
       var* px = new var(pt);
       if (scope::current->m_id == scope::BLOCK) {
-	block* b = static_cast<block*>(scope::current);
-	b->m_vars.push_back(px);
+        block* b = static_cast<block*>(scope::current);
+        b->m_vars.push_back(px);
       }
       else
-	garbage.push_back(px);
+        garbage.push_back(px);
       code.push_back(new addr3ac(px, this));
       assert(T->m_id == type::RECORD);
       typedef const record_type REC;
@@ -413,11 +413,11 @@ cxx_compiler::var* cxx_compiler::refaddr::assign(var* op)
     if (T->m_id == type::REFERENCE) {
       var* r = new var(T);
       if ( scope::current->m_id == scope::BLOCK ){
-	block* b = static_cast<block*>(scope::current);
-	b->m_vars.push_back(r);
+        block* b = static_cast<block*>(scope::current);
+        b->m_vars.push_back(r);
       }
       else
-	garbage.push_back(r);
+        garbage.push_back(r);
       code.push_back(new roff3ac(r,x,y));
       code.push_back(new invladdr3ac(r,z));
     }
@@ -425,10 +425,10 @@ cxx_compiler::var* cxx_compiler::refaddr::assign(var* op)
       const type* Tx = x->m_type;
       Tx = Tx->complete_type();
       if (Tx->aggregate())
-	code.push_back(new loff3ac(x,y,z));
+        code.push_back(new loff3ac(x,y,z));
       else {
-	assert(!offset);
-	code.push_back(new invladdr3ac(x,z));
+        assert(!offset);
+        code.push_back(new invladdr3ac(x,z));
       }
     }
   }

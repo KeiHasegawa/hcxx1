@@ -525,10 +525,10 @@ namespace cxx_compiler {
     {
       scope* p = u->m_scope;
       if (p->m_id != scope::TAG)
-	return false;
+        return false;
       usr::flag_t flag = u->m_flag;
       if (!(flag & usr::STATIC))
-	return false;
+        return false;
       return !(flag & usr::STATIC_DEF);
     }
   } // end of namespace declarations
@@ -543,8 +543,8 @@ cxx_compiler::declarations::action1(var* v, bool ini)
     using namespace parse;
     if (last_token != '=' && last_token != '(') {
       if (!context_t::all.empty()) {
-	// Not declaration. This situation causes retry.
-	return 0;
+        // Not declaration. This situation causes retry.
+        return 0;
       }
     }
   }
@@ -601,13 +601,13 @@ cxx_compiler::declarations::action1(var* v, bool ini)
     if (flag & mask) {
       assert(T->m_id == type::FUNC);
       if (installed) {
-	typedef const func_type FT;
-	FT* ft = static_cast<FT*>(T);
-	assert(!ft->return_type());
+        typedef const func_type FT;
+        FT* ft = static_cast<FT*>(T);
+        assert(!ft->return_type());
       }
       else {
-	assert(T->backpatch());
-	u->m_type = T = T->patch(0, u);
+        assert(T->backpatch());
+        u->m_type = T = T->patch(0, u);
       }
     }
   }
@@ -638,7 +638,7 @@ cxx_compiler::declarations::action1(var* v, bool ini)
       ARRAY* array = T->m_id == type::ARRAY ? static_cast<ARRAY*>(T) : 0;
       if ( !array || array->dim() || !ini ) {
         check_object(u);
-	T = u->m_type;
+        T = u->m_type;
       }
     }
   }
@@ -677,7 +677,7 @@ cxx_compiler::declarations::action1(var* v, bool ini)
         using namespace error::declarations::specifier_seq::function;
         func_spec::static_storage(u);
         fundef::current->m_usr->m_flag =
-	  usr::flag_t(fundef::current->m_usr->m_flag & ~usr::INLINE);
+          usr::flag_t(fundef::current->m_usr->m_flag & ~usr::INLINE);
       }
     }
   }
@@ -718,17 +718,17 @@ cxx_compiler::declarations::action1(var* v, bool ini)
     if (U->m_id == type::REFERENCE) {
       usr::flag2_t flag2 = u->m_flag2;
       if (!(flag & usr::EXTERN) && !(flag2 & usr::DECLED_HANDLER)) {
-	switch (scope::current->m_id) {
-	case scope::PARAM:
-	case scope::TAG:
-	  break;
-	default:
-	  if (!ini) {
-	    using namespace error::declarations::declarators;
-	    reference::missing_initializer(u);
-	  }
-	  break;
-	}
+        switch (scope::current->m_id) {
+        case scope::PARAM:
+        case scope::TAG:
+          break;
+        default:
+          if (!ini) {
+            using namespace error::declarations::declarators;
+            reference::missing_initializer(u);
+          }
+          break;
+        }
       }
     }
   }
@@ -740,11 +740,11 @@ cxx_compiler::declarations::action1(var* v, bool ini)
     if (!tps.empty()) {
       const scope::tps_t& b = tps.back();
       if (!b.m_table.empty()) {
-	using namespace parse::templ;
-	assert(!save_t::nest.empty());
-	save_t* p = save_t::nest.back();
-	assert(!p->m_usr);
-	p->m_usr = u = new template_usr(*u, b, p->m_patch_13_2);
+        using namespace parse::templ;
+        assert(!save_t::nest.empty());
+        save_t* p = save_t::nest.back();
+        assert(!p->m_usr);
+        p->m_usr = u = new template_usr(*u, b, p->m_patch_13_2);
       }
     }
   }
@@ -753,15 +753,15 @@ cxx_compiler::declarations::action1(var* v, bool ini)
     if (parse::templ::param) {
       vector<scope::tps_t>& tps = scope::current->m_tps;
       if (!tps.empty()) {
-	scope::tps_t& b = tps.back();
-	map<string, scope::tps_t::value_t>& table = b.m_table;
-	map<string, scope::tps_t::value_t>::const_iterator p =
-	  table.find(name);
-	if (p != table.end())
-	  error::not_implemented();
-	table[name].second = new scope::tps_t::val2_t(T, 0);
-	vector<string>& order = b.m_order;
-	order.push_back(name);
+        scope::tps_t& b = tps.back();
+        map<string, scope::tps_t::value_t>& table = b.m_table;
+        map<string, scope::tps_t::value_t>::const_iterator p =
+          table.find(name);
+        if (p != table.end())
+          error::not_implemented();
+        table[name].second = new scope::tps_t::val2_t(T, 0);
+        vector<string>& order = b.m_order;
+        order.push_back(name);
       }
     }
     else
@@ -774,11 +774,11 @@ cxx_compiler::declarations::action1(var* v, bool ini)
     usr::flag2_t flag2 = u->m_flag2;
     usr::flag2_t mask2 = usr::TEMPLATE;
     if (!(flag & mask) && is_external_declaration(u) &&
-	!just_static_member_decl(u) && !(flag2 & mask2)) {
+        !just_static_member_decl(u) && !(flag2 & mask2)) {
       if (must_call_default_ctor(u))
-	initialize_ctor_code(u);
-      if (must_call_dtor(u))
-	terminate_dtor_code(u);
+        initialize_ctor_code(u);
+      if (must_call_dtor(u->m_type))
+        terminate_dtor_code(u);
     }
   }
 
@@ -796,7 +796,7 @@ void cxx_compiler::declarations::check_object(usr* u)
     if (ptr->m_kind == tag::TYPENAME) {
       using namespace parse::templ;
       if (!save_t::nest.empty())
-	return;
+        return;
     }
   }
   int size = T->size();
@@ -804,17 +804,17 @@ void cxx_compiler::declarations::check_object(usr* u)
     if (tag* x = T->get_tag()) {
       scope* parent = x->m_parent;
       if (parent->m_id == scope::TAG) {
-	tag* y = static_cast<tag*>(parent);
-	tag::flag_t flag = y->m_flag;
-	if (flag & tag::INSTANTIATE) {
-	  string name = x->m_name;
-	  int r = parse::identifier::lookup(name, parent);
-	  assert(r == TYPEDEF_NAME_LEX);
-	  usr* v = cxx_compiler_lval.m_usr;
-	  const type* T = v->m_type;
-	  u->m_type = T;
-	  size = T->size();
-	}
+        tag* y = static_cast<tag*>(parent);
+        tag::flag_t flag = y->m_flag;
+        if (flag & tag::INSTANTIATE) {
+          string name = x->m_name;
+          int r = parse::identifier::lookup(name, parent);
+          assert(r == TYPEDEF_NAME_LEX);
+          usr* v = cxx_compiler_lval.m_usr;
+          const type* T = v->m_type;
+          u->m_type = T;
+          size = T->size();
+        }
       }
     }
   }
@@ -856,13 +856,13 @@ cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr)
       if (name == "main")
         curr->m_flag = usr::flag_t(flag | usr::C_SYMBOL);
       else if (!declarations::linkage::infos.empty()) {
-	using namespace declarations::linkage;
-	const info_t& info = infos.back();
+        using namespace declarations::linkage;
+        const info_t& info = infos.back();
         switch (scope::current->m_id) {
         case scope::NONE: case scope::NAMESPACE:
           {
-	    if (info.m_kind == info_t::C)
-	      curr->m_flag = usr::flag_t(flag | usr::C_SYMBOL);
+            if (info.m_kind == info_t::C)
+              curr->m_flag = usr::flag_t(flag | usr::C_SYMBOL);
           }
         }
       }
@@ -914,7 +914,7 @@ cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr)
         skip::table_t::iterator r = skip::stbl.find(prev);
         if (r != skip::stbl.end()) {
           info_t* info = r->second;
-	  usr* u = info->m_fundef->m_usr;
+          usr* u = info->m_fundef->m_usr;
           u->m_flag = usr::flag_t(u->m_flag | usr::EXTERN);
           skip::stbl.erase(r);
           gencode(info);
@@ -930,9 +930,12 @@ cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr)
     if (curr->m_scope->m_id == scope::BLOCK) {
       block* b = static_cast<block*>(curr->m_scope);
       usr::flag_t mask =
-	usr::flag_t(usr::TYPEDEF | usr::EXTERN | usr::FUNCTION);
-      if (!(flag & mask))
-	block_impl::dtor_tbl[b].push_back(curr);
+        usr::flag_t(usr::TYPEDEF | usr::EXTERN | usr::FUNCTION);
+      if (!(flag & mask)) {
+        const type* T = curr->m_type;
+        if (must_call_dtor(T))
+          block_impl::dtor_tbl[b].push_back(curr);
+      }
     }
   }
   class_or_namespace_name::last = 0;
@@ -957,19 +960,19 @@ cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr)
       const vector<usr*>& cand = ovl->m_candidacy;
       typedef vector<usr*>::const_iterator IT;
       IT p = find_if(begin(cand), end(cand),
-		     [](usr* u){ return u->m_flag2 & usr::TEMPLATE; });
+                  [](usr* u){ return u->m_flag2 & usr::TEMPLATE; });
       if (p != end(cand)) {
-	usr* templ = *p;
-	instantiated_usr* iu = static_cast<instantiated_usr*>(curr);
-	assert(iu->m_src == templ);
-	v.pop_back();
-	v.push_back(ins);
-	v.push_back(prev);
+        usr* templ = *p;
+        instantiated_usr* iu = static_cast<instantiated_usr*>(curr);
+        assert(iu->m_src == templ);
+        v.pop_back();
+        v.push_back(ins);
+        v.push_back(prev);
       }
       else {
-	// instantiated via `template_usr::instantiate(const KEY&)'
-	assert(ins->m_scope->m_id == scope::TAG);
-	v.push_back(ins);
+        // instantiated via `template_usr::instantiate(const KEY&)'
+        assert(ins->m_scope->m_id == scope::TAG);
+        v.push_back(ins);
       }
     }
     else {
@@ -987,7 +990,7 @@ cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr)
       assert(v[n-1] == curr);
       usr* prev = v[n-2];
       if (prev->m_flag2 & usr::PARTIAL_ORDERING) {
-	swap(v[n-1], v[n-2]);
+        swap(v[n-1], v[n-2]);
       }
     }
   }
@@ -1105,113 +1108,113 @@ namespace cxx_compiler {
   namespace declarations {
     namespace conflict_impl {
       struct comp {
-	const scope::tps_t& m_xtps;
-	const scope::tps_t& m_ytps;
-	comp(const scope::tps_t& xtps, const scope::tps_t& ytps)
-	  : m_xtps(xtps), m_ytps(ytps) {}
-	bool operator()(string x, string y)
-	{
-	  typedef scope::tps_t::value_t V;
-	  typedef map<string, V>::const_iterator IT;
-	  const map<string, V>& xtbl = m_xtps.m_table;
-	  const map<string, V>& ytbl = m_ytps.m_table;
-	  IT px = xtbl.find(x);
-	  assert(px != xtbl.end());
-	  const V& vx = px->second;
-	  IT py = ytbl.find(y);
-	  assert(py != ytbl.end());
-	  const V& vy = py->second;
-	  if (vx.first)
-	    return vy.first;
-	  assert(vx.second);
-	  return vy.second;
-	}
+        const scope::tps_t& m_xtps;
+        const scope::tps_t& m_ytps;
+        comp(const scope::tps_t& xtps, const scope::tps_t& ytps)
+          : m_xtps(xtps), m_ytps(ytps) {}
+        bool operator()(string x, string y)
+        {
+          typedef scope::tps_t::value_t V;
+          typedef map<string, V>::const_iterator IT;
+          const map<string, V>& xtbl = m_xtps.m_table;
+          const map<string, V>& ytbl = m_ytps.m_table;
+          IT px = xtbl.find(x);
+          assert(px != xtbl.end());
+          const V& vx = px->second;
+          IT py = ytbl.find(y);
+          assert(py != ytbl.end());
+          const V& vy = py->second;
+          if (vx.first)
+            return vy.first;
+          assert(vx.second);
+          return vy.second;
+        }
       };
       struct templ_arg {
-	const scope::tps_t& m_tps;
-	templ_arg(const scope::tps_t& tps) : m_tps(tps) {}
-	scope::tps_t::val2_t operator()(string name)
-	{
-	  typedef scope::tps_t::value_t V;
-	  typedef map<string, V>::const_iterator IT;
-	  const map<string, V>& tbl = m_tps.m_table;
-	  IT p = tbl.find(name);
-	  assert(p != tbl.end());
-	  const V& v = p->second;
-	  if (tag* ptr = v.first) {
-	    const type* T = ptr->m_types.first;
-	    return scope::tps_t::val2_t(T, (var*)0);
-	  }
-	  error::not_implemented();
-	  return scope::tps_t::val2_t((const type*)0, (var*)0);
-	}
+        const scope::tps_t& m_tps;
+        templ_arg(const scope::tps_t& tps) : m_tps(tps) {}
+        scope::tps_t::val2_t operator()(string name)
+        {
+          typedef scope::tps_t::value_t V;
+          typedef map<string, V>::const_iterator IT;
+          const map<string, V>& tbl = m_tps.m_table;
+          IT p = tbl.find(name);
+          assert(p != tbl.end());
+          const V& v = p->second;
+          if (tag* ptr = v.first) {
+            const type* T = ptr->m_types.first;
+            return scope::tps_t::val2_t(T, (var*)0);
+          }
+          error::not_implemented();
+          return scope::tps_t::val2_t((const type*)0, (var*)0);
+        }
       };
       const type* tu_common(template_usr* x, template_usr* y)
       {
-	using namespace conflict_impl;
-	assert(x->m_name == y->m_name);
-	const scope::tps_t& xtps = x->m_tps;
-	const scope::tps_t& ytps = y->m_tps;
-	const vector<string>& xo = xtps.m_order;
-	const vector<string>& yo = ytps.m_order;
-	if (xo.size() != yo.size())
-	  return 0;
-	typedef vector<string>::const_iterator IT;
-	pair<IT, IT> ret = mismatch(begin(xo), end(xo), begin(yo),
-				    comp(xtps, ytps));
-	if (ret != make_pair(end(xo), end(yo)))
-	  return 0;
-	template_usr::KEY key;
-	transform(begin(yo), end(yo), back_inserter(key), templ_arg(ytps));
-	typedef template_usr::info_t X;
-	typedef template_tag::info_t Y;
-	tinfos.push_back(make_pair((X*)0, (Y*)1));
-	usr* xi = x->instantiate(key);
-	tinfos.pop_back();
-	scope* ps = xi->m_scope;
-	map<string, vector<usr*> >& usrs = ps->m_usrs;
-	map<string, vector<usr*> >::iterator p = usrs.find(xi->m_name);
-	vector<usr*>& v = p->second;
-	if (v.size() >= 2) {
-	  usr* b = v.back();
-	  usr::flag_t flag = b->m_flag;
-	  if (!(flag & usr::OVERLOAD)) {
-	    if (flag & usr::FRIEND) {
-	      friend_func* ff = static_cast<friend_func*>(b);
-	      assert(ff->m_org == x);
-	    }
-	    else {
-	      usr::flag2_t flag2 = b->m_flag2;
-	      if (flag2 & usr::PARTIAL_ORDERING) {
-		partial_ordering* po = static_cast<partial_ordering*>(b);
-		const vector<template_usr*>& c = po->m_candidacy;
-		assert(!c.empty());
-		assert(find(begin(c), end(c), x) != end(c));
-	      }
-	      else
-		assert(b == x);
-	    }
-	    v.pop_back();
-	    if (v.back() == xi) {
-	      v.pop_back();
-	      v.push_back(b);
-	    }
-	    else
-	      v.push_back(b);
-	  }
-	}
-	else {
-	  assert(v.size() == 1);
-	  usr* b = v.back();
-	  if (b->m_flag & usr::FRIEND) {
-	    friend_func* ff = static_cast<friend_func*>(b);
-	    assert(ff->m_org == x);
-	  }
-	  else
-	    assert(b == x);
-	}
-	const type* Tx = xi->m_type;
-	return Tx;
+        using namespace conflict_impl;
+        assert(x->m_name == y->m_name);
+        const scope::tps_t& xtps = x->m_tps;
+        const scope::tps_t& ytps = y->m_tps;
+        const vector<string>& xo = xtps.m_order;
+        const vector<string>& yo = ytps.m_order;
+        if (xo.size() != yo.size())
+          return 0;
+        typedef vector<string>::const_iterator IT;
+        pair<IT, IT> ret = mismatch(begin(xo), end(xo), begin(yo),
+                                    comp(xtps, ytps));
+        if (ret != make_pair(end(xo), end(yo)))
+          return 0;
+        template_usr::KEY key;
+        transform(begin(yo), end(yo), back_inserter(key), templ_arg(ytps));
+        typedef template_usr::info_t X;
+        typedef template_tag::info_t Y;
+        tinfos.push_back(make_pair((X*)0, (Y*)1));
+        usr* xi = x->instantiate(key);
+        tinfos.pop_back();
+        scope* ps = xi->m_scope;
+        map<string, vector<usr*> >& usrs = ps->m_usrs;
+        map<string, vector<usr*> >::iterator p = usrs.find(xi->m_name);
+        vector<usr*>& v = p->second;
+        if (v.size() >= 2) {
+          usr* b = v.back();
+          usr::flag_t flag = b->m_flag;
+          if (!(flag & usr::OVERLOAD)) {
+            if (flag & usr::FRIEND) {
+              friend_func* ff = static_cast<friend_func*>(b);
+              assert(ff->m_org == x);
+            }
+            else {
+              usr::flag2_t flag2 = b->m_flag2;
+              if (flag2 & usr::PARTIAL_ORDERING) {
+                partial_ordering* po = static_cast<partial_ordering*>(b);
+                const vector<template_usr*>& c = po->m_candidacy;
+                assert(!c.empty());
+                assert(find(begin(c), end(c), x) != end(c));
+              }
+              else
+                assert(b == x);
+            }
+            v.pop_back();
+            if (v.back() == xi) {
+              v.pop_back();
+              v.push_back(b);
+            }
+            else
+              v.push_back(b);
+          }
+        }
+        else {
+          assert(v.size() == 1);
+          usr* b = v.back();
+          if (b->m_flag & usr::FRIEND) {
+            friend_func* ff = static_cast<friend_func*>(b);
+            assert(ff->m_org == x);
+          }
+          else
+            assert(b == x);
+        }
+        const type* Tx = xi->m_type;
+        return Tx;
       }
     } // end of namespace conflict_impl
   } // end of namespace declarations
@@ -1235,7 +1238,7 @@ namespace cxx_compiler {
       using namespace conflict_impl;
       const type* Tx = tu_common(x, y);
       if (!Tx)
-	return 0;
+        return 0;
       const type* Ty = y->m_type;
       return composite(Tx, Ty);
     }
@@ -1243,35 +1246,35 @@ namespace cxx_compiler {
     {
       switch (id) {
       case scope::NONE: case scope::NAMESPACE:
-	{
-	  if (prev == usr::NONE && curr == usr::NONE)
-	    return usr::EXTERN;
-	  else if (prev & usr::STATIC)
-	    return usr::flag_t(curr | usr::STATIC);
-	  else if (prev & usr::INLINE)
-	    return usr::flag_t(curr | usr::INLINE);
-	  if (prev & usr::C_SYMBOL)
-	    return usr::flag_t(curr | usr::C_SYMBOL);
-	  return curr;
-	}
-	break;
+        {
+          if (prev == usr::NONE && curr == usr::NONE)
+            return usr::EXTERN;
+          else if (prev & usr::STATIC)
+            return usr::flag_t(curr | usr::STATIC);
+          else if (prev & usr::INLINE)
+            return usr::flag_t(curr | usr::INLINE);
+          if (prev & usr::C_SYMBOL)
+            return usr::flag_t(curr | usr::C_SYMBOL);
+          return curr;
+        }
+        break;
       case scope::TAG:
-	{
-	  if (prev & usr::STATIC) {
-	    if (prev & usr::FUNCTION) {
-	      assert(curr & usr::FUNCTION);
-	      return usr::flag_t(curr | usr::STATIC);
-	    }
-	    else {
-	      assert(!(curr & usr::FUNCTION));
-	      return usr::flag_t(curr | usr::STATIC_DEF);
-	    }
-	  }
-	}
-	return curr;
-	break;
+        {
+          if (prev & usr::STATIC) {
+            if (prev & usr::FUNCTION) {
+              assert(curr & usr::FUNCTION);
+              return usr::flag_t(curr | usr::STATIC);
+            }
+            else {
+              assert(!(curr & usr::FUNCTION));
+              return usr::flag_t(curr | usr::STATIC_DEF);
+            }
+          }
+        }
+        return curr;
+        break;
       default:
-	return curr;
+        return curr;
       }
     }
   } // end of namespace declarations
@@ -1295,23 +1298,23 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
     if (parse::templ::ptr) {
       typedef vector<usr*>::const_iterator IT;
       IT p = find_if(begin(cand), end(cand),
-		     [](usr* u){ return u->m_flag2 & usr::TEMPLATE; });
+                  [](usr* u){ return u->m_flag2 & usr::TEMPLATE; });
       if (p != end(cand))
-	prev = *p;
+        prev = *p;
       else if (!template_usr::nest.empty()) {
-	template_usr::info_t& info = template_usr::nest.back();
-	template_usr* tu = info.m_tu;
-	prev = tu;
+        template_usr::info_t& info = template_usr::nest.back();
+        template_usr* tu = info.m_tu;
+        prev = tu;
       }
     }
     else {
       usr::flag2_t flag2 = curr->m_flag2;
       if ((flag2 & usr::TEMPLATE) || !templ::specialization::nest.empty()) {
-	typedef vector<usr*>::const_iterator IT;
-	IT p = find_if(begin(cand), end(cand),
-		       [](usr* u){ return u->m_flag2 & usr::TEMPLATE; });
-	if (p != end(cand))
-	  prev = *p;
+        typedef vector<usr*>::const_iterator IT;
+        IT p = find_if(begin(cand), end(cand),
+                       [](usr* u){ return u->m_flag2 & usr::TEMPLATE; });
+        if (p != end(cand))
+          prev = *p;
       }
     }
   }
@@ -1322,26 +1325,26 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
     if (const type* z = composite(x, y)) {
       curr->m_type = z;
       if (parse::templ::ptr) {
-	assert(!template_usr::nest.empty());
-	template_usr::info_t& info = template_usr::nest.back();
-	template_usr* tu = info.m_tu;
-	templ_base::KEY key;
-	if (!instance_of(tu, curr, key))
-	  error::not_implemented();
-	curr = info.m_iu = new instantiated_usr(*curr, tu, key);
-	if (info.m_mode == template_usr::info_t::EXPLICIT) {
-	  curr->m_flag2 =
-	    usr::flag2_t(curr->m_flag2 | usr::EXPLICIT_INSTANTIATE);
-	}
-	return curr;
+        assert(!template_usr::nest.empty());
+        template_usr::info_t& info = template_usr::nest.back();
+        template_usr* tu = info.m_tu;
+        templ_base::KEY key;
+        if (!instance_of(tu, curr, key))
+          error::not_implemented();
+        curr = info.m_iu = new instantiated_usr(*curr, tu, key);
+        if (info.m_mode == template_usr::info_t::EXPLICIT) {
+          curr->m_flag2 =
+            usr::flag2_t(curr->m_flag2 | usr::EXPLICIT_INSTANTIATE);
+        }
+        return curr;
       }
       if (curr->m_flag2 & usr::TEMPLATE) {
-	template_usr* ctu = static_cast<template_usr*>(curr);
-	ctu->m_prev = prev;
-	if (prev->m_flag2 & usr::TEMPLATE) {
-	  template_usr* ptu = static_cast<template_usr*>(prev);
-	  ptu->m_next = ctu;
-	}
+        template_usr* ctu = static_cast<template_usr*>(curr);
+        ctu->m_prev = prev;
+        if (prev->m_flag2 & usr::TEMPLATE) {
+          template_usr* ptu = static_cast<template_usr*>(prev);
+          ptu->m_next = ctu;
+        }
       }
       return curr;
     }
@@ -1357,15 +1360,15 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
     if (curr->m_flag2 & usr::TEMPLATE) {
       template_usr* ctu = static_cast<template_usr*>(curr);
       if (const type* T = composite_tu(ptu, ctu)) {
-	ctu->m_type = T;
-	ctu->m_prev = ptu;
-	ptu->m_next = ctu;
-	if (old_prev->m_flag & usr::OVERLOAD) {
-	  string name = curr->m_name;
-	  scope::current->m_usrs[name].push_back(curr);
-	  return new overload(old_prev, curr);
-	}
-	return ctu;
+        ctu->m_type = T;
+        ctu->m_prev = ptu;
+        ptu->m_next = ctu;
+        if (old_prev->m_flag & usr::OVERLOAD) {
+          string name = curr->m_name;
+          scope::current->m_usrs[name].push_back(curr);
+          return new overload(old_prev, curr);
+        }
+        return ctu;
       }
       string name = curr->m_name;
       scope::current->m_usrs[name].push_back(curr);
@@ -1373,21 +1376,21 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
     }
     templ_base::KEY key;
     if (instance_of(ptu, curr, key) ||
-	template_usr::explicit_instantiating(key)) {
+        template_usr::explicit_instantiating(key)) {
       scope::id_t id = curr->m_scope->m_id;
       curr->m_flag = combine(id, prev->m_flag, curr->m_flag);
       instantiated_usr* ret = new instantiated_usr(*curr, ptu, key);
       if (parse::templ::ptr) {
-	if (!template_usr::nest.empty()) {
-	  template_usr::info_t& info = template_usr::nest.back();
-	  assert(ptu == info.m_tu || ptu->m_prev == info.m_tu);
-	  assert(key == info.m_key);
-	  info.m_iu = ret;
-	  if (info.m_mode == template_usr::info_t::EXPLICIT)
-	    ret->m_flag2 =
-	      usr::flag2_t(ret->m_flag2 | usr::EXPLICIT_INSTANTIATE);
-	  return ret;
-	}
+        if (!template_usr::nest.empty()) {
+          template_usr::info_t& info = template_usr::nest.back();
+          assert(ptu == info.m_tu || ptu->m_prev == info.m_tu);
+          assert(key == info.m_key);
+          info.m_iu = ret;
+          if (info.m_mode == template_usr::info_t::EXPLICIT)
+            ret->m_flag2 =
+              usr::flag2_t(ret->m_flag2 | usr::EXPLICIT_INSTANTIATE);
+          return ret;
+        }
       }
       ret->m_flag2 = usr::flag2_t(ret->m_flag2 | usr::SPECIAL_VER);
       ptu->m_table[key] = ret;
@@ -1404,8 +1407,8 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
       template_usr* tu = info.m_tu;
       const vector<template_usr*>& c = po->m_candidacy;
       assert((find(begin(c), end(c), tu) != end(c)) ||
-	     (find_if(begin(c), end(c), [tu](template_usr* ptu)
-		      { return composite_tu(ptu, tu); }) != end(c)));
+             (find_if(begin(c), end(c), [tu](template_usr* ptu)
+                      { return composite_tu(ptu, tu); }) != end(c)));
       templ_base::KEY key;
       bool b = instance_of(tu, curr, key);
       assert(b);
@@ -1419,7 +1422,7 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
     const vector<template_usr*>& c = po->m_candidacy;
     typedef vector<template_usr*>::const_iterator IT;
     IT p = find_if(begin(c), end(c), [ctu](template_usr* ptu)
-		   { return composite_tu(ptu, ctu); });
+                   { return composite_tu(ptu, ctu); });
     if (p != end(c)) {
       template_usr* ptu = *p;
       ctu->m_prev = ptu;
@@ -1442,13 +1445,13 @@ namespace cxx_compiler {
     bool match(usr* prev, usr* curr)
     {
       if (compatible(prev->m_type, curr->m_type))
-	return true;
+        return true;
       usr::flag2_t pf = prev->m_flag2;
       if (!(pf & usr::TEMPLATE))
-	return false;
+        return false;
       usr::flag2_t cf = curr->m_flag2;
       if (!(cf & usr::TEMPLATE))
-	return false;
+        return false;
       return true;
     }
   } // end of namespace overload_impl
@@ -1466,7 +1469,7 @@ namespace cxx_compiler {
     m_candidacy = ovl->m_candidacy;
     typedef vector<usr*>::iterator IT;
     IT p = find_if(begin(m_candidacy), end(m_candidacy),
-		   bind2nd(ptr_fun(overload_impl::match), curr));
+                   bind2nd(ptr_fun(overload_impl::match), curr));
     if (p != end(m_candidacy))
       *p = curr;
     else
@@ -1480,7 +1483,7 @@ namespace cxx_compiler {
     m_candidacy.push_back(curr);
   }
   partial_ordering::partial_ordering(partial_ordering* prev,
-				     template_usr* curr)
+                                     template_usr* curr)
     : usr(curr->m_name, 0, usr::NONE, curr->m_file, usr::PARTIAL_ORDERING),
       m_obj(0)
   {
@@ -1519,7 +1522,7 @@ check_installed(usr* u, specifier_seq::info_t* p, bool* installed)
       template_usr* tu = info.m_tu;
       templ_base::KEY key;
       if (!instance_of(tu, ret, key))
-	error::not_implemented();
+        error::not_implemented();
       ret = info.m_iu = new instantiated_usr(*ret, tu, key);
       assert(info.m_mode == template_usr::info_t::STATIC_DEF);
     }
@@ -1537,7 +1540,7 @@ check_installed(usr* u, specifier_seq::info_t* p, bool* installed)
     const type* Tp = p->m_type;
     if (T && Tp) {
       if (!compatible(T, Tp))
-	error::not_implemented();
+        error::not_implemented();
     }
     else if (T || Tp)
       error::not_implemented();
@@ -1610,14 +1613,14 @@ cxx_compiler::declarations::elaborated::action(int keyword, var* v)
     if (!tps.empty()) {
       const scope::tps_t& b = tps.back();
       if (!b.m_table.empty()) {
-	using namespace parse::templ;
-	assert(!save_t::nest.empty());
-	save_t* p = save_t::nest.back();
-	assert(!p->m_tag);
-	assert(!class_or_namespace_name::before.empty());
-	assert(class_or_namespace_name::before.back() == ptr);
-	p->m_tag = ptr = new template_tag(*ptr, b);
-	class_or_namespace_name::before.back() = ptr;
+        using namespace parse::templ;
+        assert(!save_t::nest.empty());
+        save_t* p = save_t::nest.back();
+        assert(!p->m_tag);
+        assert(!class_or_namespace_name::before.empty());
+        assert(class_or_namespace_name::before.back() == ptr);
+        p->m_tag = ptr = new template_tag(*ptr, b);
+        class_or_namespace_name::before.back() = ptr;
       }
     }
 
@@ -1917,41 +1920,41 @@ namespace cxx_compiler {
   namespace declarations {
     namespace new_type_id {
       struct sweeper {
-	LIST* m_list;
-	sweeper(LIST* p) : m_list(p) {}
-	~sweeper()
-	{
-	  if (!m_list)
-	    return;
-	  for (auto p : *m_list) {
-	    vector<expressions::base*>* q = p.second;
-	    if (q) {
-	      for (auto x : *q)
-		delete x;
-	      delete q;
-	    }
-	  }
-	  delete m_list;
-	}
+        LIST* m_list;
+        sweeper(LIST* p) : m_list(p) {}
+        ~sweeper()
+        {
+          if (!m_list)
+            return;
+          for (auto p : *m_list) {
+            vector<expressions::base*>* q = p.second;
+            if (q) {
+              for (auto x : *q)
+                delete x;
+              delete q;
+            }
+          }
+          delete m_list;
+        }
       };
       const type* calc2(const type* T, expressions::base* expr)
       {
-	var* v = expr->gen();
-	v = v->rvalue();
-	if (!v->isconstant())
-	  return varray_type::create(T, v);
-	__int64 dim = v->value();
-	return array_type::create(T, dim);
+        var* v = expr->gen();
+        v = v->rvalue();
+        if (!v->isconstant())
+          return varray_type::create(T, v);
+        __int64 dim = v->value();
+        return array_type::create(T, dim);
       }
       const type* calc(const type* T, const LIST_ELEMENT& elem)
       {
-	const type* Tx = elem.first;
-	if (Tx) {
-	  assert(Tx->backpatch());
-	  return Tx->patch(T, 0);
-	}
-	vector<expressions::base*>* exprs = elem.second;
-	return accumulate(begin(*exprs), end(*exprs), T, calc2);
+        const type* Tx = elem.first;
+        if (Tx) {
+          assert(Tx->backpatch());
+          return Tx->patch(T, 0);
+        }
+        vector<expressions::base*>* exprs = elem.second;
+        return accumulate(begin(*exprs), end(*exprs), T, calc2);
       }
       map<const type*, vector<tac*> > table;
     } // end of namespace new_type_id
@@ -1995,19 +1998,19 @@ namespace cxx_compiler {
     namespace use {
       void action(var* v)
       {
-	if (genaddr* ga = v->genaddr_cast()) {
-	  v = ga->m_ref;
-	}
-	assert(v->usr_cast());
-	usr* u = static_cast<usr*>(v);
-	string name = u->m_name;
-	map<string, vector<usr*> >& usrs = scope::current->m_usrs;
-	typedef map<string, vector<usr*> >::const_iterator IT;
-	IT p = usrs.find(name);
-	if (p != usrs.end())
-	  error::not_implemented();
-	alias* al = new alias(u);
-	usrs[name].push_back(al);
+        if (genaddr* ga = v->genaddr_cast()) {
+          v = ga->m_ref;
+        }
+        assert(v->usr_cast());
+        usr* u = static_cast<usr*>(v);
+        string name = u->m_name;
+        map<string, vector<usr*> >& usrs = scope::current->m_usrs;
+        typedef map<string, vector<usr*> >::const_iterator IT;
+        IT p = usrs.find(name);
+        if (p != usrs.end())
+          error::not_implemented();
+        alias* al = new alias(u);
+        usrs[name].push_back(al);
       }
     } // end of namespace declarations
   } // end of namespace declarations

@@ -149,14 +149,14 @@ namespace cxx_compiler {
     inline const type* referenced_type(const type* T)
     {
       if (T->m_id == type::POINTER) {
-	typedef const pointer_type PT;
-	PT* pt = static_cast<PT*>(T);
-	return pt->referenced_type();
+        typedef const pointer_type PT;
+        PT* pt = static_cast<PT*>(T);
+        return pt->referenced_type();
       }
       if (T->m_id == type::REFERENCE) {
-	typedef const reference_type RT;
-	RT* rt = static_cast<RT*>(T);
-	return rt->referenced_type();
+        typedef const reference_type RT;
+        RT* rt = static_cast<RT*>(T);
+        return rt->referenced_type();
       }
       return 0;
     }
@@ -180,7 +180,7 @@ namespace cxx_compiler {
         return 0;
       Ty = Ty->unqualified();
       if (Ty->m_id != type::RECORD) 
-	return 0;
+        return 0;
       REC* Ry = static_cast<REC*>(Ty);
       tag* xtag = Rx->get_tag();
       tag* ytag = Ry->get_tag();
@@ -223,39 +223,39 @@ namespace cxx_compiler {
     inline usr* other_conv_fun(const record_type* rec, const type* T)
     {
       if (!T->arithmetic())
-	return 0;
+        return 0;
       const type* Ta[] = {
-	bool_type::create(),
-	schar_type::create(),
-	uchar_type::create(),
-	short_type::create(),
-	ushort_type::create(),
-	wchar_type::create(),
-	int_type::create(),
-	uint_type::create(),
-	long_type::create(),
-	ulong_type::create(),
-	long_long_type::create(),
-	ulong_long_type::create(),
-	float_type::create(),
-	double_type::create(),
-	long_double_type::create()
+        bool_type::create(),
+        schar_type::create(),
+        uchar_type::create(),
+        short_type::create(),
+        ushort_type::create(),
+        wchar_type::create(),
+        int_type::create(),
+        uint_type::create(),
+        long_type::create(),
+        ulong_type::create(),
+        long_long_type::create(),
+        ulong_long_type::create(),
+        float_type::create(),
+        double_type::create(),
+        long_double_type::create()
       };
       int n = sizeof Ta/sizeof Ta[0];
       usr* tmp = 0;
       auto cf = [rec, T, &tmp](const type* O) {
-	if (T == O)
-	  return (usr*)0;
-	tmp = conversion_function(rec, O, false);
-	return tmp;
+        if (T == O)
+          return (usr*)0;
+        tmp = conversion_function(rec, O, false);
+        return tmp;
       };
       const type** p = find_if(&Ta[0], &Ta[n], cf);
       if (p == &Ta[n])
-	return 0;
+        return 0;
       usr* ret = tmp;
       const type** q = find_if(p+1, &Ta[n], cf);
       if (q != &Ta[n])
-	error::not_implemented();
+        error::not_implemented();
       return ret;
     }
     usr* conversion_function(const record_type* rec, const type* T, bool other)
@@ -269,7 +269,7 @@ namespace cxx_compiler {
       int r = parse::identifier::lookup(name, ptr);
       parse::identifier::mode = org;
       if (!r)
-	return other ? other_conv_fun(rec, T) : 0;
+        return other ? other_conv_fun(rec, T) : 0;
       assert(r == IDENTIFIER_LEX);
       var* v = cxx_compiler_lval.m_var;
       genaddr* ga = v->genaddr_cast();
@@ -283,34 +283,34 @@ namespace cxx_compiler {
     {
       usr* op = conversion_function(rec, T, true);
       if (!op) {
-	// already handled error
-	var* ret = new var(T);
-	if (scope::current->m_id == scope::BLOCK) {
-	  block* b = static_cast<block*>(scope::current);
-	  b->m_vars.push_back(ret);
-	}
-	else
-	  garbage.push_back(ret);
-	code.push_back(new cast3ac(ret, src, T));
-	return ret;
+        // already handled error
+        var* ret = new var(T);
+        if (scope::current->m_id == scope::BLOCK) {
+          block* b = static_cast<block*>(scope::current);
+          b->m_vars.push_back(ret);
+        }
+        else
+          garbage.push_back(ret);
+        code.push_back(new cast3ac(ret, src, T));
+        return ret;
       }
       usr::flag_t flag = op->m_flag;
       if (flag & usr::VIRTUAL) {
-	const pointer_type* pt = pointer_type::create(rec);
-	var* ptr = new var(pt);
-	if (scope::current->m_id == scope::BLOCK) {
-	  block* b = static_cast<block*>(scope::current);
-	  b->m_vars.push_back(ptr);
-	}
-	else
-	  garbage.push_back(ptr);
-	code.push_back(new addr3ac(ptr, src));
-	var* func = call_impl::ref_vftbl(op, ptr);
-	const type* T = op->m_type;
-	assert(T->m_id == type::FUNC);
-	typedef const func_type FT;
-	FT* ft = static_cast<FT*>(T);
-	return call_impl::common(ft, func, 0, 0, src, false, 0);
+        const pointer_type* pt = pointer_type::create(rec);
+        var* ptr = new var(pt);
+        if (scope::current->m_id == scope::BLOCK) {
+          block* b = static_cast<block*>(scope::current);
+          b->m_vars.push_back(ptr);
+        }
+        else
+          garbage.push_back(ptr);
+        code.push_back(new addr3ac(ptr, src));
+        var* func = call_impl::ref_vftbl(op, ptr);
+        const type* T = op->m_type;
+        assert(T->m_id == type::FUNC);
+        typedef const func_type FT;
+        FT* ft = static_cast<FT*>(T);
+        return call_impl::common(ft, func, 0, 0, src, false, 0);
       }
       var* ret = call_impl::wrapper(op, 0, src);
       return ret->cast(T);
@@ -342,13 +342,13 @@ namespace cxx_compiler {
     var* refaddr_case(const type* T, var* src)
     {
       if (T->m_id != type::REFERENCE)
-	return 0;
+        return 0;
       const type* Ty = src->m_type;
       if (Ty->m_id == type::REFERENCE)
-	return 0;
+        return 0;
       const type* R = src->result_type();
       if (Ty != R)
-	return src;
+        return src;
       Ty = Ty->complete_type();
       typedef const reference_type RT;
       RT* xrt = static_cast<RT*>(T);
@@ -356,14 +356,14 @@ namespace cxx_compiler {
       Rx = Rx->unqualified();
       int offset = 0;
       if (Rx->m_id == type::RECORD) {
-	typedef const record_type REC;
-	REC* xrec = static_cast<REC*>(Rx);
-	if (Ty->m_id != type::RECORD)
-	  return 0;
-	REC* yrec = static_cast<REC*>(Ty);
-	vector<route_t> dummy;
-	offset = calc_offset(yrec, xrec, dummy, 0);
-	assert(offset >= 0);
+        typedef const record_type REC;
+        REC* xrec = static_cast<REC*>(Rx);
+        if (Ty->m_id != type::RECORD)
+          return 0;
+        REC* yrec = static_cast<REC*>(Ty);
+        vector<route_t> dummy;
+        offset = calc_offset(yrec, xrec, dummy, 0);
+        assert(offset >= 0);
       }
       var* ret = new refaddr(xrt, src, offset);
       garbage.push_back(ret);
@@ -483,7 +483,7 @@ namespace cxx_compiler { namespace constant_impl {
       }
     default:
       return Tx->aggregate() ?
-	aggregate_conv(Tx, y, false, 0) : y->var::cast(Tx);
+        aggregate_conv(Tx, y, false, 0) : y->var::cast(Tx);
     }
   }
   template<class T> var* fcast(const type* Tx, constant<T>* y)
@@ -540,7 +540,7 @@ namespace cxx_compiler { namespace constant_impl {
       }
     default:
       return Tx->aggregate() ?
-	aggregate_conv(Tx, y, false, 0) : y->var::cast(Tx);
+        aggregate_conv(Tx, y, false, 0) : y->var::cast(Tx);
     }
   }
   template<class T> var* pcast(const type* Tx, constant<T>* y)

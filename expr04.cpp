@@ -52,7 +52,7 @@ namespace cxx_compiler {
     if (ps->m_id == scope::TAG) {
       usr::flag_t flag = op_fun->m_flag;
       if (!(flag & usr::STATIC))
-	return 0;
+        return 0;
     }
     return op_fun;
   }
@@ -98,14 +98,14 @@ cxx_compiler::var* cxx_compiler::expressions::binary::info_t::gen()
   case AND_ASSIGN_MK: case XOR_ASSIGN_MK: case OR_ASSIGN_MK:
     if (!conversion::arithmetic::gen(&leftc, &rightc)) {
       if (!operator_function(leftc->m_type, m_op) &&
-	  !operator_function(rightc->m_type, m_op)) {
-	switch (m_op) {
-	case '*': case '/': case '%': case '&': case '^': case '|':
-	case MUL_ASSIGN_MK: case DIV_ASSIGN_MK: case MOD_ASSIGN_MK:
-	case AND_ASSIGN_MK: case XOR_ASSIGN_MK: case OR_ASSIGN_MK:
-	  using namespace error::expressions::binary;
-	  invalid(file(), m_op, leftc->m_type, rightc->m_type);
-	}
+          !operator_function(rightc->m_type, m_op)) {
+        switch (m_op) {
+        case '*': case '/': case '%': case '&': case '^': case '|':
+        case MUL_ASSIGN_MK: case DIV_ASSIGN_MK: case MOD_ASSIGN_MK:
+        case AND_ASSIGN_MK: case XOR_ASSIGN_MK: case OR_ASSIGN_MK:
+          using namespace error::expressions::binary;
+          invalid(file(), m_op, leftc->m_type, rightc->m_type);
+        }
       }
     }
     break;

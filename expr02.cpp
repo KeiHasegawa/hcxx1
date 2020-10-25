@@ -143,8 +143,8 @@ namespace cxx_compiler {
       typedef vector<usr*>::const_iterator IT2;
       IT2 q = find_if(begin(v), end(v), integer_arg);
       if (q != end(v)) {
-	// user defined new(size_t) exists.
-	return v.back();  // if overloaded, return it
+        // user defined new(size_t) exists.
+        return v.back();  // if overloaded, return it
       }
     }
     vector<const type*> param;
@@ -155,7 +155,7 @@ namespace cxx_compiler {
     usr::flag_t flag = usr::flag_t(usr::FUNCTION | usr::NEW_SCALAR);
 
     usr* new_func = new usr(name, ft, flag, parse::position,
-			    usr::GENED_BY_COMP);
+        		    usr::GENED_BY_COMP);
     new_func->m_scope = &scope::root;
     if (p == usrs.end()) {
       usrs[name].push_back(new_func);
@@ -182,92 +182,92 @@ namespace cxx_compiler {
     namespace unary {
       inline usr* ctor_dtor_entry(const type* T, bool is_dtor)
       {
-	const type* U = T->unqualified();
-	if (U->m_id != type::RECORD)
-	  return 0;
+        const type* U = T->unqualified();
+        if (U->m_id != type::RECORD)
+          return 0;
 
-	typedef const record_type REC;
-	REC* rec = static_cast<REC*>(U);
-	tag* ptr = rec->get_tag();
-	return has_ctor_dtor(ptr, is_dtor);
+        typedef const record_type REC;
+        REC* rec = static_cast<REC*>(U);
+        tag* ptr = rec->get_tag();
+        return has_ctor_dtor(ptr, is_dtor);
       }
       inline usr* ctor_entry(const type* T)
       {
-	return ctor_dtor_entry(T, false);
+        return ctor_dtor_entry(T, false);
       }
       inline usr* dtor_entry(const type* T)
       {
-	return ctor_dtor_entry(T, true);
+        return ctor_dtor_entry(T, true);
       }
       inline usr* new_delete_entry(const type* T, string name)
       {
-	if (T->m_id != type::RECORD)
-	  return 0;
-	typedef const record_type REC;
-	REC* rec = static_cast<REC*>(T);
-	tag* ptr = rec->get_tag();
-	const map<string, vector<usr*> >& usrs = ptr->m_usrs;
-	typedef map<string, vector<usr*> >::const_iterator IT;
-	IT p = usrs.find(name);
-	if (p != usrs.end()) {
-	  const vector<usr*>& v = p->second;
-	  return v.back();
-	}
-	using namespace parse::identifier;
-	int r = base_lookup::action(name, ptr);
-	if (!r)
-	  return 0;
-	assert(r == IDENTIFIER_LEX);
-	var* v = cxx_compiler_lval.m_var;
-	genaddr* ga = v->genaddr_cast();
-	assert(ga);
-	v = ga->m_ref;
-	assert(v->usr_cast());
-	return static_cast<usr*>(v);
+        if (T->m_id != type::RECORD)
+          return 0;
+        typedef const record_type REC;
+        REC* rec = static_cast<REC*>(T);
+        tag* ptr = rec->get_tag();
+        const map<string, vector<usr*> >& usrs = ptr->m_usrs;
+        typedef map<string, vector<usr*> >::const_iterator IT;
+        IT p = usrs.find(name);
+        if (p != usrs.end()) {
+          const vector<usr*>& v = p->second;
+          return v.back();
+        }
+        using namespace parse::identifier;
+        int r = base_lookup::action(name, ptr);
+        if (!r)
+          return 0;
+        assert(r == IDENTIFIER_LEX);
+        var* v = cxx_compiler_lval.m_var;
+        genaddr* ga = v->genaddr_cast();
+        assert(ga);
+        v = ga->m_ref;
+        assert(v->usr_cast());
+        return static_cast<usr*>(v);
       }
       inline usr* new_entry(const type* T)
       {
-	return new_delete_entry(T, "new");
+        return new_delete_entry(T, "new");
       }
       inline usr* delete_entry(const type* T, bool array)
       {
-	string name = "delete";
-	if (array)
-	  name += " []";
-	return new_delete_entry(T, name);
+        string name = "delete";
+        if (array)
+          name += " []";
+        return new_delete_entry(T, name);
       }
       inline usr* vdel_entry(const type* T)
       {
-	if (T->m_id != type::RECORD)
-	  return 0;
-	typedef const record_type REC;
-	REC* rec = static_cast<REC*>(T);
-	tag* ptr = rec->get_tag();
-	const vector<usr*>& order = ptr->m_order;
-	typedef vector<usr*>::const_iterator IT;
-	IT p = find_if(begin(order), end(order),[](usr* u)
-		       { return u->m_flag & usr::VDEL; });
-	if (p == end(order))
-	  return 0;
-	return *p;
+        if (T->m_id != type::RECORD)
+          return 0;
+        typedef const record_type REC;
+        REC* rec = static_cast<REC*>(T);
+        tag* ptr = rec->get_tag();
+        const vector<usr*>& order = ptr->m_order;
+        typedef vector<usr*>::const_iterator IT;
+        IT p = find_if(begin(order), end(order),[](usr* u)
+        	       { return u->m_flag & usr::VDEL; });
+        if (p == end(order))
+          return 0;
+        return *p;
       }
       const type* array_element(const type* T)
       {
-	if (T->m_id == type::ARRAY) {
-	  typedef const array_type AT;
-	  AT* at = static_cast<AT*>(T);
-	  T = at->element_type();
-	  T = T->unqualified();
-	  return array_element(T);
-	}
-	if (T->m_id == type::VARRAY) {
-	  typedef const varray_type VT;
-	  VT* vt = static_cast<VT*>(T);
-	  T = vt->element_type();
-	  T = T->unqualified();
-	  return array_element(T);
-	}
-	return T;
+        if (T->m_id == type::ARRAY) {
+          typedef const array_type AT;
+          AT* at = static_cast<AT*>(T);
+          T = at->element_type();
+          T = T->unqualified();
+          return array_element(T);
+        }
+        if (T->m_id == type::VARRAY) {
+          typedef const varray_type VT;
+          VT* vt = static_cast<VT*>(T);
+          T = vt->element_type();
+          T = T->unqualified();
+          return array_element(T);
+        }
+        return T;
       }
     } // end of namespace unary
   } // end of namespace expressions
@@ -301,7 +301,7 @@ cxx_compiler::var* cxx_compiler::expressions::unary::new_expr::gen()
   usr* new_func = new_entry(m_T);
   if (m_place) {
     transform(begin(*m_place), end(*m_place), back_inserter(new_arg),
-	      mem_fun(&base::gen));
+              mem_fun(&base::gen));
   }
   else if (!new_func) {
     if (!new_installed) {
@@ -360,7 +360,7 @@ cxx_compiler::var* cxx_compiler::expressions::unary::new_expr::gen()
   vector<var*> arg;
   if (m_exprs) {
     transform(begin(*m_exprs), end(*m_exprs), back_inserter(arg),
-	      mem_fun(&base::gen));
+              mem_fun(&base::gen));
   }
 
   usr::flag_t flag = ctor->m_flag;
@@ -430,7 +430,7 @@ namespace cxx_compiler {
     const func_type* ft = func_type::create(vt,param);
     usr::flag_t flag = usr::flag_t(usr::FUNCTION | usr::DELETE_SCALAR);
     usr* delete_func = new usr(name, ft, flag, parse::position,
-			       usr::GENED_BY_COMP);
+        		       usr::GENED_BY_COMP);
     delete_func->m_scope = &scope::root;
     usrs[name].push_back(delete_func);
     return delete_func;

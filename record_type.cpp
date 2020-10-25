@@ -65,7 +65,7 @@ namespace cxx_compiler {
     if (!Tx || !Ty) {
       assert(Tx || (x->m_flag & usr::DTOR));
       if (Ty || (y->m_flag & usr::DTOR))
-	return Tx == Ty;
+        return Tx == Ty;
       return false;
     }
     if (compatible(Tx, Ty))
@@ -129,13 +129,13 @@ namespace cxx_compiler {
       } m_current;
       static const type* element(const array_type* at)
       {
-	const type* T = at->element_type();
-	if (T->m_id == type::ARRAY) {
-	  typedef const array_type AT;
-	  AT* tmp = static_cast<AT*>(T);
-	  return element(tmp);
-	}
-	return T;
+        const type* T = at->element_type();
+        if (T->m_id == type::ARRAY) {
+          typedef const array_type AT;
+          AT* tmp = static_cast<AT*>(T);
+          return element(tmp);
+        }
+        return T;
       }
       int operator()(int, usr*);
       layouter(insert_iterator<map<string, pair<int, usr*> > > XX,
@@ -212,8 +212,8 @@ namespace cxx_compiler {
       tag* ptr = bp->m_tag;
       const type* T = ptr->m_types.second;
       if (!T) {
-	T = ptr->m_types.first;
-	assert(T->m_id == type::TEMPLATE_PARAM);
+        T = ptr->m_types.first;
+        assert(T->m_id == type::TEMPLATE_PARAM);
       }
       int m = T->size();
       assert(m);
@@ -291,7 +291,7 @@ namespace cxx_compiler {
     {
       usr::flag_t flag = b->m_flag;
       if (flag & usr::VIRTUAL)
-	return n;
+        return n;
       tag* ptr = b->m_tag;
       return n + base_vcommon(ptr, vftbl_name);
     }
@@ -306,11 +306,11 @@ namespace cxx_compiler {
       {
         tag* ptr = bp->m_tag;
         const type* T = ptr->m_types.second;
-	if (!T) {
-	  T = ptr->m_types.first;
-	  assert(T->m_id == type::TEMPLATE_PARAM);
-	  return n;
-	}
+        if (!T) {
+          T = ptr->m_types.first;
+          assert(T->m_id == type::TEMPLATE_PARAM);
+          return n;
+        }
         assert(T->m_id == type::RECORD);
         typedef const record_type REC;
         REC* rec = static_cast<REC*>(T);
@@ -426,11 +426,11 @@ namespace cxx_compiler {
       const map<int, var*>& src = w->m_value;
       const vector<usr*>& order = ptr->m_order;
       int nvf = count_if(begin(order),end(order),
-			 [](usr* u){ return u->m_flag & usr::VIRTUAL; });
+        		 [](usr* u){ return u->m_flag & usr::VIRTUAL; });
       typedef map<int, var*>::const_iterator ITy;
       ITy it = end(src);
       while (nvf--)
-	--it;
+        --it;
       offset = accumulate(begin(src), it, offset, add_if(result, va));
       return accumulate(it, end(src), offset, add_if(result, 0));
     } 
@@ -475,19 +475,19 @@ namespace cxx_compiler {
       override_vf(map<int, var*>& value) : m_value(value) {}
       static var* update(usr* u)
       {
-	u->m_flag = usr::flag_t(u->m_flag | usr::OVERRIDE);
-	const type* T = u->m_type;
-	T = pointer_type::create(T);
-	return new addrof(T, u, 0);
+        u->m_flag = usr::flag_t(u->m_flag | usr::OVERRIDE);
+        const type* T = u->m_type;
+        T = pointer_type::create(T);
+        return new addrof(T, u, 0);
       }
       void operator()(usr* u)
       {
         if (u->m_flag & usr::FUNCTION) {
-	  for (auto& p : m_value) {
-	    if (match_vf(p, u))
-	      p.second = update(u);
-	  }
-	}
+          for (auto& p : m_value) {
+            if (match_vf(p, u))
+              p.second = update(u);
+          }
+        }
       }
     };
     inline void check_override(pair<int, var*> x, tag* ptr)
@@ -684,13 +684,13 @@ namespace cxx_compiler {
             return *it;
         }
         usr::flag_t flag;
-	if (tor->m_flag & usr::CTOR)
-	  flag = usr::flag_t(usr::FUNCTION | usr::CTOR);
-	else {
-	  assert(tor->m_flag & usr::DTOR);
-	  flag = usr::flag_t(usr::FUNCTION | usr::DTOR);
-	}
-	usr::flag2_t flag2 = usr::flag2_t(usr::GENED_BY_COMP | usr::TOR_BODY);
+        if (tor->m_flag & usr::CTOR)
+          flag = usr::flag_t(usr::FUNCTION | usr::CTOR);
+        else {
+          assert(tor->m_flag & usr::DTOR);
+          flag = usr::flag_t(usr::FUNCTION | usr::DTOR);
+        }
+        usr::flag2_t flag2 = usr::flag2_t(usr::GENED_BY_COMP | usr::TOR_BODY);
         usr* body = new usr(bn, T, flag, parse::position, flag2);
         body->m_scope = ptr;
         usrs[bn].push_back(body);
@@ -726,8 +726,8 @@ namespace cxx_compiler {
         string sn = special_name(tor, exclude);
         const type* T = tor->m_type;
         usr::flag_t flag = usr::flag_t(tor->m_flag | usr::INLINE);
-	usr::flag2_t flag2 =
-	  usr::flag2_t(usr::GENED_BY_COMP | usr::EXCLUDE_TOR);
+        usr::flag2_t flag2 =
+          usr::flag2_t(usr::GENED_BY_COMP | usr::EXCLUDE_TOR);
         usr* scd = new usr(sn, T, flag, parse::position, flag2);
         scope* ps = tor->m_scope;
         assert(ps->m_id == scope::TAG);
@@ -751,8 +751,8 @@ namespace cxx_compiler {
         FT* ft = static_cast<FT*>(T);
         using namespace declarations::declarators::function::definition;
         const vector<const type*>& parameter = ft->param();
-	vector<const type*> ip;
-	transform(begin(parameter), end(parameter), back_inserter(ip), ins_if);
+        vector<const type*> ip;
+        transform(begin(parameter), end(parameter), back_inserter(ip), ins_if);
         key_t key(sn, ptr, ip, get_seed(scd));
         dtbl[key] = scd;
 
@@ -771,8 +771,8 @@ namespace cxx_compiler {
         usr* this_ptr = new usr(this_name, pt, usr::NONE, parse::position,
                                 usr::NONE2);
         this_ptr->m_scope = param;
-	map<string, vector<usr*> >& pusrs = param->m_usrs;
-	assert(pusrs.find(this_name) == pusrs.end());
+        map<string, vector<usr*> >& pusrs = param->m_usrs;
+        assert(pusrs.find(this_name) == pusrs.end());
         pusrs[this_name].push_back(this_ptr);
         param->m_order.push_back(this_ptr);
         for_each(begin(parameter), end(parameter),
@@ -923,7 +923,7 @@ namespace cxx_compiler {
       base_ctor_dtor(const map<base*, int>& base_offset, var* this_ptr,
                      scope* param, block* b, bool is_dtor, usr* tor,
                      const vector<const record_type*>& exclude, bool for_virt,
-		     const vector<const record_type*>& dc)
+        	     const vector<const record_type*>& dc)
         : m_base_offset(base_offset), m_this(this_ptr), m_param(param),
           m_block(b), m_is_dtor(is_dtor), m_tor(tor), m_exclude(exclude),
           m_for_virt(for_virt), m_direct_common(dc) {}
@@ -933,8 +933,8 @@ namespace cxx_compiler {
         assert(T->m_id == type::RECORD);
         typedef const record_type REC;
         REC* rec = static_cast<REC*>(T);
-	typedef vector<REC*>::const_iterator IT;
-	IT p = find(begin(m_direct_common), end(m_direct_common), rec);
+        typedef vector<REC*>::const_iterator IT;
+        IT p = find(begin(m_direct_common), end(m_direct_common), rec);
         return p != end(m_direct_common);
       }
       bool base_initializer_case(tag* ptr)
@@ -965,10 +965,10 @@ namespace cxx_compiler {
 
         handle_pbc(q->second, m_param, m_block);
         tac* ptac = code.back();
-	if (ptac->m_id != tac::CALL) {
-	  // Play Old Type. No constructor is declared.
-	  return true;
-	}
+        if (ptac->m_id != tac::CALL) {
+          // Play Old Type. No constructor is declared.
+          return true;
+        }
         assert(ptac->y->usr_cast());
         usr* tor = static_cast<usr*>(ptac->y);
         vector<REC*> ex;
@@ -985,8 +985,8 @@ namespace cxx_compiler {
         if (flag & usr::VIRTUAL) {
           if (!m_for_virt)
             return;
-	  if (direct_common_case(ptr))
-	    return;
+          if (direct_common_case(ptr))
+            return;
         }
         else {
           if (m_for_virt)
@@ -1326,16 +1326,16 @@ namespace cxx_compiler {
       }
     };
     inline void set_cd(vector<const record_type*>& cd,
-		       const vector<const record_type*>& common,
-		       const vector<const record_type*>& direct_common,
-		       const vector<const record_type*>& exclude)
+        	       const vector<const record_type*>& common,
+        	       const vector<const record_type*>& direct_common,
+        	       const vector<const record_type*>& exclude)
     {
       auto not_ex = [&exclude](const record_type* rec) {
-	  return find(begin(exclude), end(exclude), rec) == end(exclude);
-	};
+          return find(begin(exclude), end(exclude), rec) == end(exclude);
+        };
       copy_if(begin(common), end(common), back_inserter(cd), not_ex);
       copy_if(begin(direct_common), end(direct_common), back_inserter(cd),
-	      not_ex);
+              not_ex);
     }
     void add_ctor_code(tag* ptr,
                        const map<string, pair<int, usr*> >& layout,
@@ -1362,7 +1362,7 @@ namespace cxx_compiler {
                                 false, ctor));
       if (ptr->m_bases) {
         vector<base*>& bases = *ptr->m_bases;
-	vector<const record_type*>& ce = cd;
+        vector<const record_type*>& ce = cd;
         copy_if(begin(exclude), end(exclude), back_inserter(ce),
                 [&ce](const record_type* rec){
                   return find(begin(ce), end(ce), rec) == end(ce);
@@ -1370,9 +1370,9 @@ namespace cxx_compiler {
         scope* org = scope::current;
         scope::current = pb;
         for_each(begin(bases), end(bases), base_ctor_dtor(base_offset,
-	  this_ptr, param, pb, false, ctor, ce, true, direct_common));
+          this_ptr, param, pb, false, ctor, ce, true, direct_common));
         for_each(begin(bases), end(bases), base_ctor_dtor(base_offset,
-	  this_ptr, param, pb, false, ctor, ce, false, direct_common));
+          this_ptr, param, pb, false, ctor, ce, false, direct_common));
         scope::current = org;
         if (canbe_copy_ctor(ctor, ptr)) {
           for_each(begin(member), end(member),
@@ -1577,7 +1577,7 @@ namespace cxx_compiler {
       set_cd(cd, common, direct_common, exclude);
       if (ptr->m_bases) {
         const vector<base*>& bases = *ptr->m_bases;
-	vector<const record_type*> ce = cd;
+        vector<const record_type*> ce = cd;
         copy_if(begin(exclude), end(exclude), back_inserter(ce),
                 [&ce](const record_type* rec){
                   return find(begin(ce), end(ce), rec) == end(ce);
@@ -1987,10 +1987,10 @@ namespace cxx_compiler {
       usr::flag_t mask =
        usr::flag_t(usr::FUNCTION | usr::STATIC | usr::OVERLOAD | usr::TYPEDEF);
       if (flag & mask)
-	return false;
+        return false;
       usr::flag2_t flag2 = u->m_flag2;
       if (flag2 & usr::PARTIAL_ORDERING)
-	return false;
+        return false;
       return true;
     }
   } // end of namespace record_imp
@@ -2030,7 +2030,7 @@ cxx_compiler::record_type::record_type(tag* ptr)
       if (nvb) {
         T = pointer_type::create(T);
         usr* vbptr = new usr(vbptr_name, T, usr::NONE, parse::position,
-			     usr::NONE2);
+        		     usr::NONE2);
         usrs[vbptr_name].push_back(vbptr);
         m_member.push_back(vbptr);
         m_layout[vbptr_name] = make_pair(m_size, vbptr);
@@ -2105,7 +2105,7 @@ cxx_compiler::record_type::record_type(tag* ptr)
     if (nvf) {
       T = pointer_type::create(T);
       usr* vfptr = new usr(vfptr_name, T, usr::NONE, parse::position,
-			   usr::NONE2);
+        		   usr::NONE2);
       m_tag->m_usrs[vfptr_name].push_back(vfptr);
       m_member.push_back(vfptr);
       m_layout[vfptr_name] = make_pair(vfptr_offset, vfptr);
@@ -2328,19 +2328,19 @@ int cxx_compiler::record_impl::layouter::operator()(int offset, usr* member)
       for_each(code.begin()+n,code.end(),[](tac* p){ delete p; });
       code.resize(n);
       if (array)
-	T = element(array);
+        T = element(array);
       if (tag* ptr = T->get_tag()) {
-	tag::flag_t flag = ptr->m_flag;
-	if (flag & tag::TYPENAMED) {
-	  *X++ = make_pair(name,make_pair(offset,member));
-	  T = int_type::create();
-	  offset += T->size();
-	  return offset;
-	}
+        tag::flag_t flag = ptr->m_flag;
+        if (flag & tag::TYPENAMED) {
+          *X++ = make_pair(name,make_pair(offset,member));
+          T = int_type::create();
+          offset += T->size();
+          return offset;
+        }
       }
       if (!instantiate_with_template_param<template_tag>()) {
-	using namespace error::classes;
-	incomplete_member(member);
+        using namespace error::classes;
+        incomplete_member(member);
       }
       T = member->m_type = int_type::create();
     }
@@ -2428,29 +2428,29 @@ namespace cxx_compiler {
     string scope_name(scope* p)
     {
       if (!p)
-	return "";
+        return "";
       scope::id_t id = p->m_id;
       switch (id) {
       case scope::TAG:
-	{
-	  tag* ptr = static_cast<tag*>(p);
-	  string sn = scope_name(ptr->m_parent);
-	  string name = ptr->m_name;
-	  if (!sn.empty())
-	    return sn + "::" + name;
-	  return name;
-	}
+        {
+          tag* ptr = static_cast<tag*>(p);
+          string sn = scope_name(ptr->m_parent);
+          string name = ptr->m_name;
+          if (!sn.empty())
+            return sn + "::" + name;
+          return name;
+        }
       case scope::NAMESPACE:
-	{
-	  name_space* ns = static_cast<name_space*>(p);
-	  string sn = scope_name(ns->m_parent);
-	  string name = ns->m_name;
-	  if (!sn.empty())
-	    return sn + "::" + name;
-	  return name;
-	}
+        {
+          name_space* ns = static_cast<name_space*>(p);
+          string sn = scope_name(ns->m_parent);
+          string name = ns->m_name;
+          if (!sn.empty())
+            return sn + "::" + name;
+          return name;
+        }
       default:
-	return "";
+        return "";
       }
     }
     void decl(ostream& os, string name, const tag* ptr, bool addr)
@@ -2458,12 +2458,12 @@ namespace cxx_compiler {
       os << tag::keyword(ptr->m_kind) << ' ';
       string sn = scope_name(ptr->m_parent);
       if (!sn.empty())
-	os << sn << "::";
+        os << sn << "::";
       os << ptr->m_name;
       if (addr)
-	os << '.' << ptr;
+        os << '.' << ptr;
       if (!name.empty())
-	os << ' ' << name;
+        os << ' ' << name;
     }
   } // end of namespace record_impl
 } // end of namespace cxx_compiler
@@ -2479,58 +2479,58 @@ namespace cxx_compiler {
       using namespace std;
       template_tag* get_src(const tag* ptr)
       {
-	tag::flag_t flag = ptr->m_flag;
-	if (flag & tag::INSTANTIATE) {
-	  typedef const instantiated_tag IT;
-	  IT* it = static_cast<IT*>(ptr);
-	  return it->m_src;
-	}
+        tag::flag_t flag = ptr->m_flag;
+        if (flag & tag::INSTANTIATE) {
+          typedef const instantiated_tag IT;
+          IT* it = static_cast<IT*>(ptr);
+          return it->m_src;
+        }
 
-	if (flag & tag::SPECIAL_VER) {
-	  typedef const special_ver_tag SV;
-	  SV* sv = static_cast<SV*>(ptr);
-	  return sv->m_src;
-	}
+        if (flag & tag::SPECIAL_VER) {
+          typedef const special_ver_tag SV;
+          SV* sv = static_cast<SV*>(ptr);
+          return sv->m_src;
+        }
 
-	return 0;
+        return 0;
       }
       const vector<scope::tps_t::val2_t>& get_seed(const tag* ptr)
       {
-	tag::flag_t flag = ptr->m_flag;
-	if (flag & tag::INSTANTIATE) {
-	  typedef const instantiated_tag IT;
-	  IT* it = static_cast<IT*>(ptr);
-	  return it->m_seed;
-	}
+        tag::flag_t flag = ptr->m_flag;
+        if (flag & tag::INSTANTIATE) {
+          typedef const instantiated_tag IT;
+          IT* it = static_cast<IT*>(ptr);
+          return it->m_seed;
+        }
 
-	assert(flag & tag::SPECIAL_VER);
-	typedef const special_ver_tag SV;
-	SV* sv = static_cast<SV*>(ptr);
-	return sv->m_key;
+        assert(flag & tag::SPECIAL_VER);
+        typedef const special_ver_tag SV;
+        SV* sv = static_cast<SV*>(ptr);
+        return sv->m_key;
       }
       void output(const scope::tps_t::val2_t& p, ostream& os)
       {
-	if (const type* T = p.first) {
-	  T->encode(os);
-	  return;
-	}
-	var* v = p.second;
-	if (addrof* a = v->addrof_cast()) {
-	  v = a->m_ref;
-	  assert(v->usr_cast());
-	  usr* u = static_cast<usr*>(v);
-	  os << u->m_name;
-	  return;
-	}
-	assert(v->usr_cast());
-	usr* u = static_cast<usr*>(v);
-	assert(u->isconstant());
-	os << 'L';
-	const type* T = u->m_type;
-	T = T->unqualified();
-	T->encode(os);
-	os << u->value();
-	os << 'E';
+        if (const type* T = p.first) {
+          T->encode(os);
+          return;
+        }
+        var* v = p.second;
+        if (addrof* a = v->addrof_cast()) {
+          v = a->m_ref;
+          assert(v->usr_cast());
+          usr* u = static_cast<usr*>(v);
+          os << u->m_name;
+          return;
+        }
+        assert(v->usr_cast());
+        usr* u = static_cast<usr*>(v);
+        assert(u->isconstant());
+        os << 'L';
+        const type* T = u->m_type;
+        T = T->unqualified();
+        T->encode(os);
+        os << u->value();
+        os << 'E';
       }
     } // end of namespace encode_impl
   } //end of namespace record_impl
@@ -2554,7 +2554,7 @@ void cxx_compiler::record_impl::encode(std::ostream& os, const tag* ptr)
   os << 'I';
   const vector<scope::tps_t::val2_t>& seed = get_seed(ptr);
   for_each(begin(seed), end(seed),
-	   [&os](const scope::tps_t::val2_t& v){ output(v, os); });
+           [&os](const scope::tps_t::val2_t& v){ output(v, os); });
   os << 'E';
 }
 
@@ -2853,13 +2853,13 @@ cxx_compiler::record_type::create(tag* ptr)
 
 namespace cxx_compiler {
   bool cmp(const scope::tps_t::val2_t& x, const scope::tps_t::val2_t& y,
-	   instantiated_tag::SEED& seed)
+           instantiated_tag::SEED& seed)
   {
     if (const type* Tx = x.first) {
       const type* Ty = y.first;
       if (Tx->m_id == type::TEMPLATE_PARAM) {
-	seed.push_back(scope::tps_t::val2_t(Ty, 0));
-	return true;
+        seed.push_back(scope::tps_t::val2_t(Ty, 0));
+        return true;
       }
       assert(Tx == Ty);
       return true;
@@ -2869,7 +2869,7 @@ namespace cxx_compiler {
     return true;
   }
   bool templ_copy_ctor(usr* u, instantiated_tag* y,
-		       instantiated_tag::SEED& seed)
+        	       instantiated_tag::SEED& seed)
   {
     usr::flag2_t flag2 = u->m_flag2;
     if (!(flag2 & usr::TEMPLATE))
@@ -2904,8 +2904,8 @@ namespace cxx_compiler {
     const instantiated_tag::SEED& ys = y->m_seed;
     assert(xs.size() == ys.size());
     mismatch(begin(xs), end(xs), begin(ys), [&seed]
-	     (const scope::tps_t::val2_t& x, const scope::tps_t::val2_t& y)
-	     { return cmp(x, y, seed); });
+             (const scope::tps_t::val2_t& x, const scope::tps_t::val2_t& y)
+             { return cmp(x, y, seed); });
     return true;
   }
 } // end of namespace cxx_compiler
@@ -2928,7 +2928,7 @@ void cxx_compiler::handle_copy_ctor(tag* ptr)
     instantiated_tag* it = static_cast<instantiated_tag*>(ptr);
     template_usr::KEY key;
     IT r = find_if(begin(v), end(v), [it, &key](usr* u)
-		   { return templ_copy_ctor(u, it, key); });
+        	   { return templ_copy_ctor(u, it, key); });
     if (r != end(v)) {
       usr* u = *r;
       assert(u->m_flag2 & usr::TEMPLATE);
@@ -3008,7 +3008,7 @@ cxx_compiler::usr* cxx_compiler::get_copy_ctor(const type* T)
   const vector<usr*>& v = p->second;
   typedef vector<usr*>::const_reverse_iterator ITy;
   ITy q = find_if(rbegin(v), rend(v),
-		  bind2nd(ptr_fun(canbe_copy_ctor), ptr));
+        	  bind2nd(ptr_fun(canbe_copy_ctor), ptr));
   if (q == rend(v))
     return 0;
   usr* u1 = *q;
@@ -3019,12 +3019,12 @@ cxx_compiler::usr* cxx_compiler::get_copy_ctor(const type* T)
     return u1;
   usr* u2 = *r;
   for_each(r+1, rend(v), [ptr, u1, u2](usr* u)
-	   {
-	     if (canbe_copy_ctor(u, ptr)) {
-	       assert(!compatible(u->m_type, u1->m_type));
-	       assert(!compatible(u->m_type, u2->m_type));
-	     }
-	   });
+           {
+             if (canbe_copy_ctor(u, ptr)) {
+               assert(!compatible(u->m_type, u1->m_type));
+               assert(!compatible(u->m_type, u2->m_type));
+             }
+           });
   const type* T1 = u1->m_type;
   const type* T2 = u2->m_type;
   assert(T1->m_id == type::FUNC);
@@ -3205,9 +3205,8 @@ void cxx_compiler::call_default_ctor(var* v)
 }
 
 namespace cxx_compiler {
-  bool must_call_ctor_dtor_common(usr* u, bool ctor)
+  bool must_call_ctor_dtor_common(const type* T, bool ctor)
   {
-    const type* T = u->m_type;
     if (T->m_id == type::ARRAY) {
       typedef const array_type AT;
       AT* at = static_cast<AT*>(T);
@@ -3220,9 +3219,7 @@ namespace cxx_compiler {
     typedef const record_type REC;
     REC* rec = static_cast<REC*>(T);
     tag* ptr = rec->get_tag();
-    string name = ptr->m_name;
-    if (!ctor)
-      name = '~' + name;
+    string name = ctor ? tor_name(ptr) : '~' + tor_name(ptr);
     const map<string, vector<usr*> >& usrs = ptr->m_usrs;
     map<string, vector<usr*> >::const_iterator p = usrs.find(name);
     if (p == usrs.end())
@@ -3240,10 +3237,10 @@ namespace cxx_compiler {
 
 bool cxx_compiler::must_call_default_ctor(usr* u)
 {
-  return must_call_ctor_dtor_common(u, true);
+  return must_call_ctor_dtor_common(u->m_type, true);
 }
 
-bool cxx_compiler::must_call_dtor(usr* u)
+bool cxx_compiler::must_call_dtor(const type* T)
 {
-  return must_call_ctor_dtor_common(u, false);
+  return must_call_ctor_dtor_common(T, false);
 }

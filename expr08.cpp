@@ -28,14 +28,14 @@ namespace cxx_compiler {
     namespace cmp_impl {
       inline int conv(goto3ac::op op)
       {
-	switch (op) {
-	case goto3ac::EQ : return EQUAL_MK;
-	case goto3ac::NE : return NOTEQ_MK;
-	case goto3ac::LE : return LESSEQ_MK;
-	case goto3ac::GE : return GREATEREQ_MK;
-	case goto3ac::LT : return '<';
-	default: assert(op == goto3ac::GT); return '>';
-	}
+        switch (op) {
+        case goto3ac::EQ : return EQUAL_MK;
+        case goto3ac::NE : return NOTEQ_MK;
+        case goto3ac::LE : return LESSEQ_MK;
+        case goto3ac::GE : return GREATEREQ_MK;
+        case goto3ac::LT : return '<';
+        default: assert(op == goto3ac::GT); return '>';
+        }
       }
       typedef var* PF(var*, var*);
       var* equal(var* y, var* z){ return gen(goto3ac::EQ, y, z); }
@@ -46,14 +46,14 @@ namespace cxx_compiler {
       var* greater_than(var* y, var* z){ return gen(goto3ac::GT, y, z); }
       inline PF* conv_pf(goto3ac::op op)
       {
-	switch (op) {
-	case goto3ac::EQ : return equal;
-	case goto3ac::NE : return not_equal;
-	case goto3ac::LE : return less_equal;
-	case goto3ac::GE : return greater_equal;
-	case goto3ac::LT : return less_than;
-	default: assert(op == goto3ac::GT); return greater_than;
-	}
+        switch (op) {
+        case goto3ac::EQ : return equal;
+        case goto3ac::NE : return not_equal;
+        case goto3ac::LE : return less_equal;
+        case goto3ac::GE : return greater_equal;
+        case goto3ac::LT : return less_than;
+        default: assert(op == goto3ac::GT); return greater_than;
+        }
       }
     } // end of namespace cmp_impl
   } // end of namespace expressions
@@ -67,10 +67,10 @@ cxx_compiler::expressions::cmp_impl::gen(goto3ac::op op, var* y, var* z)
   if ( !Ty->arithmetic() || !Tz->arithmetic() ) {
     if ( !cmp_impl::valid_pointer(op,y,z) ){
       if (var* ret = var_impl::operator_code(conv(op), y, z))
-	return ret;
+        return ret;
       var* (*pf)(var*, var*) = conv_pf(op);
       if (var* ret = var_impl::conversion_code(conv(op), y, z, pf))
-	return ret;
+        return ret;
       using namespace error::expressions::binary;
       int tmp = conv(op);
       invalid(parse::position,tmp,Ty,Tz);

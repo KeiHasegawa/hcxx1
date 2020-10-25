@@ -1505,7 +1505,7 @@ cxx_compiler::unqualified_id::operator_function_id(int op)
   param->m_parent = ptr;
   const type* pt = pointer_type::create(T);
   usr* this_ptr = new usr(this_name, pt, usr::NONE, parse::position,
-			  usr::NONE2);
+                          usr::NONE2);
   string frn = new_name(".param");
   usr* first = new usr(frn, rtc, usr::NONE, parse::position, usr::NONE2);
   map<string, vector<usr*> >& pusrs = param->m_usrs;

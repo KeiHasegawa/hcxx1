@@ -20,50 +20,50 @@ namespace cxx_compiler {
       extern int expr_list(vector<expressions::base*>*, argument*);
       void skipchk(const pair<int, var*>& x)
       {
-	using namespace declarators::function::definition::static_inline;
-	var* v = x.second;
-	addrof * a = v->addrof_cast();
-	if (!a)
-	  return;
-	var* r = a->m_ref;
-	usr* u = r->usr_cast();
-	addr3ac tmp(0, u);
-	skip::chk_t arg(0);
-	skip::check(&tmp, &arg);
+        using namespace declarators::function::definition::static_inline;
+        var* v = x.second;
+        addrof * a = v->addrof_cast();
+        if (!a)
+          return;
+        var* r = a->m_ref;
+        usr* u = r->usr_cast();
+        addr3ac tmp(0, u);
+        skip::chk_t arg(0);
+        skip::check(&tmp, &arg);
       }
       inline void handle_with_initial(with_initial* p, const argument& arg,
-				      int n)
+        			      int n)
       {
-	if (arg.not_constant) {
-	  initialize_code(p);
-	  return;
-	}
+        if (arg.not_constant) {
+          initialize_code(p);
+          return;
+        }
 
-	typedef map<usr*, gendata>::const_iterator ITx;
-	ITx itx = table.find(p);
-	if (itx != table.end()) {
-	  const gendata& data = itx->second;
-	  const vector<tac*>& c = data.m_code;
-	  copy(begin(c), end(c), back_inserter(code));
-	  initialize_code(p);
-	  return;
-	}
+        typedef map<usr*, gendata>::const_iterator ITx;
+        ITx itx = table.find(p);
+        if (itx != table.end()) {
+          const gendata& data = itx->second;
+          const vector<tac*>& c = data.m_code;
+          copy(begin(c), end(c), back_inserter(code));
+          initialize_code(p);
+          return;
+        }
 
-	if (n == code.size())
-	  return;
-	map<int, var*>& value = p->m_value;
-	for_each(begin(value), end(value), skipchk);
-	if (value.size() != 1)
-	  return;
-	typedef map<int, var*>::const_iterator ITy;
-	ITy ity = value.find(0);
-	assert(ity != value.end());
-	var* v = ity->second;
-	if (v->addrof_cast())
-	  return;
-	value.clear();
-	code.push_back(new assign3ac(p, v));
-	initialize_code(p);
+        if (n == code.size())
+          return;
+        map<int, var*>& value = p->m_value;
+        for_each(begin(value), end(value), skipchk);
+        if (value.size() != 1)
+          return;
+        typedef map<int, var*>::const_iterator ITy;
+        ITy ity = value.find(0);
+        assert(ity != value.end());
+        var* v = ity->second;
+        if (v->addrof_cast())
+          return;
+        value.clear();
+        code.push_back(new assign3ac(p, v));
+        initialize_code(p);
       }
     }  // end of namespace initializers
   }  // end of namespace declarations
@@ -135,13 +135,16 @@ void cxx_compiler::usr::initialize()
 {
   declarations::initializers::gencode(this);
   if (scope::current->m_id == scope::BLOCK) {
-    block* b = static_cast<block*>(scope::current);
     if ( m_type->variably_modified() ){
       if ( m_flag & usr::EXTERN ){
         using namespace error::declarations::declarators::vm;
         invalid_linkage(this);
         m_flag = usr::flag_t(m_flag & ~usr::EXTERN);
       }
+    }
+    if (must_call_dtor(m_type)) {
+      code.push_back(new try_begin3ac);
+      block_impl::tried.insert(this);
     }
   }
   using namespace declarations::declarators::array;
@@ -170,7 +173,7 @@ bool cxx_compiler::array_of_tor(const array_type* at, bool ctor)
 
 void
 cxx_compiler::ctor_dtor_common(var* v, const array_type* at, void (*pf)(var*),
-			       bool ctor)
+        		       bool ctor)
 {
   using namespace expressions::primary::literal;
   const type* T = at->element_type();
@@ -193,11 +196,11 @@ cxx_compiler::ctor_dtor_common(var* v, const array_type* at, void (*pf)(var*),
       var* off = integer::create(offset);
       var* t1 = new ref(pt);
       if (scope::current->m_id == scope::BLOCK) {
-	block* b = static_cast<block*>(scope::current);
-	b->m_vars.push_back(t1);
+        block* b = static_cast<block*>(scope::current);
+        b->m_vars.push_back(t1);
       }
       else
-	garbage.push_back(t1);
+        garbage.push_back(t1);
       code.push_back(new add3ac(t1, t0, off));
       t0 = t1;
     }
@@ -224,7 +227,7 @@ namespace cxx_compiler {
         }
         void not_constant(usr* u, var* v)
         {
-	  using namespace expressions::primary::literal;
+          using namespace expressions::primary::literal;
           addrof* addr = v->addrof_cast();
           assert(addr);
           var* ref = addr->m_ref;
@@ -368,7 +371,7 @@ expr_list(std::vector<expressions::base*>* exprs, argument* arg)
       bool discard = false;
       bool ctor_conv = false;
       if (expressions::assignment::valid(T, src, &discard, &ctor_conv, 0))
-	return clause::assign(src, arg);
+        return clause::assign(src, arg);
     }
     using namespace error::declarations::initializers;
     no_ctor(argument::dst);
@@ -390,17 +393,17 @@ expr_list(std::vector<expressions::base*>* exprs, argument* arg)
     if (scope::current->m_id != scope::BLOCK) {
       const vector<usr*>& v = ovl->m_candidacy;
       for_each(begin(v), end(v), [&org](usr* u)
-	       {
-		 usr::flag_t flag = u->m_flag;
-		 org.push_back(flag);
-		 u->m_flag = usr::flag_t(flag & ~usr::INLINE);
-	       });
+               {
+        	 usr::flag_t flag = u->m_flag;
+        	 org.push_back(flag);
+        	 u->m_flag = usr::flag_t(flag & ~usr::INLINE);
+               });
     }
     ovl->call(&res);
     if (scope::current->m_id != scope::BLOCK) {
       vector<usr*>& v = ovl->m_candidacy;
       for (int i = 0 ; i != v.size() ; ++i )
-	v[i]->m_flag = org[i];
+        v[i]->m_flag = org[i];
     }
     vector<tac*>& c = table[argument::dst].m_code;
     copy(begin(code)+n, end(code), back_inserter(c));
@@ -477,7 +480,7 @@ assign(var* y, argument* arg)
       bool discard = false;
       bool ctor_conv = false;
       if (!expressions::assignment::valid(T, y, &discard, &ctor_conv, 0))
-	return assign_special(y,arg);
+        return assign_special(y,arg);
     }
     arg->off_max = max(arg->off_max, arg->off = ret.first);
   }
@@ -1220,45 +1223,45 @@ namespace cxx_compiler {
       void aggregate(std::map<int, var*>::iterator, var*, block*);
       inline void for_with_initial(with_initial* x, block* body)
       {
-	map<int, var*>& value = x->m_value;
-	typedef map<int, var*>::iterator IT;
-	if ( x->m_type->scalar() ){
-	  if ( value.size() == 1 ){  // This holds if program is correct.
-	    IT it = value.find(0);
-	    assert(it != value.end());
-	    scalar(it,x,body);
-	  }
-	}
-	else {
-	  for ( IT it = value.begin() ; it != value.end() ; ++it )
-	    aggregate(it,x,body);
-	}
+        map<int, var*>& value = x->m_value;
+        typedef map<int, var*>::iterator IT;
+        if ( x->m_type->scalar() ){
+          if ( value.size() == 1 ){  // This holds if program is correct.
+            IT it = value.find(0);
+            assert(it != value.end());
+            scalar(it,x,body);
+          }
+        }
+        else {
+          for ( IT it = value.begin() ; it != value.end() ; ++it )
+            aggregate(it,x,body);
+        }
       }
       void common(usr*, bool);
       inline bool try_inline_sub(int n)
       {
-	assert(code.size() >= n);
-	tac* ptac = code[n-1];
-	if (ptac->m_id != tac::CALL)
-	  return false;
-	var* v = ptac->y;
-	usr* u = v->usr_cast();
-	if (!u)
-	  return false;
-	usr::flag_t flag = u->m_flag;
-	if (!error::counter && !cmdline::no_inline_sub) {
-	  if (flag & usr::INLINE) {
-	    using namespace declarations::declarators::function;
-	    using namespace definition::static_inline;
-	    skip::table_t::const_iterator p = skip::stbl.find(u);
-	    if (p != skip::stbl.end()) {
-	      using definition::static_inline::info_t;
-	      if (info_t* info = p->second)
-		substitute(code, n-1, info);
-	    }
-	  }
-	}
-	return true;
+        assert(code.size() >= n);
+        tac* ptac = code[n-1];
+        if (ptac->m_id != tac::CALL)
+          return false;
+        var* v = ptac->y;
+        usr* u = v->usr_cast();
+        if (!u)
+          return false;
+        usr::flag_t flag = u->m_flag;
+        if (!error::counter && !cmdline::no_inline_sub) {
+          if (flag & usr::INLINE) {
+            using namespace declarations::declarators::function;
+            using namespace definition::static_inline;
+            skip::table_t::const_iterator p = skip::stbl.find(u);
+            if (p != skip::stbl.end()) {
+              using definition::static_inline::info_t;
+              if (info_t* info = p->second)
+        	substitute(code, n-1, info);
+            }
+          }
+        }
+        return true;
       }
     }  // end of namespace initializers
   }  // end of namespace declarations
@@ -1325,14 +1328,14 @@ void cxx_compiler::declarations::initializers::common(usr* u, bool ini)
     int n = code.size();
     if (!try_inline_sub(n)) {
       if (n > 1)
-	try_inline_sub(n-1);
+        try_inline_sub(n-1);
     }
     scope::current = org;
   }
   else {
     assert(code.empty());
     assert(is_external_declaration(u));
-    ini ? assert(must_call_default_ctor(u)) : assert(must_call_dtor(u));
+    ini ? assert(must_call_default_ctor(u)) : assert(must_call_dtor(u->m_type));
     scope* org = scope::current;
     scope::current = body;
     ini ? call_default_ctor(u) : call_dtor(u);
@@ -1393,49 +1396,49 @@ namespace cxx_compiler {
   namespace declarations {
     namespace initializers {
       namespace aggregate_impl {
-	bool call_copy_ctor(var* x, var* y, int offset)
-	{
-	  using namespace expressions;
-	  using namespace expressions::primary::literal;
-	  using namespace error::expressions::postfix::call;
-	  const type* Ty = y->m_type;
-	  usr* copy_ctor = get_copy_ctor(Ty);
-	  if (!copy_ctor)
-	    return false;
+        bool call_copy_ctor(var* x, var* y, int offset)
+        {
+          using namespace expressions;
+          using namespace expressions::primary::literal;
+          using namespace error::expressions::postfix::call;
+          const type* Ty = y->m_type;
+          usr* copy_ctor = get_copy_ctor(Ty);
+          if (!copy_ctor)
+            return false;
 
-	  const type* Tc = copy_ctor->m_type;
-	  assert(Tc->m_id == type::FUNC);
-	  typedef const func_type FT;
-	  FT* ft = static_cast<FT*>(Tc);
-	  const vector<const type*>& param = ft->param();
-	  assert(!param.empty());
-	  const type* Ta = param[0];
-	  bool discard = false;
-	  bool ctor_conv = false;
-	  if (!assignment::valid(Ta, y, &discard, &ctor_conv, 0)) {
-	    assert(discard);
-	    mismatch_argument(parse::position, 0, discard, copy_ctor);
-	  }
-	  var* t0 = new var(Ta);
-	  assert(scope::current->m_id == scope::BLOCK);
-	  block* b = static_cast<block*>(scope::current);
-	  b->m_vars.push_back(t0);
-	  code.push_back(new addr3ac(t0, y));
-	  if (offset) {
-	    var* t1 = new var(Ta);
-	    var* t2 = new var(Ta);
-	    b->m_vars.push_back(t1);
-	    b->m_vars.push_back(t2);
-	    var* off = integer::create(offset);
-	    code.push_back(new addr3ac(t1, x));
-	    code.push_back(new add3ac(t2, t1, off));
-	    x = t2;
-	  }
-	  vector<var*> arg;
-	  arg.push_back(t0);
-	  call_impl::wrapper(copy_ctor, &arg, x);
-	  return true;
-	}
+          const type* Tc = copy_ctor->m_type;
+          assert(Tc->m_id == type::FUNC);
+          typedef const func_type FT;
+          FT* ft = static_cast<FT*>(Tc);
+          const vector<const type*>& param = ft->param();
+          assert(!param.empty());
+          const type* Ta = param[0];
+          bool discard = false;
+          bool ctor_conv = false;
+          if (!assignment::valid(Ta, y, &discard, &ctor_conv, 0)) {
+            assert(discard);
+            mismatch_argument(parse::position, 0, discard, copy_ctor);
+          }
+          var* t0 = new var(Ta);
+          assert(scope::current->m_id == scope::BLOCK);
+          block* b = static_cast<block*>(scope::current);
+          b->m_vars.push_back(t0);
+          code.push_back(new addr3ac(t0, y));
+          if (offset) {
+            var* t1 = new var(Ta);
+            var* t2 = new var(Ta);
+            b->m_vars.push_back(t1);
+            b->m_vars.push_back(t2);
+            var* off = integer::create(offset);
+            code.push_back(new addr3ac(t1, x));
+            code.push_back(new add3ac(t2, t1, off));
+            x = t2;
+          }
+          vector<var*> arg;
+          arg.push_back(t0);
+          call_impl::wrapper(copy_ctor, &arg, x);
+          return true;
+        }
       } // end of namespace aggregate_impl
     } // end of namespace initializers
   } // end of namespace declarations
