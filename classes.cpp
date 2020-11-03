@@ -298,6 +298,7 @@ specifier::begin3(int keyword, pair<usr*, tag*>* x, std::vector<base*>* bases)
   ptr->m_parent = scope::current;
   ptr->m_parent->m_children.push_back(ptr);
   ptr->m_types.first = incomplete_tagged_type::create(ptr);
+  ptr->m_bases = bases;
   tags[name] = ptr;
   scope::current = ptr;
   declarations::specifier_seq::info_t::clear();
@@ -905,3 +906,16 @@ namespace cxx_compiler {
     } // end of namespace declarators
   } // end of namespace declarations
 }  // end of namespace cxx_compiler
+
+
+cxx_compiler::base* cxx_compiler::create_base(int access, bool virt, usr* u)
+{
+  usr::flag_t flag = u->m_flag;
+  assert(flag & usr::TYPEDEF);
+  const type* T = u->m_type;
+  assert(T);
+  tag* ptr = T->get_tag();
+  if (!ptr)
+    error::not_implemented();
+  return new base(access, virt, ptr);
+}

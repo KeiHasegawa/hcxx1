@@ -1486,9 +1486,19 @@ base_specifier
       $$ = new cxx_compiler::base(0,false,$4);
       cxx_compiler::class_or_namespace_name::after(false);
     }
+  | COLONCOLON_MK move_to_root nested_name_specifier TYPEDEF_NAME_LEX
+    {
+      $$ = cxx_compiler::create_base(0,false,$4);
+      cxx_compiler::class_or_namespace_name::after(false);
+    }
   | COLONCOLON_MK move_to_root class_name
     {
       $$ = new cxx_compiler::base(0,false,$3);
+      cxx_compiler::class_or_namespace_name::after(false);
+    }
+  | COLONCOLON_MK move_to_root TYPEDEF_NAME_LEX
+    {
+      $$ = cxx_compiler::create_base(0,false,$3);
       cxx_compiler::class_or_namespace_name::after(false);
     }
   | nested_name_specifier class_name
@@ -1496,12 +1506,25 @@ base_specifier
       $$ = new cxx_compiler::base(0,false,$2);
       cxx_compiler::class_or_namespace_name::after(false);
     }
+  | nested_name_specifier TYPEDEF_NAME_LEX
+    {
+      $$ = cxx_compiler::create_base(0,false, $2);
+      cxx_compiler::class_or_namespace_name::after(false);
+    }
   | class_name
     { $$ = new cxx_compiler::base(0,false,$1); }
+  | TYPEDEF_NAME_LEX
+    { $$ = cxx_compiler::create_base(0,false,$1); }
   | VIRTUAL_KW access_specifier COLONCOLON_MK move_to_root
     nested_name_specifier class_name
     {
       $$ = new cxx_compiler::base($2,true,$6);
+      cxx_compiler::class_or_namespace_name::after(false);
+    }
+  | VIRTUAL_KW access_specifier COLONCOLON_MK move_to_root
+    nested_name_specifier TYPEDEF_NAME_LEX
+    {
+      $$ = cxx_compiler::create_base($2,true,$6);
       cxx_compiler::class_or_namespace_name::after(false);
     }
   | VIRTUAL_KW access_specifier COLONCOLON_MK move_to_root class_name
@@ -1509,16 +1532,35 @@ base_specifier
       $$ = new cxx_compiler::base($2,true,$5);
       cxx_compiler::class_or_namespace_name::after(false);
     }
+  | VIRTUAL_KW access_specifier COLONCOLON_MK move_to_root TYPEDEF_NAME_LEX
+    {
+      $$ = cxx_compiler::create_base($2,true,$5);
+      cxx_compiler::class_or_namespace_name::after(false);
+    }
   | VIRTUAL_KW access_specifier nested_name_specifier class_name
     {
       $$ = new cxx_compiler::base($2,true,$4);
       cxx_compiler::class_or_namespace_name::after(false);
     }
+  | VIRTUAL_KW access_specifier nested_name_specifier TYPEDEF_NAME_LEX
+    {
+      $$ = cxx_compiler::create_base($2,true,$4);
+      cxx_compiler::class_or_namespace_name::after(false);
+    }
   | VIRTUAL_KW access_specifier class_name
     { $$ = new cxx_compiler::base(0,true,$3); }
-  | VIRTUAL_KW COLONCOLON_MK move_to_root nested_name_specifier class_name
+  | VIRTUAL_KW access_specifier TYPEDEF_NAME_LEX
+    { $$ = cxx_compiler::create_base(0,true,$3); }
+  | VIRTUAL_KW COLONCOLON_MK move_to_root nested_name_specifier
+    class_name
     {
       $$ = new cxx_compiler::base(0,true,$5);
+      cxx_compiler::class_or_namespace_name::after(false);
+    }
+  | VIRTUAL_KW COLONCOLON_MK move_to_root nested_name_specifier
+    TYPEDEF_NAME_LEX
+    {
+      $$ = cxx_compiler::create_base(0,true,$5);
       cxx_compiler::class_or_namespace_name::after(false);
     }
   | VIRTUAL_KW COLONCOLON_MK move_to_root class_name
@@ -1526,17 +1568,35 @@ base_specifier
       $$ = new cxx_compiler::base(0,true,$4);
       cxx_compiler::class_or_namespace_name::after(false);
     }
+  | VIRTUAL_KW COLONCOLON_MK move_to_root TYPEDEF_NAME_LEX
+    {
+      $$ = cxx_compiler::create_base(0,true,$4);
+      cxx_compiler::class_or_namespace_name::after(false);
+    }
   | VIRTUAL_KW nested_name_specifier class_name
     {
       $$ = new cxx_compiler::base(0,true,$3);
       cxx_compiler::class_or_namespace_name::after(false);
     }
+  | VIRTUAL_KW nested_name_specifier TYPEDEF_NAME_LEX
+    {
+      $$ = cxx_compiler::create_base(0,true,$3);
+      cxx_compiler::class_or_namespace_name::after(false);
+    }
   | VIRTUAL_KW class_name
     { $$ = new cxx_compiler::base(0,true,$2); }
+  | VIRTUAL_KW TYPEDEF_NAME_LEX
+    { $$ = cxx_compiler::create_base(0,true,$2); }
   | access_specifier VIRTUAL_KW COLONCOLON_MK move_to_root
     nested_name_specifier class_name
     {
       $$ = new cxx_compiler::base($1,true,$6);
+      cxx_compiler::class_or_namespace_name::after(false);
+    }
+  | access_specifier VIRTUAL_KW COLONCOLON_MK move_to_root
+    nested_name_specifier TYPEDEF_NAME_LEX
+    {
+      $$ = cxx_compiler::create_base($1,true,$6);
       cxx_compiler::class_or_namespace_name::after(false);
     }
   | access_specifier VIRTUAL_KW COLONCOLON_MK move_to_root class_name
@@ -1544,17 +1604,35 @@ base_specifier
       $$ = new cxx_compiler::base($1,true,$5);
       cxx_compiler::class_or_namespace_name::after(false);
     }
+  | access_specifier VIRTUAL_KW COLONCOLON_MK move_to_root TYPEDEF_NAME_LEX
+    {
+      $$ = cxx_compiler::create_base($1,true,$5);
+      cxx_compiler::class_or_namespace_name::after(false);
+    }
   | access_specifier VIRTUAL_KW nested_name_specifier class_name
     {
       $$ = new cxx_compiler::base($1,true,$4);
       cxx_compiler::class_or_namespace_name::after(false);
     }
+  | access_specifier VIRTUAL_KW nested_name_specifier TYPEDEF_NAME_LEX
+    {
+      $$ = cxx_compiler::create_base($1,true,$4);
+      cxx_compiler::class_or_namespace_name::after(false);
+    }
   | access_specifier VIRTUAL_KW class_name
     { $$ = new cxx_compiler::base($1,true,$3); }
+  | access_specifier VIRTUAL_KW TYPEDEF_NAME_LEX
+    { $$ = cxx_compiler::create_base($1,true,$3); }
   | access_specifier COLONCOLON_MK move_to_root nested_name_specifier
     class_name
     {
       $$ = new cxx_compiler::base($1,false,$5);
+      cxx_compiler::class_or_namespace_name::after(false);
+    }
+  | access_specifier COLONCOLON_MK move_to_root nested_name_specifier
+    TYPEDEF_NAME_LEX
+    {
+      $$ = cxx_compiler::create_base($1,false,$5);
       cxx_compiler::class_or_namespace_name::after(false);
     }
   | access_specifier COLONCOLON_MK move_to_root class_name
@@ -1562,13 +1640,25 @@ base_specifier
       $$ = new cxx_compiler::base($1,false,$4);
       cxx_compiler::class_or_namespace_name::after(false);
     }
+  | access_specifier COLONCOLON_MK move_to_root TYPEDEF_NAME_LEX
+    {
+      $$ = cxx_compiler::create_base($1,false,$4);
+      cxx_compiler::class_or_namespace_name::after(false);
+    }
   | access_specifier nested_name_specifier class_name
     {
       $$ = new cxx_compiler::base($1,false,$3);
       cxx_compiler::class_or_namespace_name::after(false);
     }
+  | access_specifier nested_name_specifier TYPEDEF_NAME_LEX
+    {
+      $$ = cxx_compiler::create_base($1,false,$3);
+      cxx_compiler::class_or_namespace_name::after(false);
+    }
   | access_specifier class_name
     { $$ = new cxx_compiler::base($1,false,$2); }
+  | access_specifier TYPEDEF_NAME_LEX
+    { $$ = cxx_compiler::create_base($1,false,$2); }
   ;
 
 access_specifier
@@ -1908,8 +1998,10 @@ enter_templ_arg
       }
       ++parse::templ::arg;
       parse::identifier::mode = parse::identifier::look;
-      if (!class_or_namespace_name::before.empty())
-	class_or_namespace_name::after(false);
+      if (!parse::base_clause) {
+	if (!class_or_namespace_name::before.empty())
+	  class_or_namespace_name::after(false);
+      }
     }
   ;
 

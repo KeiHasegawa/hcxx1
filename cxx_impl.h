@@ -1789,6 +1789,8 @@ struct alias : usr {
   }
 };
 
+base* create_base(int access, bool virt, usr* u);
+
 } // end of namespace cxx_compiler
 
 #endif // _CXX_IMPL_H_
