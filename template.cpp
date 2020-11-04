@@ -211,8 +211,7 @@ void cxx_compiler::declarations::templ::decl_end()
     handle(last = u, p->m_read);
   else if (p->m_tag)
     handle(p->m_tag, p->m_read);
-  else {
-    assert(last);
+  else if (last) {
     scope* ps = last->m_scope;
     assert(ps->m_id == scope::TAG);
     tag* ptr = static_cast<tag*>(ps);

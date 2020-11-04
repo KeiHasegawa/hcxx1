@@ -81,7 +81,7 @@ namespace cxx_compiler {
 %token OPERATOR_KW
 
 %token FALSE_KW TRUE_KW
-%token BUILTIN_VA_ARG BUILTIN_VA_START BUILTIN_VA_END
+%token BUILTIN_VA_ARG BUILTIN_VA_START BUILTIN_VA_END BUILTIN_ADDRESSOF
 %token NEW_ARRAY_LEX DELETE_ARRAY_LEX
 
 %union {
@@ -2287,7 +2287,7 @@ postfix_expression
     }
   | typenaming nested_name_specifier TYPEDEF_NAME_LEX '(' expression_list ')'
     {
-      cxx_compiler::error::not_implemented();
+      $$ = new cxx_compiler::expressions::postfix::fcast($3, $5);
       --cxx_compiler::parse::identifier::typenaming;
       assert(cxx_compiler::parse::identifier::typenaming >= 0);
     }
@@ -2311,7 +2311,7 @@ postfix_expression
     }
   | typenaming nested_name_specifier TYPEDEF_NAME_LEX '(' ')'
     {
-      cxx_compiler::error::not_implemented();
+      $$ = new cxx_compiler::expressions::postfix::fcast($3, 0);
       --cxx_compiler::parse::identifier::typenaming;
       assert(cxx_compiler::parse::identifier::typenaming >= 0);
     }
@@ -2721,6 +2721,8 @@ cast_expression
     { $$ = new cxx_compiler::expressions::_va_arg::info_t($3,$5); }
   | BUILTIN_VA_END '(' cast_expression ')'
     { $$ = new cxx_compiler::expressions::_va_end::info_t($3); }
+  | BUILTIN_ADDRESSOF '(' cast_expression ')'
+    { $$ = new cxx_compiler::expressions::address_of::info_t($3); }
   ;
 
 pm_expression

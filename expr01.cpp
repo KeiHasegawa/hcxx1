@@ -2515,6 +2515,17 @@ fcast::fcast(tag* ptr, std::vector<base*>* list)
   scope::current = class_or_namespace_name::before.back();
 }
 
+cxx_compiler::expressions::postfix::
+fcast::fcast(usr* u, std::vector<base*>* list)
+  : m_list(list), m_file(parse::position)
+{
+  usr::flag_t flag = u->m_flag;
+  assert(flag & usr::TYPEDEF);
+  m_type = u->m_type;
+  assert(!class_or_namespace_name::before.empty());
+  scope::current = class_or_namespace_name::before.back();
+}
+
 namespace cxx_compiler {
   namespace expressions {
     namespace postfix {

@@ -999,6 +999,7 @@ namespace expressions {
       const file_t& file() const { return m_file; }
       fcast(declarations::type_specifier*, vector<base*>* list);
       fcast(tag*, vector<base*>* list);
+      fcast(usr*, vector<base*>* list);
     };
   } // end of namespace postfix
   namespace unary {
@@ -1105,7 +1106,16 @@ namespace expressions {
       info_t(base* expr) : m_expr(expr) {}
       ~info_t(){ delete m_expr; }
     };
-  } // end of namespace _va_arg
+  } // end of namespace _va_end
+  namespace address_of {
+    struct info_t : base {
+      base* m_expr;
+      const file_t& file() const;
+      var* gen();
+      info_t(base* expr) : m_expr(expr) {}
+      ~info_t(){ delete m_expr; }
+    };
+  } // end of namespace address_of
   namespace binary {
     struct info_t : base {
       base* m_left;

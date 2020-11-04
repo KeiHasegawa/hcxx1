@@ -543,7 +543,8 @@ function::definition::begin(declarations::specifier_seq::info_t* p, var* v)
 }
 
 bool
-cxx_compiler::declarations::declarators::function::definition::valid(const type* T, usr* func)
+cxx_compiler::declarations::declarators::
+function::definition::valid(const type* T, usr* func)
 {
   if (!T)
     return true;
@@ -551,6 +552,9 @@ cxx_compiler::declarations::declarators::function::definition::valid(const type*
   if (T->m_id == type::VOID)
     return true;
   if (!T->size()) {
+    usr::flag2_t flag2 = func->m_flag2;
+    if (flag2 & usr::TEMPLATE)
+      return true;
     scope* ptr = func->m_scope;
     if ( ptr->m_id != scope::TAG )
       return false;

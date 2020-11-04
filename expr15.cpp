@@ -58,7 +58,8 @@ cxx_compiler::var* cxx_compiler::expressions::_va_arg::info_t::gen()
   return ret;
 }
 
-const cxx_compiler::file_t& cxx_compiler::expressions::_va_arg::info_t::file() const
+const
+cxx_compiler::file_t& cxx_compiler::expressions::_va_arg::info_t::file() const
 {
   return m_expr->file();
 }
@@ -71,7 +72,20 @@ cxx_compiler::var* cxx_compiler::expressions::_va_end::info_t::gen()
   return expr;
 }
 
-const cxx_compiler::file_t& cxx_compiler::expressions::_va_end::info_t::file() const
+const cxx_compiler::file_t&
+cxx_compiler::expressions::_va_end::info_t::file() const
+{
+  return m_expr->file();
+}
+
+cxx_compiler::var* cxx_compiler::expressions::address_of::info_t::gen()
+{
+  var* expr = m_expr->gen();
+  return expr->address();
+}
+
+const cxx_compiler::file_t&
+cxx_compiler::expressions::address_of::info_t::file() const
 {
   return m_expr->file();
 }
