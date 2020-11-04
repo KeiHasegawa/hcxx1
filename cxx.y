@@ -1998,7 +1998,7 @@ enter_templ_arg
       }
       ++parse::templ::arg;
       parse::identifier::mode = parse::identifier::look;
-      if (!parse::base_clause) {
+      if (!parse::base_clause || parse::templ::arg > 1) {
 	if (!class_or_namespace_name::before.empty())
 	  class_or_namespace_name::after(false);
       }
