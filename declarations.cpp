@@ -797,6 +797,8 @@ void cxx_compiler::declarations::check_object(usr* u)
       using namespace parse::templ;
       if (!save_t::nest.empty())
         return;
+      if (instantiate_with_template_param<template_usr>())
+	return;
     }
   }
   int size = T->size();

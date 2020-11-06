@@ -580,6 +580,66 @@ cxx_compiler::var* cxx_compiler::overload::call(std::vector<var*>* arg,
 
 namespace cxx_compiler {
   namespace partial_ordering_impl {
+    struct help {
+      int* m_res;
+      help(int* res) : m_res(res) {}
+      bool subr(const type* Tx, const type* Ty)
+      {
+	tag* px = Tx->get_tag();
+	tag* py = Ty->get_tag();
+	if (!px) {
+	  if (!py)
+	    return true;
+	  tag::flag_t yflag = py->m_flag;
+	  if (yflag & tag::INSTANTIATE) {
+	    *m_res = -1;
+	    return false;
+	  }
+	  return true;
+	}
+	tag::flag_t xflag = px->m_flag;
+	if (!py) {
+	  if (xflag & tag::INSTANTIATE) {
+	    *m_res = 1;
+	    return false;
+	  }
+	  return true;
+	}
+	tag::flag_t yflag = py->m_flag;
+	if (xflag & tag::INSTANTIATE) {
+	  if (!(yflag & tag::INSTANTIATE)) {
+	    *m_res = 1;
+	    return false;
+	  }
+	  return true;
+	}
+	if (yflag & tag::INSTANTIATE) {
+	  *m_res = -1;
+	  return false;
+	}
+	return true;
+      }
+      bool subr(var*, var*)
+      {
+	error::not_implemented();
+	return true;
+      }
+      typedef scope::tps_t::val2_t V;
+      bool operator()(const V& x, const V& y)
+      {
+	if (const type* Tx = x.first) {
+	  const type* Ty = y.first;
+	  assert(Ty);
+	  return subr(Tx, Ty);
+	}
+	else {
+	  var* vx = x.second;
+	  var* vy = y.second;
+	  assert(vx && vy);
+	  return subr(vx, vy);
+	}
+      }
+    };
     struct comp {
       vector<var*>* m_arg;
       comp(vector<var*>* arg) : m_arg(arg) {}
@@ -597,8 +657,13 @@ namespace cxx_compiler {
           return true;
         if (xkey.size() > ykey.size())
           return false;
-        error::not_implemented();
-        return false;
+	typedef template_usr::KEY::iterator IT;
+	int n = 0;
+	pair<IT, IT> p = mismatch(begin(xkey), end(xkey), begin(ykey),
+				  help(&n));
+	assert(p != make_pair(end(xkey), end(ykey)));
+	assert(n == -1 || n == 1);
+        return n < 0;
       }
     };
   } // end of namespace partial_ordering_impl
@@ -2338,6 +2403,8 @@ cxx_compiler::var* cxx_compiler::var::ppmm(bool plus, bool post)
     if (flag & tag::TYPENAMED)
       return this;
   }
+  if (instantiate_with_template_param<template_usr>())
+    return this;
   if (!T->scalar()) {
     using namespace error::expressions::ppmm;
     not_scalar(parse::position,plus,this);

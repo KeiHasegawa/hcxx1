@@ -505,7 +505,8 @@ assign(var* y, argument* arg)
   T = expressions::assignment::valid(T, y, &discard, &ctor_conv, &exp_ctor);
   if (!T) {
     using namespace error::declarations::initializers;
-    invalid_assign(parse::position,argument::dst,discard);
+    if (!instantiate_with_template_param<template_usr>())
+      invalid_assign(parse::position,argument::dst,discard);
     return arg->off;
   }
 

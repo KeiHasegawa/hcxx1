@@ -212,11 +212,11 @@ int cxx_compiler::statements::expression::info_t::gen()
   tag* ptr = T->get_tag();
   if (!ptr)
     return 0;
-#if 1
   tag::flag_t flag = ptr->m_flag;
   if (flag & tag::TYPENAMED)
     return 0;
-#endif
+  if (instantiate_with_template_param<template_usr>())
+    return 0;
   const type* T1 = ptr->m_types.first;
   if (T1->m_id == type::TEMPLATE_PARAM)
     return 0;
@@ -1219,6 +1219,8 @@ int cxx_compiler::statements::return_stmt::info_t::gen()
     const type* res =
       expressions::assignment::valid(T, expr, &discard, &ctor_conv, 0);
     if (!res) {
+      if (instantiate_with_template_param<template_usr>())
+	return 0;
       using namespace error::statements::return_stmt;
       const type* from = expr->m_type;
       const type* to = ft->return_type();
