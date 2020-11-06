@@ -1029,6 +1029,8 @@ namespace cxx_compiler {
           usr* u = cxx_compiler_lval.m_usr;
           string name = u->m_name;
           last_token = identifier::lookup(name, scope::current);
+          if (peek() == IDENTIFIER_LEX)
+            identifier::mode = identifier::new_obj;
         }
         return n;
       case STRING_LITERAL_LEX:
@@ -1071,8 +1073,10 @@ namespace cxx_compiler {
             string name = ptr->m_name;
             int r = identifier::lookup(name, scope::current);
             assert(r == CLASS_NAME_LEX || r == TYPEDEF_NAME_LEX);
-	    if ((flag & tag::TYPENAMED) && templ)
-	      identifier::mode = identifier::new_obj;
+            if ((flag & tag::TYPENAMED) && templ) {
+              if (peek() == IDENTIFIER_LEX)
+        	identifier::mode = identifier::new_obj;
+            }
             return r;
           }
           if (flag & tag::TEMPLATE) {
