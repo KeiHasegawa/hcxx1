@@ -1565,7 +1565,8 @@ cxx_compiler::declarations::exchange(bool installed, usr* new_one, usr* org)
 
   if (!template_usr::nest.empty()) {
     const template_usr::info_t& info = template_usr::nest.back();
-    assert(info.m_iu == org);
+    if (info.m_iu)
+      assert(info.m_iu == org);
     return new_one;
   }
 

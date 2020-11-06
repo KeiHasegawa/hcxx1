@@ -105,6 +105,7 @@ __builtin_va_arg    { return BUILTIN_VA_ARG; }
 __builtin_va_end    { return BUILTIN_VA_END; }
 __builtin_va_start  { return BUILTIN_VA_START; }
 __builtin_addressof { return BUILTIN_ADDRESSOF; }
+__is_base_of        { return BUILTIN_IS_BASE_OF; }
 asm                 { return ASM_KW; }
 auto                { return AUTO_KW; }
 bool                { return BOOL_KW; }

@@ -555,11 +555,19 @@ function::definition::valid(const type* T, usr* func)
     usr::flag2_t flag2 = func->m_flag2;
     if (flag2 & usr::TEMPLATE)
       return true;
+    if (flag2 & usr::INSTANTIATE) {
+      instantiated_usr* iu = static_cast<instantiated_usr*>(func);
+      const instantiated_usr::SEED& seed = iu->m_seed;
+      typedef instantiated_usr::SEED::const_iterator IT;
+      IT p = find_if(begin(seed), end(seed), template_param);
+      if (p != end(seed))
+	return true;
+    }
     scope* ptr = func->m_scope;
-    if ( ptr->m_id != scope::TAG )
+    if (ptr->m_id != scope::TAG)
       return false;
     tag* ptag = static_cast<tag*>(ptr);
-    if ( T->m_id != type::INCOMPLETE_TAGGED )
+    if (T->m_id != type::INCOMPLETE_TAGGED)
       return false;
     typedef const incomplete_tagged_type IT;
     IT* it = static_cast<IT*>(T);

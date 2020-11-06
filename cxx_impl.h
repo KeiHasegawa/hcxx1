@@ -1116,6 +1116,17 @@ namespace expressions {
       ~info_t(){ delete m_expr; }
     };
   } // end of namespace address_of
+  namespace is_base_of {
+    struct info_t : base {
+      const type* m_Tx;
+      const type* m_Ty;
+      file_t m_file;
+      const file_t& file() const { return m_file; }
+      var* gen();
+      info_t(const type* x, const type* y)
+        : m_Tx(x), m_Ty(y), m_file(parse::position) {}
+    };
+  } // end of namespace address_of
   namespace binary {
     struct info_t : base {
       base* m_left;

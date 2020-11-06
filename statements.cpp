@@ -212,6 +212,11 @@ int cxx_compiler::statements::expression::info_t::gen()
   tag* ptr = T->get_tag();
   if (!ptr)
     return 0;
+#if 1
+  tag::flag_t flag = ptr->m_flag;
+  if (flag & tag::TYPENAMED)
+    return 0;
+#endif
   const type* T1 = ptr->m_types.first;
   if (T1->m_id == type::TEMPLATE_PARAM)
     return 0;

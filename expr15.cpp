@@ -89,3 +89,25 @@ cxx_compiler::expressions::address_of::info_t::file() const
 {
   return m_expr->file();
 }
+
+cxx_compiler::var* cxx_compiler::expressions::is_base_of::info_t::gen()
+{
+  using namespace cxx_compiler::expressions::primary::literal;
+  usr* ret = boolean::create(false);
+  m_Tx = m_Tx->complete_type();
+  m_Ty = m_Ty->complete_type();
+  m_Tx = m_Tx->unqualified();
+  m_Ty = m_Ty->unqualified();
+  if (m_Tx->m_id != type::RECORD)
+    return ret;
+  if (m_Ty->m_id != type::RECORD)
+    return ret;
+  typedef const record_type REC;
+  REC* Rx = static_cast<REC*>(m_Tx);
+  REC* Ry = static_cast<REC*>(m_Ty);
+  vector<route_t> dummy;
+  int offset = calc_offset(Ry, Rx, dummy, 0);
+  if (offset < 0)
+    return ret;
+  return boolean::create(true);
+}

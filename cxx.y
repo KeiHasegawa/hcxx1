@@ -82,6 +82,7 @@ namespace cxx_compiler {
 
 %token FALSE_KW TRUE_KW
 %token BUILTIN_VA_ARG BUILTIN_VA_START BUILTIN_VA_END BUILTIN_ADDRESSOF
+%token BUILTIN_IS_BASE_OF
 %token NEW_ARRAY_LEX DELETE_ARRAY_LEX
 
 %union {
@@ -2723,6 +2724,8 @@ cast_expression
     { $$ = new cxx_compiler::expressions::_va_end::info_t($3); }
   | BUILTIN_ADDRESSOF '(' cast_expression ')'
     { $$ = new cxx_compiler::expressions::address_of::info_t($3); }
+  | BUILTIN_IS_BASE_OF '(' type_id ',' type_id ')'
+    { $$ = new cxx_compiler::expressions::is_base_of::info_t($3, $5); }
   ;
 
 pm_expression

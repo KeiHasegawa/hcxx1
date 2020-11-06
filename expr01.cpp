@@ -2327,24 +2327,29 @@ bool cxx_compiler::expressions::constant_flag;
 cxx_compiler::var* cxx_compiler::var::ppmm(bool plus, bool post)
 {
   using namespace std;
-  if ( !lvalue() ){
+  if (!lvalue()) {
     using namespace error::expressions::ppmm;
     not_lvalue(parse::position,plus,this);
   }
   const type* T = m_type;
   T = T->promotion();
-  if ( !T->scalar() ){
+  if (tag* ptr = T->get_tag()) {
+    tag::flag_t flag = ptr->m_flag;
+    if (flag & tag::TYPENAMED)
+      return this;
+  }
+  if (!T->scalar()) {
     using namespace error::expressions::ppmm;
     not_scalar(parse::position,plus,this);
     return this;
   }
-  if ( !T->modifiable() ){
+  if (!T->modifiable()) {
     using namespace error::expressions::ppmm;
     not_modifiable(parse::position,plus,this);
     return this;
   }
   var* one = expressions::primary::literal::integer::create(1);
-  if ( T->arithmetic() )
+  if (T->arithmetic())
     one = one->cast(T);
   else {
     const type* TT = T->unqualified();

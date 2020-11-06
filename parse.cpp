@@ -1070,7 +1070,9 @@ namespace cxx_compiler {
           if ((flag & tag::TYPENAMED) || inside_templ(ptr->m_parent)) {
             string name = ptr->m_name;
             int r = identifier::lookup(name, scope::current);
-            assert(r == CLASS_NAME_LEX);
+            assert(r == CLASS_NAME_LEX || r == TYPEDEF_NAME_LEX);
+	    if ((flag & tag::TYPENAMED) && templ)
+	      identifier::mode = identifier::new_obj;
             return r;
           }
           if (flag & tag::TEMPLATE) {
