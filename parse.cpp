@@ -966,6 +966,16 @@ namespace cxx_compiler {
       const type* T = ptr->m_types.second;
       return T;
     }
+    inline bool should_be_new_obj(scope* p)
+    {
+      if (peek() != IDENTIFIER_LEX)
+	return false;
+      if (p->m_id != scope::TAG)
+	return false;
+      tag* ptr = static_cast<tag*>(p);
+      tag::flag_t flag = ptr->m_flag;
+      return flag & tag::INSTANTIATE;
+    }
     int get_common(int n, list<void*>& lval, bool from_mem_fun_body,
                    bool templ)
     {
@@ -1029,8 +1039,8 @@ namespace cxx_compiler {
           usr* u = cxx_compiler_lval.m_usr;
           string name = u->m_name;
           last_token = identifier::lookup(name, scope::current);
-          if (peek() == IDENTIFIER_LEX)
-            identifier::mode = identifier::new_obj;
+	  if (should_be_new_obj(cxx_compiler_lval.m_usr->m_scope))
+	    identifier::mode = identifier::new_obj;
         }
         return n;
       case STRING_LITERAL_LEX:
@@ -1074,7 +1084,10 @@ namespace cxx_compiler {
             int r = identifier::lookup(name, scope::current);
             assert(r == CLASS_NAME_LEX || r == TYPEDEF_NAME_LEX);
             if ((flag & tag::TYPENAMED) && templ) {
-              if (peek() == IDENTIFIER_LEX)
+	      scope* p = (r == CLASS_NAME_LEX) ?
+		cxx_compiler_lval.m_tag->m_parent :
+		cxx_compiler_lval.m_usr->m_scope;
+	      if (should_be_new_obj(p))
         	identifier::mode = identifier::new_obj;
             }
             return r;
