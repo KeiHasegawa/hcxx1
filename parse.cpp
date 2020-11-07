@@ -1198,10 +1198,12 @@ namespace cxx_compiler {
       int arg;
       bool func()
       {
-        if (save_t::nest.empty())
-          return false;
-        save_t* p = save_t::nest.back();
-        return p->m_usr;
+        if (!save_t::nest.empty()) {
+	  save_t* p = save_t::nest.back();
+	  return p->m_usr;
+	}
+
+	return instantiate_with_template_param<template_usr>();
       }
       void patch_13_2(save_t* p, const read_t& rd, pair<int, int> x)
       {

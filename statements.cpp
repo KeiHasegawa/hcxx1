@@ -1221,6 +1221,8 @@ int cxx_compiler::statements::return_stmt::info_t::gen()
     if (!res) {
       if (instantiate_with_template_param<template_usr>())
 	return 0;
+      if (instantiate_with_template_param<template_tag>())
+	return 0;
       using namespace error::statements::return_stmt;
       const type* from = expr->m_type;
       const type* to = ft->return_type();

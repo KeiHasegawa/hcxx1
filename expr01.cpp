@@ -913,6 +913,11 @@ cxx_compiler::call_impl::common(const func_type* ft,
     return x;
   }
   if (!T->size()) {
+    if (tag* ptr = T->get_tag()) {
+      tag::kind_t kind = ptr->m_kind;
+      if (kind == tag::TYPENAME)
+	return x;
+    }
     using namespace error::expressions::postfix::call;
     not_object(parse::position,func);
     x->m_type = int_type::create();
