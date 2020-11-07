@@ -111,3 +111,17 @@ cxx_compiler::var* cxx_compiler::expressions::is_base_of::info_t::gen()
     return ret;
   return boolean::create(true);
 }
+
+const cxx_compiler::file_t&
+cxx_compiler::expressions::constant_p::info_t::file() const
+{
+  return m_expr->file();
+}
+
+cxx_compiler::var* cxx_compiler::expressions::constant_p::info_t::gen()
+{
+  using namespace cxx_compiler::expressions::primary::literal;
+  var* expr = m_expr->gen();
+  expr = expr->rvalue();
+  return boolean::create(expr->isconstant());
+}
