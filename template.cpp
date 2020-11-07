@@ -364,7 +364,7 @@ namespace cxx_compiler {
         PT* xpt = static_cast<PT*>(Tx);
         Tx = xpt->referenced_type();
         if (Ty->m_id != type::POINTER)
-          error::not_implemented();
+          return false;
         PT* ypt = static_cast<PT*>(Ty);
         Ty = ypt->referenced_type();
         calc tmp(table);

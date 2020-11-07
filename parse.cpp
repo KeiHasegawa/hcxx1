@@ -1447,12 +1447,12 @@ void cxx_compiler::parse::block::enter()
       assert(!children.empty());
       scope::current = children.back();
       usr* func = fundef::current->m_usr;
-      assert(T);
       if (!(func->m_flag & usr::STATIC)) {
         map<string, vector<usr*> >& usrs = scope::current->m_usrs;
         typedef map<string, vector<usr*> >::const_iterator IT;
         IT p = usrs.find(this_name);
         if (p == usrs.end()) {
+	  assert(T);
           const type* pt = pointer_type::create(T);
           usr* this_ptr = new usr(this_name, pt, usr::NONE, parse::position,
                 		  usr::NONE2);

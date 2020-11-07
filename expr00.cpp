@@ -1246,6 +1246,10 @@ from_member(usr* u, const std::vector<route_t>& route)
   usr::flag_t mask = usr::flag_t(usr::STATIC | usr::OVERLOAD);
   if (flag & mask)
     return u;
+  usr::flag2_t flag2 = u->m_flag2;
+  usr::flag2_t mask2 = usr::PARTIAL_ORDERING;
+  if (flag2 & mask2)
+    return u;
   usr* func = fundef::current->m_usr;
   assert(func);
   scope* p = func->m_scope;
