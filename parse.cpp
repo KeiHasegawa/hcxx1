@@ -968,6 +968,8 @@ namespace cxx_compiler {
     }
     inline bool should_be_new_obj(scope* p)
     {
+      if (identifier::mode == identifier::canbe_ctor)
+	return false;
       if (peek() != IDENTIFIER_LEX)
 	return false;
       if (p->m_id != scope::TAG)
