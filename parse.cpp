@@ -1131,7 +1131,7 @@ namespace cxx_compiler {
             }
             else
               last_token = lookup(name, scope::current);
-            assert(last_token == n);
+	    n = last_token;
           }
         }
         return n;
@@ -1202,7 +1202,6 @@ namespace cxx_compiler {
 	  save_t* p = save_t::nest.back();
 	  return p->m_usr;
 	}
-
 	return instantiate_with_template_param<template_usr>();
       }
       void patch_13_2(save_t* p, const read_t& rd, pair<int, int> x)

@@ -105,6 +105,12 @@ print <<EOF3
           parse::restore(&yystate, &yyss, &yyssp, yyssa, &yyvs, &yyvsp, yyvsa,
                          true);
           parse::context_t::retry[$xxx] = true;
+          if (!tinfos.empty()) {
+            if (tinfos.back().first) {
+              parse::g_read.m_token.clear();
+              parse::g_read.m_lval.clear();
+            }
+          }
           YYDPRINTF((stderr, "retry!\\n"));
           YY_STACK_PRINT(yyss, yyssp);
           goto yynewstate;

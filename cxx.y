@@ -249,7 +249,7 @@ simple_declaration
     {
       using namespace cxx_compiler;
       if (!declarations::specifier_seq::info_t::s_stack.empty())
-	delete $1;
+        delete $1;
       parse::identifier::mode = parse::identifier::look;
       $$ = $2;
     }
@@ -1131,7 +1131,7 @@ end_array
       using namespace cxx_compiler;
       if (class_or_namespace_name::decl_array) {
         using namespace class_or_namespace_name;
-	--decl_array;
+        --decl_array;
         assert(decl_array >= 0);
         assert(!before.empty());
         scope::current = before.back();
@@ -1330,7 +1330,7 @@ member_declaration
     {
       using namespace cxx_compiler::declarations;
       if (!specifier_seq::info_t::s_stack.empty())
-	delete $1;
+        delete $1;
       using namespace cxx_compiler::parse;
       identifier::mode = identifier::look;
       context_t::clear();
@@ -1391,11 +1391,11 @@ member_declaration
       typedef vector<scope*>::iterator IT;
       for (IT p = begin(children) ; p != end(children); ) {
         scope* ps = *p;
-	scope::id_t id = ps->m_id;
+        scope::id_t id = ps->m_id;
         if (id == scope::PARAM)
-	  p = children.erase(p);
-	else
-	  ++p;
+          p = children.erase(p);
+        else
+          ++p;
       }
       using namespace cxx_compiler::parse;
       context_t::clear();
@@ -1683,22 +1683,23 @@ move_to_param
       parse::identifier::mode = parse::identifier::mem_ini;
 
       map<string, vector<usr*> >& usrs = scope::current->m_usrs;
-      assert(usrs.find(this_name) == usrs.end());
-      scope* p = fdef->m_usr->m_scope;
-      assert(p->m_id == scope::TAG);
-      tag* ptr = static_cast<tag*>(p);
-      const type* T = ptr->m_types.second;
-      if (!T)
-	T = ptr->m_types.first;
-      T = pointer_type::create(T);
-      usr* this_ptr = new usr(this_name, T , usr::NONE, parse::position,
-			      usr::NONE2);
-      usrs[this_name].push_back(this_ptr);
-      vector<usr*>& order = scope::current->m_order;
-      vector<usr*> tmp = order;
-      order.clear();
-      order.push_back(this_ptr);
-      copy(begin(tmp), end(tmp), back_inserter(order));
+      if (usrs.find(this_name) == usrs.end()) {
+        scope* p = fdef->m_usr->m_scope;
+        assert(p->m_id == scope::TAG);
+        tag* ptr = static_cast<tag*>(p);
+        const type* T = ptr->m_types.second;
+        if (!T)
+          T = ptr->m_types.first;
+        T = pointer_type::create(T);
+        usr* this_ptr = new usr(this_name, T , usr::NONE, parse::position,
+        			usr::NONE2);
+        usrs[this_name].push_back(this_ptr);
+        vector<usr*>& order = scope::current->m_order;
+        vector<usr*> tmp = order;
+        order.clear();
+        order.push_back(this_ptr);
+        copy(begin(tmp), end(tmp), back_inserter(order));
+      }
     }
   ;
 
@@ -1908,7 +1909,7 @@ template_parameter_list
       using namespace cxx_compiler;
       int c = parse::peek();
       if (c == CLASS_KW || c == TYPENAME_KW)
-	parse::identifier::mode = parse::identifier::new_obj;
+        parse::identifier::mode = parse::identifier::new_obj;
       else
         parse::identifier::mode = parse::identifier::look;
     }
@@ -1994,14 +1995,14 @@ enter_templ_arg
   : {
       using namespace cxx_compiler;
       if (!parse::templ::arg) {
-	assert(!expressions::constant_flag);
-	expressions::constant_flag = true;
+        assert(!expressions::constant_flag);
+        expressions::constant_flag = true;
       }
       ++parse::templ::arg;
       parse::identifier::mode = parse::identifier::look;
       if (!parse::base_clause || parse::templ::arg > 1) {
-	if (!class_or_namespace_name::before.empty())
-	  class_or_namespace_name::after(false);
+        if (!class_or_namespace_name::before.empty())
+          class_or_namespace_name::after(false);
       }
     }
   ;
@@ -2012,7 +2013,7 @@ leave_templ_arg
       assert(parse::templ::arg > 0);
       --parse::templ::arg;
       if (!parse::templ::arg)
-	expressions::constant_flag = false;
+        expressions::constant_flag = false;
     }
   ;
 

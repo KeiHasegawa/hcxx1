@@ -555,6 +555,8 @@ namespace cxx_compiler {
             {
               using namespace expressions;
               using namespace expressions::primary::literal;
+	      if (parse::templ::func())
+		return;
               const type* Tx = x->result_type();
               if (!p) {
                 var* zero = integer::create(0);
