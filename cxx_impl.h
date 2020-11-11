@@ -1779,6 +1779,28 @@ inline bool instantiate_with_template_param()
   return find_if(begin(key), end(key), template_param) != end(key);
 }
 
+inline bool is_typename(const scope::tps_t::val2_t& x)
+{
+  const type* T = x.first;
+  if (!T)
+    return false;
+  tag* ptr = T->get_tag();
+  if (!ptr)
+    return false;
+  tag::kind_t kind = ptr->m_kind;
+  return kind = tag::TYPENAME;
+}
+
+template<class C>
+inline bool instantiate_with_typename()
+{
+  if (C::nest.empty())
+    return false;
+  const typename C::info_t& info = C::nest.back();
+  const typename C::KEY& key = info.m_key;
+  return find_if(begin(key), end(key), is_typename) != end(key);
+}
+
 namespace typenamed {
   extern const type* action(var*);
   extern const type* action(tag*);

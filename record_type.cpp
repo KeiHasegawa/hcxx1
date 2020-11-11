@@ -2338,7 +2338,8 @@ int cxx_compiler::record_impl::layouter::operator()(int offset, usr* member)
           return offset;
         }
       }
-      if (!instantiate_with_template_param<template_tag>()) {
+      if (!instantiate_with_template_param<template_tag>() &&
+	  !instantiate_with_typename<template_tag>()) {
         using namespace error::classes;
         incomplete_member(member);
       }
