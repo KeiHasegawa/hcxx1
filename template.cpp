@@ -329,7 +329,7 @@ namespace cxx_compiler {
           RT* rt = static_cast<RT*>(Ty);
           Ty = rt->referenced_type();
         }
-
+	Ty = Ty->unqualified();
         type::id_t id = Ty->m_id;
         if (id != type::RECORD && id != type::INCOMPLETE_TAGGED)
           return false;
@@ -1378,6 +1378,16 @@ namespace cxx_compiler {
       const map<string, scope::tps_t::value_t>& m_table;
       helper(const map<string, scope::tps_t::value_t>& table)
         : m_table(table) {}
+      static bool out_addr(const type* T)
+      {
+	if (T->m_id == type::TEMPLATE_PARAM)
+	  return true;
+	tag* ptr = T->get_tag();
+	if (!ptr)
+	  return false;
+	tag::kind_t kind = ptr->m_kind;
+	return kind == tag::TYPENAME;
+      }
       string operator()(string name, string pn)
       {
         map<string, scope::tps_t::value_t>::const_iterator p =
@@ -1388,7 +1398,7 @@ namespace cxx_compiler {
           const type* T = ptr->m_types.second;
           ostringstream os;
           T->decl(os, "");
-          if (T->m_id == type::TEMPLATE_PARAM)
+	  if (out_addr(T))
             os << '.' << T;
           return name + os.str() + ',';
         }

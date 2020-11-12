@@ -550,10 +550,20 @@ namespace cxx_compiler {
             }
             if (mode == new_obj)
               return create(name);
-            if (parse::templ::ptr) {
-              if (!template_usr::nest.empty())
-                return create(name);
-            }
+
+	    // If function definition like
+	    // template<class C> void f(C x) { ... }
+	    // create(`f')
+	    if (!tinfos.empty()) {
+	      typedef template_usr::info_t X;
+	      typedef template_tag::info_t Y;
+	      pair<X*, Y*> p = tinfos.back();
+	      if (X* x = p.first) {
+		template_usr* tu = x->m_tu;
+		if (tu->m_name == name)
+		  return create(name);
+	      }
+	    }
           }
           if (flag2 & usr::PARTIAL_ORDERING) {
             if (mode == new_obj)
