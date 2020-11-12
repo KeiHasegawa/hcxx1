@@ -349,9 +349,17 @@ namespace cxx_compiler {
           RT* rt = static_cast<RT*>(Ty);
           Ty = rt->referenced_type();
         }
+	Ty = Ty->unqualified();
         type::id_t id = Ty->m_id;
-        if (id != type::RECORD && id != type::INCOMPLETE_TAGGED)
+        if (id != type::RECORD && id != type::INCOMPLETE_TAGGED) {
+	  if (tag* ptr = Tx->get_tag()) {
+	    tag::kind_t kind = ptr->m_kind;
+	    if (kind == tag::TYPENAME) {
+	      return true;
+	    }
+	  }
           return false;
+	}
         tag* xtag = Tx->get_tag();
         tag* ytag = Ty->get_tag();
         return common(xtag, ytag, table);

@@ -542,6 +542,8 @@ cxx_compiler::var* cxx_compiler::var_impl::add(var* y, var* z)
   const type* Ty = y->m_type;
   const type* Tz = z->m_type;
   const type* Tx = Ty->unqualified();
+  if (Tx->m_id == type::TEMPLATE_PARAM)
+    return y;
   if (!Ty->arithmetic() || !Tz->arithmetic()) {
     if (var* ret = operator_code('+', y, z))
       return ret;

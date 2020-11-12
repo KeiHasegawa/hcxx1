@@ -88,6 +88,7 @@ cxx_compiler::var* cxx_compiler::expressions::binary::info_t::gen()
     break;
   }
 
+  usr* opl = 0; usr* opr = 0;
   switch (m_op) {
   case '*': case '/': case '%': case '+': case '-':
   case '<': case '>':
@@ -97,8 +98,9 @@ cxx_compiler::var* cxx_compiler::expressions::binary::info_t::gen()
   case ADD_ASSIGN_MK: case SUB_ASSIGN_MK:
   case AND_ASSIGN_MK: case XOR_ASSIGN_MK: case OR_ASSIGN_MK:
     if (!conversion::arithmetic::gen(&leftc, &rightc)) {
-      if (!operator_function(leftc->m_type, m_op) &&
-          !operator_function(rightc->m_type, m_op)) {
+      opl = operator_function(leftc->m_type, m_op);
+      opr = operator_function(rightc->m_type, m_op);
+      if (!opl && !opr) {
         switch (m_op) {
         case '*': case '/': case '%': case '&': case '^': case '|':
         case MUL_ASSIGN_MK: case DIV_ASSIGN_MK: case MOD_ASSIGN_MK:
@@ -109,6 +111,16 @@ cxx_compiler::var* cxx_compiler::expressions::binary::info_t::gen()
       }
     }
     break;
+  }
+
+  if (opl || opr) {
+    switch (m_op) {
+    case MUL_ASSIGN_MK : case DIV_ASSIGN_MK : case MOD_ASSIGN_MK :
+    case ADD_ASSIGN_MK : case SUB_ASSIGN_MK : case LSH_ASSIGN_MK :
+    case RSH_ASSIGN_MK : case AND_ASSIGN_MK : case XOR_ASSIGN_MK :
+    case  OR_ASSIGN_MK :
+      return var_impl::operator_code(m_op, left, right);
+    }
   }
 
   switch (m_op) {

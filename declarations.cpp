@@ -821,6 +821,11 @@ void cxx_compiler::declarations::check_object(usr* u)
     }
   }
   if (!size) {
+    if (tag* ptr = T->get_tag()) {
+      tag::kind_t kind = ptr->m_kind;
+      if (kind == tag::TYPENAME)
+	return;
+    }
     using namespace error::declarations;
     not_object(u,T);
     u->m_type = int_type::create();
