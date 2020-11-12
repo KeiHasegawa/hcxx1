@@ -117,6 +117,8 @@ cxx_compiler::var* cxx_compiler::var_impl::mul(var* y, var* z)
   const type* Ty = y->m_type;
   const type* Tz = z->m_type;
   const type* Tx = Ty->unqualified();
+  if (Tx->m_id == type::TEMPLATE_PARAM)
+    return y;
   if (!Ty->arithmetic() || !Tz->arithmetic()) {
     if (var* ret = operator_code('*', y, z))
       return ret;
@@ -287,6 +289,8 @@ cxx_compiler::var* cxx_compiler::var_impl::div(var* y, var* z)
   const type* Ty = y->m_type;
   const type* Tz = z->m_type;
   const type* Tx = Ty->unqualified();
+  if (Tx->m_id == type::TEMPLATE_PARAM)
+    return y;
   if (!Ty->arithmetic() || !Tz->arithmetic()) {
     if (var* ret = operator_code('/', y, z))
       return ret;
@@ -420,6 +424,8 @@ cxx_compiler::var* cxx_compiler::var_impl::mod(var* y, var* z)
   const type* Ty = y->m_type;
   const type* Tz = z->m_type;
   const type* Tx = Ty->unqualified();
+  if (Tx->m_id == type::TEMPLATE_PARAM)
+    return y;
   if (Ty->arithmetic() && Tz->arithmetic()) {
     if (!Ty->integer() || !Tz->integer()) {
       using namespace error::expressions::binary;
@@ -834,6 +840,8 @@ cxx_compiler::var* cxx_compiler::var_impl::sub(var* y, var* z)
   const type* Ty = y->m_type;
   const type* Tz = z->m_type;
   const type* Tx = Ty->unqualified();
+  if (Tx->m_id == type::TEMPLATE_PARAM)
+    return y;
   if (!Ty->arithmetic() || !Tz->arithmetic()) {
     if (var* ret = operator_code('-', y, z))
       return ret;

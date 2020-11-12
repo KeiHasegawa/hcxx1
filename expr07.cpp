@@ -14,6 +14,8 @@ cxx_compiler::var* cxx_compiler::var_impl::lsh(var* y, var* z)
   const type* Ty = y->m_type;
   const type* Tz = z->m_type;
   const type* Tx = Ty->unqualified();  
+  if (Tx->m_id == type::TEMPLATE_PARAM)
+    return y;
   if ( !Ty->integer() || !Tz->integer() ){
     if (var* ret = operator_code(LSH_MK, y, z))
       return ret;

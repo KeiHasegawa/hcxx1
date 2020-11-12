@@ -15,6 +15,8 @@ cxx_compiler::var* cxx_compiler::var_impl::bitwise(int op, var* y, var* z)
   const type* Ty = y->m_type;
   const type* Tz = z->m_type;
   const type* Tx = Ty->unqualified();
+  if (Tx->m_id == type::TEMPLATE_PARAM)
+    return y;
   if (Ty->arithmetic() && Tz->arithmetic()) {
     if (!Ty->integer() || !Tz->integer()) {
       using namespace error::expressions::binary;
