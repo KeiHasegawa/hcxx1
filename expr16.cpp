@@ -6,7 +6,8 @@
 cxx_compiler::var* cxx_compiler::var::assign(var*)
 {
   using namespace error::expressions::assignment;
-  not_lvalue(parse::position);
+  if (m_type->m_id != type::TEMPLATE_PARAM)
+    not_lvalue(parse::position);
   return this;
 }
 

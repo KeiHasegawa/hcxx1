@@ -554,6 +554,8 @@ cxx_compiler::var* cxx_compiler::var::indirection()
   var* y = rvalue();
   const type* T = y->m_type;
   T = T->unqualified();
+  if (T->m_id == type::TEMPLATE_PARAM)
+    return y;
   if (T->m_id != type::POINTER) {
     if (usr* func = operator_function(T, '*'))
       return call_impl::wrapper(func, 0, y);
