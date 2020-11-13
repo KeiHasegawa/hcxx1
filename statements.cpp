@@ -217,6 +217,8 @@ int cxx_compiler::statements::expression::info_t::gen()
     return 0;
   if (instantiate_with_template_param<template_usr>())
     return 0;
+  if (instantiate_with_template_param<template_tag>())
+    return 0;
   const type* T1 = ptr->m_types.first;
   if (T1->m_id == type::TEMPLATE_PARAM)
     return 0;

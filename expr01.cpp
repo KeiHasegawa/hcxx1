@@ -915,8 +915,10 @@ cxx_compiler::call_impl::common(const func_type* ft,
   if (!T->size()) {
     if (tag* ptr = T->get_tag()) {
       tag::kind_t kind = ptr->m_kind;
-      if (kind == tag::TYPENAME)
+      if (kind == tag::TYPENAME) {
+	code.push_back(new call3ac(0,func));
 	return x;
+      }
     }
     using namespace error::expressions::postfix::call;
     not_object(parse::position,func);
