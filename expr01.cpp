@@ -185,7 +185,7 @@ cxx_compiler::genaddr::call(std::vector<var*>* arg)
   if (flag2 & usr::TEMPLATE) {
     template_usr* tu = static_cast<template_usr*>(u);
     u = tu->instantiate(arg, 0);
-    u = instantiate_if(u);
+    (void)instantiate_if(u);
   }
   const type* T = u->m_type;
   if (T->m_id != type::FUNC) {
@@ -424,8 +424,7 @@ namespace cxx_compiler {
 
 cxx_compiler::usr* cxx_compiler::instantiate_if(usr* fun)
 {
-  if (!fun)
-    return fun;
+  assert(fun);
   scope* ps = fun->m_scope;
   if (ps->m_id != scope::TAG)
     return fun;
@@ -443,9 +442,6 @@ cxx_compiler::usr* cxx_compiler::instantiate_if(usr* fun)
                  { return tu = has_templ(x, fun); } );
   if (p == end(tbl))
     return fun;
-  tag* ptr2 = p->second;
-  assert(find_if(++p, end(tbl), [fun](const pair<template_tag::KEY, tag*>& x)
-                 { return has_templ(x,fun); } ) == end(tbl));
   if (template_usr* outer = tu->m_outer) {
     usr* ret = outer->instantiate(it->m_seed);
     return ret ? ret : fun;

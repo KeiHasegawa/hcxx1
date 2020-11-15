@@ -95,7 +95,7 @@ namespace cxx_compiler {
       }
       static usr* ins_if_res;
       inline
-      void instantiate_if(template_usr* tu, const template_usr::KEY& key)
+      void instantiate_if1(template_usr* tu, const template_usr::KEY& key)
       {
         template_usr::KEY::const_iterator p =
           find_if(begin(key), end(key), template_param);
@@ -115,7 +115,7 @@ namespace cxx_compiler {
         template_tag* tt = it->m_src;
         map<template_tag::KEY, tag*>& table = tt->m_table;
         for (const auto& p : table)
-          instantiate_if(tu, p.first);
+          instantiate_if1(tu, p.first);
       }
       inline void after_instantiate(template_usr* tu)
       {
@@ -132,7 +132,7 @@ namespace cxx_compiler {
           template_usr* tp = static_cast<template_usr*>(prev);
           map<template_usr::KEY, usr*>& table = tp->m_table;
           for (const auto& p : table)
-            instantiate_if(tu, p.first);
+            instantiate_if1(tu, p.first);
           return;
         }
 
