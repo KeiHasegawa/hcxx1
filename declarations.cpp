@@ -1311,7 +1311,8 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
       else if (!template_usr::nest.empty()) {
         template_usr::info_t& info = template_usr::nest.back();
         template_usr* tu = info.m_tu;
-        prev = tu;
+	if (tu->m_name == prev->m_name)
+	  prev = tu;
       }
     }
     else {
