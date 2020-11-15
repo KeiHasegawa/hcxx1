@@ -2220,157 +2220,167 @@ postfix_expression
   | simple_type_specifier '(' fcast_prev ')'
     { $$ = new cxx_compiler::expressions::postfix::fcast($1, 0); }
   | typenaming COLONCOLON_MK move_to_root nested_name_specifier
-    IDENTIFIER_LEX '(' expression_list ')'
+    IDENTIFIER_LEX '(' fcast_prev2 expression_list ')'
     {
-      cxx_compiler::error::not_implemented();
+      $$ = new cxx_compiler::expressions::postfix::fcast($5, $8);
       --cxx_compiler::parse::identifier::typenaming;
       assert(cxx_compiler::parse::identifier::typenaming >= 0);
     }
   | typenaming COLONCOLON_MK move_to_root nested_name_specifier
-    CLASS_NAME_LEX '(' expression_list ')'
+    CLASS_NAME_LEX '(' fcast_prev2 expression_list ')'
     {
-      cxx_compiler::error::not_implemented();
+      $$ = new cxx_compiler::expressions::postfix::fcast($5, $8, false);
       --cxx_compiler::parse::identifier::typenaming;
       assert(cxx_compiler::parse::identifier::typenaming >= 0);
     }
   | typenaming COLONCOLON_MK move_to_root nested_name_specifier
-    TYPEDEF_NAME_LEX '(' expression_list ')'
+    TYPEDEF_NAME_LEX '(' fcast_prev2 expression_list ')'
     {
-      cxx_compiler::error::not_implemented();
+      $$ = new cxx_compiler::expressions::postfix::fcast($5, $8, false);
       --cxx_compiler::parse::identifier::typenaming;
       assert(cxx_compiler::parse::identifier::typenaming >= 0);
     }
   | typenaming COLONCOLON_MK move_to_root nested_name_specifier
-    ENUM_NAME_LEX '(' expression_list ')'
+    ENUM_NAME_LEX '(' fcast_prev2 expression_list ')'
     {
-      cxx_compiler::error::not_implemented();
+      $$ = new cxx_compiler::expressions::postfix::fcast($5, $8, false);
       --cxx_compiler::parse::identifier::typenaming;
       assert(cxx_compiler::parse::identifier::typenaming >= 0);
     }
   | typenaming COLONCOLON_MK move_to_root nested_name_specifier
-    IDENTIFIER_LEX '(' ')'
+    IDENTIFIER_LEX '(' fcast_prev2 ')'
     {
-      cxx_compiler::error::not_implemented();
+      $$ = new cxx_compiler::expressions::postfix::fcast($5, 0);
       --cxx_compiler::parse::identifier::typenaming;
       assert(cxx_compiler::parse::identifier::typenaming >= 0);
     }
   | typenaming COLONCOLON_MK move_to_root nested_name_specifier
-    CLASS_NAME_LEX '(' ')'
+    CLASS_NAME_LEX '(' fcast_prev2 ')'
     {
-      cxx_compiler::error::not_implemented();
+      $$ = new cxx_compiler::expressions::postfix::fcast($5, 0, false);
       --cxx_compiler::parse::identifier::typenaming;
       assert(cxx_compiler::parse::identifier::typenaming >= 0);
     }
   | typenaming COLONCOLON_MK move_to_root nested_name_specifier
-    TYPEDEF_NAME_LEX '(' ')'
+    TYPEDEF_NAME_LEX '(' fcast_prev2 ')'
     {
-      cxx_compiler::error::not_implemented();
+      $$ = new cxx_compiler::expressions::postfix::fcast($5, 0, false);
       --cxx_compiler::parse::identifier::typenaming;
       assert(cxx_compiler::parse::identifier::typenaming >= 0);
     }
   | typenaming COLONCOLON_MK move_to_root nested_name_specifier
-    ENUM_NAME_LEX '(' ')'
+    ENUM_NAME_LEX '(' fcast_prev2 ')'
     {
-      cxx_compiler::error::not_implemented();
+      $$ = new cxx_compiler::expressions::postfix::fcast($5, 0, false);
       --cxx_compiler::parse::identifier::typenaming;
       assert(cxx_compiler::parse::identifier::typenaming >= 0);
     }
-  | typenaming nested_name_specifier IDENTIFIER_LEX '(' expression_list ')'
+  | typenaming nested_name_specifier
+    IDENTIFIER_LEX '(' fcast_prev2 expression_list ')'
     {
-      cxx_compiler::error::not_implemented();
+      $$ = new cxx_compiler::expressions::postfix::fcast($3, $6);
       --cxx_compiler::parse::identifier::typenaming;
       assert(cxx_compiler::parse::identifier::typenaming >= 0);
     }
-  | typenaming nested_name_specifier CLASS_NAME_LEX '(' expression_list ')'
+  | typenaming nested_name_specifier
+    CLASS_NAME_LEX '(' fcast_prev2 expression_list ')'
     {
-      $$ = new cxx_compiler::expressions::postfix::fcast($3, $5);
+      $$ = new cxx_compiler::expressions::postfix::fcast($3, $6, false);
       --cxx_compiler::parse::identifier::typenaming;
       assert(cxx_compiler::parse::identifier::typenaming >= 0);
     }
-  | typenaming nested_name_specifier TYPEDEF_NAME_LEX '(' expression_list ')'
+  | typenaming nested_name_specifier
+    TYPEDEF_NAME_LEX '(' fcast_prev2 expression_list ')'
     {
-      $$ = new cxx_compiler::expressions::postfix::fcast($3, $5);
+      $$ = new cxx_compiler::expressions::postfix::fcast($3, $6, false);
       --cxx_compiler::parse::identifier::typenaming;
       assert(cxx_compiler::parse::identifier::typenaming >= 0);
     }
-  | typenaming nested_name_specifier ENUM_NAME_LEX '(' expression_list ')'
+  | typenaming nested_name_specifier
+    ENUM_NAME_LEX '(' fcast_prev2 expression_list ')'
     {
-      cxx_compiler::error::not_implemented();
+      $$ = new cxx_compiler::expressions::postfix::fcast($3, $6, false);
       --cxx_compiler::parse::identifier::typenaming;
       assert(cxx_compiler::parse::identifier::typenaming >= 0);
     }
-  | typenaming nested_name_specifier IDENTIFIER_LEX '(' ')'
-    {
-      cxx_compiler::error::not_implemented();
-      --cxx_compiler::parse::identifier::typenaming;
-      assert(cxx_compiler::parse::identifier::typenaming >= 0);
-    }
-  | typenaming nested_name_specifier CLASS_NAME_LEX '(' ')'
+  | typenaming nested_name_specifier
+    IDENTIFIER_LEX '(' fcast_prev2 ')'
     {
       $$ = new cxx_compiler::expressions::postfix::fcast($3, 0);
       --cxx_compiler::parse::identifier::typenaming;
       assert(cxx_compiler::parse::identifier::typenaming >= 0);
     }
-  | typenaming nested_name_specifier TYPEDEF_NAME_LEX '(' ')'
+  | typenaming nested_name_specifier
+    CLASS_NAME_LEX '(' fcast_prev2 ')'
     {
-      $$ = new cxx_compiler::expressions::postfix::fcast($3, 0);
+      $$ = new cxx_compiler::expressions::postfix::fcast($3, 0, false);
       --cxx_compiler::parse::identifier::typenaming;
       assert(cxx_compiler::parse::identifier::typenaming >= 0);
     }
-  | typenaming nested_name_specifier ENUM_NAME_LEX '(' ')'
+  | typenaming nested_name_specifier
+    TYPEDEF_NAME_LEX '(' fcast_prev2 ')'
+    {
+      $$ = new cxx_compiler::expressions::postfix::fcast($3, 0, false);
+      --cxx_compiler::parse::identifier::typenaming;
+      assert(cxx_compiler::parse::identifier::typenaming >= 0);
+    }
+  | typenaming nested_name_specifier
+    ENUM_NAME_LEX '(' fcast_prev2 ')'
+    {
+      $$ = new cxx_compiler::expressions::postfix::fcast($3, 0, false);
+      --cxx_compiler::parse::identifier::typenaming;
+      assert(cxx_compiler::parse::identifier::typenaming >= 0);
+    }
+  | typenaming COLONCOLON_MK move_to_root nested_name_specifier
+    TEMPLATE_KW template_id '(' fcast_prev2 expression_list ')'
     {
       cxx_compiler::error::not_implemented();
       --cxx_compiler::parse::identifier::typenaming;
       assert(cxx_compiler::parse::identifier::typenaming >= 0);
     }
   | typenaming COLONCOLON_MK move_to_root nested_name_specifier
-    TEMPLATE_KW template_id '(' expression_list ')'
+    TEMPLATE_KW template_id '(' fcast_prev2 ')'
     {
       cxx_compiler::error::not_implemented();
       --cxx_compiler::parse::identifier::typenaming;
       assert(cxx_compiler::parse::identifier::typenaming >= 0);
     }
   | typenaming COLONCOLON_MK move_to_root nested_name_specifier
-    TEMPLATE_KW template_id '(' ')'
-    {
-      cxx_compiler::error::not_implemented();
-      --cxx_compiler::parse::identifier::typenaming;
-      assert(cxx_compiler::parse::identifier::typenaming >= 0);
-    }
-  | typenaming COLONCOLON_MK move_to_root nested_name_specifier
-    template_id '(' expression_list ')'
+    template_id '(' fcast_prev2 expression_list ')'
     {
       cxx_compiler::error::not_implemented();
       --cxx_compiler::parse::identifier::typenaming;
       assert(cxx_compiler::parse::identifier::typenaming >= 0);
     }
   | typenaming COLONCOLON_MK move_to_root nested_name_specifier 
-    template_id '(' ')'
+    template_id '(' fcast_prev2 ')'
     {
       cxx_compiler::error::not_implemented();
       --cxx_compiler::parse::identifier::typenaming;
       assert(cxx_compiler::parse::identifier::typenaming >= 0);
     }
   | typenaming nested_name_specifier TEMPLATE_KW template_id
-    '(' expression_list ')'
+    '(' fcast_prev2 expression_list ')'
     {
       cxx_compiler::error::not_implemented();
       --cxx_compiler::parse::identifier::typenaming;
       assert(cxx_compiler::parse::identifier::typenaming >= 0);
     }
-  | typenaming nested_name_specifier TEMPLATE_KW template_id '(' ')'
+  | typenaming nested_name_specifier
+    TEMPLATE_KW template_id '(' fcast_prev2 ')'
     {
       cxx_compiler::error::not_implemented();
       --cxx_compiler::parse::identifier::typenaming;
       assert(cxx_compiler::parse::identifier::typenaming >= 0);
     }
-  | typenaming nested_name_specifier template_id '(' expression_list ')'
+  | typenaming nested_name_specifier
+    template_id '(' fcast_prev2 expression_list ')'
     {
       cxx_compiler::error::not_implemented();
       --cxx_compiler::parse::identifier::typenaming;
       assert(cxx_compiler::parse::identifier::typenaming >= 0);
     }
-  | typenaming nested_name_specifier template_id '(' ')'
+  | typenaming nested_name_specifier template_id '(' fcast_prev2 ')'
     {
       cxx_compiler::error::not_implemented();
       --cxx_compiler::parse::identifier::typenaming;
@@ -2409,6 +2419,13 @@ fcast_prev
     {
       using namespace cxx_compiler;
       parse::identifier::mode = parse::identifier::look;
+    }
+  ;
+
+fcast_prev2
+  :
+    {
+      cxx_compiler::class_or_namespace_name::after(false);
     }
   ;
 

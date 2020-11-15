@@ -998,8 +998,9 @@ namespace expressions {
       var* gen();
       const file_t& file() const { return m_file; }
       fcast(declarations::type_specifier*, vector<base*>* list);
-      fcast(tag*, vector<base*>* list);
-      fcast(usr*, vector<base*>* list);
+      fcast(tag*, vector<base*>* list, bool);
+      fcast(usr*, vector<base*>* list, bool);
+      fcast(var*, vector<base*>* list);
     };
   } // end of namespace postfix
   namespace unary {
