@@ -362,6 +362,8 @@ namespace cxx_compiler {
                                       parse::member_function_body::save_t>& E)
       {
         using namespace declarations;
+	if (instantiate_with_template_param<template_tag>())
+	  return;
         usr* u = E.first;
         u->m_type = u->m_type->complete_type();
         scope::current = u->m_scope;
