@@ -332,7 +332,7 @@ const cxx_compiler::type* cxx_compiler::classes::specifier::action()
   handle_copy_ctor(ptr);
 
   map<usr*, parse::member_function_body::save_t>& tbl =
-    parse::member_function_body::stbl;
+    parse::member_function_body::stbl[ptr];
   if (tbl.empty()) {
     handle_vdel(ptr);
     assert(!before.empty());
@@ -344,6 +344,7 @@ const cxx_compiler::type* cxx_compiler::classes::specifier::action()
   scope* org = scope::current;
   for_each(tbl.begin(),tbl.end(),member_function_definition);
   tbl.clear();
+  parse::member_function_body::stbl.erase(ptr);
   scope::current = org;
   handle_vdel(ptr);
   scope::current = org->m_parent;
@@ -362,9 +363,21 @@ namespace cxx_compiler {
                                       parse::member_function_body::save_t>& E)
       {
         using namespace declarations;
-	if (instantiate_with_template_param<template_tag>())
-	  return;
         usr* u = E.first;
+	scope* p = u->m_scope;
+	scope::id_t id = p->m_id;
+	assert(id == scope::TAG);
+	tag* ptr = static_cast<tag*>(p);
+	tag::flag_t flag = ptr->m_flag;
+	if (flag & tag::INSTANTIATE) {
+	  typedef instantiated_tag IT;
+	  IT* it = static_cast<IT*>(ptr);
+	  IT::SEED& seed = it->m_seed;
+	  typedef IT::SEED::const_iterator P;
+	  P p = find_if(begin(seed), end(seed), template_param);
+	  if (p != end(seed))
+	    return;
+	}
         u->m_type = u->m_type->complete_type();
         scope::current = u->m_scope;
         vector<scope*>& children = scope::current->m_children;

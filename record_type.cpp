@@ -2862,8 +2862,7 @@ namespace cxx_compiler {
         seed.push_back(scope::tps_t::val2_t(Ty, 0));
         return true;
       }
-      assert(Tx == Ty);
-      return true;
+      return Tx == Ty;
     }
 
     error::not_implemented();
@@ -2904,10 +2903,11 @@ namespace cxx_compiler {
     const instantiated_tag::SEED& xs = x->m_seed;
     const instantiated_tag::SEED& ys = y->m_seed;
     assert(xs.size() == ys.size());
-    mismatch(begin(xs), end(xs), begin(ys), [&seed]
-             (const scope::tps_t::val2_t& x, const scope::tps_t::val2_t& y)
-             { return cmp(x, y, seed); });
-    return true;
+    typedef instantiated_tag::SEED::const_iterator IT;
+    pair<IT, IT> ret =  mismatch(begin(xs), end(xs), begin(ys), [&seed]
+		 (const scope::tps_t::val2_t& x, const scope::tps_t::val2_t& y)
+                { return cmp(x, y, seed); });
+    return ret == make_pair(end(xs), end(ys));
   }
 } // end of namespace cxx_compiler
 

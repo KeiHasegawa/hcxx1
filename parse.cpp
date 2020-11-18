@@ -1522,7 +1522,7 @@ void cxx_compiler::parse::block::leave()
 namespace cxx_compiler {
   namespace parse {
     namespace member_function_body {
-      map<usr*, save_t> stbl;
+      map<tag*, map<usr*, save_t> > stbl;
       save_t* saved;
       inline read_t* get(usr* key, scope* param)
       {
@@ -1531,9 +1531,11 @@ namespace cxx_compiler {
           if (p->m_tag)
             return &p->m_read;
         }
-
-        stbl[key].m_param = param;
-        read_t* pr = &stbl[key].m_read;
+	scope* p = key->m_scope;
+	assert(p->m_id == scope::TAG);
+	tag* ptr = static_cast<tag*>(p);
+	stbl[ptr][key].m_param = param;
+        read_t* pr = &stbl[ptr][key].m_read;
         pr->m_token.push_back(make_pair(cxx_compiler_char,position));
         return pr;
       }
@@ -1762,11 +1764,15 @@ namespace cxx_compiler {
     }
     void debug_stbl()
     {
-      for (auto p : member_function_body::stbl) {
-        usr* u = p.first;
-        cout << u << '(' << u->m_name << ')' << endl;
-        const read_t& r = p.second.m_read;
-        debug_read(r);
+      using namespace member_function_body;
+      for (auto p : stbl) {
+	const map<usr*, save_t>& m = p.second;
+	for (auto q : m) {
+	  usr* u = q.first;
+	  cout << u << '(' << u->m_name << ')' << endl;
+	  const read_t& r = q.second.m_read;
+	  debug_read(r);
+	}
       }
     }
   } // end of namespace parse

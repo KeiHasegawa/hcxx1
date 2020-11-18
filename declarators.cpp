@@ -797,6 +797,32 @@ namespace cxx_compiler {
   }
 } // end of namespace cxx_compiler
 
+namespace cxx_compiler {
+  namespace parse {
+    namespace member_function_body {
+      save_t* already_saved(usr* u)
+      {
+	if (parse::member_function_body::saved)
+	  return 0;
+	scope* p = u->m_scope;
+	if (p->m_id != scope::TAG)
+	  return 0;
+	tag* ptr = static_cast<tag*>(ptr);
+	typedef map<tag*, map<usr*, save_t> >::iterator ITx;
+	ITx itx = stbl.find(ptr);
+	if (itx == stbl.end())
+	  return 0;
+	map<usr*, save_t>& tbl = itx->second;
+	typedef map<usr*, save_t>::iterator ITy;
+	ITy ity = tbl.find(u);
+	if (ity == tbl.end())
+	  return 0;
+	return &ity->second;
+      }
+    }
+  } // end of namespace parse
+} // end of namespace cxx_compiler
+
 void cxx_compiler::declarations::declarators::function::definition::
 action(statements::base* stmt)
 {
@@ -804,12 +830,8 @@ action(statements::base* stmt)
   auto_ptr<statements::base> sweeper(stmt);
   usr* u = fundef::current->m_usr;
   using namespace parse::member_function_body;
-  const map<usr*, save_t>& tbl = parse::member_function_body::stbl;
-  map<usr*, save_t>::const_iterator p = tbl.find(u);
-  if (p != tbl.end() && !parse::member_function_body::saved) {
-    // member function body is already saved
-    const save_t& tmp = p->second;
-    scope* param = tmp.m_param;
+  if (save_t* save = parse::member_function_body::already_saved(u)) {
+    scope* param = save->m_param;
     scope* ptr = param->m_parent;
     assert(ptr->m_id == scope::TAG);
     vector<scope*>& children = ptr->m_children;

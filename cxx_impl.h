@@ -96,7 +96,7 @@ namespace parse {
       read_t m_read;
       save_t() : m_param(0) {}
     };
-    extern map<usr*, save_t> stbl;
+    extern map<tag*, map<usr*, save_t> > stbl;
     extern save_t* saved;
     extern void save(usr*);
     extern pair<int, int> save_brace(read_t*, bool);
