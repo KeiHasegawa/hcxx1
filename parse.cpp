@@ -1086,7 +1086,9 @@ namespace cxx_compiler {
             if (p == end(seed)) {
               template_tag* tt = it->m_src;
               string name = tt->m_name;
-              int r = identifier::lookup(name, scope::current);
+	      int c = peek();
+	      scope* p = c == COLONCOLON_MK ? tt->m_parent : scope::current;
+              int r = identifier::lookup(name, p);
               assert(r == CLASS_NAME_LEX);
               return r;
             }
