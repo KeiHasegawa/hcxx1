@@ -106,7 +106,7 @@ cxx_compiler::expressions::unary::ope::file() const
 }
 
 namespace cxx_compiler {
-  inline const type* sizeof_type()
+  const type* sizeof_type()
   {
     switch (generator::sizeof_type) {
     case type::UINT:

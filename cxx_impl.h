@@ -1844,6 +1844,12 @@ struct alias : usr {
 
 base* create_base(int access, bool virt, usr* u);
 
+namespace using_directive {
+  void action(name_space*);
+} // end of namespace using_directive
+
+const type* sizeof_type();
+
 } // end of namespace cxx_compiler
 
 #endif // _CXX_IMPL_H_

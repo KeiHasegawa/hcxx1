@@ -7,6 +7,7 @@ struct usr;
 struct tag;
 struct type;
 struct var;
+struct name_space;
 
 struct scope {
   enum id_t { NONE, PARAM, BLOCK, TAG, NAMESPACE };
@@ -15,6 +16,7 @@ struct scope {
   std::vector<scope*> m_children;
   std::map<std::string, std::vector<usr*> > m_usrs;
   std::map<std::string, tag*> m_tags;
+  std::vector<name_space*> m_using;
 
   // template parameter
   struct tps_t {

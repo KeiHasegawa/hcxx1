@@ -626,6 +626,40 @@ namespace cxx_compiler {
       return 0;
     }
   } // end of namespace inline_namespace
+  int builtin_memcmp_entry()
+  {
+    map<string, vector<usr*> >& usrs = scope::root.m_usrs;
+    string name = "memcmp";
+    typedef map<string, vector<usr*> >::const_iterator IT;
+    IT p = usrs.find(name);
+    if (p != usrs.end()) {
+      const vector<usr*>& vec = p->second;
+      usr* u = vec.back();
+      const type* T = u->m_type;
+      const pointer_type* pt = T->ptr_gen();
+      assert(pt);
+      var* v = new genaddr(pt, T, u, 0);
+      cxx_compiler_lval.m_var = v;
+      garbage.push_back(v);
+      return IDENTIFIER_LEX;
+    }
+    const type* T = void_type::create();
+    T = const_type::create(T);
+    const pointer_type* pcv = pointer_type::create(T);
+    vector<const type*> param;
+    param.push_back(pcv);
+    param.push_back(pcv);
+    param.push_back(sizeof_type());
+    const func_type* ft = func_type::create(int_type::create(), param);
+    usr::flag_t flag = usr::flag_t(usr::FUNCTION | usr::C_SYMBOL);
+    usr* u = new usr(name, ft, flag, parse::position, usr::GENED_BY_COMP);
+    usrs[name].push_back(u);
+    const pointer_type* pt = pointer_type::create(ft);
+    var* v = new genaddr(pt, ft, u, 0);
+    cxx_compiler_lval.m_var = v;
+    garbage.push_back(v);
+    return IDENTIFIER_LEX;
+  }
 } // end of namespace cxx_compiler
 
 int
@@ -736,6 +770,15 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
     if (int r = inline_namespace::lookup(name, scope::current))
       return r;
   }
+  const vector<name_space*>& us = scope::current->m_using;
+  typedef vector<name_space*>::const_iterator ITy;
+  int x = 0;
+  ITy p = find_if(begin(us), end(us),
+		  [&x, name](name_space* ns){ return x = lookup(name, ns); });
+  if (p != end(us))
+    return x;
+  if (name == "__builtin_memcmp")
+    return builtin_memcmp_entry();
   error::undeclared(parse::position, name);
   int ret = create(name, int_type::create());
   usr* u = cxx_compiler_lval.m_usr;

@@ -241,7 +241,7 @@ block_declaration
   | using_declaration
     { $$ = 0; }
   | using_directive
-    { cxx_compiler::error::not_implemented(); }
+    { $$ = 0; }
   ;
 
 simple_declaration
@@ -709,13 +709,24 @@ using_declaration
 using_directive
   : USING_KW NAMESPACE_KW COLONCOLON_MK move_to_root nested_name_specifier
     namespace_name ';'
-    { cxx_compiler::error::not_implemented(); }
+    {
+      cxx_compiler::using_directive::action($6);
+      cxx_compiler::class_or_namespace_name::after(false);
+    }
   | USING_KW NAMESPACE_KW nested_name_specifier namespace_name ';'
-    { cxx_compiler::error::not_implemented(); }
+    {
+      cxx_compiler::using_directive::action($4);
+      cxx_compiler::class_or_namespace_name::after(false);
+    }
   | USING_KW NAMESPACE_KW COLONCOLON_MK move_to_root namespace_name ';'
-    { cxx_compiler::error::not_implemented(); }
+    {
+      cxx_compiler::using_directive::action($5);
+      cxx_compiler::class_or_namespace_name::after(false);
+    }
   | USING_KW NAMESPACE_KW namespace_name ';'
-    { cxx_compiler::error::not_implemented(); }
+    {
+      cxx_compiler::using_directive::action($3);
+    }
   ;
 
 asm_definition
