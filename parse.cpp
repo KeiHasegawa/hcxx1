@@ -875,24 +875,32 @@ namespace cxx_compiler {
 
         return c == COLONCOLON_MK;
       }
-      bool templ_ptr_case()
+      typedef list<pair<int, file_t> >::const_iterator IT;
+      IT match(IT p, IT q)
       {
-        const list<pair<int, file_t> >& token = templ::ptr->m_read.m_token;
-        typedef list<pair<int, file_t> >::const_iterator IT;
-        IT p = token.begin(); assert(p != token.end());
-        if (p->first != '<')
-          return false;
-        ++p; assert(p != token.end());
-        for ( ; p->first != EOF ; ++p, assert(p != token.end())) {
+	assert(p != q);
+	if (p->first != '<')
+	  return q;
+        ++p;
+	assert(p != q);
+        for ( ; p->first != EOF ; ++p, assert(p != q)) {
           if (p->first == '>')
             break;
           if (p->first == '<')
-            error::not_implemented();
+	    p = match(p, q);
         }
         if (p->first != '>')
           error::not_implemented();
-        ++p; assert(p != token.end());
-        return p->first == COLONCOLON_MK;
+        ++p;
+	return p;
+      }
+      bool templ_ptr_case()
+      {
+        const list<pair<int, file_t> >& token = templ::ptr->m_read.m_token;
+	IT p = match(begin(token), end(token));
+	if (p == end(token))
+	  return false;
+	return p->first == COLONCOLON_MK;
       }
     } // end of namespace templ_colon_impl
   } // end of namespace parse
@@ -1309,12 +1317,10 @@ int cxx_compiler::parse::get_token()
     else
       get_common(last_token, g_read.m_lval, false, false);
     if (last_token == COLONCOLON_MK) {
-      // Ex : template<class T> vector<T>::~vector(){ ... }
-      //      2nd `vector' must be lookuped
       using namespace declarations::specifier_seq;
       if (info_t::s_stack.empty()) {
-        if (scope::current->m_id != scope::TAG && peek() != '*')
-          identifier::mode = identifier::look;
+	if (!identifier::typenaming)
+	  identifier::mode = identifier::look;
       }
     }
     return save_for_retry();
