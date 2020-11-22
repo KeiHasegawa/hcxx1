@@ -486,10 +486,9 @@ function::definition::begin(declarations::specifier_seq::info_t* p, var* v)
     using namespace error::declarations::declarators::function::definition;
     invalid(parse::position);
     scope* param = new scope(scope::PARAM);
-    using namespace class_or_namespace_name;
-    assert(!before.empty());
-    assert(before.back() == param);
-    before.pop_back();
+    assert(!class_or_namespace_name::before.empty());
+    assert(class_or_namespace_name::before.back() == param);
+    class_or_namespace_name::before.pop_back();
     param->m_parent = scope::current;
     children.push_back(param);
   }
@@ -712,10 +711,9 @@ namespace cxx_compiler {
     void operator()(scope* p)
     {
       assert(p->m_id == scope::BLOCK);
-      using namespace class_or_namespace_name;
       block* bp = new block;
-      assert(before.back() == bp);
-      before.pop_back();
+      assert(class_or_namespace_name::before.back() == bp);
+      class_or_namespace_name::before.pop_back();
       m_dst->m_children.push_back(bp);
       bp->m_parent = m_dst;
       copy_scope(p, bp, m_tbl);
@@ -775,10 +773,9 @@ namespace cxx_compiler {
     key_t key(name, ptr, ip, get_seed(func));
     dtbl[key] = u;
 
-    using namespace class_or_namespace_name;
     scope* param = new scope(scope::PARAM);
-    assert(before.back() == param);
-    before.pop_back();
+    assert(class_or_namespace_name::before.back() == param);
+    class_or_namespace_name::before.pop_back();
     ptr->m_children.push_back(param);
     param->m_parent = ptr;
 

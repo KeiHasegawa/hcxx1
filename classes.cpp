@@ -307,7 +307,6 @@ specifier::begin3(int keyword, pair<usr*, tag*>* x, std::vector<base*>* bases)
 const cxx_compiler::type* cxx_compiler::classes::specifier::action()
 {
   using namespace std;
-  using namespace class_or_namespace_name;
   assert(scope::current->m_id == scope::TAG);
   tag* ptr = static_cast<tag*>(scope::current);
   scope* ps = ptr->m_parent;
@@ -318,9 +317,9 @@ const cxx_compiler::type* cxx_compiler::classes::specifier::action()
     if (!table.empty()) {
       if (ptr->m_flag & tag::TEMPLATE) {
         template_tag* tt = static_cast<template_tag*>(ptr);
-        assert(!before.empty());
-        assert(scope::current == before.back());
-        before.pop_back();
+        assert(!class_or_namespace_name::before.empty());
+        assert(scope::current == class_or_namespace_name::before.back());
+	class_or_namespace_name::before.pop_back();
         scope::current = ptr->m_parent;
         return ptr->m_types.first;
       }
@@ -335,9 +334,9 @@ const cxx_compiler::type* cxx_compiler::classes::specifier::action()
     parse::member_function_body::stbl[ptr];
   if (tbl.empty()) {
     handle_vdel(ptr);
-    assert(!before.empty());
-    assert(scope::current == before.back());
-    before.pop_back();
+    assert(!class_or_namespace_name::before.empty());
+    assert(scope::current == class_or_namespace_name::before.back());
+    class_or_namespace_name::before.pop_back();
     scope::current = ptr->m_parent;
     return ret;
   }
@@ -348,9 +347,9 @@ const cxx_compiler::type* cxx_compiler::classes::specifier::action()
   scope::current = org;
   handle_vdel(ptr);
   scope::current = org->m_parent;
-  assert(!before.empty());
-  assert(ptr == before.back());
-  before.pop_back();
+  assert(!class_or_namespace_name::before.empty());
+  assert(ptr == class_or_namespace_name::before.back());
+  class_or_namespace_name::before.pop_back();
   return ret;
 }
 
@@ -523,12 +522,10 @@ void cxx_compiler::classes::members::bit_field(var* v, expressions::base* expr)
 }
 
 namespace cxx_compiler {
-  namespace class_or_namespace_name {
-    using namespace std;
-    vector<scope*> before;
-    scope* last;
-    int decl_array;
-  } // end of namespace class_or_namespace_name
+  using namespace std;
+  vector<scope*> class_or_namespace_name::before;
+  scope* class_or_namespace_name::last;
+  int class_or_namespace_name::decl_array;
 } // end of namespace cxx_compiler
 
 void cxx_compiler::class_or_namespace_name::after(bool set_last)
@@ -536,7 +533,7 @@ void cxx_compiler::class_or_namespace_name::after(bool set_last)
   assert(!before.empty());
   assert(before.back());
   if (set_last)
-    last = scope::current;
+    class_or_namespace_name::last = scope::current;
   scope::current = before.back();
   if (scope::current->m_id == scope::TAG) {
     tag* ptr = static_cast<tag*>(scope::current);
@@ -790,9 +787,8 @@ namespace cxx_compiler {
               vector<scope*>& children = param->m_children;
               if (children.empty()) {
                 block* bp = new block;
-                using namespace class_or_namespace_name;
-                assert(before.back() == bp);
-                before.pop_back();
+                assert(class_or_namespace_name::before.back() == bp);
+		class_or_namespace_name::before.pop_back();
                 param->m_children.push_back(bp);
                 bp->m_parent = param;
               }

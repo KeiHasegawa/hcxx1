@@ -158,8 +158,7 @@ void cxx_compiler::extension_namespace_definition(var* v)
   assert(flag & usr::NAMESPACE);
   name_space* ptr = static_cast<name_space*>(u);
   scope::current = ptr;
-  using namespace class_or_namespace_name;
-  before.push_back(scope::current);
+  class_or_namespace_name::before.push_back(scope::current);
 }
 
 void cxx_compiler::using_directive::action(name_space* ns)

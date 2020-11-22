@@ -756,10 +756,9 @@ namespace cxx_compiler {
         key_t key(sn, ptr, ip, get_seed(scd));
         dtbl[key] = scd;
 
-        using namespace class_or_namespace_name;
         scope* param = new scope(scope::PARAM);
-        assert(before.back() == param);
-        before.pop_back();
+        assert(class_or_namespace_name::before.back() == param);
+	class_or_namespace_name::before.pop_back();
         ptr->m_children.push_back(param);
         param->m_parent = ptr;
         const type* T2 = ptr->m_types.second;
@@ -779,8 +778,8 @@ namespace cxx_compiler {
                  bind2nd(ptr_fun(install), param));
 
         block* bp = new block;
-        assert(before.back() == bp);
-        before.pop_back();
+        assert(class_or_namespace_name::before.back() == bp);
+        class_or_namespace_name::before.pop_back();
         param->m_children.push_back(bp);
         bp->m_parent = param;
 
@@ -1496,10 +1495,9 @@ namespace cxx_compiler {
       dtbl[key] = tor;
 
       *param = new scope(scope::PARAM);
-      using namespace class_or_namespace_name;
-      assert(!before.empty());
-      assert(before.back() == *param);
-      before.pop_back();
+      assert(!class_or_namespace_name::before.empty());
+      assert(class_or_namespace_name::before.back() == *param);
+      class_or_namespace_name::before.pop_back();
       (*param)->m_parent = ptr;
       ptr->m_children.push_back(*param);
       const type* T = ptr->m_types.first;
@@ -1512,9 +1510,9 @@ namespace cxx_compiler {
       usrs[this_name].push_back(*this_ptr);
 
       *pb = new block;
-      assert(!before.empty());
-      assert(before.back() == *pb);
-      before.pop_back();
+      assert(!class_or_namespace_name::before.empty());
+      assert(class_or_namespace_name::before.back() == *pb);
+      class_or_namespace_name::before.pop_back();
       (*pb)->m_parent = *param;
       (*param)->m_children.push_back(*pb);
       return tor;
@@ -1851,10 +1849,9 @@ namespace cxx_compiler {
       key_t key(tgn, ptr, ip, get_seed(ctor));
       dtbl[key] = ctor;
 
-      using namespace class_or_namespace_name;
       scope* param = new scope(scope::PARAM);
-      assert(before.back() == param);
-      before.pop_back();
+      assert(class_or_namespace_name::before.back() == param);
+      class_or_namespace_name::before.pop_back();
       scope::current->m_children.push_back(param);
       param->m_parent = scope::current;
       const type* T = ptr->m_types.second;
@@ -1880,8 +1877,8 @@ namespace cxx_compiler {
       param->m_usrs[arg_name].push_back(arg);
 
       block* bp = new block;
-      assert(before.back() == bp);
-      before.pop_back();
+      assert(class_or_namespace_name::before.back() == bp);
+      class_or_namespace_name::before.pop_back();
       param->m_children.push_back(bp);
       bp->m_parent = param;
       assert(code.empty());
@@ -2693,10 +2690,9 @@ namespace cxx_compiler {
       virtual_delete* vdel = static_cast<virtual_delete*>(u);
       assert(code.empty());
       scope* param = new scope(scope::PARAM);
-      using namespace class_or_namespace_name;
-      assert(!before.empty());
-      assert(before.back() == param);
-      before.pop_back();
+      assert(!class_or_namespace_name::before.empty());
+      assert(class_or_namespace_name::before.back() == param);
+      class_or_namespace_name::before.pop_back();
       param->m_parent = scope::current;
       scope::current->m_children.push_back(param);
       const type* T = ptr->m_types.second;
@@ -2709,9 +2705,9 @@ namespace cxx_compiler {
       param->m_order.push_back(this_ptr);
 
       block* bp = new block;
-      assert(!before.empty());
-      assert(before.back() == bp);
-      before.pop_back();
+      assert(!class_or_namespace_name::before.empty());
+      assert(class_or_namespace_name::before.back() == bp);
+      class_or_namespace_name::before.pop_back();
       bp->m_parent = param;
       param->m_children.push_back(bp);
       scope* org = scope::current;

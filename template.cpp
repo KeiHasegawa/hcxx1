@@ -1339,10 +1339,9 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
     scope::current->m_children.push_back(ret);
     ret->m_parent = scope::current;
     ret->m_types.first = incomplete_tagged_type::create(ret);
-    using namespace class_or_namespace_name;
-    assert(!before.empty());
-    assert(ret == before.back());
-    before.pop_back();
+    assert(!class_or_namespace_name::before.empty());
+    assert(ret == class_or_namespace_name::before.back());
+    class_or_namespace_name::before.pop_back();
     return ret;
   }
 

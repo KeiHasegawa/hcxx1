@@ -1303,9 +1303,8 @@ namespace cxx_compiler {
               {
                 block* ret = new block;
                 {
-                  using namespace class_or_namespace_name;
-                  assert(before.back() == ret);
-                  before.pop_back();
+                  assert(class_or_namespace_name::before.back() == ret);
+		  class_or_namespace_name::before.pop_back();
                 }
                 ret->m_parent = parent;
                 if (ptr->m_id != scope::BLOCK) {
@@ -1335,9 +1334,8 @@ namespace cxx_compiler {
                 symtab.clear();
                 block* ret = new block;
                 {
-                  using namespace class_or_namespace_name;
-                  assert(before.back() == ret);
-                  before.pop_back();
+                  assert(class_or_namespace_name::before.back() == ret);
+		  class_or_namespace_name::before.pop_back();
                 }
                 assert(scope::current->m_id == scope::BLOCK);
                 ret->m_parent = scope::current;

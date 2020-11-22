@@ -28,8 +28,13 @@ namespace cxx_compiler {
   } // end of namespace parse and
 } // end of namespace cxx_compiler
 
+void debug_break(){}
+
 int cxx_compiler::parse::identifier::judge(std::string name)
 {
+  if (parse::position.m_lineno == 11)
+    debug_break();
+
   if (mode == peeking)
     return create(name), PEEKED_NAME_LEX;
 
@@ -1391,11 +1396,10 @@ void cxx_compiler::parse::parameter::enter()
 {
   using namespace std;
   if (class_or_namespace_name::last) {
-    using namespace class_or_namespace_name;
-    assert(!before.empty());
-    before.back() = scope::current;
-    scope::current = last;
-    last = 0;
+    assert(!class_or_namespace_name::before.empty());
+    class_or_namespace_name::before.back() = scope::current;
+    scope::current = class_or_namespace_name::last;
+    class_or_namespace_name::last = 0;
   }
   vector<scope*>& children = scope::current->m_children;
   scope* param = new scope(scope::PARAM);
@@ -1414,10 +1418,9 @@ void cxx_compiler::parse::parameter::leave()
   case scope::NAMESPACE:
     return;
   }
-  using namespace class_or_namespace_name;
-  assert(!before.empty());
-  assert(before.back() == scope::current);
-  before.pop_back();
+  assert(!class_or_namespace_name::before.empty());
+  assert(class_or_namespace_name::before.back() == scope::current);
+  class_or_namespace_name::before.pop_back();
   scope* org = scope::current;
   scope::current = scope::current->m_parent;
   vector<scope*>& children = scope::current->m_children;
@@ -1533,8 +1536,7 @@ void cxx_compiler::parse::block::enter()
       if (!c.empty()) {
         assert(c.size() == 1);
         scope::current = c.back();
-        using namespace class_or_namespace_name;
-        before.push_back(scope::current);
+	class_or_namespace_name::before.push_back(scope::current);
         return;
       }
       return parameter::decide_dim(), new_block(), parameter::move();
@@ -1556,10 +1558,9 @@ void cxx_compiler::parse::block::new_block()
 
 void cxx_compiler::parse::block::leave()
 {
-  using namespace class_or_namespace_name;
-  assert(!before.empty());
-  assert(scope::current == before.back());
-  before.pop_back();
+  assert(!class_or_namespace_name::before.empty());
+  assert(scope::current == class_or_namespace_name::before.back());
+  class_or_namespace_name::before.pop_back();
   scope::current = scope::current->m_parent;
   if (scope::current->m_parent == &scope::root)
     scope::current = &scope::root;

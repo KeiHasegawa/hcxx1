@@ -1635,9 +1635,8 @@ cxx_compiler::declarations::elaborated::action(int keyword, var* v)
     parent->m_tags[name] = ptr;
     ptr->m_parent = parent;
     parent->m_children.push_back(ptr);
-    using namespace class_or_namespace_name;
-    assert(!before.empty());
-    before.pop_back();
+    assert(!class_or_namespace_name::before.empty());
+    class_or_namespace_name::before.pop_back();
     return ptr->m_types.first = incomplete_tagged_type::create(ptr);
   }
 }
@@ -1853,11 +1852,10 @@ enumeration::definition(var* v, expressions::base* expr)
 const cxx_compiler::type*
 cxx_compiler::declarations::enumeration::end(tag* ptr)
 {
-  using namespace class_or_namespace_name;
-  assert(!before.empty());
+  assert(!class_or_namespace_name::before.empty());
   assert(scope::current == ptr->m_parent);
-  assert(before.back() == ptr);
-  before.pop_back();
+  assert(class_or_namespace_name::before.back() == ptr);
+  class_or_namespace_name::before.pop_back();
   return ptr->m_types.second = enum_type::create(ptr, prev->m_type);
 }
 

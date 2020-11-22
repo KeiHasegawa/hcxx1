@@ -1376,9 +1376,8 @@ cxx_compiler::unqualified_id::from_nonmember(var* v)
   using namespace parse;
   if (identifier::mode == identifier::member)
     return v;
-  using namespace class_or_namespace_name;
-  assert(!before.empty());
-  scope* ptr = before.back();
+  assert(!class_or_namespace_name::before.empty());
+  scope* ptr = class_or_namespace_name::before.back();
   if (ptr == scope::current)
     return v;
   scope* q = v->m_scope;
@@ -1501,10 +1500,9 @@ cxx_compiler::unqualified_id::operator_function_id(int op)
   key_t key(opn, ptr, ip, get_seed(u));
   dtbl[key] = u;
 
-  using namespace class_or_namespace_name;
   scope* param = new scope(scope::PARAM);
-  assert(before.back() == param);
-  before.pop_back();
+  assert(class_or_namespace_name::before.back() == param);
+  class_or_namespace_name::before.pop_back();
   ptr->m_children.push_back(param);
   param->m_parent = ptr;
   const type* pt = pointer_type::create(T);
@@ -1521,9 +1519,9 @@ cxx_compiler::unqualified_id::operator_function_id(int op)
   order.push_back(first);
 
   block* body = new block;
-  assert(!before.empty());
-  assert(before.back() == body);
-  before.pop_back();
+  assert(!class_or_namespace_name::before.empty());
+  assert(class_or_namespace_name::before.back() == body);
+  class_or_namespace_name::before.pop_back();
   body->m_parent = param;
   param->m_children.push_back(body);
 

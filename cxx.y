@@ -13,11 +13,11 @@ namespace cxx_compiler {
         scope::current = scope::current->m_parent;
       }
     }
-    using namespace class_or_namespace_name;
+    vector<scope*>& v = class_or_namespace_name::before;
     typedef vector<scope*>::iterator IT;
-    IT p = find(begin(before), end(before), scope::current);
-    if (p != end(before))
-      before.erase(p+1, end(before));
+    IT p = find(begin(v), end(v), scope::current);
+    if (p != end(v))
+      v.erase(p+1, end(v));
   }
 } // end of namespace cxx_compiler
 %}
@@ -1123,11 +1123,10 @@ begin_array
       info_t::s_stack.push(0);
       using namespace cxx_compiler;
       if (class_or_namespace_name::last) {
-        using namespace class_or_namespace_name;
-        before.push_back(scope::current);
-        scope::current = last;
-        last = 0;
-        ++decl_array;
+	class_or_namespace_name::before.push_back(scope::current);
+        scope::current = class_or_namespace_name::last;
+	class_or_namespace_name::last = 0;
+        ++class_or_namespace_name::decl_array;
       }
     }
   ;
@@ -1141,12 +1140,11 @@ end_array
       info_t::s_stack.pop();
       using namespace cxx_compiler;
       if (class_or_namespace_name::decl_array) {
-        using namespace class_or_namespace_name;
-        --decl_array;
-        assert(decl_array >= 0);
-        assert(!before.empty());
-        scope::current = before.back();
-        before.pop_back();
+        --class_or_namespace_name::decl_array;
+        assert(class_or_namespace_name::decl_array >= 0);
+        assert(!class_or_namespace_name::before.empty());
+        scope::current = class_or_namespace_name::before.back();
+	class_or_namespace_name::before.pop_back();
       }
     }
   ;
@@ -2035,6 +2033,7 @@ template_argument_list
       using namespace cxx_compiler;
       $$ = new vector<scope::tps_t::val2_t*>;
       $$->push_back($1);
+      class_or_namespace_name::last = 0;
     }
   | template_argument_list ',' template_argument
     {
