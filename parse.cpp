@@ -1629,9 +1629,9 @@ cxx_compiler::parse::member_function_body::save_brace(read_t* ptr, bool b)
 {
   using namespace std;
   list<pair<int, file_t> >& token = ptr->m_token;
-  int n = token.size();
+  int tsz = token.size();
   list<void*>& lval = ptr->m_lval;
-  int m = lval.size();
+  int lsz = lval.size();
   while (1) {
     int n;
     if (!g_read.m_token.empty()) {
@@ -1657,10 +1657,8 @@ cxx_compiler::parse::member_function_body::save_brace(read_t* ptr, bool b)
     }
 
     if (n == '{') {
-      if (b) {
+      if (b)
         save_brace(ptr, false);
-        break;
-      }
       else
         b = true;
     }
@@ -1668,7 +1666,7 @@ cxx_compiler::parse::member_function_body::save_brace(read_t* ptr, bool b)
       break;
   }
 
-  return make_pair(token.size() - n, lval.size() - m);
+  return make_pair(token.size() - tsz, lval.size() - lsz);
 }
 
 int cxx_compiler::parse::member_function_body::get_token()
