@@ -1764,10 +1764,14 @@ bool instance_of(template_usr* tu, usr* ins, templ_base::KEY& key);
 
 inline bool template_param(const scope::tps_t::val2_t& x)
 {
-  const type* T = x.first;
-  if (!T)
+  if (const type* T = x.first)
+    return T->m_id == type::TEMPLATE_PARAM;
+  var* v = x.second;
+  usr* u = v->usr_cast();
+  if (!u)
     return false;
-  return T->m_id == type::TEMPLATE_PARAM;
+  usr::flag2_t flag2 = u->m_flag2;
+  return flag2 & usr::TEMPL_PARAM;
 }
 
 template<class C>
@@ -1849,6 +1853,14 @@ namespace using_directive {
 } // end of namespace using_directive
 
 const type* sizeof_type();
+
+struct templ_param : usr {
+ templ_param(string name, const type* T, flag_t flag,
+	     const file_t& file, flag2_t flag2)
+   : usr(name, T, flag, file, flag2) {}
+  bool isconstant(bool) const { return true; }
+  __int64 value() const { return 1; }
+};
 
 } // end of namespace cxx_compiler
 

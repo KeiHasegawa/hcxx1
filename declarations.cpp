@@ -1152,8 +1152,11 @@ namespace cxx_compiler {
             const type* T = ptr->m_types.first;
             return scope::tps_t::val2_t(T, (var*)0);
           }
-          error::not_implemented();
-          return scope::tps_t::val2_t((const type*)0, (var*)0);
+	  scope::tps_t::val2_t* pv = v.second;
+	  const type* T = pv->first;
+	  usr* u = new templ_param(name, T, usr::NONE, parse::position,
+				   usr::TEMPL_PARAM);
+          return scope::tps_t::val2_t((const type*)0, u);
         }
       };
       const type* tu_common(template_usr* x, template_usr* y)

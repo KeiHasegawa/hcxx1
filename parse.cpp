@@ -151,13 +151,6 @@ int cxx_compiler::parse::identifier::create_templ(std::string name)
 namespace cxx_compiler {
   namespace parse {
     namespace identifier {
-      struct templ_param : usr {
-        templ_param(string name, const type* T, flag_t flag,
-                    const file_t& file, flag2_t flag2)
-          : usr(name, T, flag, file, flag2) {}
-        bool isconstant(bool) const { return true; }
-        __int64 value() const { return 1; }
-      };
       inline int templ_param_lex(string name,
                 		 const scope::tps_t::value_t& x,
                 		 bool instantiate)
@@ -179,8 +172,7 @@ namespace cxx_compiler {
           return IDENTIFIER_LEX;
         }
         assert(instantiate);
-        if (!v->isconstant(true))
-          error::not_implemented();
+        assert(v->isconstant(true));
         if (T->integer()) {
           assert(v->usr_cast());
           usr* u = static_cast<usr*>(v);

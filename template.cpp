@@ -1425,8 +1425,8 @@ namespace cxx_compiler {
         }
         if (!v->isconstant(true))
           error::not_implemented();
-        ostringstream os;
         if (v->isconstant()) {
+	  ostringstream os;
           assert(v->usr_cast());
           usr* u = static_cast<usr*>(v);
           os << u->m_name;
