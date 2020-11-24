@@ -253,20 +253,25 @@ namespace cxx_compiler {
   namespace template_usr_impl {
     struct calc {
       const map<string, scope::tps_t::value_t>& m_table;
-      calc(const map<string, scope::tps_t::value_t>& table) : m_table(table) {}
+      bool m_unq;
+      calc(const map<string, scope::tps_t::value_t>& table, bool unq)
+	: m_table(table), m_unq(unq) {}
       bool operator()(const type* Tx, const type* Ty);
     };
     namespace calc_impl {
       typedef bool FUNC(const type*, const type*,
-                	const map<string, scope::tps_t::value_t>&);
-      bool template_param_case(const type* Tx, const type* Ty,
-                	       const map<string, scope::tps_t::value_t>& table)
+                	const map<string, scope::tps_t::value_t>&, bool);
+      bool
+      template_param_case(const type* Tx, const type* Ty,
+			  const map<string, scope::tps_t::value_t>& table,
+			  bool unq)
       {
         assert(Tx->m_id == type::TEMPLATE_PARAM);
         typedef const template_param_type TP;
         TP* tp = static_cast<TP*>(Tx);
         tag* ptr = tp->get_tag();
-        Ty = Ty->unqualified();
+	if (unq)
+	  Ty = Ty->unqualified();
         if (ptr->m_types.second)
           return ptr->m_types.second == Ty;
         ptr->m_types.second = Ty;
@@ -294,12 +299,12 @@ namespace cxx_compiler {
           }
           const type* Tx = x.first;
           const type* Ty = y.first;
-          calc tmp(m_table);
+          calc tmp(m_table, true);
           return tmp(Tx, Ty);
         }
       };
       bool common(tag* xtag, tag* ytag,
-                  const map<string, scope::tps_t::value_t>& table)
+                  const map<string, scope::tps_t::value_t>& table, bool)
       {
         if (xtag == ytag)
           return true;
@@ -321,7 +326,8 @@ namespace cxx_compiler {
         return ret == make_pair(end(xseed), end(yseed));
       }
       bool record_case(const type* Tx, const type* Ty,
-                       const map<string, scope::tps_t::value_t>& table)
+                       const map<string, scope::tps_t::value_t>& table,
+		       bool)
       {
         assert(Tx->m_id == type::RECORD);
         if (Ty->m_id == type::REFERENCE) {
@@ -336,10 +342,11 @@ namespace cxx_compiler {
 
         tag* xtag = Tx->get_tag();
         tag* ytag = Ty->get_tag();
-        return common(xtag, ytag, table);
+        return common(xtag, ytag, table, true);
       }
       bool incomplete_case(const type* Tx, const type* Ty,
-                       const map<string, scope::tps_t::value_t>& table)
+			   const map<string, scope::tps_t::value_t>& table,
+			   bool)
       {
         assert(Tx->m_id == type::INCOMPLETE_TAGGED);
         typedef const incomplete_tagged_type ITT;
@@ -362,10 +369,11 @@ namespace cxx_compiler {
 	}
         tag* xtag = Tx->get_tag();
         tag* ytag = Ty->get_tag();
-        return common(xtag, ytag, table);
+        return common(xtag, ytag, table, true);
       }
       bool pointer_case(const type* Tx, const type* Ty,
-                	const map<string, scope::tps_t::value_t>& table)
+                	const map<string, scope::tps_t::value_t>& table,
+			bool)
       {
         assert(Tx->m_id == type::POINTER);
         typedef const pointer_type PT;
@@ -375,11 +383,12 @@ namespace cxx_compiler {
           return false;
         PT* ypt = static_cast<PT*>(Ty);
         Ty = ypt->referenced_type();
-        calc tmp(table);
+        calc tmp(table, false);
         return tmp(Tx, Ty);
       }
       bool reference_case(const type* Tx, const type* Ty,
-                	  const map<string, scope::tps_t::value_t>& table)
+                	  const map<string, scope::tps_t::value_t>& table,
+			  bool)
       {
         assert(Tx->m_id == type::REFERENCE);
         typedef const reference_type RT;
@@ -389,15 +398,16 @@ namespace cxx_compiler {
           Ty = rt->referenced_type();
         }
         Tx = xrt->referenced_type();
-        calc tmp(table);
+        calc tmp(table, false);
         return tmp(Tx, Ty);
       }
       bool qualifier_case(const type* Tx, const type* Ty,
-                	  const map<string, scope::tps_t::value_t>& table)
+                	  const map<string, scope::tps_t::value_t>& table,
+			  bool)
       {
         Tx = Tx->unqualified();
         Ty = Ty->unqualified();
-        calc tmp(table);
+        calc tmp(table, true);
         return tmp(Tx, Ty);
       }
       struct table_t : map<type::id_t, FUNC*> {
@@ -419,7 +429,7 @@ namespace cxx_compiler {
       calc_impl::table_t::const_iterator p =
         calc_impl::table.find(Tx->m_id);
       if (p != calc_impl::table.end())
-        return (p->second)(Tx, Ty, m_table);
+        return (p->second)(Tx, Ty, m_table, m_unq);
       return Tx == Ty;
     }
     inline bool
@@ -685,7 +695,7 @@ cxx_compiler::template_usr::instantiate(std::vector<var*>* arg, KEY* trial)
 
   typedef vector<const type*>::const_iterator ITx;
   pair<ITx, ITx> pxx = mismatch(begin(param), end(param), begin(atype),
-                		template_usr_impl::calc(table));
+                		template_usr_impl::calc(table, true));
   if (pxx.first != end(param)) {
     if (trial)
       return 0;
@@ -1698,7 +1708,7 @@ cxx_compiler::instance_of(template_usr* tu, usr* ins, templ_base::KEY& key)
 
   typedef vector<const type*>::const_iterator ITx;
   pair<ITx, ITx> ret = mismatch(begin(vt), end(vt), begin(vi),
-                		template_usr_impl::calc(table));
+                		template_usr_impl::calc(table, true));
   if (ret != make_pair(end(vt), end(vi)))
     return false;
 

@@ -883,13 +883,14 @@ namespace cxx_compiler {
         }
         if (p->first != '>')
           error::not_implemented();
-        ++p;
 	return p;
       }
       bool templ_ptr_case()
       {
         const list<pair<int, file_t> >& token = templ::ptr->m_read.m_token;
 	IT p = match(begin(token), end(token));
+	assert(p != end(token));
+	++p;
 	if (p == end(token))
 	  return false;
 	return p->first == COLONCOLON_MK;
