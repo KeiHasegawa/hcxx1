@@ -564,6 +564,10 @@ namespace cxx_compiler {
               if (declarations::specifier_seq::info_t::s_stack.top())
                 return create(name);
             }
+	    if (peek() == '<') {
+	      cxx_compiler_lval.m_ut = new pair<usr*, tag*>(u, 0);
+	      return TEMPLATE_NAME_LEX;
+	    }
             return IDENTIFIER_LEX;
           }
           const type* T = u->m_type;

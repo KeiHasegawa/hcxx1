@@ -1425,7 +1425,6 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
       assert(b);
       instantiated_usr* ret = new instantiated_usr(*curr, tu, key);
       info.m_iu = ret;
-      assert(info.m_mode == template_usr::info_t::NONE);
       return ret;
     }
 

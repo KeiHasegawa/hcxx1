@@ -868,12 +868,47 @@ namespace cxx_compiler {
           sweeper sweeper;
           return tt->instantiate(pv);
         }
+	usr* helper(template_usr* u, vector<scope::tps_t::val2_t*>* pv);
         inline usr* usr_action(usr* u, vector<scope::tps_t::val2_t*>* pv)
         {
-          assert(u->m_flag2 == usr::TEMPLATE);
-          template_usr* tu = static_cast<template_usr*>(u);
-          return tu->instantiate_explicit(pv);
+	  usr::flag2_t flag2 = u->m_flag2;
+	  if (flag2 == usr::TEMPLATE) {
+	    template_usr* tu = static_cast<template_usr*>(u);
+	    return tu->instantiate_explicit(pv);
+	  }
+	  assert(flag2 == usr::PARTIAL_ORDERING);
+	  partial_ordering* po = static_cast<partial_ordering*>(u);
+	  const vector<template_usr*>& c = po->m_candidacy;
+	  vector<usr*> ins;
+	  for (auto tu : c) {
+	    if (pv->size() == tu->m_tps.m_order.size())
+	      ins.push_back(helper(tu, pv));
+	  }
+	  if (pv) {
+	    for (auto p : *pv)
+	      delete p;
+	    delete pv;
+	  }
+	  if (ins.empty())
+	    error::not_implemented();
+	  if (ins.size() == 1)
+	    return ins.back();
+	  overload* ovl = new overload(ins[0], ins[1]);
+	  if (ins.size() > 3)
+	    error::not_implemented();
+	  return ovl;
         }
+	usr* helper(template_usr* tu, vector<scope::tps_t::val2_t*>* pv)
+	{
+	  vector<scope::tps_t::val2_t*>* dup = 0;
+	  if (pv) {
+	    dup = new vector<scope::tps_t::val2_t*>;
+	    for (auto p : *pv) {
+	      dup->push_back(new scope::tps_t::val2_t(*p));
+	    }
+	  }
+	  return usr_action(tu, dup);
+	}
         pair<usr*, tag*>*
         action(pair<usr*, tag*>* x, vector<scope::tps_t::val2_t*>* pv)
         {
@@ -1563,8 +1598,9 @@ instantiate_common(vector<scope::tps_t::val2_t*>* pv, info_t::mode_t mode)
   assert(ret);
   assert(ret->m_src == this);
   assert(ret->m_seed == key);
-  if (mode == info_t::EXPLICIT)
-    assert(ret->m_flag2 & usr::EXPLICIT_INSTANTIATE);
+  if (mode == info_t::EXPLICIT) {
+    // ret->m_flag2 & usr::EXPLICIT_INSTANTIATE is not absolutelly true
+  }
   else {
     assert(mode == info_t::STATIC_DEF);
     assert(ret->m_flag & usr::STATIC_DEF);
