@@ -1003,8 +1003,10 @@ namespace cxx_compiler {
           const scope::tps_t::value_t& value = p->second;
           assert(!value.second);
           ptr = value.first;
-          if (const type* T2 = ptr->m_types.second)
-            return T2;
+          if (const type* T2 = ptr->m_types.second) {
+	    if (T2->m_id != type::TEMPLATE_PARAM)
+	      return T2;
+	  }
           return T;
         }
         if (!(ptr->m_flag & tag::INSTANTIATE))
