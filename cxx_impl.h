@@ -1696,7 +1696,7 @@ struct template_usr : usr, templ_base {
     if (m_patch_13_2)
       m_flag = usr::flag_t(m_flag | usr::INLINE);
   }
-  usr* instantiate(vector<var*>* arg, KEY* trial);
+  virtual usr* instantiate(vector<var*>* arg, KEY* trial);
   usr* instantiate(const KEY& key);
   usr* instantiate_common(vector<scope::tps_t::val2_t*>*, info_t::mode_t);
   usr* instantiate_explicit(vector<scope::tps_t::val2_t*>* pv)
@@ -1704,6 +1704,17 @@ struct template_usr : usr, templ_base {
   usr* instantiate_static_def(vector<scope::tps_t::val2_t*>* pv)
   { return instantiate_common(pv, info_t::STATIC_DEF); }
   static bool explicit_instantiating(KEY& key);
+};
+
+struct partial_instantiated : template_usr {
+  KEY m_key;
+  partial_instantiated(const template_usr& tu, const KEY& key)
+    : template_usr(tu), m_key(key)
+  {
+    m_flag2 = usr::flag2_t(m_flag2 | PARTIAL_INSTANTIATED);
+  }
+  var* call(vector<var*>*);
+  usr* instantiate(vector<var*>* arg, KEY* trial);
 };
 
 struct partial_ordering : usr {

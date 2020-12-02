@@ -560,14 +560,14 @@ namespace cxx_compiler {
           if (flag2 & usr::PARTIAL_ORDERING) {
             if (mode == new_obj)
               return create(name);
-            if (!declarations::specifier_seq::info_t::s_stack.empty()) {
-              if (declarations::specifier_seq::info_t::s_stack.top())
-                return create(name);
-            }
 	    if (peek() == '<') {
 	      cxx_compiler_lval.m_ut = new pair<usr*, tag*>(u, 0);
 	      return TEMPLATE_NAME_LEX;
 	    }
+            if (!declarations::specifier_seq::info_t::s_stack.empty()) {
+              if (declarations::specifier_seq::info_t::s_stack.top())
+                return create(name);
+            }
             return IDENTIFIER_LEX;
           }
           const type* T = u->m_type;

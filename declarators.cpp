@@ -479,6 +479,16 @@ function::definition::begin(declarations::specifier_seq::info_t* p, var* v)
     u = c.back();
     flag2 = u->m_flag2;
   }
+  if (flag2 & usr::INSTANTIATE) {
+    instantiated_usr* iu = static_cast<instantiated_usr*>(u);
+    if (!template_usr::nest.empty()) {
+      template_usr::info_t& info = template_usr::nest.back();
+      if (info.m_iu)
+	assert(info.m_iu == iu);
+      else
+	info.m_iu = iu;
+    }
+  }
   bool b = declarations::specifier_seq::info_t::s_stack.empty();
   auto_ptr<declarations::specifier_seq::info_t> sweeper(b ? 0 : p);
   vector<scope*>& children = scope::current->m_children;

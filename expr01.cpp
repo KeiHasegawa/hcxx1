@@ -579,13 +579,30 @@ namespace cxx_compiler {
     struct help {
       int* m_res;
       help(int* res) : m_res(res) {}
+      bool none_tag(const type* Tx, const type* Ty)
+      {
+	if (Tx == Ty)
+	  return true;
+	type::id_t idx = Tx->m_id;
+	type::id_t idy = Ty->m_id;
+	if (idx == type::POINTER && idy != type::POINTER) {
+	  *m_res = 1;
+	  return false;
+	}
+	if (idx != type::POINTER && idy == type::POINTER) {
+	  *m_res = -1;
+	  return false;
+	}
+	error::not_implemented();
+	return true;
+      }
       bool subr(const type* Tx, const type* Ty)
       {
 	tag* px = Tx->get_tag();
 	tag* py = Ty->get_tag();
 	if (!px) {
 	  if (!py)
-	    return true;
+	    return none_tag(Tx, Ty);
 	  tag::flag_t yflag = py->m_flag;
 	  if (yflag & tag::INSTANTIATE) {
 	    *m_res = -1;
@@ -665,7 +682,8 @@ namespace cxx_compiler {
   } // end of namespace partial_ordering_impl
 } // end of namespace cxx_compiler
 
-cxx_compiler::var* cxx_compiler::partial_ordering::call(std::vector<var*>* arg)
+cxx_compiler::var*
+cxx_compiler::partial_ordering::call(std::vector<var*>* arg)
 {
   typedef vector<template_usr*>::const_iterator IT;
   IT p = min_element(begin(m_candidacy), end(m_candidacy),

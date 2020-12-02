@@ -101,10 +101,12 @@ void cxx_compiler::declarations::initializers::action(var* v, info_t* i)
       expressions::constant_flag = false;
   }
   else {
-    int m = code.size();
-    gendata& data = table[u];
-    copy(code.begin()+n,code.begin()+m,back_inserter(data.m_code));
-    code.resize(n);
+    if (!instantiate_with_template_param<template_usr>()) {
+      int m = code.size();
+      gendata& data = table[u];
+      copy(code.begin()+n,code.begin()+m,back_inserter(data.m_code));
+      code.resize(n);
+    }
   }
   const type* T = u->m_type;
   if (T->m_id == type::ARRAY) {

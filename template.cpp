@@ -662,7 +662,8 @@ namespace cxx_compiler {
     }
     bool match(const templ_base::KEY& x, const templ_base::KEY& y)
     {
-      assert(x.size() == y.size());
+      if (x.size() != y.size())
+	return false;
       typedef templ_base::KEY::const_iterator IT;
       pair<IT, IT> ret = mismatch(begin(x), end(x), begin(y), comp);
       return ret == make_pair(end(x), end(y));
@@ -737,7 +738,8 @@ cxx_compiler::template_usr::instantiate(std::vector<var*>* arg, KEY* trial)
   tinfos.pop_back();
   instantiated_usr* ret = nest.back().m_iu;
   nest.pop_back();
-  assert(ret->m_src == this || ret->m_src == m_next);
+  assert(ret->m_src == this || ret->m_src == m_next ||
+	 (m_flag2 & usr::PARTIAL_INSTANTIATED));
   assert(ret->m_seed == key);
   assert(!(ret->m_flag2 & usr::EXPLICIT_INSTANTIATE));
   return m_table[key] = ret;
@@ -770,13 +772,19 @@ namespace cxx_compiler {
           return true;
         }
       };
-      sweeper_c(const scope::tps_t& tps, const template_usr::KEY& key)
+      sweeper_c(const scope::tps_t& tps, const template_usr::KEY& key, bool b)
         : sweeper_a(tps.m_table)
       {
         const map<string, scope::tps_t::value_t>& table = tps.m_table;
         const vector<string>& v = tps.m_order;
-        assert(v.size() == key.size());
-        mismatch(begin(v), end(v), begin(key), helper(table));
+	if (b) {
+	  assert(v.size() == key.size());
+	  mismatch(begin(v), end(v), begin(key), helper(table));
+	}
+	else {
+	  assert(v.size() > key.size());
+	  mismatch(begin(v), begin(v)+key.size(), begin(key), helper(table));
+	}
       }
     };
   } // end of namespace template_usr_impl
@@ -794,7 +802,7 @@ cxx_compiler::template_usr::instantiate(const KEY& key)
   if (p != m_table.end())
     return p->second;
 
-  template_usr_impl::sweeper_c sweeper_c(m_tps, key);
+  template_usr_impl::sweeper_c sweeper_c(m_tps, key, true);
 
   templ_base tmp = *this;
   template_usr_impl::sweeper_b sweeper_b(m_decled, &tmp);
@@ -818,6 +826,21 @@ cxx_compiler::template_usr::instantiate(const KEY& key)
   assert(ret->m_seed == key);
   assert(!(ret->m_flag2 & usr::EXPLICIT_INSTANTIATE));
   return m_table[key] = ret;
+}
+
+cxx_compiler::var*
+cxx_compiler::partial_instantiated::call(std::vector<var*>* arg)
+{
+  template_usr_impl::sweeper_c sweeper_c(m_tps, m_key, false);
+  usr* ins = instantiate(arg, 0);
+  return call_impl::wrapper(ins, arg, 0);
+}
+
+cxx_compiler::usr*
+cxx_compiler::partial_instantiated::instantiate(vector<var*>* arg, KEY* trial)
+{
+  template_usr_impl::sweeper_c sweeper_c(m_tps, m_key, false);
+  return template_usr::instantiate(arg, trial);
 }
 
 namespace cxx_compiler {
@@ -881,7 +904,7 @@ namespace cxx_compiler {
 	  const vector<template_usr*>& c = po->m_candidacy;
 	  vector<usr*> ins;
 	  for (auto tu : c) {
-	    if (pv->size() == tu->m_tps.m_order.size())
+	    if (pv->size() <= tu->m_tps.m_order.size())
 	      ins.push_back(helper(tu, pv));
 	  }
 	  if (pv) {
@@ -893,10 +916,23 @@ namespace cxx_compiler {
 	    error::not_implemented();
 	  if (ins.size() == 1)
 	    return ins.back();
-	  overload* ovl = new overload(ins[0], ins[1]);
+	  usr* i0 = ins[0];
+	  usr* i1 = ins[1];
+	  if (i0->m_flag2 & usr::INSTANTIATE) {
+	    assert(i1->m_flag2 & usr::INSTANTIATE);
+	    overload* ovl = new overload(i0, i1);
+	    if (ins.size() > 3)
+	      error::not_implemented();
+	    return ovl;
+	  }
+	  assert(i0->m_flag2 & usr::TEMPLATE);
+	  template_usr* tu0 = static_cast<template_usr*>(i0);
+	  assert(i1->m_flag2 & usr::TEMPLATE);
+	  template_usr* tu1 = static_cast<template_usr*>(i1);
+	  partial_ordering* ret = new partial_ordering(tu0, tu1);
 	  if (ins.size() > 3)
 	    error::not_implemented();
-	  return ovl;
+	  return ret;
         }
 	usr* helper(template_usr* tu, vector<scope::tps_t::val2_t*>* pv)
 	{
@@ -1586,7 +1622,10 @@ instantiate_common(vector<scope::tps_t::val2_t*>* pv, info_t::mode_t mode)
   if (it != m_table.end())
     return m_table[key] = it->second;
 
-  template_usr_impl::sweeper_c sweeper_c(m_tps, key);
+  if (m_tps.m_order.size() > key.size())
+    return m_table[key] = new partial_instantiated(*this, key);
+
+  template_usr_impl::sweeper_c sweeper_c(m_tps, key, true);
 
   templ_base tmp = *this;
   template_usr_impl::sweeper_b sweeper_b(m_scope, &tmp);
