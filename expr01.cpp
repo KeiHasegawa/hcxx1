@@ -593,6 +593,14 @@ namespace cxx_compiler {
 	  *m_res = -1;
 	  return false;
 	}
+	if (idx == type::POINTER && idy == type::POINTER) {
+	  typedef const pointer_type PT;
+	  PT* ptx = static_cast<PT*>(Tx);
+	  PT* pty = static_cast<PT*>(Ty);
+	  Tx = ptx->referenced_type();
+	  Ty = pty->referenced_type();
+	  return subr(Tx, Ty);
+	}
 	error::not_implemented();
 	return true;
       }

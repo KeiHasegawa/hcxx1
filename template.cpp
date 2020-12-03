@@ -401,6 +401,30 @@ namespace cxx_compiler {
         calc tmp(table, false);
         return tmp(Tx, Ty);
       }
+      bool func_case(const type* Tx, const type* Ty,
+                	  const map<string, scope::tps_t::value_t>& table,
+			  bool)
+      {
+        assert(Tx->m_id == type::FUNC);
+        typedef const func_type FT;
+        FT* xft = static_cast<FT*>(Tx);
+        if (Ty->m_id != type::FUNC)
+	  return false;
+        FT* yft = static_cast<FT*>(Ty);
+	const vector<const type*>& xparam = xft->param();
+	const vector<const type*>& yparam = yft->param();
+	if (xparam.size() != yparam.size())
+	  return false;
+	typedef vector<const type*>::const_iterator IT;
+	pair<IT, IT> ret = mismatch(begin(xparam), end(xparam),
+				    begin(yparam), calc(table, true));
+	if (ret != make_pair(end(xparam), end(yparam)))
+	  return false;
+	Tx = xft->return_type();
+	Ty = yft->return_type();
+        calc tmp(table, true);
+        return tmp(Tx, Ty);
+      }
       bool qualifier_case(const type* Tx, const type* Ty,
                 	  const map<string, scope::tps_t::value_t>& table,
 			  bool)
@@ -418,6 +442,7 @@ namespace cxx_compiler {
           (*this)[type::INCOMPLETE_TAGGED] = incomplete_case;
           (*this)[type::POINTER] = pointer_case;
           (*this)[type::REFERENCE] = reference_case;
+	  (*this)[type::FUNC] = func_case;
           (*this)[type::CONST] =
           (*this)[type::VOLATILE] =
           (*this)[type::RESTRICT] = qualifier_case;
@@ -892,6 +917,19 @@ namespace cxx_compiler {
           return tt->instantiate(pv);
         }
 	usr* helper(template_usr* u, vector<scope::tps_t::val2_t*>* pv);
+	inline overload* helper2(overload* ovl, usr* u)
+	{
+	  assert(u->m_flag2 & usr::INSTANTIATE);
+	  ovl->m_candidacy.push_back(u);
+	  return ovl;
+	}
+	inline partial_ordering* helper3(partial_ordering* po, usr* u)
+	{
+	  assert(u->m_flag2 & usr::TEMPLATE);
+	  template_usr* tu = static_cast<template_usr*>(u);
+	  po->m_candidacy.push_back(tu);
+	  return po;
+	}
         inline usr* usr_action(usr* u, vector<scope::tps_t::val2_t*>* pv)
         {
 	  usr::flag2_t flag2 = u->m_flag2;
@@ -921,18 +959,14 @@ namespace cxx_compiler {
 	  if (i0->m_flag2 & usr::INSTANTIATE) {
 	    assert(i1->m_flag2 & usr::INSTANTIATE);
 	    overload* ovl = new overload(i0, i1);
-	    if (ins.size() > 3)
-	      error::not_implemented();
-	    return ovl;
+	    return accumulate(begin(ins)+2, end(ins), ovl, helper2);
 	  }
 	  assert(i0->m_flag2 & usr::TEMPLATE);
 	  template_usr* tu0 = static_cast<template_usr*>(i0);
 	  assert(i1->m_flag2 & usr::TEMPLATE);
 	  template_usr* tu1 = static_cast<template_usr*>(i1);
 	  partial_ordering* ret = new partial_ordering(tu0, tu1);
-	  if (ins.size() > 3)
-	    error::not_implemented();
-	  return ret;
+	  return accumulate(begin(ins)+2, end(ins), ret, helper3);
         }
 	usr* helper(template_usr* tu, vector<scope::tps_t::val2_t*>* pv)
 	{
