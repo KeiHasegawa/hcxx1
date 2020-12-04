@@ -857,16 +857,6 @@ cxx_compiler::var*
 cxx_compiler::partial_instantiated::call(std::vector<var*>* arg)
 {
   usr* ins = instantiate(arg, 0);
-#if 0
-  if (m_prev) {
-    usr::flag2_t flag2x = m_prev->m_flag2;
-    if (flag2x & usr::TEMPLATE) {
-      template_usr* ptu = static_cast<template_usr*>(m_prev);
-      template_usr_impl::sweeper_c sweeper_c(ptu->m_tps, m_key, false);
-      ptu->instantiate(arg, 0);
-    }
-  }
-#endif
   return call_impl::wrapper(ins, arg, 0);
 }
 
@@ -942,11 +932,11 @@ namespace cxx_compiler {
         inline usr* usr_action(usr* u, vector<scope::tps_t::val2_t*>* pv)
         {
 	  usr::flag2_t flag2 = u->m_flag2;
-	  if (flag2 == usr::TEMPLATE) {
+	  if (flag2 & usr::TEMPLATE) {
 	    template_usr* tu = static_cast<template_usr*>(u);
 	    return tu->instantiate_explicit(pv);
 	  }
-	  assert(flag2 == usr::PARTIAL_ORDERING);
+	  assert(flag2 & usr::PARTIAL_ORDERING);
 	  partial_ordering* po = static_cast<partial_ordering*>(u);
 	  const vector<template_usr*>& c = po->m_candidacy;
 	  vector<usr*> ins;

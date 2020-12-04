@@ -471,6 +471,7 @@ function::definition::begin(declarations::specifier_seq::info_t* p, var* v)
   }
   parse::identifier::mode = parse::identifier::look;
   u = declarations::action1(u,false);
+  u->m_flag2 = usr::flag2_t(u->m_flag2 | usr::FUNCTION_DEFINITION);
   flag2 = u->m_flag2;
   if (flag2 & usr::PARTIAL_ORDERING) {
     partial_ordering* po = static_cast<partial_ordering*>(u);

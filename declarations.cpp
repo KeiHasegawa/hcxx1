@@ -996,9 +996,11 @@ cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr)
     if (n >= 2) {
       assert(v[n-1] == curr);
       usr* prev = v[n-2];
-      if (prev->m_flag2 & usr::PARTIAL_ORDERING) {
+      usr::flag2_t flag2 = prev->m_flag2;
+      usr::flag2_t mask =
+	usr::flag2_t(usr::PARTIAL_ORDERING | usr::FUNCTION_DEFINITION);
+      if (flag2 & mask)
         swap(v[n-1], v[n-2]);
-      }
     }
   }
 

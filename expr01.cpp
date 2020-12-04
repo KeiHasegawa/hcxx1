@@ -186,13 +186,6 @@ cxx_compiler::genaddr::call(std::vector<var*>* arg)
     template_usr* tu = static_cast<template_usr*>(u);
     u = tu->instantiate(arg, 0);
     (void)instantiate_if(u);
-    if (usr* prev = tu->m_prev) {
-      usr::flag2_t flag2 = prev->m_flag2;
-      if (flag2 & usr::TEMPLATE) {
-	template_usr* ptu = static_cast<template_usr*>(prev);
-	ptu->instantiate(arg, 0);
-      }
-    }
   }
   const type* T = u->m_type;
   if (T->m_id != type::FUNC) {
