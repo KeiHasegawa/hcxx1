@@ -856,8 +856,17 @@ cxx_compiler::template_usr::instantiate(const KEY& key)
 cxx_compiler::var*
 cxx_compiler::partial_instantiated::call(std::vector<var*>* arg)
 {
-  template_usr_impl::sweeper_c sweeper_c(m_tps, m_key, false);
   usr* ins = instantiate(arg, 0);
+#if 0
+  if (m_prev) {
+    usr::flag2_t flag2x = m_prev->m_flag2;
+    if (flag2x & usr::TEMPLATE) {
+      template_usr* ptu = static_cast<template_usr*>(m_prev);
+      template_usr_impl::sweeper_c sweeper_c(ptu->m_tps, m_key, false);
+      ptu->instantiate(arg, 0);
+    }
+  }
+#endif
   return call_impl::wrapper(ins, arg, 0);
 }
 

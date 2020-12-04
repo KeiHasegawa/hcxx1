@@ -172,6 +172,13 @@ namespace cxx_compiler {
           return IDENTIFIER_LEX;
         }
         assert(instantiate);
+	if (usr* u = v->usr_cast()) {
+	  usr::flag2_t flag2 = u->m_flag2;
+	  if (flag2 & usr::TEMPL_PARAM) {
+	    cxx_compiler_lval.m_usr = u;
+	    return IDENTIFIER_LEX;
+	  }
+	}
         assert(v->isconstant(true));
         if (T->integer()) {
           assert(v->usr_cast());
