@@ -1110,7 +1110,31 @@ bool cxx_compiler::declarations::conflict(const type* prev, const type* curr)
   typedef const func_type FT;
   FT* fp = static_cast<FT*>(prev);
   FT* fc = static_cast<FT*>(curr);
-  return !fp->overloadable(fc);
+  if (fp->overloadable(fc))
+    return false;
+  const type* rp = fp->return_type();
+  const type* rc = fc->return_type();
+  if (!rp || !rc)
+    return true;
+  tag* tp = rp->get_tag();
+  tag* tc = rc->get_tag();
+  if (!tp && !tc)
+    return true;
+  if (!tp) {
+    tag::flag_t flagc = tc->m_flag;
+    return !(flagc && tag::TYPENAMED);
+  }
+  if (!tc) {
+    tag::flag_t flagp = tp->m_flag;
+    return !(flagp & tag::TYPENAMED);
+  }
+  tag::flag_t flagc = tc->m_flag;
+  tag::flag_t flagp = tp->m_flag;
+  if (!(flagp & tag::TYPENAMED))
+    return true;
+  if (!(flagc && tag::TYPENAMED))
+    return true;
+  return false;
 }
 
 namespace cxx_compiler {

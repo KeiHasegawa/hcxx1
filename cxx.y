@@ -2884,11 +2884,25 @@ function_definition_begin1
     {
       using namespace cxx_compiler::declarations::declarators;
       function::definition::begin(0,$1);
+      using namespace cxx_compiler;
+      if (!partial_ordering::info.empty()) {
+	if (partial_ordering::info.back().second) {
+	  declarations::destroy();
+	  return 0;
+	}
+      }
     }
   | decl_specifier_seq declarator
     {
       using namespace cxx_compiler::declarations::declarators;
       function::definition::begin($1,$2);
+      using namespace cxx_compiler;
+      if (!partial_ordering::info.empty()) {
+	if (partial_ordering::info.back().second) {
+	  declarations::destroy();
+	  return 0;
+	}
+      }
     }
   ;
 

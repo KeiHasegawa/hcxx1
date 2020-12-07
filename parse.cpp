@@ -1105,7 +1105,7 @@ namespace cxx_compiler {
         if (templ) {
           usr* u = cxx_compiler_lval.m_usr;
           string name = u->m_name;
-          last_token = identifier::lookup(name, scope::current);
+	  n = last_token = identifier::lookup(name, scope::current);
 	  if (should_be_new_obj(cxx_compiler_lval.m_usr->m_scope))
 	    identifier::mode = identifier::new_obj;
         }

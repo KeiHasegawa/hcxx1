@@ -1533,6 +1533,8 @@ struct enum_member : usr {
   usr* m_value;
   bool isconstant(bool) const { return true; }
   enum_member(const usr& u, usr* value) : usr(u), m_value(value) {}
+  var* cast(const type* T){ return m_value->cast(T); }
+  __int64 value() const { return m_value->value(); }
 };
 
 struct var01 : var {
@@ -1723,6 +1725,7 @@ struct partial_ordering : usr {
   partial_ordering(template_usr* prev, template_usr* curr);
   partial_ordering(partial_ordering* prev, template_usr* curr);
   var* call(vector<var*>*);
+  static vector<pair<template_usr*, bool> > info;
 };
 
 struct partial_special_tag;

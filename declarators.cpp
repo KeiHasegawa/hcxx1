@@ -532,6 +532,10 @@ function::definition::begin(declarations::specifier_seq::info_t* p, var* v)
     FT* ft = static_cast<FT*>(T);
     T = ft->return_type();
     if (!valid(T,u)) {
+      if (!partial_ordering::info.empty()) {
+	partial_ordering::info.back().second = true;
+	return;
+      }
       using namespace error::declarations::declarators::function::definition;
       invalid_return(fundef::current->m_usr,T);
     }

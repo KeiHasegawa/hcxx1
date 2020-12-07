@@ -682,13 +682,35 @@ namespace cxx_compiler {
 	int n = 0;
 	pair<IT, IT> p = mismatch(begin(xkey), end(xkey), begin(ykey),
 				  help(&n));
-	assert(p != make_pair(end(xkey), end(ykey)));
-	assert(n == -1 || n == 1);
-        return n < 0;
+	if (p != make_pair(end(xkey), end(ykey))) {
+	  assert(n == -1 || n == 1);
+	  return n < 0;
+	}
+
+	partial_ordering::info.push_back(make_pair(x, false));
+	usr* insx = x->instantiate(m_arg, 0);
+	bool bx = partial_ordering::info.back().second;
+	partial_ordering::info.pop_back();
+
+	partial_ordering::info.push_back(make_pair(x, false));
+	usr* insy = y->instantiate(m_arg, 0);
+	bool by = partial_ordering::info.back().second;
+
+	if (bx && !by)
+	  return false;
+
+	if (!bx && by)
+	  return true;
+
+	error::not_implemented();
+	return true;
       }
     };
   } // end of namespace partial_ordering_impl
 } // end of namespace cxx_compiler
+
+std::vector<std::pair<cxx_compiler::template_usr*, bool> >
+cxx_compiler::partial_ordering::info;
 
 cxx_compiler::var*
 cxx_compiler::partial_ordering::call(std::vector<var*>* arg)

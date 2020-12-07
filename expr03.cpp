@@ -429,7 +429,7 @@ namespace cxx_compiler { namespace constant_impl {
       return y;
     Tx = Tx->unqualified();
     switch (Tx->m_id) {
-    case type::BOOL: return integer::create((bool)(y->m_value));
+    case type::BOOL: return boolean::create((bool)(y->m_value));
     case type::CHAR: return integer::create((char)(y->m_value));
     case type::SCHAR: return integer::create((signed char)(y->m_value));
     case type::UCHAR: return integer::create((unsigned char)(y->m_value));

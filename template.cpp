@@ -1118,6 +1118,7 @@ namespace cxx_compiler {
         using namespace expressions;
         if (!assignment::valid(T, v, &discard, &ctor_conv, 0))
           error::not_implemented();
+	v = v->cast(T);
         y->second = v;
         if (v->addrof_cast()) {
           typedef vector<var*>::reverse_iterator IT;
@@ -1255,13 +1256,9 @@ namespace cxx_compiler {
       }
       bool cmp_var(var* vx, var* vy)
       {
-        assert(vx->usr_cast());
-        usr* ux = static_cast<usr*>(vx);
-        string nx = ux->m_name;
-        assert(vy->usr_cast());
-        usr* uy = static_cast<usr*>(vy);
-        string ny = uy->m_name;
-        return nx == ny;
+	assert(vx->isconstant());
+	assert(vy->isconstant());
+	return vx->value() == vy->value();
       }
       cmp(template_tag::KEY& key) : m_key(key) {}
       bool
