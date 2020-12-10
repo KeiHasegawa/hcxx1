@@ -391,16 +391,27 @@ cxx_compiler::var* cxx_compiler::var::cast(const type* T)
 
 cxx_compiler::var* cxx_compiler::addrof::cast(const type* T)
 {
-  block* b = scope::current->m_id == scope::BLOCK ? static_cast<block*>(scope::current) : 0;
-  if ( b && !expressions::constant_flag )
+  block* b = 0;
+  if (scope::current->m_id == scope::BLOCK)
+    b = static_cast<block*>(scope::current);
+  if (b && !expressions::constant_flag)
     return var::cast(T);
-  if ( T == m_type )
+  if (T == m_type)
     return this;
   else {
     var* ret = new addrof(T,m_ref,m_offset);
     garbage.push_back(ret);
     return ret;
   }
+}
+
+cxx_compiler::var* cxx_compiler::genaddr::cast(const type* T)
+{
+  if (!m_appear_templ) {
+    var* v = rvalue();
+    assert(v == this);
+  }
+  return addrof::cast(T);
 }
 
 namespace cxx_compiler { namespace constant_impl {

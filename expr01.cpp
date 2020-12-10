@@ -692,9 +692,10 @@ namespace cxx_compiler {
 	bool bx = partial_ordering::info.back().second;
 	partial_ordering::info.pop_back();
 
-	partial_ordering::info.push_back(make_pair(x, false));
+	partial_ordering::info.push_back(make_pair(y, false));
 	usr* insy = y->instantiate(m_arg, 0);
 	bool by = partial_ordering::info.back().second;
+	partial_ordering::info.pop_back();
 
 	if (bx && !by)
 	  return false;
@@ -1077,6 +1078,17 @@ cxx_compiler::var* cxx_compiler::call_impl::convert::operator()(var* arg)
       else {
         var* org = arg;
         arg = arg->cast(T);
+	if (org == arg && U->m_id == type::REFERENCE) {
+	  var* tmp = new var(T);
+	  if (scope::current->m_id == scope::BLOCK) {
+	    block* b = static_cast<block*>(scope::current);
+	    b->m_vars.push_back(tmp);
+	  }
+	  else
+	    garbage.push_back(tmp);
+	  code.push_back(new assign3ac(tmp, arg));
+	  arg = tmp;
+	}
         if (org != arg && m_trial_cost)
           ++*m_trial_cost;
       }

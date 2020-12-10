@@ -1429,6 +1429,7 @@ struct genaddr : generated, addrof {
   bool m_appear_templ;
   genaddr(const pointer_type*, const type*, var*, int);
   var* rvalue();
+  var* cast(const type*);
   var* subscripting(var*);
   var* call(vector<var*>*);
   var* address();

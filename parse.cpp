@@ -629,12 +629,41 @@ namespace cxx_compiler {
       return 0;
     }
   } // end of namespace inline_namespace
-  int builtin_memcmp_entry()
+  const func_type* memcmp_type()
+  {
+    const type* T = void_type::create();
+    T = const_type::create(T);
+    const pointer_type* pcv = pointer_type::create(T);
+    vector<const type*> param;
+    param.push_back(pcv);
+    param.push_back(pcv);
+    param.push_back(sizeof_type());
+    return func_type::create(int_type::create(), param);
+  }
+  const func_type* memset_type()
+  {
+    const type* T = void_type::create();
+    const pointer_type* pv = pointer_type::create(T);
+    vector<const type*> param;
+    param.push_back(pv);
+    param.push_back(uchar_type::create());
+    param.push_back(sizeof_type());
+    return func_type::create(pv, param);
+  }
+  struct builtin_types_t : map<string, const func_type* (*)()> {
+    builtin_types_t()
+    {
+      (*this)["memcmp"] = memcmp_type;
+      (*this)["memset"] = memset_type;
+    }
+  } builtin_types;
+  int builtin_entry(string name)
   {
     map<string, vector<usr*> >& usrs = scope::root.m_usrs;
-    string name = "memcmp";
-    typedef map<string, vector<usr*> >::const_iterator IT;
-    IT p = usrs.find(name);
+    assert(name.substr(0,10) == "__builtin_");
+    name = name.substr(10);
+    typedef map<string, vector<usr*> >::const_iterator ITx;
+    ITx p = usrs.find(name);
     if (p != usrs.end()) {
       const vector<usr*>& vec = p->second;
       usr* u = vec.back();
@@ -646,14 +675,10 @@ namespace cxx_compiler {
       garbage.push_back(v);
       return IDENTIFIER_LEX;
     }
-    const type* T = void_type::create();
-    T = const_type::create(T);
-    const pointer_type* pcv = pointer_type::create(T);
-    vector<const type*> param;
-    param.push_back(pcv);
-    param.push_back(pcv);
-    param.push_back(sizeof_type());
-    const func_type* ft = func_type::create(int_type::create(), param);
+    typedef map<string, const func_type* (*)()>::const_iterator ITy;
+    ITy q = builtin_types.find(name);
+    assert(q != builtin_types.end());
+    const func_type* ft = (q->second)();
     usr::flag_t flag = usr::flag_t(usr::FUNCTION | usr::C_SYMBOL);
     usr* u = new usr(name, ft, flag, parse::position, usr::GENED_BY_COMP);
     usrs[name].push_back(u);
@@ -780,8 +805,9 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
 		  [&x, name](name_space* ns){ return x = lookup(name, ns); });
   if (p != end(us))
     return x;
-  if (name == "__builtin_memcmp")
-    return builtin_memcmp_entry();
+  
+  if (name.substr(0,10) == "__builtin_")
+    return builtin_entry(name);
   error::undeclared(parse::position, name);
   int ret = create(name, int_type::create());
   usr* u = cxx_compiler_lval.m_usr;

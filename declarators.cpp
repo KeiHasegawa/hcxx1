@@ -539,6 +539,10 @@ function::definition::begin(declarations::specifier_seq::info_t* p, var* v)
       using namespace error::declarations::declarators::function::definition;
       invalid_return(fundef::current->m_usr,T);
     }
+    if (instantiate_with_template_param<template_usr>())
+      return;
+    if (!partial_ordering::info.empty())
+      return;
     const vector<const type*>& param = ft->param();
     scope* ptr = u->m_scope;
     if (ptr->m_id == scope::BLOCK)

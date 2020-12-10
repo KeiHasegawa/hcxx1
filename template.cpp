@@ -767,6 +767,10 @@ cxx_compiler::template_usr::instantiate(std::vector<var*>* arg, KEY* trial)
 	 (m_flag2 & usr::PARTIAL_INSTANTIATED));
   assert(ret->m_seed == key);
   assert(!(ret->m_flag2 & usr::EXPLICIT_INSTANTIATE));
+  if (!partial_ordering::info.empty()) {
+    if (partial_ordering::info.back().first == this)
+      return ret;
+  }
   return m_table[key] = ret;
 }
 
