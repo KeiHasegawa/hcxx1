@@ -1325,6 +1325,17 @@ namespace cxx_compiler {
         return true;
       }
     };
+    bool typenamed(const scope::tps_t::val2_t& v)
+    {
+      const type* T = v.first;
+      if (!T)
+	return false;
+      tag* ptr = T->get_tag();
+      if (!ptr)
+	return false;
+      tag::flag_t flag = ptr->m_flag;
+      return flag & tag::TYPENAMED;
+    }
     struct instantiate {
       const template_tag::KEY& m_key;
       instantiate(const template_tag::KEY& key) : m_key(key) {}
@@ -1509,8 +1520,11 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
   }
   assert(ret->m_src == this);
   m_table[key] = ret;
-  for_each(begin(m_static_def), end(m_static_def),
-           template_tag_impl::instantiate(key));
+  KI r = find_if(begin(key), end(key), template_tag_impl::typenamed);
+  if (r == end(key)) {
+    for_each(begin(m_static_def), end(m_static_def),
+	     template_tag_impl::instantiate(key));
+  }
   return ret;
 }
 

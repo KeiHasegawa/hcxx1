@@ -551,10 +551,6 @@ cxx_compiler::var* cxx_compiler::var_impl::add(var* y, var* z)
   if (Tx->m_id == type::TEMPLATE_PARAM)
     return y;
   if (!Ty->arithmetic() || !Tz->arithmetic()) {
-    if (var* ret = operator_code('+', y, z))
-      return ret;
-    if (var* ret = conversion_code('+', y, z, var_impl::add))
-      return ret;
     if (tag* ptr = Ty->get_tag()) {
       tag::flag_t flag = ptr->m_flag;
       if (flag & tag::TYPENAMED)
@@ -565,6 +561,10 @@ cxx_compiler::var* cxx_compiler::var_impl::add(var* y, var* z)
       if (flag & tag::TYPENAMED)
 	return y;
     }
+    if (var* ret = operator_code('+', y, z))
+      return ret;
+    if (var* ret = conversion_code('+', y, z, var_impl::add))
+      return ret;
     using namespace error::expressions::binary;
     invalid(parse::position,'+', Ty, Tz);
     Tx = int_type::create();
