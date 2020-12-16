@@ -434,6 +434,12 @@ void cxx_compiler::classes::members::action2(var* v, expressions::base* expr)
   using namespace std;
   var* cexpr = expr->gen();
   cexpr = cexpr->rvalue();
+  const type* T = cexpr->m_type;
+  if (tag* ptr = T->get_tag()) {
+    tag::flag_t flag = ptr->m_flag;
+    if (flag & tag::TYPENAMED)
+      return;
+  }
   if (!cexpr->isconstant()) {
     if (parse::templ::save_t::nest.empty() &&
         !instantiate_with_template_param<template_tag>())
@@ -455,6 +461,11 @@ void cxx_compiler::classes::members::action2(var* v, expressions::base* expr)
     if (parse::templ::save_t::nest.empty()) {
       const type* T = u->m_type;
       T = T->unqualified();
+      if (tag* ptr = T->get_tag()) {
+	tag::flag_t flag = ptr->m_flag;
+	if (flag & tag::TYPENAMED)
+	  return;
+      }
       if (T->m_id != type::TEMPLATE_PARAM) {
         var* tmp = cons->cast(T);
         assert(tmp->usr_cast());

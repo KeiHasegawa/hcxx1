@@ -60,6 +60,11 @@ cxx_compiler::var* cxx_compiler::expressions::unary::size_of::gen()
   using namespace std;
   if (m_type) {
     const type* T = m_type->complete_type();
+    if (tag* ptr = T->get_tag()) {
+      tag::flag_t flag = ptr->m_flag;
+      if (flag & tag::TYPENAMED)
+	return sizeof_impl::common(1);
+    }
     if (var* size = T->vsize())
       return size;
     unsigned int n = T->size();
@@ -853,6 +858,11 @@ cxx_compiler::var* cxx_compiler::var::minus()
   if (!T->arithmetic()) {
     if (usr* func = operator_function(T, '-'))
       return call_impl::wrapper(func, 0, expr);
+    if (tag* ptr = T->get_tag()) {
+      tag::flag_t flag = ptr->m_flag;
+      if (flag & tag::TYPENAMED)
+	return expr;
+    }
     using namespace error::expressions::unary;
     invalid(parse::position,'-',T);
   }
@@ -1098,6 +1108,11 @@ cxx_compiler::var* cxx_compiler::var::tilde()
   if (!T->arithmetic() || !T->integer()) {
     if (usr* func = operator_function(T, '~'))
       return call_impl::wrapper(func, 0, expr);
+    if (tag* ptr = T->get_tag()) {
+      tag::flag_t flag = ptr->m_flag;
+      if (flag & tag::TYPENAMED)
+	return expr;
+    }
     using namespace error::expressions::unary;
     invalid(parse::position,'~',T);
   }

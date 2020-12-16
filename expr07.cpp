@@ -21,6 +21,16 @@ cxx_compiler::var* cxx_compiler::var_impl::lsh(var* y, var* z)
       return ret;
     if (var* ret = conversion_code(LSH_MK, y, z, var_impl::lsh))
       return ret;
+    if (tag* ptr = Ty->get_tag()) {
+      tag::flag_t flag = ptr->m_flag;
+      if (flag & tag::TYPENAMED)
+	return y;
+    }
+    if (tag* ptr = Tz->get_tag()) {
+      tag::flag_t flag = ptr->m_flag;
+      if (flag & tag::TYPENAMED)
+	return y;
+    }
     using namespace error::expressions::binary;
     invalid(parse::position,LSH_MK, Ty, Tz);
     Tx = int_type::create();

@@ -71,6 +71,17 @@ cxx_compiler::expressions::cmp_impl::gen(goto3ac::op op, var* y, var* z)
       var* (*pf)(var*, var*) = conv_pf(op);
       if (var* ret = var_impl::conversion_code(conv(op), y, z, pf))
         return ret;
+      usr* zero = primary::literal::integer::create(0);
+      if (tag* ptr = Ty->get_tag()) {
+	tag::flag_t flag = ptr->m_flag;
+	if (flag & tag::TYPENAMED)
+	  return zero;
+      }
+      if (tag* ptr = Tz->get_tag()) {
+	tag::flag_t flag = ptr->m_flag;
+	if (flag & tag::TYPENAMED)
+	  return zero;
+      }
       using namespace error::expressions::binary;
       int tmp = conv(op);
       invalid(parse::position,tmp,Ty,Tz);
