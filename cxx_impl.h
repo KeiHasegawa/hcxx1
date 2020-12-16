@@ -1877,6 +1877,16 @@ struct templ_param : usr {
   __int64 value() const { return 1; }
 };
 
+struct const_usr : usr {
+  var* m_value;
+  const_usr(const usr& u)
+    : usr(u), m_value(0) { m_flag2 = usr::flag2_t(m_flag2 | CONST_USR); }
+  bool isconstant(bool) const { return m_value; }
+  var* rvalue(){ return m_value ? m_value : usr::rvalue(); }
+  var* cast(const type* T)
+  { return m_value ? m_value->cast(T) : usr::cast(T); }
+};
+
 } // end of namespace cxx_compiler
 
 #endif // _CXX_IMPL_H_

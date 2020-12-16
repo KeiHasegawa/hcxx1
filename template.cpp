@@ -489,6 +489,13 @@ namespace cxx_compiler {
         return make_pair((const type*)0, y->second);
       }
     };
+    bool not_constant(const scope::tps_t::val2_t& v)
+    {
+      if (v.first)
+	return false;
+      var* v2 = v.second;
+      return !v2->isconstant(true);
+    }
     struct sweeper_a {
       const map<string, scope::tps_t::value_t>& m_table;
       map<tag*, const type*> m_org1;
@@ -744,6 +751,14 @@ cxx_compiler::template_usr::instantiate(std::vector<var*>* arg, KEY* trial)
   if (trial) {
     *trial = key;
     return reinterpret_cast<usr*>(-1);
+  }
+
+  typedef KEY::const_iterator KI;
+  KI q = find_if(begin(key), end(key), template_usr_impl::not_constant); 
+  if (q != end(key)) {
+    if (parse::templ::save_t::nest.empty())
+      error::not_implemented();
+    return this;
   }
 
   table_t::const_iterator it = m_table.find(key);
@@ -1416,6 +1431,14 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
               template_tag_impl::calc_key(table));
   }
 
+  typedef KEY::const_iterator KI;
+  KI q = find_if(begin(key), end(key), template_usr_impl::not_constant); 
+  if (q != end(key)) {
+    if (parse::templ::save_t::nest.empty())
+      error::not_implemented();
+    return this;
+  }
+
   table_t::const_iterator p = m_table.find(key);
   if (p != m_table.end())
     return p->second;
@@ -1540,8 +1563,7 @@ namespace cxx_compiler {
             return name + os.str() + ',';
           }
         }
-        if (!v->isconstant(true))
-          error::not_implemented();
+        assert(v->isconstant(true));
         if (v->isconstant()) {
 	  ostringstream os;
           assert(v->usr_cast());

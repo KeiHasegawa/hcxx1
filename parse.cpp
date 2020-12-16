@@ -151,6 +151,35 @@ int cxx_compiler::parse::identifier::create_templ(std::string name)
 namespace cxx_compiler {
   namespace parse {
     namespace identifier {
+      inline int templ_param_lex(var* v, const type* T)
+      {
+        assert(v->isconstant(true));
+        if (T->integer()) {
+          assert(v->usr_cast());
+          usr* u = static_cast<usr*>(v);
+          T = T->unqualified();
+          type::id_t id = T->m_id;
+          if (id == type::BOOL) {
+            string name = u->m_name;
+            if (name == "false")
+              return FALSE_KW;
+            assert(name == "true");
+            return TRUE_KW;
+          }
+          cxx_compiler_lval.m_usr = u;
+          if (id == type::CHAR || id == type::WCHAR)
+            return CHARACTER_LITERAL_LEX;
+          return INTEGER_LITERAL_LEX;
+        }
+        if (T->arithmetic()) {
+          assert(v->usr_cast());
+          usr* u = static_cast<usr*>(v);
+          cxx_compiler_lval.m_usr = u;
+          return FLOATING_LITERAL_LEX;
+        }
+        cxx_compiler_lval.m_var = v;
+        return IDENTIFIER_LEX;
+      }
       inline int templ_param_lex(string name,
                 		 const scope::tps_t::value_t& x,
                 		 bool instantiate)
@@ -179,32 +208,7 @@ namespace cxx_compiler {
 	    return IDENTIFIER_LEX;
 	  }
 	}
-        assert(v->isconstant(true));
-        if (T->integer()) {
-          assert(v->usr_cast());
-          usr* u = static_cast<usr*>(v);
-          T = T->unqualified();
-          type::id_t id = T->m_id;
-          if (id == type::BOOL) {
-            string name = u->m_name;
-            if (name == "false")
-              return FALSE_KW;
-            assert(name == "true");
-            return TRUE_KW;
-          }
-          cxx_compiler_lval.m_usr = u;
-          if (id == type::CHAR || id == type::WCHAR)
-            return CHARACTER_LITERAL_LEX;
-          return INTEGER_LITERAL_LEX;
-        }
-        if (T->arithmetic()) {
-          assert(v->usr_cast());
-          usr* u = static_cast<usr*>(v);
-          cxx_compiler_lval.m_usr = u;
-          return FLOATING_LITERAL_LEX;
-        }
-        cxx_compiler_lval.m_var = v;
-        return IDENTIFIER_LEX;
+	return templ_param_lex(v, T);
       }
       namespace underscore_func {
         int action();
@@ -753,6 +757,21 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
       if (ptag->m_flag & tag::INSTANTIATE) {
         instantiated_tag* it = static_cast<instantiated_tag*>(ptag);
         template_tag* src = it->m_src;
+	if (it->m_types.second) {
+	  const vector<string>& v = src->templ_base::m_tps.m_order;
+	  typedef vector<string>::const_iterator IT;
+	  IT p = find(begin(v), end(v), name);
+	  if (p != end(v)) {
+	    int n = distance(begin(v), p);
+	    const vector<scope::tps_t::val2_t>& s = it->m_seed;
+	    assert(n < s.size());
+	    scope::tps_t::val2_t x = s[n];
+	    if (var* v = x.second) {
+	      const type* T = v->m_type;
+	      return templ_param_lex(v, T);
+	    }
+	  }
+	}
         const map<string, scope::tps_t::value_t>& table =
           src->templ_base::m_tps.m_table;
         map<string, scope::tps_t::value_t>::const_iterator p =

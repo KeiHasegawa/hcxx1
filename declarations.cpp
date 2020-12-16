@@ -623,6 +623,17 @@ cxx_compiler::declarations::action1(var* v, bool ini)
       if (scope::current != &scope::root)
         expressions::constant_flag = true;
     }
+    else {
+      const type* T = u->m_type;
+      int cvr = 0;
+      T->unqualified(&cvr);
+      if (cvr & 1) {
+	if (T->scalar()) {
+	  const_usr* cu = new const_usr(*u);
+	  u = cu;
+	}
+      }
+    }
   }
   T = u->m_type;
   flag = u->m_flag;

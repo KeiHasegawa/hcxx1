@@ -202,6 +202,9 @@ namespace cxx_compiler {
       const type* Ty = y->m_type;
       if (Tx == Ty)
         return y;
+      const type* Uy = Ty->unqualified();
+      if (Tx == Uy)
+	return y;
       var* x = new var(Tx);
       if (scope::current->m_id == scope::BLOCK) {
         block* b = static_cast<block*>(scope::current);

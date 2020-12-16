@@ -106,6 +106,16 @@ void cxx_compiler::declarations::initializers::action(var* v, info_t* i)
       gendata& data = table[u];
       copy(code.begin()+n,code.begin()+m,back_inserter(data.m_code));
       code.resize(n);
+      usr::flag2_t flag2 = u->m_flag2;
+      if (flag2 & usr::CONST_USR) {
+	const_usr* cu = static_cast<const_usr*>(u);
+	typedef map<int, var*>::const_iterator IT;
+	IT p = arg.V.find(0);
+	assert(p != arg.V.end());
+	var* v = p->second;
+	if (v->isconstant())
+	  cu->m_value = v;
+      }
     }
   }
   const type* T = u->m_type;
