@@ -17,10 +17,6 @@ cxx_compiler::var* cxx_compiler::var_impl::lsh(var* y, var* z)
   if (Tx->m_id == type::TEMPLATE_PARAM)
     return y;
   if ( !Ty->integer() || !Tz->integer() ){
-    if (var* ret = operator_code(LSH_MK, y, z))
-      return ret;
-    if (var* ret = conversion_code(LSH_MK, y, z, var_impl::lsh))
-      return ret;
     if (tag* ptr = Ty->get_tag()) {
       tag::flag_t flag = ptr->m_flag;
       if (flag & tag::TYPENAMED)
@@ -31,6 +27,10 @@ cxx_compiler::var* cxx_compiler::var_impl::lsh(var* y, var* z)
       if (flag & tag::TYPENAMED)
 	return y;
     }
+    if (var* ret = operator_code(LSH_MK, y, z))
+      return ret;
+    if (var* ret = conversion_code(LSH_MK, y, z, var_impl::lsh))
+      return ret;
     using namespace error::expressions::binary;
     invalid(parse::position,LSH_MK, Ty, Tz);
     Tx = int_type::create();
@@ -164,6 +164,16 @@ cxx_compiler::var* cxx_compiler::var_impl::rsh(var* y, var* z)
   const type* Tz = z->m_type;
   const type* Tx = Ty->unqualified();
   if ( !Ty->integer() || !Tz->integer()) {
+    if (tag* ptr = Ty->get_tag()) {
+      tag::flag_t flag = ptr->m_flag;
+      if (flag & tag::TYPENAMED)
+	return y;
+    }
+    if (tag* ptr = Tz->get_tag()) {
+      tag::flag_t flag = ptr->m_flag;
+      if (flag & tag::TYPENAMED)
+	return y;
+    }
     if (var* ret = operator_code(RSH_MK, y, z))
       return ret;
     if (var* ret = conversion_code(RSH_MK, y, z, var_impl::rsh))

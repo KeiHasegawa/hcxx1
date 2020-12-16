@@ -752,10 +752,11 @@ cxx_compiler::declarations::action1(var* v, bool ini)
       const scope::tps_t& b = tps.back();
       if (!b.m_table.empty()) {
         using namespace parse::templ;
-        assert(!save_t::nest.empty());
-        save_t* p = save_t::nest.back();
-        assert(!p->m_usr);
-        p->m_usr = u = new template_usr(*u, b, p->m_patch_13_2);
+        if (!save_t::nest.empty()) {
+	  save_t* p = save_t::nest.back();
+	  assert(!p->m_usr);
+	  p->m_usr = u = new template_usr(*u, b, p->m_patch_13_2);
+	}
       }
     }
   }

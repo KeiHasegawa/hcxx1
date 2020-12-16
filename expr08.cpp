@@ -66,11 +66,6 @@ cxx_compiler::expressions::cmp_impl::gen(goto3ac::op op, var* y, var* z)
   const type* Tz = z->m_type;
   if ( !Ty->arithmetic() || !Tz->arithmetic() ) {
     if ( !cmp_impl::valid_pointer(op,y,z) ){
-      if (var* ret = var_impl::operator_code(conv(op), y, z))
-        return ret;
-      var* (*pf)(var*, var*) = conv_pf(op);
-      if (var* ret = var_impl::conversion_code(conv(op), y, z, pf))
-        return ret;
       usr* zero = primary::literal::integer::create(0);
       if (tag* ptr = Ty->get_tag()) {
 	tag::flag_t flag = ptr->m_flag;
@@ -82,6 +77,11 @@ cxx_compiler::expressions::cmp_impl::gen(goto3ac::op op, var* y, var* z)
 	if (flag & tag::TYPENAMED)
 	  return zero;
       }
+      if (var* ret = var_impl::operator_code(conv(op), y, z))
+        return ret;
+      var* (*pf)(var*, var*) = conv_pf(op);
+      if (var* ret = var_impl::conversion_code(conv(op), y, z, pf))
+        return ret;
       using namespace error::expressions::binary;
       int tmp = conv(op);
       invalid(parse::position,tmp,Ty,Tz);
