@@ -1867,7 +1867,7 @@ struct tac {
     NONE,
     ASSIGN,
     ADD, SUB, MUL, DIV, MOD, LSH, RSH, AND, OR, XOR,
-    UMINUS, TILDE, CAST,
+    UMINUS, TILDE, CLZ, CAST,
     PARAM, CALL, RETURN,
     GOTO, TO,
     ADDR, INVLADDR, INVRADDR, LOFF, ROFF,
@@ -1980,6 +1980,11 @@ struct uminus3ac : tac {
 struct tilde3ac : tac {
   tilde3ac(var* x, var* y) : tac(TILDE,x,y,0) {}
   tac* new3ac(){ return new tilde3ac(*this); }
+};
+
+struct clz3ac : tac {
+  clz3ac(var* x, var* y) : tac(CLZ,x,y,0) {}
+  tac* new3ac(){ return new clz3ac(*this); }
 };
 
 struct cast3ac : tac {

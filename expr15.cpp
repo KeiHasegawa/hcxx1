@@ -125,3 +125,44 @@ cxx_compiler::var* cxx_compiler::expressions::constant_p::info_t::gen()
   expr = expr->rvalue();
   return boolean::create(expr->isconstant());
 }
+
+const cxx_compiler::file_t&
+cxx_compiler::expressions::clz::info_t::file() const
+{
+  return m_expr->file();
+}
+
+cxx_compiler::var* cxx_compiler::expressions::clz::info_t::gen()
+{
+  var* expr = m_expr->gen();
+  expr = expr->rvalue();
+  const type* T = expr->m_type;
+  T = T->unqualified();
+  type::id_t id = T->m_id;
+  switch (m_id) {
+  case type::INT:
+    if (id != type::INT && id != type::UINT)
+      error::not_implemented();
+    break;
+  case type::LONG:
+    if (id != type::LONG && id != type::ULONG)
+      error::not_implemented();
+    break;
+  case type::LONGLONG:
+    if (id != type::LONGLONG && id != type::ULONGLONG)
+      error::not_implemented();
+    break;
+  default:
+    error::not_implemented();
+    break;
+  }
+  var* ret = new var(int_type::create());
+  if (scope::current->m_id == scope::BLOCK) {
+    block* b = static_cast<block*>(scope::current);
+    b->m_vars.push_back(ret);
+  }
+  else
+    garbage.push_back(ret);
+  code.push_back(new clz3ac(ret, expr));
+  return ret;
+}

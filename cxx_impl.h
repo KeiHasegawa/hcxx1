@@ -1137,6 +1137,16 @@ namespace expressions {
       info_t(base* expr) : m_expr(expr) {}
     };
   } // end of namespace constant_p
+  namespace clz {
+    struct info_t : base {
+      base* m_expr;
+      file_t m_file;
+      type::id_t m_id;
+      const file_t& file() const;
+      var* gen();
+      info_t(base* expr, type::id_t id) : m_expr(expr), m_id(id) {}
+    };
+  } // end of namespace clz
   namespace binary {
     struct info_t : base {
       base* m_left;

@@ -83,6 +83,7 @@ namespace cxx_compiler {
 %token FALSE_KW TRUE_KW
 %token BUILTIN_VA_ARG BUILTIN_VA_START BUILTIN_VA_END BUILTIN_ADDRESSOF
 %token BUILTIN_IS_BASE_OF BUILTIN_CONSTANT_P
+%token BUILTIN_CLZ BUILTIN_CLZL BUILTIN_CLZLL
 %token NEW_ARRAY_LEX DELETE_ARRAY_LEX
 
 %union {
@@ -2756,6 +2757,21 @@ cast_expression
     { $$ = new cxx_compiler::expressions::is_base_of::info_t($3, $5); }
   | BUILTIN_CONSTANT_P '(' cast_expression ')'
     { $$ = new cxx_compiler::expressions::constant_p::info_t($3); }
+  | BUILTIN_CLZ '(' cast_expression ')'
+    {
+      using namespace cxx_compiler;
+      $$ = new expressions::clz::info_t($3, type::INT);
+    }
+  | BUILTIN_CLZL '(' cast_expression ')'
+    {
+      using namespace cxx_compiler;
+      $$ = new expressions::clz::info_t($3, type::LONG);
+    }
+  | BUILTIN_CLZLL '(' cast_expression ')'
+    {
+      using namespace cxx_compiler;
+      $$ = new expressions::clz::info_t($3, type::LONGLONG);
+    }
   ;
 
 pm_expression
