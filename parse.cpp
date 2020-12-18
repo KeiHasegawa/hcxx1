@@ -1254,6 +1254,8 @@ namespace cxx_compiler {
         assert(!lval.empty());
         cxx_compiler_lval.m_file = static_cast<file_t*>(lval.front());
         lval.pop_front();
+	if (templ)
+	  cxx_compiler_lval.m_file = new file_t(parse::position);
         return n;
       case ORIGINAL_NAMESPACE_NAME_LEX:
       case NAMESPACE_ALIAS_LEX:

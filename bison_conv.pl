@@ -72,6 +72,13 @@ EOF2
     print "#include \"patch.08.p\"\n";
     ++$patch08_inserted;
   }
+  if ( /YYDPRINTF \(\(stderr, \"Entering state %d\\n\", yystate\)\);/ ) {
+     print "#include \"patch.16.p\"\n";
+     print "#include \"patch.17.p\"\n";
+     print "#include \"patch.18.p\"\n";
+     print "#include \"patch.19.p\"\n";
+     print "#include \"patch.20.p\"\n";
+  }
   if (/^yyerrlab:/) {
       print<<EOF
   if (!cxx_compiler::parse::context_t::all.empty()) {
