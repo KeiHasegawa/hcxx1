@@ -86,5 +86,7 @@ print <<EOF2
         }
       }
     }
+    else if (scope::current->m_id == scope::NAMESPACE)
+      class_or_namespace_name::after(false);
   }
 EOF2
