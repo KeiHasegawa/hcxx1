@@ -1475,12 +1475,12 @@ base_clause
     {
       using namespace cxx_compiler::parse;
       identifier::mode = identifier::look;
-      ++cxx_compiler::parse::base_clause;
+      cxx_compiler::parse::base_clause.push_back(cxx_compiler::scope::current);
     }
     base_specifier_list
     {
       $$ = $3;
-      --cxx_compiler::parse::base_clause;
+      cxx_compiler::parse::base_clause.pop_back();
     }
   ;
 
@@ -2010,9 +2010,15 @@ enter_templ_arg
       }
       ++parse::templ::arg;
       parse::identifier::mode = parse::identifier::look;
-      if (!parse::base_clause || parse::templ::arg > 1) {
+      if (parse::base_clause.empty()) {
         if (!class_or_namespace_name::before.empty())
           class_or_namespace_name::after(false);
+      }
+      else {
+	scope* ps = parse::base_clause.back();
+	if (scope::current != ps) {
+	  class_or_namespace_name::after(false);
+	}
       }
     }
   ;

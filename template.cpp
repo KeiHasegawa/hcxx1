@@ -907,7 +907,7 @@ namespace cxx_compiler {
         {
           assert(ptr->m_flag & tag::TEMPLATE);
           template_tag* tt = static_cast<template_tag*>(ptr);
-          if (!parse::base_clause) {
+	  if (parse::base_clause.empty()) {
             int c = parse::peek();
             if (c == '{' || c == ':')
               return tt->special_ver(pv);

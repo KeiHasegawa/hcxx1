@@ -116,7 +116,7 @@ namespace parse {
     extern bool func();
     extern void patch_13_2(save_t*, const read_t& pr, pair<int, int>);
   } // end of namespace templ
-  extern int base_clause;
+  extern vector<scope*> base_clause;
 } // end of namespace parse
 
 typedef pair<const fundef*, vector<tac*> > FUNCS_ELEMENT_TYPE;

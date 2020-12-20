@@ -1888,4 +1888,4 @@ namespace cxx_compiler {
   } // end of namespace parse
 } // end of namespace cxx_compiler
 
-int cxx_compiler::parse::base_clause;
+std::vector<cxx_compiler::scope*> cxx_compiler::parse::base_clause;
