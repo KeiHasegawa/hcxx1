@@ -489,7 +489,7 @@ namespace cxx_compiler {
           usr* u = v.back();
           cxx_compiler_lval.m_usr = u;
           if (u->m_flag2 & usr::ALIAS) {
-            alias* al = static_cast<alias*>(u);
+            alias_usr* al = static_cast<alias_usr*>(u);
             u = al->m_org;
           }
           usr::flag_t flag = u->m_flag;
@@ -594,6 +594,11 @@ namespace cxx_compiler {
         if (q != tags.end()) {
           tag* ptag = q->second;
           cxx_compiler_lval.m_tag = ptag;
+	  tag::flag_t flag = ptag->m_flag;
+	  if (flag & tag::ALIAS) {
+	    alias_tag* al = static_cast<alias_tag*>(ptag);
+	    cxx_compiler_lval.m_tag = ptag = al->m_org;
+	  }
           if (ptag->m_kind == tag::ENUM)
             return ENUM_NAME_LEX;
           if (!(ptag->m_flag & tag::TEMPLATE))
@@ -687,6 +692,31 @@ namespace cxx_compiler {
     param.push_back(sizeof_type());
     return func_type::create(pv, param);
   }
+  const func_type* memcpy_type()
+  {
+    const type* T = void_type::create();
+    const pointer_type* pv = pointer_type::create(T);
+    T = const_type::create(T);
+    const pointer_type* pcv = pointer_type::create(T);
+    vector<const type*> param;
+    param.push_back(pv);
+    param.push_back(pcv);
+    param.push_back(sizeof_type());
+    return func_type::create(pv, param);
+  }
+  const func_type* vsnprintf_type()
+  {
+    const type* T = char_type::create();
+    const pointer_type* pc = pointer_type::create(T);
+    T = const_type::create(T);
+    const pointer_type* pcc = pointer_type::create(T);
+    vector<const type*> param;
+    param.push_back(pc);
+    param.push_back(sizeof_type());
+    param.push_back(pcc);
+    param.push_back(pc);
+    return func_type::create(int_type::create(), param);
+  }
   struct builtin_types_t : map<string, const func_type* (*)()> {
     builtin_types_t()
     {
@@ -695,6 +725,8 @@ namespace cxx_compiler {
       (*this)["memmove"] = memmove_type;
       (*this)["strlen"] = strlen_type;
       (*this)["memchr"] = memchr_type;
+      (*this)["memcpy"] = memcpy_type;
+      (*this)["vsnprintf"] = vsnprintf_type;
     }
   } builtin_types;
   int builtin_entry(string name)

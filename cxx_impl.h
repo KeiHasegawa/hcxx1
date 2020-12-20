@@ -873,6 +873,7 @@ namespace declarations {
   type_specifier* decl_type(expressions::base*);
   namespace use {
     void action(var*);
+    void action(tag*);
   } // end of namespace use
 } // end of namespace declarations
 
@@ -1863,11 +1864,19 @@ namespace exception {
   } // end of nmaepsace try_block
 } // end  of namespace exception
 
-struct alias : usr {
+struct alias_usr : usr {
   usr* m_org;
- alias(usr* u) : usr(*u), m_org(u)
+  alias_usr(usr* u) : usr(*u), m_org(u)
   {
     m_flag2 = usr::flag2_t(m_flag2 | usr::ALIAS);
+  }
+};
+
+struct alias_tag : tag {
+  tag* m_org;
+  alias_tag(tag* ptr) : tag(*ptr), m_org(ptr)
+  {
+    m_flag = tag::flag_t(m_flag | tag::ALIAS);
   }
 };
 

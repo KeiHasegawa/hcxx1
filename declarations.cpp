@@ -2056,8 +2056,19 @@ namespace cxx_compiler {
         IT p = usrs.find(name);
         if (p != usrs.end())
           error::not_implemented();
-        alias* al = new alias(u);
+        alias_usr* al = new alias_usr(u);
         usrs[name].push_back(al);
+      }
+      void action(tag* ptr)
+      {
+	string name = ptr->m_name;
+	map<string, tag*>& tags = scope::current->m_tags;
+        typedef map<string, tag*>::const_iterator IT;
+	IT p = tags.find(name);
+	if (p != tags.end())
+          error::not_implemented();
+        alias_tag* al = new alias_tag(ptr);
+        tags[name] = al;
       }
     } // end of namespace declarations
   } // end of namespace declarations

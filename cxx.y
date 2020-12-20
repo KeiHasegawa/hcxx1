@@ -678,6 +678,12 @@ using_declaration
       cxx_compiler::class_or_namespace_name::after(false);
       cxx_compiler::declarations::use::action($5);
    }
+  | USING_KW COLONCOLON_MK move_to_root nested_name_specifier
+    CLASS_NAME_LEX ';'
+   {
+      cxx_compiler::class_or_namespace_name::after(false);
+      cxx_compiler::declarations::use::action($5);
+   }
   | USING_KW typenaming nested_name_specifier unqualified_id ';'
    {
      --cxx_compiler::parse::identifier::typenaming;
@@ -691,6 +697,11 @@ using_declaration
       cxx_compiler::declarations::use::action($4);
    }
   | USING_KW COLONCOLON_MK move_to_root TYPEDEF_NAME_LEX ';'
+   {
+      cxx_compiler::class_or_namespace_name::after(false);
+      cxx_compiler::declarations::use::action($4);
+   }
+  | USING_KW COLONCOLON_MK move_to_root CLASS_NAME_LEX ';'
    {
       cxx_compiler::class_or_namespace_name::after(false);
       cxx_compiler::declarations::use::action($4);
