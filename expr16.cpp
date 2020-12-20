@@ -283,6 +283,21 @@ cxx_compiler::var* cxx_compiler::usr::assign(var* op)
   y->m_type = y->m_type->complete_type();
   bool discard = false;
   bool ctor_conv = false;
+  if (T->m_id == type::REFERENCE) {
+    typedef const reference_type RT;
+    RT* rt = static_cast<RT*>(T);
+    T = rt->referenced_type();
+    const type* Ty = y->m_type;
+    int cvr = 0;
+    Ty->unqualified(&cvr);
+    if (cvr & 1)
+      T = const_type::create(T);
+    if (cvr & 2)
+      T = volatile_type::create(T);
+    if (cvr & 4)
+      T = restrict_type::create(T);
+    T = reference_type::create(T);
+  }
   T = expressions::assignment::valid(T, y, &discard, &ctor_conv, 0);
   if (!T) {
     invalid(parse::position,this,discard);

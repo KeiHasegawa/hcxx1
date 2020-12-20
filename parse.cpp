@@ -666,13 +666,35 @@ namespace cxx_compiler {
     param.push_back(sizeof_type());
     return func_type::create(pc, param);
   }
-
+  const func_type* strlen_type()
+  {
+    const type* T = char_type::create();
+    T = const_type::create(T);
+    const pointer_type* pc = pointer_type::create(T);
+    vector<const type*> param;
+    param.push_back(pc);
+    return func_type::create(sizeof_type(), param);
+  }
+  const func_type* memchr_type()
+  {
+    const type* T = void_type::create();
+    const pointer_type* pv = pointer_type::create(T);
+    T = const_type::create(T);
+    const pointer_type* pcv = pointer_type::create(T);
+    vector<const type*> param;
+    param.push_back(pcv);
+    param.push_back(int_type::create());
+    param.push_back(sizeof_type());
+    return func_type::create(pv, param);
+  }
   struct builtin_types_t : map<string, const func_type* (*)()> {
     builtin_types_t()
     {
       (*this)["memcmp"] = memcmp_type;
       (*this)["memset"] = memset_type;
       (*this)["memmove"] = memmove_type;
+      (*this)["strlen"] = strlen_type;
+      (*this)["memchr"] = memchr_type;
     }
   } builtin_types;
   int builtin_entry(string name)

@@ -1078,7 +1078,8 @@ cxx_compiler::var* cxx_compiler::call_impl::convert::operator()(var* arg)
       else {
         var* org = arg;
         arg = arg->cast(T);
-	if (org == arg && U->m_id == type::REFERENCE) {
+        if (org == arg && U->m_id == type::REFERENCE && 
+	    (!arg->lvalue() || arg->genaddr_cast())) {
 	  var* tmp = new var(T);
 	  if (scope::current->m_id == scope::BLOCK) {
 	    block* b = static_cast<block*>(scope::current);
