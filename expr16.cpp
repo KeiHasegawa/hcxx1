@@ -55,6 +55,11 @@ namespace cxx_compiler {
     usr* copy_ctor = get_copy_ctor(Tx->qualified(cvr));
     if (!copy_ctor)
       return v;
+    usr::flag2_t flag2 = copy_ctor->m_flag2;
+    if (flag2 & usr::DEFAULT) {
+      code.push_back(new assign3ac(u, v));
+      return v;
+    }
     const type* T = pointer_type::create(Tx);
     var* t0 = new var(T);
     var* t1 = new var(T);
@@ -155,6 +160,9 @@ namespace cxx_compiler {
     {
       T = T->unqualified();
       if (usr* op_fun = operator_function(T, '=')) {
+	usr::flag2_t flag2 = op_fun->m_flag2;
+	if (flag2 & usr::DEFAULT)
+	  return false;
         if (y) {
           const type* T2 = op_fun->m_type;
           assert(T2->m_id == type::FUNC);

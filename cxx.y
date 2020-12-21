@@ -1479,6 +1479,7 @@ member_declarator
 
 constant_initializer
   : '=' constant_expression { $$ = $2; }
+  | '=' DEFAULT_KW { $$ = 0; }
   ;
 
 base_clause

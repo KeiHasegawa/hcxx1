@@ -381,6 +381,7 @@ struct usr : var {
     PARTIAL_INSTANTIATED = 1 << 20,
     FUNCTION_DEFINITION  = 1 << 21,
     CONST_USR            = 1 << 22,
+    DEFAULT              = 1 << 23,
   };
   flag2_t m_flag2;
   file_t m_file;

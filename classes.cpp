@@ -429,9 +429,20 @@ void cxx_compiler::classes::members::action(var* v)
   }
 }
 
+namespace cxx_compiler {
+  namespace classes {
+    namespace members {
+      void action_default(var* v);
+    } // end of namespace members
+  } // end of namespace classes
+} // end of namespace cxx_compiler
+
+
 void cxx_compiler::classes::members::action2(var* v, expressions::base* expr)
 {
   using namespace std;
+  if (!expr)
+    return action_default(v);
   var* cexpr = expr->gen();
   cexpr = cexpr->rvalue();
   const type* T = cexpr->m_type;
@@ -494,6 +505,30 @@ void cxx_compiler::classes::members::action2(var* v, expressions::base* expr)
       error::not_implemented();
     u->m_flag = usr::flag_t(flag | usr::PURE_VIRT);
   }
+}
+
+void cxx_compiler::classes::members::action_default(var* v)
+{
+  assert(v->usr_cast());
+  usr* u = static_cast<usr*>(v);
+  usr::flag_t flag = u->m_flag;
+  if (!(flag & usr::FUNCTION))
+    error::not_implemented();
+  if (flag & usr::CTOR) {
+    // default constructor or default copy constructor
+    u->m_flag2 = usr::flag2_t(u->m_flag2 | usr::DEFAULT);
+    return;
+  }
+  usr::flag2_t flag2 = u->m_flag2;
+  if (flag2 & usr::OPERATOR) {
+    string name = u->m_name;
+    if (name == "=") {
+      // default operator=
+      u->m_flag2 = usr::flag2_t(u->m_flag2 | usr::DEFAULT);
+      return;
+    }
+  }
+  error::not_implemented();
 }
 
 void cxx_compiler::classes::members::bit_field(var* v, expressions::base* expr)
