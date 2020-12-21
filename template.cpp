@@ -543,6 +543,7 @@ namespace cxx_compiler {
       parse::read_t m_read;
       map<int, bool> m_retry;
       parse::member_function_body::save_t* m_saved;
+      bool m_param;
       static bool block_or_param(scope* p)
       {
         scope::id_t id = p->m_id;
@@ -598,7 +599,8 @@ namespace cxx_compiler {
           m_last(class_or_namespace_name::last),
           m_nest(parse::templ::save_t::nest), m_yychar(cxx_compiler_char),
           m_read(parse::g_read), m_retry(parse::context_t::retry),
-          m_saved(parse::member_function_body::saved)
+          m_saved(parse::member_function_body::saved),
+	  m_param(parse::templ::param)
       {
         vector<scope::tps_t>& tps = scope::current->m_tps;
         tps.clear();
@@ -626,9 +628,11 @@ namespace cxx_compiler {
         parse::g_read.m_lval.clear();
         parse::context_t::retry.clear();
         parse::member_function_body::saved = 0;
+	parse::templ::param = false;
       } 
       ~sweeper_b()
       {
+	parse::templ::param = m_param;
         parse::member_function_body::saved = m_saved;
         parse::context_t::retry = m_retry;
         parse::g_read = m_read;

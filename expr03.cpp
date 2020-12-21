@@ -749,7 +749,7 @@ cxx_compiler::var* cxx_compiler::refaddr::cast(const type* T)
 {
   T = T->unqualified();
   if (T->m_id != type::REFERENCE)
-    return var::cast(T);
+    return rvalue()->cast(T);
   typedef const reference_type RT;
   RT* rt = static_cast<RT*>(T);
   var* ret = new refaddr(rt, m_addrof.m_ref, m_addrof.m_offset);
