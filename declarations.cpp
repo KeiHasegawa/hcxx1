@@ -2054,8 +2054,13 @@ namespace cxx_compiler {
         map<string, vector<usr*> >& usrs = scope::current->m_usrs;
         typedef map<string, vector<usr*> >::const_iterator IT;
         IT p = usrs.find(name);
-        if (p != usrs.end())
-          error::not_implemented();
+        if (p != usrs.end()) {
+	  const vector<usr*>& v = p->second;
+	  usr* prev = v.back();
+	  usr::flag2_t flag2 = prev->m_flag2;
+	  if (flag2 & usr::ALIAS)
+	    return;
+	}
         alias_usr* al = new alias_usr(u);
         usrs[name].push_back(al);
       }
