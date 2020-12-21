@@ -514,7 +514,8 @@ void cxx_compiler::classes::members::action_default(var* v)
   usr::flag_t flag = u->m_flag;
   if (!(flag & usr::FUNCTION))
     error::not_implemented();
-  if (flag & usr::CTOR) {
+  usr::flag_t mask = usr::flag_t(usr::CTOR | usr::DTOR);
+  if (flag & mask) {
     // default constructor or default copy constructor
     u->m_flag2 = usr::flag2_t(u->m_flag2 | usr::DEFAULT);
     return;

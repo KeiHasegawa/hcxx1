@@ -3225,10 +3225,16 @@ namespace cxx_compiler {
     if (ctor) {
       typedef vector<usr*>::const_iterator IT;
       IT q = find_if(begin(tors), end(tors), canbe_default_ctor);
-      return q != end(tors);
+      if (q == end(tors))
+	return false;
+      usr* u = *q;
+      usr::flag2_t flag2 = u->m_flag2;
+      return !(flag2 & usr::DEFAULT);
     }
     assert(tors.size() == 1);
-    return true;
+    usr* dtor = tors.back();
+    usr::flag2_t flag2 = dtor->m_flag2;
+    return !(flag2 & usr::DEFAULT);
   }
 } // end of namesapce cxx_compiler
 
