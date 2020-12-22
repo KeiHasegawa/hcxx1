@@ -29,7 +29,7 @@ namespace cxx_compiler {
 %token TYPEDEF_KW AUTO_KW REGISTER_KW STATIC_KW EXTERN_KW MUTABLE_KW
 %token INLINE_KW VIRTUAL_KW EXPLICIT_KW FRIEND_KW
 
-%token VOID_KW CHAR_KW WCHAR_T_KW BOOL_KW INT_KW FLOAT_KW DOUBLE_KW
+%token VOID_KW CHAR_KW WCHAR_T_KW BOOL_KW INT_KW FLOAT_KW FLOAT128_KW DOUBLE_KW
 %token SHORT_KW LONG_KW
 %token SIGNED_KW UNSIGNED_KW
 %token TYPEDEF_NAME_LEX CLASS_NAME_LEX TEMPLATE_NAME_LEX ENUM_NAME_LEX
@@ -85,6 +85,7 @@ namespace cxx_compiler {
 %token BUILTIN_IS_BASE_OF BUILTIN_CONSTANT_P
 %token BUILTIN_CLZ BUILTIN_CLZL BUILTIN_CLZLL
 %token NEW_ARRAY_LEX DELETE_ARRAY_LEX
+%token NOEXCEPT_KW
 
 %union {
   int m_ival;
@@ -352,6 +353,8 @@ simple_type_specifier
     { $$ = new cxx_compiler::declarations::type_specifier(UNSIGNED_KW); }
   | FLOAT_KW
     { $$ = new cxx_compiler::declarations::type_specifier(FLOAT_KW); }
+  | FLOAT128_KW
+    { $$ = new cxx_compiler::declarations::type_specifier(FLOAT128_KW); }
   | DOUBLE_KW
     { $$ = new cxx_compiler::declarations::type_specifier(DOUBLE_KW); }
   | VOID_KW
@@ -826,8 +829,7 @@ declarator
 
 direct_declarator
   : declarator_id
-  | direct_declarator '(' enter_parameter parameter_declaration_clause
-    leave_parameter ')' cvr_qualifier_seq exception_specification
+  | direct_declarator '(' enter_parameter parameter_declaration_clause    leave_parameter ')' cvr_qualifier_seq exception_specification
     {
       using namespace cxx_compiler::declarations::declarators;
       $$ = $1;
@@ -1164,6 +1166,7 @@ end_array
 exception_specification
   : THROW_KW '(' enter_exception_specification type_id_list ')'
   | THROW_KW '(' enter_exception_specification              ')'
+  | NOEXCEPT_KW
   ;
 
 type_id_list

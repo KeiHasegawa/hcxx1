@@ -134,6 +134,7 @@ export              { return EXPORT_KW; }
 extern              { return EXTERN_KW; }
 false               { return FALSE_KW; }
 float               { return FLOAT_KW; }
+__float128          { return FLOAT128_KW; }
 for                 { return FOR_KW; }
 friend              { return FRIEND_KW; }
 goto                { return GOTO_KW; }
@@ -144,6 +145,7 @@ long                { return LONG_KW; }
 mutable             { return MUTABLE_KW; }
 namespace           { return NAMESPACE_KW; }
 new                 { return NEW_KW; }
+noexcept            { return NOEXCEPT_KW; }
 operator            { return OPERATOR_KW; }
 private             { return PRIVATE_KW; }
 protected           { return PROTECTED_KW; }

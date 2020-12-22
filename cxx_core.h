@@ -1154,7 +1154,7 @@ struct type {
   enum id_t {
     VOID, CHAR, SCHAR, UCHAR, WCHAR, BOOL, SHORT, USHORT, INT, UINT,
     LONG, ULONG, LONGLONG, ULONGLONG,
-    FLOAT, DOUBLE, LONG_DOUBLE,
+    FLOAT, DOUBLE, LONG_DOUBLE, FLOAT128,
     BACKPATCH,
     CONST, VOLATILE, RESTRICT,
     POINTER, REFERENCE, ARRAY, FUNC, RECORD, ENUM, BIT_FIELD, ELLIPSIS,
@@ -1416,6 +1416,17 @@ public:
   int size() const;
   bool real() const { return true; }
   static const long_double_type* create(){ return &obj; }
+};
+
+class float128_type : public type {
+  static float128_type obj;
+  float128_type() : type(FLOAT128) {}
+public:
+  void decl(std::ostream&, std::string) const;
+  void encode(std::ostream&) const;
+  int size() const;
+  bool real() const { return true; }
+  static const float128_type* create(){ return &obj; }
 };
 
 class backpatch_type : public type {

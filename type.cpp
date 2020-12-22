@@ -21,6 +21,7 @@ cxx_compiler::type_impl::sizeof_table::sizeof_table()
   (*this)[float_type::create()] = sizeof(float);
   (*this)[double_type::create()] = sizeof(double);
   (*this)[long_double_type::create()] = sizeof(long double);
+  (*this)[float128_type::create()] = sizeof(__float128);
 }
 
 void cxx_compiler::type_impl::update(int (*size)(int id))
@@ -38,6 +39,7 @@ void cxx_compiler::type_impl::update(int (*size)(int id))
   sizeof_table[float_type::create()] = size((int)type::FLOAT);
   sizeof_table[double_type::create()] = size((int)type::DOUBLE);
   sizeof_table[long_double_type::create()] = size((int)type::LONG_DOUBLE);
+  sizeof_table[float128_type::create()] = size((int)type::FLOAT128);
   pointer_sizeof = size((int)type::POINTER);
 }
 
@@ -374,6 +376,26 @@ void cxx_compiler::long_double_type::decl(std::ostream& os, std::string name) co
 }
 
 void cxx_compiler::long_double_type::encode(std::ostream& os) const { os << 'e'; }
+
+cxx_compiler::float128_type cxx_compiler::float128_type::obj;
+
+int cxx_compiler::float128_type::size() const
+{
+  return type_impl::sizeof_table[&obj];
+}
+
+void
+cxx_compiler::float128_type::decl(std::ostream& os, std::string name) const
+{
+  os << "__float128";
+  if ( !name.empty() )
+    os << ' ' << name;
+}
+
+void cxx_compiler::float128_type::encode(std::ostream& os) const
+{
+  os << "f128";
+}
 
 cxx_compiler::backpatch_type cxx_compiler::backpatch_type::obj;
 

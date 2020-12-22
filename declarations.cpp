@@ -219,6 +219,7 @@ namespace cxx_compiler { namespace declarations { namespace specifier_seq { name
   const cxx_compiler::type* signed_handler(const cxx_compiler::type*);
   const cxx_compiler::type* unsigned_handler(const cxx_compiler::type*);
   const cxx_compiler::type* float_handler(const cxx_compiler::type*);
+  const cxx_compiler::type* float128_handler(const cxx_compiler::type*);
   const cxx_compiler::type* double_handler(const cxx_compiler::type*);
   const cxx_compiler::type* void_handler(const cxx_compiler::type*);
   const cxx_compiler::type* const_handler(const cxx_compiler::type*);
@@ -237,6 +238,7 @@ cxx_compiler::declarations::specifier_seq::type::table::table()
   (*this)[SIGNED_KW] = signed_handler;
   (*this)[UNSIGNED_KW] = unsigned_handler;
   (*this)[FLOAT_KW] = float_handler;
+  (*this)[FLOAT128_KW] = float128_handler;
   (*this)[DOUBLE_KW] = double_handler;
   (*this)[VOID_KW] = void_handler;
   (*this)[CONST_KW] = const_handler;
@@ -428,6 +430,16 @@ cxx_compiler::declarations::specifier_seq::type::float_handler(const cxx_compile
     multiple(parse::position,T,float_type::create());
   }
   return float_type::create();
+}
+
+const cxx_compiler::type*
+cxx_compiler::declarations::specifier_seq::type::float128_handler(const cxx_compiler::type* T)
+{
+  if ( T ){
+    using namespace error::declarations::specifier_seq::type;
+    multiple(parse::position,T,float128_type::create());
+  }
+  return float128_type::create();
 }
 
 const cxx_compiler::type*
