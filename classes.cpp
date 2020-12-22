@@ -405,6 +405,13 @@ namespace cxx_compiler {
 void cxx_compiler::classes::members::action(var* v)
 {
   using namespace std;
+  if (genaddr* ga = v->genaddr_cast()) {
+    v = ga->m_ref;
+    class_or_namespace_name::after(false);
+    assert(v->usr_cast());
+    usr* u = static_cast<usr*>(v);
+    u->m_flag2 = usr::flag2_t(u->m_flag2 | usr::NESTED_MEMBER);
+  }
   assert(v->usr_cast());
   usr* u = static_cast<usr*>(v);
   u = declarations::action1(u, false);

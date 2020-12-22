@@ -1850,8 +1850,8 @@ struct friend_func : usr {
   tag* m_tag;
   friend_func(usr* u, tag* ptr) : usr(*u), m_org(u), m_tag(ptr)
   {
-      assert(!(u->m_flag & usr::FRIEND));
-      m_flag = usr::flag_t(m_flag | usr::FRIEND);
+    assert(!(u->m_flag & usr::FRIEND));
+    m_flag = usr::flag_t(m_flag | usr::FRIEND);
   }
 };
 

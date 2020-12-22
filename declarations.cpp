@@ -875,7 +875,8 @@ namespace cxx_compiler { namespace declarations {
 cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr)
 {
   using namespace std;
-  curr->m_scope = scope::current;
+  if (!(curr->m_flag2 & usr::NESTED_MEMBER))
+    curr->m_scope = scope::current;
   string name = curr->m_name;
   if ( name == "__func__" ){
     using namespace error::expressions::primary::underscore_func;
@@ -916,7 +917,8 @@ cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr)
     tag::flag_t mask = tag::flag_t(tag::TEMPLATE | tag::INSTANTIATE);
     if (flag & mask)
       return curr;
-    curr->m_scope = ptr->m_parent;
+    if (curr->m_scope == ptr)
+      curr->m_scope = ptr->m_parent;
     curr->m_flag = usr::flag_t(curr->m_flag & ~usr::FRIEND);
     curr = new friend_func(curr, ptr);
   }
@@ -1605,6 +1607,10 @@ check_installed(usr* u, specifier_seq::info_t* p, bool* installed)
     }
     else if (T || Tp)
       error::not_implemented();
+  }
+  if (flag & usr::FRIEND) {
+    if (!(p->m_flag & usr::FRIEND))
+      return u;
   }
   usr* ret = new usr(*u);
   ret->m_file = parse::position;
