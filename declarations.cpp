@@ -1672,7 +1672,12 @@ cxx_compiler::declarations::elaborated::action(int keyword, var* v)
     return p.second ? p.second : p.first;
   }
   else {
-    scope* parent = linkage::infos.empty() ? scope::current : &scope::root;
+    scope* parent = scope::current;
+    if (!linkage::infos.empty()) {
+      linkage::info_t& info = linkage::infos.back();
+      if (info.m_kind == linkage::info_t::C)
+	parent = &scope::root;
+    }
     tag::kind_t kind = classes::specifier::get(keyword);
     const file_t& file = u->m_file;
     tag* ptr = new tag(kind,name,file,0);

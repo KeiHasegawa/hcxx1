@@ -463,6 +463,7 @@ function::definition::begin(declarations::specifier_seq::info_t* p, var* v)
     var* ref = ga->m_ref;
     u = ref->usr_cast();
   }
+  u->m_type = u->m_type->complete_type();
   usr::flag2_t flag2 = u->m_flag2;
   if (flag2 & usr::CONV_OPE) {
     using namespace declarations::specifier_seq;

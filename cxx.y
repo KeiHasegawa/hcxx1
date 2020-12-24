@@ -719,6 +719,11 @@ using_declaration
       cxx_compiler::class_or_namespace_name::after(false);
       cxx_compiler::declarations::use::action($3);
     }
+  | USING_KW nested_name_specifier CLASS_NAME_LEX ';'
+    {
+      cxx_compiler::class_or_namespace_name::after(false);
+      cxx_compiler::declarations::use::action($3);
+    }
   ;
 
 using_directive
