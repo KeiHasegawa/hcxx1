@@ -870,6 +870,16 @@ namespace cxx_compiler { namespace declarations {
       return true;
     return name == operator_name(DELETE_ARRAY_LEX);
   }
+  tag* friend_tag()
+  {
+    if (scope::current->m_id == scope::TAG)
+      return static_cast<tag*>(scope::current);
+    if (class_or_namespace_name::before.empty())
+      error::not_implemented();
+    scope* ps = class_or_namespace_name::before.back();
+    assert(ps->m_id == scope::TAG);
+    return static_cast<tag*>(ps);
+  }
 } } // end of namespace declarations and cxx_compiler
 
 cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr)
@@ -908,9 +918,7 @@ cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr)
 
   usr::flag_t flag = curr->m_flag;
   if (flag & usr::FRIEND) {
-    if (scope::current->m_id != scope::TAG)
-      error::not_implemented();
-    tag* ptr = static_cast<tag*>(scope::current);
+    tag* ptr = friend_tag();
     if (!(flag & usr::FUNCTION))
       error::not_implemented();
     tag::flag_t flag = ptr->m_flag;
@@ -1016,7 +1024,7 @@ cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr)
   }
 
   usr::flag2_t flag2 = curr->m_flag2;
-  if (flag2 & usr::TEMPLATE) {
+  if ((flag2 & usr::TEMPLATE) && !(flag2 & usr::INSTANTIATE)){
     vector<usr*>& v = usrs[name];
     int n = v.size();
     if (n >= 2) {
@@ -1592,7 +1600,10 @@ check_installed(usr* u, specifier_seq::info_t* p, bool* installed)
     usrs[name].push_back(ret);
     return ret;
   }
+
   u->m_flag = flag = usr::flag_t(flag | p->m_flag);
+  if (u->m_flag2 & usr::TEMPLATE)
+    u->m_flag = flag = usr::flag_t(flag & ~usr::FRIEND);
   if (flag & usr::OVERLOAD)
     return u;
   assert(!Tu->backpatch());

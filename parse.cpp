@@ -551,6 +551,16 @@ namespace cxx_compiler {
               cxx_compiler_lval.m_ut = new pair<usr*, tag*>(u, 0);
               return TEMPLATE_NAME_LEX;
             }
+	    if (last_token == COLONCOLON_MK) {
+	      using namespace declarations;
+	      if (!specifier_seq::info_t::s_stack.empty()) {
+		specifier_seq::info_t* p =
+		  specifier_seq::info_t::s_stack.top();
+		usr::flag_t flag = p->m_flag;
+		if (flag & usr::FRIEND)
+		  return IDENTIFIER_LEX;
+	      }
+	    }
             if (mode == new_obj)
               return create(name);
 
@@ -1518,12 +1528,37 @@ int cxx_compiler::parse::identifier::underscore_func::func::operator()(int n, ch
 
 bool cxx_compiler::parse::is_last_decl = true;
 
+std::map<cxx_compiler::scope*, cxx_compiler::scope*> cxx_compiler::copied_tps;
+
+namespace cxx_compiler {
+  namespace parse {
+    namespace parameter {
+      inline void cpif_tps()
+      {
+	if (scope::current->m_id != scope::TAG)
+	  return;
+	if (scope::current == class_or_namespace_name::last)
+	  return;
+	vector<scope::tps_t>& tps = scope::current->m_tps;
+	if (tps.empty())
+	  return;
+	assert(class_or_namespace_name::last->m_tps.empty());
+	class_or_namespace_name::last->m_tps = tps;
+	assert(copied_tps.find(class_or_namespace_name::last)
+	       == copied_tps.end());
+	copied_tps[class_or_namespace_name::last] = scope::current;
+      }
+    } // end of namespace parameter
+  } // end of namespace parse
+} // end of namespace cxx_compiler
+
 void cxx_compiler::parse::parameter::enter()
 {
   using namespace std;
   if (class_or_namespace_name::last) {
     assert(!class_or_namespace_name::before.empty());
     class_or_namespace_name::before.back() = scope::current;
+    cpif_tps();
     scope::current = class_or_namespace_name::last;
     class_or_namespace_name::last = 0;
   }

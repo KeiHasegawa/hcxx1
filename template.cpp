@@ -194,6 +194,14 @@ namespace cxx_compiler {
 
 void cxx_compiler::declarations::templ::decl_end()
 {
+  typedef map<scope*, scope*>::iterator IT;
+  IT it = copied_tps.find(scope::current);
+  if (it != copied_tps.end()) {
+    scope* ps = it->second;
+    scope::current->m_tps.clear();
+    copied_tps.erase(it);
+    scope::current = ps;
+  }
   vector<scope::tps_t>& tps = scope::current->m_tps;
   assert(!tps.empty());
   scope::tps_t& b = tps.back();

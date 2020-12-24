@@ -1906,6 +1906,8 @@ struct const_usr : usr {
   { return m_value ? m_value->cast(T) : usr::cast(T); }
 };
 
+extern std::map<scope*, scope*> copied_tps;
+
 } // end of namespace cxx_compiler
 
 #endif // _CXX_IMPL_H_
