@@ -608,6 +608,7 @@ namespace declarations {
   namespace elaborated {
     const type* action(int, var*);
     const type* action(int, pair<usr*, tag*>*);
+    const type* action(int, tag*);
     tag* lookup(string, scope*);
   } // end of namespace elaborated
   namespace linkage {

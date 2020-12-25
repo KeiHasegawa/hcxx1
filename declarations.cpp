@@ -1750,6 +1750,22 @@ elaborated::action(int keyword, std::pair<usr*, tag*>* p)
   return T;
 }
 
+const cxx_compiler::type*
+cxx_compiler::declarations::
+elaborated::action(int keyword, tag* ptr)
+{
+  tag::kind_t x = classes::specifier::get(keyword);
+  tag::kind_t y = ptr->m_kind;
+  if (x != y) 
+    error::not_implemented();
+  const type* T = ptr->m_types.second;
+  if (T)
+    return T;
+  T = ptr->m_types.first;
+  assert(T);
+  return T;
+}
+
 void cxx_compiler::declarations::linkage::action(var* v, bool brace)
 {
   using namespace std;

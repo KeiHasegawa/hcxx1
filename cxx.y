@@ -420,6 +420,21 @@ elaborated_type_specifier
     }
   | class_key template_id
     { $$ = cxx_compiler::declarations::elaborated::action($1,$2); }
+  | class_key COLONCOLON_MK move_to_root nested_name_specifier CLASS_NAME_LEX
+    {
+      $$ = cxx_compiler::declarations::elaborated::action($1,$5);
+      cxx_compiler::class_or_namespace_name::after(false);
+    }
+  | class_key COLONCOLON_MK move_to_root CLASS_NAME_LEX
+    {
+      $$ = cxx_compiler::declarations::elaborated::action($1,$4);
+      cxx_compiler::class_or_namespace_name::after(false);
+    }
+  | class_key nested_name_specifier CLASS_NAME_LEX
+    {
+      $$ = cxx_compiler::declarations::elaborated::action($1,$3);
+      cxx_compiler::class_or_namespace_name::after(false);
+    }
   | enum_key COLONCOLON_MK move_to_root nested_name_specifier IDENTIFIER_LEX
     {
       $$ = cxx_compiler::declarations::elaborated::action($1,$5);
