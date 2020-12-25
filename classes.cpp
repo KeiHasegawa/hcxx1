@@ -635,16 +635,24 @@ namespace cxx_compiler {
               const type* Ux = Tx->unqualified();
               expressions::base* expr = (*p)[0];
               var* y = expr->gen();
-              if (Ux->m_id != type::REFERENCE)
-                y = y->rvalue();
-              const type* Ty = y->result_type();
-              var tmp(Ty);
-              bool discard = false;
-              bool ctor_conv = false;
-              const type* T =
-                assignment::valid(Tx, &tmp, &discard, &ctor_conv, 0);
-              if (!T)
-                error::not_implemented();
+	      bool ctor_conv = false;
+              if (Ux->m_id == type::REFERENCE) {
+		const type* Ty = y->result_type();
+		var tmp(Ty);
+		bool discard = false;
+		const type* T =
+		  assignment::valid(Tx, &tmp, &discard, &ctor_conv, 0);
+		if (!T)
+		  error::not_implemented();
+	      }
+	      else {
+		y = y->rvalue();
+		bool discard = false;
+		const type* T =
+		  assignment::valid(Tx, y, &discard, &ctor_conv, 0);
+		if (!T)
+		  error::not_implemented();
+	      }
               y = Tx->aggregate() ? aggregate_conv(Tx, y, ctor_conv, 0) 
                 : y->cast(Tx);
               code.push_back(new invladdr3ac(x,y));
