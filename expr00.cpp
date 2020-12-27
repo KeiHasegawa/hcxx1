@@ -1237,6 +1237,21 @@ cxx_compiler::expressions::primary::literal::boolean::create(bool x)
   return c;
 }
 
+cxx_compiler::usr*
+cxx_compiler::expressions::primary::literal::null_ptr::create()
+{
+  usr* ret;
+  if (!ret) {
+    ret = integer::create(0);
+    const type* T = void_type::create();
+    T = pointer_type::create(T);
+    var* v = ret->cast(T);
+    assert(v->usr_cast());
+    ret = static_cast<usr*>(v);
+  }
+  return ret;
+}
+
 cxx_compiler::var*
 cxx_compiler::expressions::primary::
 from_member(usr* u, const std::vector<route_t>& route)

@@ -86,6 +86,7 @@ namespace cxx_compiler {
 %token BUILTIN_CLZ BUILTIN_CLZL BUILTIN_CLZLL
 %token NEW_ARRAY_LEX DELETE_ARRAY_LEX
 %token NOEXCEPT_KW
+%token NULLPTR_KW
 
 %union {
   int m_ival;
@@ -2155,12 +2156,20 @@ literal
   | FLOATING_LITERAL_LEX { $$ = $1; }
   | string_literal
   | boolean_literal { $$ = $1; }
+  | NULLPTR_KW
+    {
+      using namespace cxx_compiler::expressions::primary::literal;
+      $$ = null_ptr::create();
+    }
   ;
 
 string_literal
   : STRING_LITERAL_LEX
   | string_literal STRING_LITERAL_LEX
-    { $$ = cxx_compiler::expressions::primary::literal::stringa::create($1,$2); }
+    {
+      using namespace cxx_compiler::expressions::primary::literal;
+      $$ = stringa::create($1,$2);
+    }
   ;
 
 boolean_literal

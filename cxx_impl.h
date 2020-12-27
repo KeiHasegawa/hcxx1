@@ -948,6 +948,9 @@ namespace expressions {
       namespace boolean {
         usr* create(bool);
       } // end of namespace boolean
+      namespace null_ptr {
+        usr* create();
+      } // end of namespace null_ptr
     } // end of namespace literal
     extern var* action(var* v, const vector<route_t>& route);
     extern var* from_member(usr* u, const vector<route_t>&);

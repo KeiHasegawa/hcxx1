@@ -146,6 +146,7 @@ mutable             { return MUTABLE_KW; }
 namespace           { return NAMESPACE_KW; }
 new                 { return NEW_KW; }
 noexcept            { return NOEXCEPT_KW; }
+nullptr             { return NULLPTR_KW; }
 operator            { return OPERATOR_KW; }
 private             { return PRIVATE_KW; }
 protected           { return PROTECTED_KW; }
