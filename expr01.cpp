@@ -1585,7 +1585,8 @@ cxx_compiler::expressions::postfix::member::begin(base* expr, bool dot)
   parse::identifier::base_lookup::route.clear();
   auto_ptr<base> sweeper(expr);
   if (parse::templ::func()) {
-    parse::identifier::mode = parse::identifier::new_obj;
+    if (parse::peek() != '~')
+      parse::identifier::mode = parse::identifier::new_obj;
     return 0;
   }
   int n = code.size();
@@ -1647,6 +1648,11 @@ cxx_compiler::expressions::postfix::
 member::end(info_t* info, pair<declarations::type_specifier*, bool>* x)
 {
   auto_ptr<pair<declarations::type_specifier*, bool> > sweeper(x);
+  if (!info) {
+    assert(parse::templ::func());
+    parse::identifier::mode = parse::identifier::look;
+    return 0;
+  }
   info->m_qualified = x->second;
   declarations::type_specifier* spec = x->first;
   auto_ptr<declarations::type_specifier> sweeper2(spec);
