@@ -199,6 +199,7 @@ namespace cxx_compiler {
     }
     var* with_route(const type* Tx, var* y, const vector<route_t>& route)
     {
+      using namespace expressions::primary::literal;
       const type* Ty = y->m_type;
       if (Tx == Ty)
         return y;
@@ -215,11 +216,30 @@ namespace cxx_compiler {
       if (!cast_impl::require(Tx, Ty))
         code.push_back(new assign3ac(x, y));
       else {
-        code.push_back(new cast3ac(x, y, Tx));
-        if (var* off = cast_impl::base_ptr_offset(Tx, y, route))
-          code.push_back(new add3ac(x, x, off));
-        else if (var* off = cast_impl::base_ptr_offset(Ty, x, route))
-          code.push_back(new sub3ac(x, x, off));
+	if (Tx->m_id == type::BOOL) {
+	  var* zero = integer::create(0);
+	  zero = zero->cast(Ty);
+	  goto3ac* go = new goto3ac(goto3ac::NE, y, zero);
+	  to3ac* to = new to3ac;
+	  go->m_to = to;
+	  to->m_goto.push_back(go);
+	  code.push_back(go);
+	  code.push_back(new assign3ac(x, boolean::create(false)));
+	  goto3ac* go2 = new goto3ac;
+	  to3ac* to2 = new to3ac;
+	  go2->m_to = to2;
+	  to2->m_goto.push_back(go2);
+	  code.push_back(go2);
+	  code.push_back(to);
+	  code.push_back(new assign3ac(x, boolean::create(true)));
+	  code.push_back(to2);
+	}
+	else
+	  code.push_back(new cast3ac(x, y, Tx));
+	if (var* off = cast_impl::base_ptr_offset(Tx, y, route))
+	  code.push_back(new add3ac(x, x, off));
+	else if (var* off = cast_impl::base_ptr_offset(Ty, x, route))
+	  code.push_back(new sub3ac(x, x, off));
       }
       return x;
     }

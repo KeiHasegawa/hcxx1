@@ -2446,6 +2446,12 @@ assignment::valid(const type* T, var* src, bool* discard, bool* ctor_conv,
     }
     return cast_impl::conversion_function(rec, xx, true) ? xx : 0;
   }
+
+  if (xx->m_id == type::BOOL) {
+    if (yy->scalar())
+      return xx;
+  }
+
   return 0;
 }
 
