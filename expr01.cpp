@@ -2844,10 +2844,97 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::fcast::gen()
   return fcast_impl::operator_code(m_type, y);
 }
 
+namespace cxx_compiler {
+  namespace typeid_impl {
+    const type* get_type_info()
+    {
+      typedef map<string, vector<usr*> >::const_iterator ITx;
+      ITx p = scope::root.m_usrs.find("std");
+      if (p == scope::root.m_usrs.end())
+	error::not_implemented();
+      const vector<usr*>& v = p->second;
+      usr* u = v.back();
+      usr::flag_t flag = u->m_flag;
+      if (!(flag & usr::NAMESPACE))
+	error::not_implemented();
+      name_space* ns = static_cast<name_space*>(u);
+      map<string, tag*>& tags = ns->m_tags;
+      typedef map<string, tag*>::const_iterator ITy;
+      ITy q = tags.find("type_info");
+      if (q == tags.end())
+	error::not_implemented();
+      tag* ptr = q->second;
+      const type* T = ptr->m_types.second;
+      if (!T)
+	error::not_implemented();
+      return T;
+    }
+    const type* get_type(expressions::base* expr)
+    {
+      int n = code.size();
+      var* v = expr->gen();
+      for_each(begin(code)+n, end(code), [](tac* p){ delete p; });
+      code.resize(n);
+      return v->result_type();
+    }
+    struct result : var {
+      result(const type* T) : var(T) {}
+      bool lvalue() const { return true; }
+      var* address()
+      {
+	const type* T = pointer_type::create(m_type);
+	var* ret = new var(T);
+	if (scope::current->m_id == scope::BLOCK) {
+	  block* b = static_cast<block*>(scope::current);
+	  b->m_vars.push_back(ret);
+	}
+	else
+	  garbage.push_back(ret);
+	code.push_back(new addr3ac(ret, this));
+	return ret;
+      }
+    };
+  } // end of namespace typeid_impl
+} // end of namespace cxx_compiler
+
 cxx_compiler::var* cxx_compiler::expressions::postfix::type_ident::gen()
 {
-  error::not_implemented();
-  return 0;
+  using namespace expressions::primary::literal;
+  const type* TI = typeid_impl::get_type_info();
+  TI = const_type::create(TI);
+  var* ret = new typeid_impl::result(TI);
+  if (scope::current->m_id == scope::BLOCK) {
+    block* b = static_cast<block*>(scope::current);
+    b->m_vars.push_back(ret);
+  }
+  else
+    garbage.push_back(ret);
+  tag* ptr = TI->get_tag();
+  if (!ptr)
+    error::not_implemented();
+  usr* ctor = has_ctor_dtor(ptr, false);
+  if (!ctor)
+    error::not_implemented();
+  usr::flag_t flag = ctor->m_flag;
+  assert(flag & usr::OVERLOAD);
+  overload* ovl = static_cast<overload*>(ctor);
+  ovl->m_obj = ret;
+  const type* T = m_expr ? typeid_impl::get_type(m_expr) : m_type;
+  T = T->unqualified();
+  if (T->m_id == type::REFERENCE) {
+    typedef const reference_type RT;
+    RT* rt = static_cast<RT*>(T);
+    T = rt->referenced_type();
+    T = T->unqualified();
+  }
+  ostringstream os;
+  T->decl(os, "");
+  string name = os.str();
+  name = '"' + name + '"';
+  vector<var*> arg;
+  arg.push_back(stringa::create(name));
+  ovl->call(&arg);
+  return ret;
 }
 
 namespace cxx_compiler {
