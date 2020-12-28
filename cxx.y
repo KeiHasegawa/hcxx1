@@ -87,6 +87,7 @@ namespace cxx_compiler {
 %token NEW_ARRAY_LEX DELETE_ARRAY_LEX
 %token NOEXCEPT_KW
 %token NULLPTR_KW
+%token CONSTEXPR_KW
 
 %union {
   int m_ival;
@@ -295,6 +296,7 @@ storage_class_specifier
   | STATIC_KW    { $$ = STATIC_KW; }
   | EXTERN_KW    { $$ = EXTERN_KW; }
   | MUTABLE_KW   { $$ = MUTABLE_KW; }
+  | CONSTEXPR_KW { $$ = CONSTEXPR_KW; }
   ;
 
 function_specifier
@@ -2604,7 +2606,13 @@ new_expression
       parse::identifier::mode = parse::identifier::look;
     }
     new_initializer
-    { cxx_compiler::error::not_implemented(); }
+    {
+      using namespace cxx_compiler;
+      using namespace cxx_compiler::expressions::unary;
+      $$ = new new_expr(true, $4, $5, $7, parse::position);
+      using namespace cxx_compiler::parse;
+      identifier::mode = identifier::look;
+    }
   | COLONCOLON_MK move_to_root NEW_KW new_placement new_type_id
     {
       using namespace cxx_compiler;
@@ -2617,9 +2625,21 @@ new_expression
       parse::identifier::mode = parse::identifier::look;
     }
     new_initializer
-    { cxx_compiler::error::not_implemented(); }
+    {
+      using namespace cxx_compiler;
+      using namespace cxx_compiler::expressions::unary;
+      $$ = new new_expr(true, $4, $6, parse::position);
+      using namespace cxx_compiler::parse;
+      identifier::mode = identifier::look;
+    }
   | COLONCOLON_MK move_to_root NEW_KW new_type_id
-    { cxx_compiler::error::not_implemented(); }
+    {
+      using namespace cxx_compiler;
+      using namespace cxx_compiler::expressions::unary;
+      $$ = new new_expr(true, $4, 0, parse::position);
+      using namespace cxx_compiler::parse;
+      identifier::mode = identifier::look;
+    }
   | NEW_KW new_placement new_type_id
     {
       using namespace cxx_compiler;

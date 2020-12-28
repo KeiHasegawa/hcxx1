@@ -762,8 +762,8 @@ namespace cxx_compiler {
       usr* u = func->usr_cast();
       if (!u)
         return false;
-      usr::flag_t flag = u->m_flag;
-      if (!(flag & usr::HAS_DEFAULT_ARG))
+      usr::flag2_t flag2 = u->m_flag2;
+      if (!(flag2 & usr::HAS_DEFAULT_ARG))
         return false;
 
       typedef map<usr*, vector<var*> >::const_iterator ITx;

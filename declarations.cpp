@@ -177,6 +177,7 @@ cxx_compiler::declarations::specifier_seq::flag::table::table()
   (*this)[VIRTUAL_KW] = usr::VIRTUAL;
   (*this)[EXPLICIT_KW] = usr::EXPLICIT;
   (*this)[FRIEND_KW] = usr::FRIEND;
+  (*this)[CONSTEXPR_KW] = usr::CONSTEXPR;
 }
 
 cxx_compiler::usr::flag_t

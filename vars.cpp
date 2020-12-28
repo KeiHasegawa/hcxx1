@@ -14,7 +14,7 @@ cxx_compiler::usr::~usr()
 {
   using namespace declarations::declarators::function;
 
-  if (m_flag & usr::HAS_DEFAULT_ARG) {
+  if (m_flag2 & usr::HAS_DEFAULT_ARG) {
 #ifndef __CYGWIN__
     default_arg_table.erase(this);
 #else // __CYGWIN__

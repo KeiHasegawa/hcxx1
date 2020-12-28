@@ -111,7 +111,7 @@ function::action(const type* T,
                    [](var* v){ return v; });
     if (p != end(default_arg)) {
       if (u) {
-        u->m_flag = usr::flag_t(u->m_flag | usr::HAS_DEFAULT_ARG);
+        u->m_flag2 = usr::flag2_t(u->m_flag2 | usr::HAS_DEFAULT_ARG);
         default_arg_table[u] = default_arg;
       }
       else
