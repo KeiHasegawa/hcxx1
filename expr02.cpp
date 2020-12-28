@@ -303,7 +303,7 @@ cxx_compiler::var* cxx_compiler::expressions::unary::new_expr::gen()
   assert(n);
   var* esz = sizeof_impl::common(n);
   new_arg.push_back(new_sz);
-  usr* new_func = new_entry(m_T);
+  usr* new_func = m_root ? 0 : new_entry(m_T);
   if (m_place) {
     transform(begin(*m_place), end(*m_place), back_inserter(new_arg),
               mem_fun(&base::gen));
@@ -418,7 +418,7 @@ cxx_compiler::var* cxx_compiler::expressions::unary::new_expr::gen()
 }
 
 namespace cxx_compiler {
-  usr* installed_delete()
+  inline usr* installed_delete()
   {
     string name = "delete";
     map<string, vector<usr*> >& usrs = scope::root.m_usrs;
@@ -427,18 +427,16 @@ namespace cxx_compiler {
       const vector<usr*>& v = p->second;
       return v.back();
     }
-
-    vector<const type*> param;
     const type* vt = void_type::create();
     const type* vp = pointer_type::create(vt);
+    vector<const type*> param;
     param.push_back(vp);
     const func_type* ft = func_type::create(vt,param);
     usr::flag_t flag = usr::flag_t(usr::FUNCTION | usr::DELETE_SCALAR);
-    usr* delete_func = new usr(name, ft, flag, parse::position,
-                	       usr::GENED_BY_COMP);
-    delete_func->m_scope = &scope::root;
-    usrs[name].push_back(delete_func);
-    return delete_func;
+    usr* func = new usr(name, ft, flag, parse::position,usr::GENED_BY_COMP);
+    func->m_scope = &scope::root;
+    usrs[name].push_back(func);
+    return func;
   }
   inline void dtor_for_array(var* delete_arg, var* expr, usr* dtor)
   {

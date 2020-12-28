@@ -1007,6 +1007,17 @@ namespace expressions {
       fcast(usr*, vector<base*>* list, bool);
       fcast(var*, vector<base*>* list);
     };
+    struct type_ident : base {
+      base* m_expr;
+      const type* m_type;
+      file_t m_file;
+      type_ident(base* expr)
+	: m_expr(expr), m_type(0), m_file(parse::position) {}
+      type_ident(const type* T)
+	: m_expr(0), m_type(T), m_file(parse::position) {}
+      var* gen();
+      const file_t& file() const { return m_file; }
+    };
   } // end of namespace postfix
   namespace unary {
     struct ppmm : base {
@@ -1036,18 +1047,21 @@ namespace expressions {
       ~size_of(){ delete m_expr; }
     };
     struct new_expr : base {
+      bool m_root;
       vector<base*>* m_place;
       const type* m_T;
       vector<base*>* m_exprs;
       file_t m_file;
       const file_t& file() const { return m_file; }
-      new_expr(const type* T, const file_t& file)
-        : m_place(0), m_T(T), m_exprs(0), m_file(file) {}
-      new_expr(const type* T, vector<base*>* exprs, const file_t& file)
-        : m_place(0), m_T(T), m_exprs(exprs), m_file(file) {}
-      new_expr(vector<base*>* place, const type* T, vector<base*>* exprs,
-               const file_t& file)
-        : m_place(place), m_T(T), m_exprs(exprs), m_file(file) {}
+      new_expr(bool r, const type* T, const file_t& file)
+        : m_root(r), m_place(0), m_T(T), m_exprs(0),
+	  m_file(file) {}
+      new_expr(bool r, const type* T, vector<base*>* exprs,
+	       const file_t& file)
+        : m_root(r), m_place(0), m_T(T), m_exprs(exprs), m_file(file) {}
+      new_expr(bool r, vector<base*>* place, const type* T,
+	       vector<base*>* exprs, const file_t& file)
+        : m_root(r), m_place(place), m_T(T), m_exprs(exprs), m_file(file) {}
       var* gen();
     };
     struct delete_expr : base {

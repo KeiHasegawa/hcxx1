@@ -2844,6 +2844,12 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::fcast::gen()
   return fcast_impl::operator_code(m_type, y);
 }
 
+cxx_compiler::var* cxx_compiler::expressions::postfix::type_ident::gen()
+{
+  error::not_implemented();
+  return 0;
+}
+
 namespace cxx_compiler {
   using namespace expressions::primary::literal;
   template<> var* refimm<void*>::common()

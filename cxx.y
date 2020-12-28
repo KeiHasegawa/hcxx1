@@ -324,7 +324,6 @@ simple_type_specifier
   | COLONCOLON_MK move_to_root type_name
     {
       $$ = $3;
-      cxx_compiler::class_or_namespace_name::after(false);
     }
   | nested_name_specifier type_name
     {
@@ -398,7 +397,6 @@ elaborated_type_specifier
   | class_key COLONCOLON_MK move_to_root TEMPLATE_KW template_id
     {
       $$ = cxx_compiler::declarations::elaborated::action($1,$5);
-      cxx_compiler::class_or_namespace_name::after(false);
     }
   | class_key COLONCOLON_MK move_to_root nested_name_specifier template_id
     {
@@ -412,7 +410,6 @@ elaborated_type_specifier
   | class_key COLONCOLON_MK move_to_root template_id
     {
       $$ = cxx_compiler::declarations::elaborated::action($1,$4);
-      cxx_compiler::class_or_namespace_name::after(false);
     }
   | class_key nested_name_specifier template_id
     {
@@ -429,7 +426,6 @@ elaborated_type_specifier
   | class_key COLONCOLON_MK move_to_root CLASS_NAME_LEX
     {
       $$ = cxx_compiler::declarations::elaborated::action($1,$4);
-      cxx_compiler::class_or_namespace_name::after(false);
     }
   | class_key nested_name_specifier CLASS_NAME_LEX
     {
@@ -449,7 +445,6 @@ elaborated_type_specifier
   | enum_key COLONCOLON_MK move_to_root IDENTIFIER_LEX
     {
       $$ = cxx_compiler::declarations::elaborated::action($1,$4);
-      cxx_compiler::class_or_namespace_name::after(false);
     }
   | enum_key IDENTIFIER_LEX
     { $$ = cxx_compiler::declarations::elaborated::action($1,$2); }
@@ -2222,7 +2217,6 @@ qualified_id
   | COLONCOLON_MK move_to_root IDENTIFIER_LEX
     {
       $$ = $3;
-      cxx_compiler::class_or_namespace_name::after(false);
     }
   | COLONCOLON_MK move_to_root operator_function_id
     { cxx_compiler::error::not_implemented(); }
@@ -2236,7 +2230,9 @@ qualified_id
 move_to_root
   : {
       using namespace cxx_compiler;
-      scope::current = &cxx_compiler::scope::root;
+      int c = parse::peek();
+      if (c != NEW_KW && c != DELETE_KW)
+        scope::current = &scope::root;
     }
   ;
 
@@ -2466,9 +2462,9 @@ postfix_expression
   | CONST_CAST_KW '<' type_id '>' '(' expression ')'
     { $$ = new cxx_compiler::expressions::cast::info_t($3,$6); }
   | TYPEID_KW '(' expression ')'
-    { cxx_compiler::error::not_implemented(); }
+    { $$ = new cxx_compiler::expressions::postfix::type_ident($3); }
   | TYPEID_KW '(' type_id ')'
-    { cxx_compiler::error::not_implemented(); }
+    { $$ = new cxx_compiler::expressions::postfix::type_ident($3); }
   | '(' type_id ')' '{' initializer_list '}'
     { $$ = new cxx_compiler::expressions::compound::info_t($2,$5); }
   | '(' type_id ')' '{' initializer_list ',' '}'
@@ -2610,7 +2606,11 @@ new_expression
     new_initializer
     { cxx_compiler::error::not_implemented(); }
   | COLONCOLON_MK move_to_root NEW_KW new_placement new_type_id
-    { cxx_compiler::error::not_implemented(); }
+    {
+      using namespace cxx_compiler;
+      using namespace cxx_compiler::expressions::unary;
+      $$ = new new_expr(true, $4, $5, 0, parse::position);
+    }
   | COLONCOLON_MK move_to_root NEW_KW new_type_id
     {
       using namespace cxx_compiler;
@@ -2629,7 +2629,7 @@ new_expression
     {
       using namespace cxx_compiler;
       using namespace cxx_compiler::expressions::unary;
-      $$ = new new_expr($2, $3, $5, parse::position);
+      $$ = new new_expr(false, $2, $3, $5, parse::position);
       using namespace cxx_compiler::parse;
       identifier::mode = identifier::look;
     }
@@ -2637,7 +2637,7 @@ new_expression
     {
       using namespace cxx_compiler;
       using namespace cxx_compiler::expressions::unary;
-      $$ = new new_expr($2, $3, 0, parse::position);
+      $$ = new new_expr(false, $2, $3, 0, parse::position);
       using namespace cxx_compiler::parse;
       identifier::mode = identifier::look;
     }
@@ -2650,7 +2650,7 @@ new_expression
     {
       using namespace cxx_compiler;
       using namespace cxx_compiler::expressions::unary;
-      $$ = new new_expr($2, $4, parse::position);
+      $$ = new new_expr(false, $2, $4, parse::position);
       using namespace cxx_compiler::parse;
       identifier::mode = identifier::look;
     }
@@ -2658,7 +2658,7 @@ new_expression
     {
       using namespace cxx_compiler;
       using namespace expressions::unary;
-      $$ = new new_expr($2, parse::position);
+      $$ = new new_expr(false, $2, parse::position);
       using namespace cxx_compiler::parse;
       identifier::mode = identifier::look;
     }
