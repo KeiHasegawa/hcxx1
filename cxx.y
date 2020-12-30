@@ -737,6 +737,10 @@ using_declaration
       cxx_compiler::class_or_namespace_name::after(false);
       cxx_compiler::declarations::use::action($3);
     }
+  | USING_KW IDENTIFIER_LEX '=' type_name ';'
+    {
+      cxx_compiler::declarations::use::action($2, $4);
+    }
   ;
 
 using_directive
