@@ -140,7 +140,7 @@ namespace cxx_compiler {
 
 %type<m_var> IDENTIFIER_LEX unqualified_id id_expression declarator_id
 %type<m_var> direct_declarator declarator enumerator qualified_id
-%type<m_ut> mem_initializer_id TEMPLATE_NAME_LEX template_id
+%type<m_ut> mem_initializer_id TEMPLATE_NAME_LEX template_id  class_name
 %type<m_usr> INTEGER_LITERAL_LEX CHARACTER_LITERAL_LEX FLOATING_LITERAL_LEX
 %type<m_usr> TYPEDEF_NAME_LEX init_declarator boolean_literal
 %type<m_usrs> block_declaration simple_declaration init_declarator_list
@@ -179,7 +179,7 @@ namespace cxx_compiler {
 %type<m_designation> designation designator_list
 %type<m_designator> designator
 %type<m_tag> ENUM_NAME_LEX CLASS_NAME_LEX
-%type<m_tag> enum_specifier_begin class_name
+%type<m_tag> enum_specifier_begin
 %type<m_file> DEFAULT_KW
 %type<m_base_clause> base_clause base_specifier_list
 %type<m_base_specifier> base_specifier
@@ -369,7 +369,13 @@ simple_type_specifier
 
 type_name
   : class_name
-    { $$ = new cxx_compiler::declarations::type_specifier($1); }
+    {
+      if ($1->first)
+        $$ = new cxx_compiler::declarations::type_specifier($1->first);
+      else
+        $$ = new cxx_compiler::declarations::type_specifier($1->second);
+      delete $1;
+    }
   | ENUM_NAME_LEX
     { $$ = new cxx_compiler::declarations::type_specifier($1); }
   | TYPEDEF_NAME_LEX
@@ -740,6 +746,12 @@ using_declaration
   | USING_KW IDENTIFIER_LEX '=' type_name ';'
     {
       cxx_compiler::declarations::use::action($2, $4);
+    }
+  | USING_KW IDENTIFIER_LEX '=' typenaming nested_name_specifier type_name ';'
+    {
+      cxx_compiler::class_or_namespace_name::after(false);
+      cxx_compiler::declarations::use::action($2, $6);
+      --cxx_compiler::parse::identifier::typenaming;
     }
   ;
 
@@ -1301,11 +1313,11 @@ type_specifier_seq
 
 class_name
   : CLASS_NAME_LEX
-  | template_id
     {
-      assert(!$1->first);
-      $$ = $1->second;
+       using namespace cxx_compiler;
+       $$ = new std::pair<usr*, tag*>; $$->second = $1;
     }
+  | template_id
   ;
 
 class_key
@@ -1531,7 +1543,9 @@ base_specifier_list
 base_specifier
   : COLONCOLON_MK move_to_root nested_name_specifier class_name
     {
-      $$ = new cxx_compiler::base(0,false,$4);
+      assert(!$4->first);
+      $$ = new cxx_compiler::base(0,false,$4->second);
+      delete $4;
       cxx_compiler::class_or_namespace_name::after(false);
     }
   | COLONCOLON_MK move_to_root nested_name_specifier TYPEDEF_NAME_LEX
@@ -1541,7 +1555,9 @@ base_specifier
     }
   | COLONCOLON_MK move_to_root class_name
     {
-      $$ = new cxx_compiler::base(0,false,$3);
+      assert(!$3->first);
+      $$ = new cxx_compiler::base(0,false,$3->second);
+      delete $3;
       cxx_compiler::class_or_namespace_name::after(false);
     }
   | COLONCOLON_MK move_to_root TYPEDEF_NAME_LEX
@@ -1551,7 +1567,9 @@ base_specifier
     }
   | nested_name_specifier class_name
     {
-      $$ = new cxx_compiler::base(0,false,$2);
+      assert(!$2->first);
+      $$ = new cxx_compiler::base(0,false,$2->second);
+      delete $2;
       cxx_compiler::class_or_namespace_name::after(false);
     }
   | nested_name_specifier TYPEDEF_NAME_LEX
@@ -1560,13 +1578,19 @@ base_specifier
       cxx_compiler::class_or_namespace_name::after(false);
     }
   | class_name
-    { $$ = new cxx_compiler::base(0,false,$1); }
+    {
+      assert(!$1->first);
+      $$ = new cxx_compiler::base(0,false,$1->second);
+      delete $1;
+    }
   | TYPEDEF_NAME_LEX
     { $$ = cxx_compiler::create_base(0,false,$1); }
   | VIRTUAL_KW access_specifier COLONCOLON_MK move_to_root
     nested_name_specifier class_name
     {
-      $$ = new cxx_compiler::base($2,true,$6);
+      assert(!$6->first);
+      $$ = new cxx_compiler::base($2,true,$6->second);
+      delete $6;
       cxx_compiler::class_or_namespace_name::after(false);
     }
   | VIRTUAL_KW access_specifier COLONCOLON_MK move_to_root
@@ -1577,7 +1601,9 @@ base_specifier
     }
   | VIRTUAL_KW access_specifier COLONCOLON_MK move_to_root class_name
     {
-      $$ = new cxx_compiler::base($2,true,$5);
+      assert(!$5->first);
+      $$ = new cxx_compiler::base($2,true,$5->second);
+      delete $5;
       cxx_compiler::class_or_namespace_name::after(false);
     }
   | VIRTUAL_KW access_specifier COLONCOLON_MK move_to_root TYPEDEF_NAME_LEX
@@ -1587,7 +1613,9 @@ base_specifier
     }
   | VIRTUAL_KW access_specifier nested_name_specifier class_name
     {
-      $$ = new cxx_compiler::base($2,true,$4);
+      assert(!$4->first);
+      $$ = new cxx_compiler::base($2,true,$4->second);
+      delete $4;
       cxx_compiler::class_or_namespace_name::after(false);
     }
   | VIRTUAL_KW access_specifier nested_name_specifier TYPEDEF_NAME_LEX
@@ -1596,13 +1624,19 @@ base_specifier
       cxx_compiler::class_or_namespace_name::after(false);
     }
   | VIRTUAL_KW access_specifier class_name
-    { $$ = new cxx_compiler::base(0,true,$3); }
+    {
+      assert(!$3->first);
+      $$ = new cxx_compiler::base(0,true,$3->second);
+      delete $3;
+    }
   | VIRTUAL_KW access_specifier TYPEDEF_NAME_LEX
     { $$ = cxx_compiler::create_base(0,true,$3); }
   | VIRTUAL_KW COLONCOLON_MK move_to_root nested_name_specifier
     class_name
     {
-      $$ = new cxx_compiler::base(0,true,$5);
+      assert(!$5->first);
+      $$ = new cxx_compiler::base(0,true,$5->second);
+      delete $5;
       cxx_compiler::class_or_namespace_name::after(false);
     }
   | VIRTUAL_KW COLONCOLON_MK move_to_root nested_name_specifier
@@ -1613,7 +1647,9 @@ base_specifier
     }
   | VIRTUAL_KW COLONCOLON_MK move_to_root class_name
     {
-      $$ = new cxx_compiler::base(0,true,$4);
+      assert(!$4->first);
+      $$ = new cxx_compiler::base(0,true,$4->second);
+      delete $4;
       cxx_compiler::class_or_namespace_name::after(false);
     }
   | VIRTUAL_KW COLONCOLON_MK move_to_root TYPEDEF_NAME_LEX
@@ -1623,7 +1659,9 @@ base_specifier
     }
   | VIRTUAL_KW nested_name_specifier class_name
     {
-      $$ = new cxx_compiler::base(0,true,$3);
+      assert(!$3->first);
+      $$ = new cxx_compiler::base(0,true,$3->second);
+      delete $3;
       cxx_compiler::class_or_namespace_name::after(false);
     }
   | VIRTUAL_KW nested_name_specifier TYPEDEF_NAME_LEX
@@ -1632,13 +1670,19 @@ base_specifier
       cxx_compiler::class_or_namespace_name::after(false);
     }
   | VIRTUAL_KW class_name
-    { $$ = new cxx_compiler::base(0,true,$2); }
+    {
+      assert(!$2->first);
+      $$ = new cxx_compiler::base(0,true,$2->second);
+      delete $2;
+    }
   | VIRTUAL_KW TYPEDEF_NAME_LEX
     { $$ = cxx_compiler::create_base(0,true,$2); }
   | access_specifier VIRTUAL_KW COLONCOLON_MK move_to_root
     nested_name_specifier class_name
     {
-      $$ = new cxx_compiler::base($1,true,$6);
+      assert(!$6->first);
+      $$ = new cxx_compiler::base($1,true,$6->second);
+      delete $6;
       cxx_compiler::class_or_namespace_name::after(false);
     }
   | access_specifier VIRTUAL_KW COLONCOLON_MK move_to_root
@@ -1649,7 +1693,9 @@ base_specifier
     }
   | access_specifier VIRTUAL_KW COLONCOLON_MK move_to_root class_name
     {
-      $$ = new cxx_compiler::base($1,true,$5);
+      assert(!$5->first);
+      $$ = new cxx_compiler::base($1,true,$5->second);
+      delete $5;
       cxx_compiler::class_or_namespace_name::after(false);
     }
   | access_specifier VIRTUAL_KW COLONCOLON_MK move_to_root TYPEDEF_NAME_LEX
@@ -1659,7 +1705,9 @@ base_specifier
     }
   | access_specifier VIRTUAL_KW nested_name_specifier class_name
     {
-      $$ = new cxx_compiler::base($1,true,$4);
+      assert(!$4->first);
+      $$ = new cxx_compiler::base($1,true,$4->second);
+      delete $4;
       cxx_compiler::class_or_namespace_name::after(false);
     }
   | access_specifier VIRTUAL_KW nested_name_specifier TYPEDEF_NAME_LEX
@@ -1668,13 +1716,19 @@ base_specifier
       cxx_compiler::class_or_namespace_name::after(false);
     }
   | access_specifier VIRTUAL_KW class_name
-    { $$ = new cxx_compiler::base($1,true,$3); }
+    {
+      assert(!$3->first);
+      $$ = new cxx_compiler::base($1,true,$3->second);
+      delete $3;
+    }
   | access_specifier VIRTUAL_KW TYPEDEF_NAME_LEX
     { $$ = cxx_compiler::create_base($1,true,$3); }
   | access_specifier COLONCOLON_MK move_to_root nested_name_specifier
     class_name
     {
-      $$ = new cxx_compiler::base($1,false,$5);
+      assert(!$5->first);
+      $$ = new cxx_compiler::base($1,false,$5->second);
+      delete $5;
       cxx_compiler::class_or_namespace_name::after(false);
     }
   | access_specifier COLONCOLON_MK move_to_root nested_name_specifier
@@ -1685,7 +1739,9 @@ base_specifier
     }
   | access_specifier COLONCOLON_MK move_to_root class_name
     {
-      $$ = new cxx_compiler::base($1,false,$4);
+      assert(!$4->first);
+      $$ = new cxx_compiler::base($1,false,$4->second);
+      delete $4;
       cxx_compiler::class_or_namespace_name::after(false);
     }
   | access_specifier COLONCOLON_MK move_to_root TYPEDEF_NAME_LEX
@@ -1695,7 +1751,9 @@ base_specifier
     }
   | access_specifier nested_name_specifier class_name
     {
-      $$ = new cxx_compiler::base($1,false,$3);
+      assert(!$3->first);
+      $$ = new cxx_compiler::base($1,false,$3->second);
+      delete $3;
       cxx_compiler::class_or_namespace_name::after(false);
     }
   | access_specifier nested_name_specifier TYPEDEF_NAME_LEX
@@ -1704,7 +1762,11 @@ base_specifier
       cxx_compiler::class_or_namespace_name::after(false);
     }
   | access_specifier class_name
-    { $$ = new cxx_compiler::base($1,false,$2); }
+    {
+      assert(!$2->first);
+      $$ = new cxx_compiler::base($1,false,$2->second);
+      delete $2;
+    }
   | access_specifier TYPEDEF_NAME_LEX
     { $$ = cxx_compiler::create_base($1,false,$2); }
   ;
@@ -1786,7 +1848,7 @@ mem_initializer_id
     {
       using namespace std;
       using namespace cxx_compiler;
-      $$ = new pair<usr*, tag*>(0, $4);
+      $$ = $4;
       class_or_namespace_name::after(false);
       parse::identifier::mode = parse::identifier::look;
     }
@@ -1794,7 +1856,7 @@ mem_initializer_id
     {
       using namespace std;
       using namespace cxx_compiler;
-      $$ = new pair<usr*, tag*>(0, $3);
+      $$ = $3;
       class_or_namespace_name::after(false);
       parse::identifier::mode = parse::identifier::look;
     }
@@ -1802,7 +1864,7 @@ mem_initializer_id
     {
       using namespace std;
       using namespace cxx_compiler;
-      $$ = new pair<usr*, tag*>(0, $2);
+      $$ = $2;
       class_or_namespace_name::after(false);
       parse::identifier::mode = parse::identifier::look;
     }
@@ -1810,7 +1872,7 @@ mem_initializer_id
     {
       using namespace std;
       using namespace cxx_compiler;
-      $$ = new pair<usr*, tag*>(0, $1);
+      $$ = $1;
       parse::identifier::mode = parse::identifier::look;
     }
   | IDENTIFIER_LEX
@@ -2203,7 +2265,11 @@ unqualified_id
   | conversion_function_id
     { $$ = cxx_compiler::unqualified_id::conversion_function_id($1); }
   | '~' class_name
-    { $$ = cxx_compiler::unqualified_id::dtor($2); }
+    {
+      assert(!$2->first);
+      $$ = cxx_compiler::unqualified_id::dtor($2->second);
+      delete $2;
+    }
   | template_id
     {
       assert(!$1->second);
@@ -2264,7 +2330,9 @@ class_or_namespace_name
   : class_name
     {
       using namespace cxx_compiler;
-      scope::current = class_or_namespace_name::conv($1);
+      assert(!$1->first);
+      scope::current = class_or_namespace_name::conv($1->second);
+      delete $1;
     }
   | namespace_name
     { cxx_compiler::scope::current = $1; }

@@ -2130,9 +2130,9 @@ namespace cxx_compiler {
       {
 	auto_ptr<type_specifier> sweeper(ts);
 	assert(v->usr_cast());
-	usr* u = static_cast<usr*>(v);
-	assert(u->m_type->m_id == type::BACKPATCH);
-	string name = u->m_name;
+	usr* ident = static_cast<usr*>(v);
+	assert(ident->m_type->m_id == type::BACKPATCH);
+	string name = ident->m_name;
 	if (const type* T = ts->m_type) {
 	  map<string, tag*>& tags = scope::current->m_tags;
 	  typedef map<string, tag*>::const_iterator IT;
@@ -2174,14 +2174,42 @@ namespace cxx_compiler {
 	  tags[name] = al;
 	  return;
 	}
-	usr* u2 = ts->m_usr;
-	assert(u2->m_flag & usr::TYPEDEF);
+	usr* tdef = ts->m_usr;
+	assert(tdef->m_flag & usr::TYPEDEF);
         map<string, vector<usr*> >& usrs = scope::current->m_usrs;
         typedef map<string, vector<usr*> >::const_iterator IT;
         IT p = usrs.find(name);
-	if (p != usrs.end())
-	  error::not_implemented();
-        alias_usr* al = new alias_usr(u2);
+	if (p != usrs.end()) {
+	  const vector<usr*>& v = p->second;
+	  usr* uu = v.back();
+	  usr::flag2_t flag2 = uu->m_flag2;
+	  if (!(flag2 & usr::TEMPLATE))
+	    error::not_implemented();
+	  template_usr* tu = static_cast<template_usr*>(uu);
+	  assert(!template_usr::nest.empty());
+	  template_usr::info_t& info = template_usr::nest.back();
+	  assert(info.m_tu == tu);
+	  assert(!info.m_iu);
+	  info.m_iu = new instantiated_usr(*tdef, tu, info.m_key);
+	  return;
+	}
+	const vector<scope::tps_t>& tps = scope::current->m_tps;
+	if (!tps.empty()) {
+	  const scope::tps_t& b = tps.back();
+	  if (!b.m_table.empty()) {
+	    using namespace parse::templ;
+	    assert(!save_t::nest.empty());
+	    save_t* p = save_t::nest.back();
+	    assert(!p->m_usr);
+	    template_usr* tu = new template_usr(*tdef, b, false);
+	    tu->m_flag = usr::flag_t(tu->m_flag & ~usr::TYPEDEF);
+	    tu->m_scope = scope::current;
+	    p->m_usr = tu;
+	    usrs[name].push_back(tu);
+	    return;
+	  }
+	}
+        alias_usr* al = new alias_usr(tdef);
         usrs[name].push_back(al);
       }
     } // end of namespace declarations

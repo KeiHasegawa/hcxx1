@@ -9,6 +9,13 @@
 #
 #  int* p = f<int>();  // use BBB rule
 #
+
+use Getopt::Long;
+
+$opt_2 = 0;
+
+GetOptions('2' => \$opt_2);
+
 while (<>) {
     chop;
     next if ( !/^[Ss]tate (.*)/ );
@@ -20,6 +27,9 @@ while (<>) {
     $_ = <>; chop;
     next if (!/([0-9]+) unqualified_id: template_id \./);
     $bbb = $1;
+    if ($opt_2) {
+	goto label2;
+    }
     goto label;
 }
 
@@ -32,10 +42,29 @@ print<<EOF
     using namespace std;
     using namespace cxx_compiler;
     pair<usr*, tag*>* ut = yyvsp[0].m_ut;
-    if (ut->first) {
-      YYDPRINTF((stderr, "patch.15 is applied\\n"));
-      yyn = $bbb + 1;
+    if (usr* u = ut->first) {
+      usr::flag_t flag = u->m_flag;
+      if (!(flag & usr::TYPEDEF)) {
+        YYDPRINTF((stderr, "patch.15 is applied\\n"));
+        yyn = $bbb + 1;
+      }
     }
   }
 EOF
+    ;
+exit;
+
+label2:
+print <<EOF2
+  if (yystate == $xxx) {
+    using namespace std;
+    using namespace cxx_compiler;
+    pair<usr*, tag*>* p = yyvsp[0].m_ut;
+    if (usr* u = p->first) {
+      usr::flag_t flag = u->m_flag;
+      if (flag & usr::TYPEDEF)
+        parse::identifier::mode = parse::identifier::new_obj;
+    }
+  }
+EOF2
 
