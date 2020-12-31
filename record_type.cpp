@@ -2644,8 +2644,8 @@ namespace cxx_compiler {
     const type* dct = default_ctor_type();
     if (compatible(T, dct))
       return true;
-    usr::flag_t flag = u->m_flag;
-    if (flag & usr::HAS_DEFAULT_ARG) {
+    usr::flag2_t flag2 = u->m_flag2;
+    if (flag2 & usr::HAS_DEFAULT_ARG) {
       typedef map<usr*, vector<var*> >::const_iterator ITx;
       ITx p = default_arg_table.find(u);
       assert(p != default_arg_table.end());
@@ -2957,8 +2957,8 @@ bool cxx_compiler::canbe_copy_ctor(usr* u, tag* ptr)
   cct = copy_ctor_type(ptr, false);
   if (compatible(T, cct))
     return true;
-  usr::flag_t flag = u->m_flag;
-  if (flag & usr::HAS_DEFAULT_ARG) {
+  usr::flag2_t flag2 = u->m_flag2;
+  if (flag2 & usr::HAS_DEFAULT_ARG) {
     typedef map<usr*, vector<var*> >::const_iterator ITx;
     ITx p = default_arg_table.find(u);
     assert(p != default_arg_table.end());

@@ -70,8 +70,7 @@ namespace cxx_compiler {
     code.push_back(new addr3ac(t1, v));
     code.push_back(new param3ac(t0));
     code.push_back(new param3ac(t1));
-    usr::flag_t flag = copy_ctor->m_flag;
-    if (flag & usr::HAS_DEFAULT_ARG) {
+    if (flag2 & usr::HAS_DEFAULT_ARG) {
       using namespace declarations::declarators::function;
       typedef map<usr*, vector<var*> >::const_iterator IT;
       IT p = default_arg_table.find(copy_ctor);
@@ -87,6 +86,7 @@ namespace cxx_compiler {
     copy_ctor = instantiate_if(copy_ctor);
     code.push_back(new call3ac(0, copy_ctor));
     if (!error::counter && !cmdline::no_inline_sub) {
+      usr::flag_t flag = copy_ctor->m_flag;
       if (flag & usr::INLINE) {
         using namespace declarations::declarators::function;
         using namespace definition::static_inline;

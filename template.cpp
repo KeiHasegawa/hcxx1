@@ -93,6 +93,16 @@ namespace cxx_compiler {
         }
         return get(ptr->m_parent);
       }
+      inline template_tag* get_tt(scope* p)
+      {
+        if (p->m_id == scope::TAG) {
+	  tag* ptr = static_cast<tag*>(p);
+	  if (ptr->m_flag & tag::TEMPLATE)
+	    return static_cast<template_tag*>(ptr);
+	}
+	instantiated_tag* it = get(p);
+	return it->m_src;
+      }
       static usr* ins_if_res;
       inline
       void instantiate_if1(template_usr* tu, const template_usr::KEY& key)
@@ -147,8 +157,7 @@ namespace cxx_compiler {
         tu->m_read = r;
         if (u->m_flag & usr::STATIC_DEF) {
           scope* p = u->m_scope;
-          instantiated_tag* it = get(p);
-          template_tag* tt = it->m_src;
+          template_tag* tt = get_tt(p);
           tt->m_static_def.push_back(tu);
         }
         else
@@ -1142,6 +1151,7 @@ namespace cxx_compiler {
         assert(y);
         const type* T = y->first;
         assert(T);
+	T = resolve_templ(T);
         var* v = p->second;
         assert(v);
         bool discard = false;
@@ -1819,6 +1829,27 @@ namespace cxx_compiler {
     }
     bool non_func_case(template_usr* tu, usr* ins, templ_base::KEY& key)
     {
+      usr::flag_t xf = tu->m_flag;
+      assert(xf & usr::STATIC_DEF);
+      usr::flag_t yf = ins->m_flag;
+      assert(yf & usr::STATIC_DEF);
+      scope* xs = tu->m_scope;
+      assert(xs->m_id == scope::TAG);
+      scope* ys = ins->m_scope;
+      assert(ys->m_id == scope::TAG);
+      tag* px = static_cast<tag*>(xs);
+      tag* py = static_cast<tag*>(ys);
+      tag::flag_t xt = px->m_flag;
+      tag::flag_t yt = py->m_flag;
+      if (xt & tag::TEMPLATE) {
+	assert(yt & tag::INSTANTIATE);
+	template_tag* tt = static_cast<template_tag*>(px);
+	instantiated_tag* it = static_cast<instantiated_tag*>(py);
+	if (it->m_src != tt)
+	  return false;
+	key = it->m_seed;
+	return true;
+      }
       const type* Tt = tu->m_type;
       Tt = Tt->unqualified();
       const type* Ti = ins->m_type;

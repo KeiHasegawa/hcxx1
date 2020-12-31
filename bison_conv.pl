@@ -73,6 +73,7 @@ EOF2
     ++$patch08_inserted;
   }
   if ( /YYDPRINTF \(\(stderr, \"Entering state %d\\n\", yystate\)\);/ ) {
+     print "#include \"patch.15.p2\"\n";
      print "#include \"patch.16.p\"\n";
      print "#include \"patch.17.p\"\n";
      print "#include \"patch.18.p\"\n";

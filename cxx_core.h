@@ -352,7 +352,7 @@ struct usr : var {
     DELETE_SCALAR       = 1 << 27,
     DELETE_ARRAY        = 1 << 28,
     VDEL                = 1 << 29,
-    HAS_DEFAULT_ARG     = 1 << 30,
+    CONSTEXPR           = 1 << 30,
     // 1 << 31 : Reserved for debug convention
   };
   flag_t m_flag;
@@ -383,6 +383,7 @@ struct usr : var {
     CONST_USR            = 1 << 22,
     DEFAULT              = 1 << 23,
     NESTED_MEMBER        = 1 << 24,
+    HAS_DEFAULT_ARG      = 1 << 25,
   };
   flag2_t m_flag2;
   file_t m_file;

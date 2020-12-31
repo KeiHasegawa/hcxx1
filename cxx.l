@@ -120,6 +120,7 @@ char                { return CHAR_KW; }
 class               { return CLASS_KW; }
 const_cast          { return CONST_CAST_KW; }
 const               { return CONST_KW; }
+constexpr           { return CONSTEXPR_KW; }
 continue            { return CONTINUE_KW; }
 decltype            { return DECLTYPE_KW; }
 default             { cxx_compiler_lval.m_file = new cxx_compiler::file_t(cxx_compiler::parse::position); return DEFAULT_KW; }

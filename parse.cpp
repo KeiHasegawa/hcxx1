@@ -86,6 +86,9 @@ int cxx_compiler::parse::identifier::judge(std::string name)
   if (mode == templ_name && peek() == '<')
     return create_templ(name);
 
+  if (last_token == USING_KW)
+    return create(name);
+
   if (int r = lookup(name, search_scope())) {
     if (context_t::retry[DECL_FCAST_CONFLICT_STATE])
       return r;
