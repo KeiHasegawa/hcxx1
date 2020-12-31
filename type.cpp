@@ -21,7 +21,11 @@ cxx_compiler::type_impl::sizeof_table::sizeof_table()
   (*this)[float_type::create()] = sizeof(float);
   (*this)[double_type::create()] = sizeof(double);
   (*this)[long_double_type::create()] = sizeof(long double);
+#ifdef __GNUC__
   (*this)[float128_type::create()] = sizeof(__float128);
+#else // __GNUC__
+  (*this)[float128_type::create()] = 64;
+#endif // __GNUC__
 }
 
 void cxx_compiler::type_impl::update(int (*size)(int id))

@@ -1240,7 +1240,7 @@ cxx_compiler::expressions::primary::literal::boolean::create(bool x)
 cxx_compiler::usr*
 cxx_compiler::expressions::primary::literal::null_ptr::create()
 {
-  usr* ret;
+  static usr* ret;
   if (!ret) {
     ret = integer::create(0);
     const type* T = void_type::create();

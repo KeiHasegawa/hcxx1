@@ -823,7 +823,7 @@ namespace cxx_compiler {
 	scope* p = u->m_scope;
 	if (p->m_id != scope::TAG)
 	  return 0;
-	tag* ptr = static_cast<tag*>(ptr);
+	tag* ptr = static_cast<tag*>(p);
 	typedef map<tag*, map<usr*, save_t> >::iterator ITx;
 	ITx itx = stbl.find(ptr);
 	if (itx == stbl.end())
