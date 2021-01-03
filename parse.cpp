@@ -873,8 +873,11 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
       }
     }
   }
-  if (ptr->m_parent)
-    return lookup(name,ptr->m_parent);
+
+  if (last_token != COLONCOLON_MK) {
+    if (ptr->m_parent)
+      return lookup(name,ptr->m_parent);
+  }
 
   if (mode == no_err || mode == canbe_ctor)
     return 0;
@@ -893,6 +896,19 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
     if (typenaming)
       return create(name);
     if (!parse::templ::save_t::nest.empty()) {
+      if (!parse::base_clause.empty()) {
+	tag* ptr = new tag(tag::GUESS, name, parse::position, 0);
+	assert(!class_or_namespace_name::before.empty());
+	assert(class_or_namespace_name::before.back() == ptr);
+	class_or_namespace_name::before.pop_back();
+	ptr->m_types.first = incomplete_tagged_type::create(ptr);
+	ptr->m_parent = scope::current;
+	map<string, tag*>& tags = scope::current->m_tags;
+	assert(tags.find(name) == tags.end());
+	tags[name] = ptr;
+	cxx_compiler_lval.m_tag = ptr;
+	return CLASS_NAME_LEX;
+      }
       if (scope::current->m_id == scope::TAG) {
         tag* ptr = static_cast<tag*>(scope::current);
         const type* T = ptr->m_types.first;

@@ -210,6 +210,8 @@ namespace cxx_compiler {
     {
       assert(!(bp->m_flag & usr::VIRTUAL));
       tag* ptr = bp->m_tag;
+      if (ptr->m_kind == tag::GUESS)
+	return n;
       const type* T = ptr->m_types.second;
       if (!T) {
         T = ptr->m_types.first;
@@ -234,6 +236,9 @@ namespace cxx_compiler {
           m_direct_common(dc) {}
       int operator()(int n, base* bp)
       {
+        tag* ptr = bp->m_tag;
+	if (ptr->m_kind == tag::GUESS)
+	  return n;
         usr::flag_t flag = bp->m_flag;
         if (!(flag & usr::VIRTUAL)) {
           assert(m_base_offset.find(bp) != m_base_offset.end());
@@ -241,7 +246,6 @@ namespace cxx_compiler {
         }
         assert(m_base_offset.find(bp) == m_base_offset.end());
         m_base_offset[bp] = n;
-        tag* ptr = bp->m_tag;
         const type* T = ptr->m_types.second;
         assert(T->m_id == type::RECORD);
         typedef const record_type REC;
@@ -305,6 +309,8 @@ namespace cxx_compiler {
       int operator()(int n, const base* bp)
       {
         tag* ptr = bp->m_tag;
+	if (ptr->m_kind == tag::GUESS)
+	  return n;
         const type* T = ptr->m_types.second;
         if (!T) {
           T = ptr->m_types.first;
@@ -2412,6 +2418,8 @@ bool cxx_compiler::record_impl::member_modifiable(usr* u, bool partially)
 bool cxx_compiler::record_impl::base_modifiable(base* bp, bool partially)
 {
   tag* ptr = bp->m_tag;
+  if (ptr->m_kind == tag::GUESS)
+    return true;
   const type* T = ptr->m_types.second;
   if (!T) {
     T = ptr->m_types.first;

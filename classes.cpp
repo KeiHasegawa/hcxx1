@@ -228,6 +228,8 @@ namespace cxx_compiler {
     void update(base* bp)
     {
       tag* ptr = bp->m_tag;
+      if (ptr->m_kind == tag::GUESS)
+	return;
       const type* T = ptr->m_types.first;
       if (T->m_id != type::TEMPLATE_PARAM) {
         T = ptr->m_types.second;
