@@ -88,7 +88,7 @@ namespace cxx_compiler {
           transform(begin(seed), end(seed), back_inserter(*pv),
                     helper(m_ptps, m_ctps));
           template_tag* tt = it->m_src;
-          ptr = tt->instantiate(pv);
+          ptr = tt->instantiate(pv, false);
           const type* Tc = ptr->m_types.second;
           if (Tc)
             return Tc;

@@ -17,7 +17,7 @@ namespace cxx_compiler {
   } // end of namespace type_parameter
 } // end of namespace cxx_compiler
 
-void cxx_compiler::type_parameter::action(var* v, const type* T)
+void cxx_compiler::type_parameter::action(var* v, const type* T, bool dots)
 {
   string name = param_name(v);
   vector<scope::tps_t>& tps = scope::current->m_tps;
@@ -41,6 +41,11 @@ void cxx_compiler::type_parameter::action(var* v, const type* T)
     map<string, pair<const type*, var*> >& def = b.m_default;
     def[name] = make_pair(T, (var*)0);
     parse::identifier::mode = parse::identifier::new_obj;
+  }
+  if (dots) {
+    if (b.m_dots)
+      error::not_implemented();
+    b.m_dots = true;
   }
 }
 
@@ -177,7 +182,7 @@ namespace cxx_compiler {
         }
         vector<scope::tps_t::val2_t*>* pv = new vector<scope::tps_t::val2_t*>;
         transform(begin(key), end(key), back_inserter(*pv), create);
-        tt->instantiate(pv);
+        tt->instantiate(pv, false);
       }
       inline void handle(tag* ptr, const parse::read_t& r)
       {
@@ -924,18 +929,19 @@ namespace cxx_compiler {
             parse::g_read = m_org;
           }
         };
-        inline tag* tag_action(tag* ptr, vector<scope::tps_t::val2_t*>* pv)
+        inline tag*
+	tag_action(tag* ptr, vector<scope::tps_t::val2_t*>* pv, bool dots)
         {
           assert(ptr->m_flag & tag::TEMPLATE);
           template_tag* tt = static_cast<template_tag*>(ptr);
 	  if (parse::base_clause.empty()) {
             int c = parse::peek();
             if (c == '{' || c == ':')
-              return tt->special_ver(pv);
+              return tt->special_ver(pv, dots);
             if (c == ';') {
               if (!specialization::nest.empty()) {
                 if (specialization::nest.top() == scope::current) {
-                  tag* ptr = tt->special_ver(pv);
+                  tag* ptr = tt->special_ver(pv, dots);
                   assert(!ptr->m_types.first);
                   assert(!ptr->m_types.second);
                   ptr->m_types.first = incomplete_tagged_type::create(ptr);
@@ -953,7 +959,7 @@ namespace cxx_compiler {
             }
           }
           sweeper sweeper;
-          return tt->instantiate(pv);
+          return tt->instantiate(pv, dots);
         }
 	usr* helper(template_usr* u, vector<scope::tps_t::val2_t*>* pv);
 	inline overload* helper2(overload* ovl, usr* u)
@@ -969,7 +975,8 @@ namespace cxx_compiler {
 	  po->m_candidacy.push_back(tu);
 	  return po;
 	}
-        inline usr* usr_action(usr* u, vector<scope::tps_t::val2_t*>* pv)
+        inline usr*
+	usr_action(usr* u, vector<scope::tps_t::val2_t*>* pv, bool dots)
         {
 	  usr::flag2_t flag2 = u->m_flag2;
 	  if (flag2 & usr::TEMPLATE) {
@@ -1016,10 +1023,11 @@ namespace cxx_compiler {
 	      dup->push_back(new scope::tps_t::val2_t(*p));
 	    }
 	  }
-	  return usr_action(tu, dup);
+	  return usr_action(tu, dup, false);
 	}
         pair<usr*, tag*>*
-        action(pair<usr*, tag*>* x, vector<scope::tps_t::val2_t*>* pv)
+        action(pair<usr*, tag*>* x, vector<scope::tps_t::val2_t*>* pv,
+               bool dots)
         {
           // Note that `pv' is deleted at `template_tag::common()' or
           // `template_usr::instantiate_explicit()'
@@ -1027,12 +1035,12 @@ namespace cxx_compiler {
           auto_ptr<pair<usr*, tag*> > sweeper(b ? x : 0);
           if (tag* ptr = x->second) {
             assert(!x->first);
-            return new pair<usr*, tag*>(0, tag_action(ptr, pv));
+            return new pair<usr*, tag*>(0, tag_action(ptr, pv, dots));
           }
           else {
             usr* u = x->first;
             assert(u);
-            return new pair<usr*, tag*>(usr_action(u, pv), 0);
+            return new pair<usr*, tag*>(usr_action(u, pv, dots), 0);
           }
         }
       } // end of namespace id
@@ -1128,7 +1136,7 @@ namespace cxx_compiler {
         transform(begin(seed), end(seed), back_inserter(*conv),
                   update(m_table));
         template_tag* tt = it->m_src;
-        tag* res = tt->instantiate(conv);
+        tag* res = tt->instantiate(conv, false);
         T = res->m_types.second;
         if (!T)
           T = res->m_types.first;
@@ -1327,23 +1335,53 @@ namespace cxx_compiler {
       {
         const special_ver_tag* sv = ps->m_sv;
         const template_tag::KEY& key = sv->m_key;
-        if (key.size() != m_pv->size()) {
-          m_key.clear();
-          return false;
-        }
+	if (!m_pv)
+	  return key.empty();
+	bool dots = ps->templ_base::m_tps.m_dots;
+	if (dots) {
+	  assert(!key.empty());
+	  if (key.size() - 1 != m_pv->size()) {
+	    m_key.clear();
+	    return false;
+	  }
+	}
+	else {
+	  if (key.size() != m_pv->size()) {
+	    m_key.clear();
+	    return false;
+	  }
+	}
         typedef template_tag::KEY::const_iterator ITx;
         typedef vector<scope::tps_t::val2_t*>::iterator ITy;
-        pair<ITx, ITy> ret = mismatch(begin(key), end(key), begin(*m_pv),
-                		      cmp(m_key));
-        if (ret != make_pair(end(key), end(*m_pv))) {
-          m_key.clear();
-          return false;
-        }
+	if (dots) {
+	  pair<ITx, ITy> ret = mismatch(begin(key), end(key) - 1, begin(*m_pv),
+					cmp(m_key));
+	  if (ret != make_pair(end(key) - 1, end(*m_pv))) {
+	    m_key.clear();
+	    return false;
+	  }
+	}
+	else {
+	  pair<ITx, ITy> ret = mismatch(begin(key), end(key), begin(*m_pv),
+					cmp(m_key));
+	  if (ret != make_pair(end(key), end(*m_pv))) {
+	    m_key.clear();
+	    return false;
+	  }
+	}
         const vector<string>& order = ps->templ_base::m_tps.m_order;
-        if (order.size() != m_key.size()) {
-          m_key.clear();
-          return false;
-        }
+	if (dots) {
+	  if (order.size() - 1 != m_key.size()) {
+	    m_key.clear();
+	    return false;
+	  }
+	}
+	else {
+	  if (order.size() != m_key.size()) {
+	    m_key.clear();
+	    return false;
+	  }
+	}
         return true;
       }
     };
@@ -1392,13 +1430,77 @@ namespace cxx_compiler {
               [tt](const template_tag::info_t& x)
               { return x.m_tt == tt; }) != end(template_tag::nest);
     }
+    bool out_addr(const type* T)
+    {
+      if (T->m_id == type::TEMPLATE_PARAM)
+	return true;
+      tag* ptr = T->get_tag();
+      if (!ptr)
+	return false;
+      tag::kind_t kind = ptr->m_kind;
+      return kind == tag::TYPENAME;
+    }
+    // `add_special' is very similar to `template_tag_impl::helper::operator'
+    string add_special(string s, scope::tps_t::val2_t* p)
+    {
+      debug_break();
+      if (const type* T = p->first) {
+	ostringstream os;
+	T->decl(os, "");
+	if (out_addr(T))
+	  os << '.' << T;
+	os << ',';
+	return s + os.str();
+      }
+      var* v = p->second;
+      error::not_implemented();
+      return s;
+    }
+    string
+    special_name(template_tag* tt, bool dots,
+		 vector<scope::tps_t::val2_t*>* pv, bool pv_dots)
+    {
+      if (!dots)
+	return tt->instantiated_name();
+      if (!pv) {
+	ostringstream os;
+	os << tt->m_name;
+	os << '<' << '>';
+	return os.str();
+      }
+      string name = tt->m_name;
+      name += '<';
+      if (pv_dots) {
+	assert(pv->size() > 1);
+	name = accumulate(begin(*pv), end(*pv) - 1, name, add_special);
+      }
+      else
+	name = accumulate(begin(*pv), end(*pv), name, add_special);
+      name.erase(name.size()-1);
+      name += '>';
+      return name;
+    }
+    scope::tps_t::val2_t calc_key2(scope::tps_t::val2_t* p)
+    {
+      if (const type* T = p->first)
+	return scope::tps_t::val2_t(T, 0);
+      var* v = p->second;
+      if (v->addrof_cast()) {
+	typedef vector<var*>::reverse_iterator IT;
+	IT p = find(rbegin(garbage), rend(garbage), v);
+	assert(p != rend(garbage));
+	vector<var*>::iterator q = p.base() - 1;
+	garbage.erase(q);
+      }
+      return scope::tps_t::val2_t(0, v);
+    }
   } // end of namespace template_tag_impl
 } // end of namespace cxx_compiler
 
 cxx_compiler::tag*
 cxx_compiler::
 template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
-                     bool special_ver)
+                     bool special_ver, bool pv_dots)
 {
   template_tag_impl::sweeper sweeper(pv, true);
 
@@ -1426,22 +1528,34 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
     vector<scope::tps_t::val2_t*>* pv2 = new vector<scope::tps_t::val2_t*>;
     transform(begin(res), end(res), back_inserter(*pv2),
       [](scope::tps_t::val2_t& x){ return new scope::tps_t::val2_t(x); });
-    return (*it)->common(pv2, special_ver);
+    return (*it)->common(pv2, special_ver, pv_dots);
   }
 
+  bool dots = templ_base::m_tps.m_dots;
   const vector<string>& order = templ_base::m_tps.m_order;
   if (!pv) {
-    if (!order.empty())
+    if (!order.empty() && !dots)
       error::not_implemented();
   }
   else {
     int n = pv->size();
     int m = order.size();
-    if (n < m) {
-      const map<string, pair<const type*, var*> >& def =
-        templ_base::m_tps.m_default;
-      transform(begin(order) + n, end(order), back_inserter(*pv),
-                template_tag_impl::get(def));
+    if (dots) {
+      debug_break2();
+      if (n < m - 1) {
+	const map<string, pair<const type*, var*> >& def =
+	  templ_base::m_tps.m_default;
+	transform(begin(order) + n, end(order) - 1, back_inserter(*pv),
+		  template_tag_impl::get(def));
+      }
+    }
+    else {
+      if (n < m) {
+	const map<string, pair<const type*, var*> >& def =
+	  templ_base::m_tps.m_default;
+	transform(begin(order) + n, end(order), back_inserter(*pv),
+		  template_tag_impl::get(def));
+      }
     }
  
     if (order.empty()) {
@@ -1451,8 +1565,7 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
                  bind1st(ptr_fun(template_tag_impl::modify), this));
       }
     }
-
-    if (order.size() != pv->size())
+    if (order.size() != pv->size() && !dots)
       error::not_implemented();
   }
 
@@ -1460,8 +1573,26 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
   template_usr_impl::sweeper_a sweeper_a(table);
   KEY key;
   if (pv) {
-    transform(begin(*pv), end(*pv), begin(order), back_inserter(key),
-              template_tag_impl::calc_key(table));
+    if (order.size() == pv->size()) {
+      transform(begin(*pv), end(*pv), begin(order), back_inserter(key),
+		template_tag_impl::calc_key(table));
+    }
+    else {
+      assert(dots);
+      if (order.size() < pv->size()) {
+	int n = order.size();
+	debug_break();
+	transform(begin(*pv), begin(*pv)+n, begin(order), back_inserter(key),
+		  template_tag_impl::calc_key(table));
+	transform(begin(*pv)+n, end(*pv), back_inserter(key),
+		  template_tag_impl::calc_key2);
+      }
+      else {
+	assert(order.size() - 1 == pv->size());
+	transform(begin(*pv), end(*pv), begin(order), back_inserter(key),
+		  template_tag_impl::calc_key(table));
+      }
+    }
   }
 
   typedef KEY::const_iterator KI;
@@ -1483,7 +1614,7 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
     return m_table[key] = p->second;
 
   if (special_ver) {
-    string name = instantiated_name();
+    string name = template_tag_impl::special_name(this, dots, pv, pv_dots);
     special_ver_tag* sv = new special_ver_tag(name, this, key);
     const vector<scope::tps_t>& tps = scope::current->m_tps;
     if (!tps.empty()) {
@@ -1561,16 +1692,7 @@ namespace cxx_compiler {
       const map<string, scope::tps_t::value_t>& m_table;
       helper(const map<string, scope::tps_t::value_t>& table)
         : m_table(table) {}
-      static bool out_addr(const type* T)
-      {
-	if (T->m_id == type::TEMPLATE_PARAM)
-	  return true;
-	tag* ptr = T->get_tag();
-	if (!ptr)
-	  return false;
-	tag::kind_t kind = ptr->m_kind;
-	return kind == tag::TYPENAME;
-      }
+      // very similar to `add_special'
       string operator()(string name, string pn)
       {
         map<string, scope::tps_t::value_t>::const_iterator p =
@@ -1690,8 +1812,16 @@ std::string cxx_compiler::partial_special_tag::instantiated_name() const
   const KEY& key = m_sv->m_key;
   const map<string, scope::tps_t::value_t>& table
     = templ_base::m_tps.m_table;
-  name = accumulate(begin(key), end(key), name,
-                    partial_special_impl::helper(table));
+  bool dots = templ_base::m_tps.m_dots;
+  if (dots) {
+    assert(!key.empty());
+    name = accumulate(begin(key), end(key) - 1, name,
+		      partial_special_impl::helper(table));
+  }
+  else {
+    name = accumulate(begin(key), end(key), name,
+		      partial_special_impl::helper(table));
+  }
   name.erase(name.size()-1);
   name += '>';
   return name;

@@ -2033,15 +2033,19 @@ template_parameter
 
 type_parameter
   : CLASS_KW IDENTIFIER_LEX
-    { cxx_compiler::type_parameter::action($2, 0); }
+    { cxx_compiler::type_parameter::action($2, 0, false); }
+  | CLASS_KW DOTS_MK IDENTIFIER_LEX
+    { cxx_compiler::type_parameter::action($3, 0, true); }
   | CLASS_KW
-    { cxx_compiler::type_parameter::action(0, 0); }
+    { cxx_compiler::type_parameter::action(0, 0, false); }
+  | CLASS_KW DOTS_MK
+    { cxx_compiler::type_parameter::action(0, 0, true); }
   | CLASS_KW IDENTIFIER_LEX '='
     {
       using namespace cxx_compiler;
       parse::identifier::mode = parse::identifier::look;
     } type_id
-    { cxx_compiler::type_parameter::action($2, $5); }
+    { cxx_compiler::type_parameter::action($2, $5, false); }
   | CLASS_KW '='
     {
       using namespace cxx_compiler;
@@ -2050,13 +2054,25 @@ type_parameter
     { cxx_compiler::error::not_implemented(); }
   | typenaming IDENTIFIER_LEX
     {
-      cxx_compiler::type_parameter::action($2, 0);
+      cxx_compiler::type_parameter::action($2, 0, false);
+      --cxx_compiler::parse::identifier::typenaming;
+      assert(cxx_compiler::parse::identifier::typenaming >= 0);
+    }
+  | typenaming DOTS_MK IDENTIFIER_LEX
+    {
+      cxx_compiler::type_parameter::action($3, 0, true);
       --cxx_compiler::parse::identifier::typenaming;
       assert(cxx_compiler::parse::identifier::typenaming >= 0);
     }
   | typenaming
     {
-      cxx_compiler::type_parameter::action(0, 0);
+      cxx_compiler::type_parameter::action(0, 0, false);
+      --cxx_compiler::parse::identifier::typenaming;
+      assert(cxx_compiler::parse::identifier::typenaming >= 0);
+    }
+  | typenaming DOTS_MK
+    {
+      cxx_compiler::type_parameter::action(0, 0, true);
       --cxx_compiler::parse::identifier::typenaming;
       assert(cxx_compiler::parse::identifier::typenaming >= 0);
     }
@@ -2066,7 +2082,7 @@ type_parameter
       parse::identifier::mode = parse::identifier::look;
     } type_id
     {
-      cxx_compiler::type_parameter::action($2, $5);
+      cxx_compiler::type_parameter::action($2, $5, false);
       --cxx_compiler::parse::identifier::typenaming;
       assert(cxx_compiler::parse::identifier::typenaming >= 0);
     }
@@ -2095,9 +2111,12 @@ type_parameter
 template_id
   : TEMPLATE_NAME_LEX
     '<' enter_templ_arg template_argument_list leave_templ_arg '>'
-    { $$ = cxx_compiler::declarations::templ::id::action($1, $4); }
+    { $$ = cxx_compiler::declarations::templ::id::action($1, $4, false); }
+  | TEMPLATE_NAME_LEX
+    '<' enter_templ_arg template_argument_list DOTS_MK leave_templ_arg '>'
+    { $$ = cxx_compiler::declarations::templ::id::action($1, $4, true); }
   | TEMPLATE_NAME_LEX '<' enter_templ_arg leave_templ_arg '>'
-    { $$ = cxx_compiler::declarations::templ::id::action($1, 0); }
+    { $$ = cxx_compiler::declarations::templ::id::action($1, 0, false); }
   ;
 
 enter_templ_arg
@@ -2180,7 +2199,7 @@ explicit_specialization
     {
       using namespace cxx_compiler;
       using namespace cxx_compiler::declarations::templ;
-      specialization::nest.push(scope::current);;
+      specialization::nest.push(scope::current);
     }
     declaration
     {

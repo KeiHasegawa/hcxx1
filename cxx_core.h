@@ -25,6 +25,8 @@ struct scope {
     std::map<std::string, value_t> m_table;
     std::vector<std::string> m_order;
     std::map<std::string, std::pair<const type*, var*> > m_default;
+    bool m_dots;
+    tps_t() : m_dots(false) {}
   };
   std::vector<tps_t> m_tps;
 

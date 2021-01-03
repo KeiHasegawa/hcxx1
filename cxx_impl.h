@@ -865,7 +865,7 @@ namespace declarations {
     extern void decl_end();
     namespace id {
       extern pair<usr*, tag*>*
-      action(pair<usr*, tag*>*, vector<scope::tps_t::val2_t*>*);
+      action(pair<usr*, tag*>*, vector<scope::tps_t::val2_t*>*, bool);
     } // end of namespace id
     namespace specialization {
       extern stack<scope*> nest;
@@ -1647,7 +1647,7 @@ namespace qualified_id {
 } // end of namespace qualified_id
 
 namespace type_parameter {
-  extern void action(var*, const type*);
+  extern void action(var*, const type*, bool);
 } // end of namespace type_parameter
 
 namespace templ_parameter {
@@ -1779,11 +1779,11 @@ struct template_tag : templ_base, tag {
   template_tag(tag& t, const scope::tps_t& tps)
     : tag(t), templ_base(tps), m_prev(0), m_created(false)
   { m_flag = TEMPLATE; }
-  tag* common(vector<scope::tps_t::val2_t*>*, bool);
-  tag* instantiate(vector<scope::tps_t::val2_t*>* pv)
-  { return common(pv, false); }
-  tag* special_ver(vector<scope::tps_t::val2_t*>* pv)
-  { return common(pv, true); }
+  tag* common(vector<scope::tps_t::val2_t*>*, bool special_ver, bool dots);
+  tag* instantiate(vector<scope::tps_t::val2_t*>* pv, bool dots)
+  { return common(pv, false, dots); }
+  tag* special_ver(vector<scope::tps_t::val2_t*>* pv, bool dots)
+  { return common(pv, true, dots); }
   virtual string instantiated_name() const;
 };
 
