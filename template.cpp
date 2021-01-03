@@ -1443,7 +1443,6 @@ namespace cxx_compiler {
     // `add_special' is very similar to `template_tag_impl::helper::operator'
     string add_special(string s, scope::tps_t::val2_t* p)
     {
-      debug_break();
       if (const type* T = p->first) {
 	ostringstream os;
 	T->decl(os, "");
@@ -1541,7 +1540,6 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
     int n = pv->size();
     int m = order.size();
     if (dots) {
-      debug_break2();
       if (n < m - 1) {
 	const map<string, pair<const type*, var*> >& def =
 	  templ_base::m_tps.m_default;
@@ -1581,7 +1579,6 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
       assert(dots);
       if (order.size() < pv->size()) {
 	int n = order.size();
-	debug_break();
 	transform(begin(*pv), begin(*pv)+n, begin(order), back_inserter(key),
 		  template_tag_impl::calc_key(table));
 	transform(begin(*pv)+n, end(*pv), back_inserter(key),
