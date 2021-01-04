@@ -210,10 +210,10 @@ namespace cxx_compiler {
     {
       assert(!(bp->m_flag & usr::VIRTUAL));
       tag* ptr = bp->m_tag;
-      if (ptr->m_kind == tag::GUESS)
-	return n;
       const type* T = ptr->m_types.second;
       if (!T) {
+	if (should_skip(ptr))
+	  return n;
         T = ptr->m_types.first;
         assert(T->m_id == type::TEMPLATE_PARAM);
       }
@@ -237,7 +237,7 @@ namespace cxx_compiler {
       int operator()(int n, base* bp)
       {
         tag* ptr = bp->m_tag;
-	if (ptr->m_kind == tag::GUESS)
+	if (should_skip(ptr))
 	  return n;
         usr::flag_t flag = bp->m_flag;
         if (!(flag & usr::VIRTUAL)) {
@@ -309,10 +309,10 @@ namespace cxx_compiler {
       int operator()(int n, const base* bp)
       {
         tag* ptr = bp->m_tag;
-	if (ptr->m_kind == tag::GUESS)
-	  return n;
         const type* T = ptr->m_types.second;
         if (!T) {
+	  if (should_skip(ptr))
+	    return n;
           T = ptr->m_types.first;
           assert(T->m_id == type::TEMPLATE_PARAM);
           return n;
@@ -2418,10 +2418,10 @@ bool cxx_compiler::record_impl::member_modifiable(usr* u, bool partially)
 bool cxx_compiler::record_impl::base_modifiable(base* bp, bool partially)
 {
   tag* ptr = bp->m_tag;
-  if (ptr->m_kind == tag::GUESS)
-    return true;
   const type* T = ptr->m_types.second;
   if (!T) {
+    if (should_skip(ptr))
+      return true;
     T = ptr->m_types.first;
     assert(T->m_id == type::TEMPLATE_PARAM);
   }
@@ -3254,4 +3254,19 @@ bool cxx_compiler::must_call_default_ctor(usr* u)
 bool cxx_compiler::must_call_dtor(const type* T)
 {
   return must_call_ctor_dtor_common(T, false);
+}
+
+bool cxx_compiler::record_impl::should_skip(const tag* ptr)
+{
+  tag::kind_t kind = ptr->m_kind;
+  if (kind == tag::GUESS)
+    return true;
+  tag::flag_t flag = ptr->m_flag;
+  if (!(flag & tag::INSTANTIATE))
+    return false;
+  const instantiated_tag* it = static_cast<const instantiated_tag*>(ptr);
+  const instantiated_tag::SEED& seed = it->m_seed;
+  typedef instantiated_tag::SEED::const_iterator IT;
+  IT p = find_if(begin(seed), end(seed), template_param);
+  return p != end(seed);
 }

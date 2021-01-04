@@ -1382,6 +1382,7 @@ namespace cxx_compiler {
   {
     if (ptr->m_id == scope::BLOCK)
       return true;
+    assert(ptr != ptr->m_parent);
     return ptr->m_parent ? inblock(ptr->m_parent) : false;
   }
   bool temporary(const tag* ptr)

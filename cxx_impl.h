@@ -563,6 +563,7 @@ namespace record_impl {
     typedef map<vector<const record_type*>, usr*> VALUE_TYPE;
     extern map<usr*, VALUE_TYPE> scd_tbl;  // key is ctor or dtor
   } // end of namespace special_ctor_dtor
+  extern bool should_skip(const tag*);
 } // end of namespace record_impl
 
 namespace expressions {
