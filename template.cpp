@@ -1161,7 +1161,18 @@ namespace cxx_compiler {
         assert(T);
 	T = resolve_templ(T);
         var* v = p->second;
-        assert(v);
+        if (!v) {
+	  const type* T2 = p->first;
+	  tag* ptr = T2->get_tag();
+	  if (!ptr)
+	    error::not_implemented();
+	  if (ptr->m_kind != tag::GUESS)
+	    error::not_implemented();
+	  string name = ptr->m_name;
+	  usr* u = new templ_param(name, T, usr::NONE, parse::position,
+				   usr::TEMPL_PARAM);
+	  return scope::tps_t::val2_t(0, y->second = u);
+	}
         bool discard = false;
         bool ctor_conv = false;
         using namespace expressions;
@@ -1711,11 +1722,9 @@ namespace cxx_compiler {
         if (usr* u = v->usr_cast()) {
           usr::flag2_t flag2 = u->m_flag2;
           if (flag2 & usr::TEMPL_PARAM) {
-            ostringstream os;
-            const type* T = y->first;
-            T->decl(os, u->m_name);
-            os << '.' << u;
-            return name + os.str() + ',';
+	    ostringstream os;
+	    os << u->m_name << '.' << u << ',';
+	    return name + os.str();
           }
         }
         assert(v->isconstant(true));

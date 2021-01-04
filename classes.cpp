@@ -230,6 +230,15 @@ namespace cxx_compiler {
       tag* ptr = bp->m_tag;
       if (ptr->m_kind == tag::GUESS)
 	return;
+      tag::flag_t flag = ptr->m_flag;
+      if (flag & tag::INSTANTIATE) {
+	instantiated_tag* it = static_cast<instantiated_tag*>(ptr);
+	const instantiated_tag::SEED& seed = it->m_seed;
+	typedef instantiated_tag::SEED::const_iterator IT;
+	IT p = find_if(begin(seed), end(seed), template_param);
+	if (p != end(seed))
+	  return;
+      }
       const type* T = ptr->m_types.first;
       if (T->m_id != type::TEMPLATE_PARAM) {
         T = ptr->m_types.second;
