@@ -1525,6 +1525,11 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
         string name = ps->instantiated_name();
         x.m_it = new instantiated_tag(m_kind, name, parse::position,
                 		      m_bases, ps, x.m_key);
+	if (parse::peek() == ':') {
+	  assert(!class_or_namespace_name::before.empty());
+	  assert(class_or_namespace_name::before.back() == x.m_it);
+	  class_or_namespace_name::before.pop_back();
+	}
         return x.m_it;
       }
     }
@@ -1624,6 +1629,11 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
   if (special_ver) {
     string name = template_tag_impl::special_name(this, dots, pv, pv_dots);
     special_ver_tag* sv = new special_ver_tag(name, this, key);
+    if (parse::peek() == ':') {
+      assert(!class_or_namespace_name::before.empty());
+      assert(class_or_namespace_name::before.back() == sv);
+      class_or_namespace_name::before.pop_back();
+    }
     const vector<scope::tps_t>& tps = scope::current->m_tps;
     if (!tps.empty()) {
       const scope::tps_t& b = tps.back();

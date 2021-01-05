@@ -178,9 +178,11 @@ namespace cxx_compiler {
             vector<base*>* bases)
     {
       if (prev->m_kind != kind) {
-        using namespace error::classes;
-        string name = prev->m_name;
-        redeclaration(parse::position,prev->m_file.back(),name);
+	if (prev->m_kind != tag::GUESS) {
+	  using namespace error::classes;
+	  string name = prev->m_name;
+	  redeclaration(parse::position,prev->m_file.back(),name);
+	}
       }
       pair<const type*, const type*> types = prev->m_types;
       if (types.second) {
@@ -346,8 +348,14 @@ const cxx_compiler::type* cxx_compiler::classes::specifier::action()
   if (tbl.empty()) {
     handle_vdel(ptr);
     assert(!class_or_namespace_name::before.empty());
-    assert(scope::current == class_or_namespace_name::before.back());
-    class_or_namespace_name::before.pop_back();
+    if (scope::current == class_or_namespace_name::before.back())
+      class_or_namespace_name::before.pop_back();
+    else {
+      assert(ptr->m_bases);
+      tag::flag_t flag = ptr->m_flag;
+      tag::flag_t mask = tag::flag_t(tag::SPECIAL_VER | tag::INSTANTIATE);
+      assert(flag & mask);
+    }
     scope::current = ptr->m_parent;
     return ret;
   }
