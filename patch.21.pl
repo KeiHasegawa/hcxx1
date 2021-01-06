@@ -52,6 +52,13 @@ print<<EOF
       using namespace cxx_compiler;
       if (parse::templ::arg >= 1) {
         YYDPRINTF((stderr, "patch.21 is applied\\n"));
+	if (!parse::templ::save_t::nest.empty()) {
+          using namespace parse::templ;
+	  save_t* p = save_t::nest.back();
+          pair<int, file_t>& b = p->m_read.m_token.back();
+          assert(b.first == RSH_MK);
+          b.first = '>';
+	}
         parse::g_read.m_token.push_front(make_pair('>', parse::position));
         yychar = '>';
       }

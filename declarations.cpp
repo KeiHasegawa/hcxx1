@@ -75,12 +75,14 @@ cxx_compiler::declarations::type_specifier::type_specifier(int n)
 cxx_compiler::declarations::type_specifier::type_specifier(const type* T)
  : m_keyword(0), m_type(T), m_usr(0)
 {
+  assert(m_type);
   parse::identifier::mode = parse::identifier::new_obj;
 }
 
 cxx_compiler::declarations::type_specifier::type_specifier(usr* u)
  : m_keyword(0), m_type(0), m_usr(u)
 {
+  assert(m_usr);
   parse::identifier::mode = parse::identifier::new_obj;
 }
 
@@ -89,6 +91,7 @@ cxx_compiler::declarations::type_specifier::type_specifier(tag* ptr)
 {
   parse::identifier::base_lookup::route.clear();
   m_type = ptr->m_types.second ? ptr->m_types.second : ptr->m_types.first;
+  assert(m_type);
   parse::identifier::mode = parse::identifier::new_obj;
 }
 
@@ -760,6 +763,15 @@ cxx_compiler::declarations::action1(var* v, bool ini)
   if (!parse::templ::param) {
     assert(!class_or_namespace_name::before.empty());
     scope* ptr = class_or_namespace_name::before.back();
+    if (scope::current->m_id == scope::TAG) {
+      tag* tmp = static_cast<tag*>(scope::current);
+      if (tmp->m_bases) {
+	tag::flag_t flag = tmp->m_flag;
+	tag::flag_t mask = tag::flag_t(tag::INSTANTIATE | tag::SPECIAL_VER);
+	if (flag & mask)
+	  ptr = scope::current;
+      }
+    }
     const vector<scope::tps_t>& tps = ptr->m_tps;
     if (!tps.empty()) {
       const scope::tps_t& b = tps.back();

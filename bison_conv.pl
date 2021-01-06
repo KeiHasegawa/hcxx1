@@ -14,12 +14,14 @@ while ( <> ){
   if ( /yychar = yylex \(\);/ ){
     print "      yychar = cxx_compiler::parse::get_token();\n";
     print "#include \"patch.04.p2\"\n";
+    print "#include \"patch.21.p\"\n";
     ++$yychar_converted;
     next;
   }
   if ( /yychar = YYLEX;/ ){
     print "      yychar = cxx_compiler::parse::get_token();\n";
     print "#include \"patch.04.p2\"\n";
+    print "#include \"patch.21.p\"\n";
     ++$yychar_converted;
     next;
   }

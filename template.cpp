@@ -1472,13 +1472,18 @@ namespace cxx_compiler {
     {
       if (!dots)
 	return tt->instantiated_name();
-      if (!pv) {
+      tag::flag_t flag = tt->m_flag;
+      if (flag & tag::PARTIAL_SPECIAL) {
+	partial_special_tag* ps = static_cast<partial_special_tag*>(tt);
+	tt = ps->m_primary;
+      }
+      string name = tt->m_name;
+      if (!pv || pv_dots && pv->size() == 1) {
 	ostringstream os;
-	os << tt->m_name;
+	os << name;
 	os << '<' << '>';
 	return os.str();
       }
-      string name = tt->m_name;
       name += '<';
       if (pv_dots) {
 	assert(pv->size() > 1);
@@ -1522,7 +1527,14 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
       partial_special_tag* ps = static_cast<partial_special_tag*>(tt);
       template_tag* primary = ps->m_primary;
       if (primary == this) {
-        string name = ps->instantiated_name();
+	using namespace template_tag_impl;
+	bool dots = ps->templ_base::m_tps.m_dots;
+	string name = special_name(ps, dots, pv, pv_dots);
+	const map<string, tag*>& tags = m_parent->m_tags;
+	typedef map<string, tag*>::const_iterator IT;
+	IT p = tags.find(name);
+	if (p != tags.end())
+	  return p->second;
         x.m_it = new instantiated_tag(m_kind, name, parse::position,
                 		      m_bases, ps, x.m_key);
 	if (parse::peek() == ':') {
