@@ -877,6 +877,7 @@ namespace declarations {
     void action(var*);
     void action(tag*);
     void action(var*, type_specifier*);
+    void action(var*, var*);
   } // end of namespace use
 } // end of namespace declarations
 

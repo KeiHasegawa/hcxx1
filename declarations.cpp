@@ -2200,11 +2200,31 @@ namespace cxx_compiler {
 	}
 	usr* tdef = ts->m_usr;
 	assert(tdef->m_flag & usr::TYPEDEF);
+	const map<string, tag*>& tags = scope::current->m_tags;
+        typedef map<string, tag*>::const_iterator ITx;
+	ITx px = tags.find(name);
+	if (px != tags.end()) {
+	  tag* ptr = px->second;
+	  tag::flag_t flag = ptr->m_flag;
+	  assert(flag & tag::TEMPLATE);
+	  template_tag* tt = static_cast<template_tag*>(ptr);
+	  assert(!template_tag::nest.empty());
+	  template_tag::info_t& info = template_tag::nest.back();
+	  assert(info.m_tt == tt);
+	  assert(!info.m_it);
+	  tag::kind_t kind = tt->m_kind;
+	  info.m_it = new instantiated_tag(kind, name, parse::position,
+					   0, tt, info.m_key);
+	  tag* tmp = info.m_it;
+	  const type* T = tdef->m_type;
+	  tmp->m_types = make_pair(incomplete_tagged_type::create(tmp), T);
+	  return;
+	}
         map<string, vector<usr*> >& usrs = scope::current->m_usrs;
-        typedef map<string, vector<usr*> >::const_iterator IT;
-        IT p = usrs.find(name);
-	if (p != usrs.end()) {
-	  const vector<usr*>& v = p->second;
+        typedef map<string, vector<usr*> >::const_iterator ITy;
+        ITy py = usrs.find(name);
+	if (py != usrs.end()) {
+	  const vector<usr*>& v = py->second;
 	  usr* uu = v.back();
 	  usr::flag2_t flag2 = uu->m_flag2;
 	  if (!(flag2 & usr::TEMPLATE))
@@ -2235,6 +2255,38 @@ namespace cxx_compiler {
 	}
         alias_usr* al = new alias_usr(tdef);
         usrs[name].push_back(al);
+      }
+      void action(var* x, var* y)
+      {
+	assert(x->usr_cast());
+	usr* ux = static_cast<usr*>(x);
+	assert(ux->m_type->m_id == type::BACKPATCH);
+	string xn = ux->m_name;
+        assert(y->usr_cast());
+        usr* uy = static_cast<usr*>(y);
+	assert(uy->m_type->m_id == type::BACKPATCH);
+        string yn = uy->m_name;
+	map<string, tag*>& tags = scope::current->m_tags;
+	typedef map<string, tag*>::const_iterator IT;
+	IT it = tags.find(xn);
+	if (it != tags.end())
+	  error::not_implemented();
+	const vector<scope::tps_t>& tps = scope::current->m_tps;
+	if (tps.empty())
+	  error::not_implemented();
+	const scope::tps_t& b = tps.back();
+	if (b.m_table.empty())
+	  error::not_implemented();
+	using namespace parse::templ;
+	assert(!save_t::nest.empty());
+	save_t* p = save_t::nest.back();
+	assert(!p->m_tag);
+	tag* ptr = new tag(tag::TYPENAME, yn, parse::position, 0);
+	ptr->m_parent = scope::current;
+	ptr->m_types.first = incomplete_tagged_type::create(ptr);
+	template_tag* tt = new template_tag(*ptr, b);
+	p->m_tag = tt;
+	tags[xn] = tt;
       }
     } // end of namespace declarations
   } // end of namespace declarations

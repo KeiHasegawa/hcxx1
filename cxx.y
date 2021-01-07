@@ -753,6 +753,13 @@ using_declaration
       cxx_compiler::declarations::use::action($2, $6);
       --cxx_compiler::parse::identifier::typenaming;
     }
+  | USING_KW IDENTIFIER_LEX '=' typenaming nested_name_specifier
+    unqualified_id ';'
+    {
+      cxx_compiler::class_or_namespace_name::after(false);
+      cxx_compiler::declarations::use::action($2, $6);
+      --cxx_compiler::parse::identifier::typenaming;
+    }
   ;
 
 using_directive
