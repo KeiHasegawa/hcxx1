@@ -961,15 +961,8 @@ function::definition::action(fundef* fdef, std::vector<tac*>& vc)
   scope* ps = u->m_scope;
   if (ps->m_id == scope::TAG) {
     tag* ptr = static_cast<tag*>(ps);
-    tag::flag_t flag = ptr->m_flag;
-    if (flag & tag::INSTANTIATE) {
-      instantiated_tag* it = static_cast<instantiated_tag*>(ptr);
-      const instantiated_tag::SEED& seed = it->m_seed;
-      typedef instantiated_tag::SEED::const_iterator IT;
-      IT p = find_if(begin(seed), end(seed), template_param);
-      if (p != end(seed))
-        return;
-    }
+    if (record_impl::should_skip(ptr))
+      return;
   }
 
   using namespace mem_initializer;

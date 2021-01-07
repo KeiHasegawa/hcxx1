@@ -624,6 +624,23 @@ namespace cxx_compiler {
         return 0;
       }
     } // end of namespace identifier
+    bool should_return_guess()
+    {
+      if (base_clause.empty())
+	return false;
+      int c = parse::peek();
+      switch (c) {
+      case '*': case '/': case '%':
+      case '+': case '-':
+      case LSH_MK: case RSH_MK:
+      case '&': case '|': case '^':
+      case '?': case ':':
+      case ')':
+	return false;
+      default:
+	return true;
+      }
+    }
   } // end of namespace parse
   namespace inline_namespace {
     using namespace std;
@@ -896,7 +913,7 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
     if (typenaming)
       return create(name);
     if (!parse::templ::save_t::nest.empty()) {
-      if (!parse::base_clause.empty()) {
+      if (should_return_guess()) {
 	tag* ptr = new tag(tag::GUESS, name, parse::position, 0);
 	assert(!class_or_namespace_name::before.empty());
 	assert(class_or_namespace_name::before.back() == ptr);
@@ -1230,6 +1247,27 @@ namespace cxx_compiler {
           assert(v->usr_cast());
           usr* u = static_cast<usr*>(v);
           string name = u->m_name;
+	  usr::flag2_t flag2 = u->m_flag2;
+	  if (flag2 & usr::TEMPL_PARAM) {
+	    assert(!tinfos.empty());
+	    typedef template_usr::info_t X;
+	    typedef template_tag::info_t Y;
+	    const pair<X*, Y*>& b = tinfos.back();
+	    if (Y* info = b.second) {
+	      template_tag* tt = info->m_tt;
+	      assert(!tt->m_read.m_token.empty());
+	      pair<int, file_t>& fr = tt->m_read.m_token.front();
+	      if (fr.first == USING_KW) {
+		const map<string, scope::tps_t::value_t>& table =
+		  tt->templ_base::m_tps.m_table;
+		typedef map<string, scope::tps_t::value_t>::const_iterator IT;
+		IT p = table.find(name);
+		using namespace identifier;
+		if (p != table.end())
+		  return templ_param_lex(name, p->second, true);
+	      }
+	    }
+	  }
           return last_token = identifier::judge(name);
         }
         if (context_t::retry[DECL_FCAST_CONFLICT_STATE] ||
@@ -1346,6 +1384,8 @@ namespace cxx_compiler {
           lval.pop_front();
           if (tag* ptr = cxx_compiler_lval.m_ut->second) {
             assert(ptr->m_flag & tag::TEMPLATE);
+	    if (ptr->m_types.second)
+	      return n;
             template_tag* tt = static_cast<template_tag*>(ptr);
             string name = tt->m_name;
             using namespace identifier;

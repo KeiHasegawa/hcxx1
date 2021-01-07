@@ -1701,7 +1701,8 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
     ret->m_parent = scope::current;
     ret->m_types.first = incomplete_tagged_type::create(ret);
   }
-  assert(ret->m_src == this);
+  // ret->m_src == this is almost all true except for bellow situation:
+  // template<class C> using X = S<C>;
   m_table[key] = ret;
   KI r = find_if(begin(key), end(key), template_tag_impl::typenamed);
   if (r == end(key)) {

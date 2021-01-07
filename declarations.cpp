@@ -2159,6 +2159,18 @@ namespace cxx_compiler {
 	    template_tag::info_t& info = template_tag::nest.back();
 	    assert(info.m_tt == tt);
 	    assert(!info.m_it);
+	    if (tag* px = T->get_tag()) {
+	      string name = px->m_name;
+	      IT p = tags.find(name);
+	      if (p != tags.end()) {
+		tag* py = p->second;
+		assert(px == py);
+		tag::flag_t flag = px->m_flag;
+		assert(flag & tag::INSTANTIATE); 
+		info.m_it = static_cast<instantiated_tag*>(px);
+		return;
+	      }
+	    }
 	    tag::kind_t kind = tt->m_kind;
 	    info.m_it = new instantiated_tag(kind, name, parse::position,
 					     0, tt, info.m_key);

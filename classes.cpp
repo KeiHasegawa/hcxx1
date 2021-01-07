@@ -230,17 +230,8 @@ namespace cxx_compiler {
     void update(base* bp)
     {
       tag* ptr = bp->m_tag;
-      if (ptr->m_kind == tag::GUESS)
+      if (record_impl::should_skip(ptr))
 	return;
-      tag::flag_t flag = ptr->m_flag;
-      if (flag & tag::INSTANTIATE) {
-	instantiated_tag* it = static_cast<instantiated_tag*>(ptr);
-	const instantiated_tag::SEED& seed = it->m_seed;
-	typedef instantiated_tag::SEED::const_iterator IT;
-	IT p = find_if(begin(seed), end(seed), template_param);
-	if (p != end(seed))
-	  return;
-      }
       const type* T = ptr->m_types.first;
       if (T->m_id != type::TEMPLATE_PARAM) {
         T = ptr->m_types.second;
@@ -386,16 +377,8 @@ namespace cxx_compiler {
 	scope::id_t id = p->m_id;
 	assert(id == scope::TAG);
 	tag* ptr = static_cast<tag*>(p);
-	tag::flag_t flag = ptr->m_flag;
-	if (flag & tag::INSTANTIATE) {
-	  typedef instantiated_tag IT;
-	  IT* it = static_cast<IT*>(ptr);
-	  IT::SEED& seed = it->m_seed;
-	  typedef IT::SEED::const_iterator P;
-	  P p = find_if(begin(seed), end(seed), template_param);
-	  if (p != end(seed))
-	    return;
-	}
+	if (record_impl::should_skip(ptr))
+	  return;
         u->m_type = u->m_type->complete_type();
         scope::current = u->m_scope;
         vector<scope*>& children = scope::current->m_children;
