@@ -2230,6 +2230,8 @@ primary_expression
     { $$ = new cxx_compiler::expressions::primary::info_t($2); }
   | id_expression
     { $$ = new cxx_compiler::expressions::primary::info_t($1); }
+  | compound_statement
+    { $$ = new cxx_compiler::expressions::compound_stmt::info_t($1); }
   ;
 
 literal

@@ -83,6 +83,9 @@ EOF2
      print "#include \"patch.20.p\"\n";
      print "#include \"patch.21.p\"\n";
   }
+  if (/yyn = -yyn;/) {
+     print "#include \"patch.22.p\"\n";
+  } 
   if (/^yyerrlab:/) {
       print<<EOF
   if (!cxx_compiler::parse::context_t::all.empty()) {

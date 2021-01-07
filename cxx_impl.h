@@ -1258,8 +1258,11 @@ namespace statements {
     struct info_t : base {
       vector<base*>* m_bases;
       scope* m_scope;
-      info_t(vector<base*>* bases, scope* ptr) : m_bases(bases), m_scope(ptr) {}
+      info_t(vector<base*>* bases, scope* ptr)
+	: m_bases(bases), m_scope(ptr) {}
+      void common(var**);
       int gen();
+      var* gen_as_expr();
       ~info_t();
     };
   } // end of namespace compound
@@ -1416,6 +1419,19 @@ namespace statements {
            expressions::base*);
   } // end of  namespace condition
 } // end of namespace statements
+
+namespace expressions {
+  namespace compound_stmt {
+    struct info_t : base {
+      statements::compound::info_t* m_stmt;
+      file_t m_file;
+      info_t(statements::base*);
+      var* gen();
+      const file_t& file() const { return m_file; }
+      ~info_t(){ delete m_stmt; }
+    };
+  } // end of namespace compound_stmt
+} // end of namespace expressions
 
 namespace classes {
   namespace specifier {

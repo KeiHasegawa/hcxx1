@@ -262,12 +262,44 @@ namespace cxx_compiler {
 
 int cxx_compiler::statements::compound::info_t::gen()
 {
+  common(0);
+  return 0;
+}
+
+cxx_compiler::var*
+cxx_compiler::statements::compound::info_t::gen_as_expr()
+{
+  var* res;
+  common(&res);
+  return res;
+}
+
+void cxx_compiler::statements::compound::info_t::common(var** res)
+{
   using namespace std;
   scope* org = scope::current;
   scope::current = m_scope;
   if (m_bases) {
     const vector<base*>& v = *m_bases;
-    for_each(v.begin(),v.end(),mem_fun(&base::gen));
+    if (res) {
+      assert(!v.empty());
+      for_each(v.begin(),v.end()-1,mem_fun(&base::gen));
+      base* b = v.back();
+      expression::info_t* p = dynamic_cast<expression::info_t*>(b);
+      if (!p)
+	error::not_implemented();
+      expressions::base* expr = p->m_expr;
+      *res = expr->gen();
+    }
+    else
+      for_each(v.begin(),v.end(),mem_fun(&base::gen));
+  }
+  else {
+    if (res) {
+      const type* T = void_type::create();
+      *res = new var(T);
+      garbage.push_back(*res);
+    }
   }
   assert(scope::current->m_id == scope::BLOCK);
   block* b = static_cast<block*>(scope::current);
@@ -293,7 +325,6 @@ int cxx_compiler::statements::compound::info_t::gen()
     for_each(rbegin(order), rend(order), call_dtor);
   }
   scope::current = org;
-  return 0;
 }
 
 void cxx_compiler::call_dtor(var* v)
