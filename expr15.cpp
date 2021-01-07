@@ -166,25 +166,3 @@ cxx_compiler::var* cxx_compiler::expressions::clz::info_t::gen()
   code.push_back(new clz3ac(ret, expr));
   return ret;
 }
-
-
-cxx_compiler::expressions::compound_stmt::info_t::
-info_t(statements::base* stmt)
-  : m_stmt(static_cast<statements::compound::info_t*>(stmt)),
-    m_file(parse::position)
-{
-  vector<statements::base*>* p = m_stmt->m_bases;
-  if (p->empty())
-    return;
-  statements::base* b = p->back();
-  statements::expression::info_t* expr =
-    dynamic_cast<statements::expression::info_t*>(b);
-  if (!expr)
-    error::not_implemented();
-}
-
-cxx_compiler::var*
-cxx_compiler::expressions::compound_stmt::info_t::gen()
-{
-  return m_stmt->gen_as_expr();
-}

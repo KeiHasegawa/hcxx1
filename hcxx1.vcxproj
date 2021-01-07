@@ -202,13 +202,13 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(CYGWINDIR)\bin\tcsh -f gen_patch</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">patch.00.p;patch.01.p;patch.02.p;patch.03.p;patch.03.q;patch.04.p;patch.04.p2;patch.04.q;patch.05.p;patch.05.2.p;patch.06.p;patch.07.p;patch.08.p;patch.09.p;patch.10.p;patch.10.p2;patch.10.q;patch.11.p;patch.11.p2;patch.12.p;patch.13.p;patch.14.p;patch.15.p;patch.15.p2;patch.16.p;patch.17.p;patch.18.p;patch.19.p;patch.20.p</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">patch.00.p;patch.01.p;patch.02.p;patch.03.p;patch.03.q;patch.04.p;patch.04.p2;patch.04.q;patch.05.p;patch.05.2.p;patch.06.p;patch.07.p;patch.08.p;patch.09.p;patch.10.p;patch.10.p2;patch.10.q;patch.11.p;patch.11.p2;patch.12.p;patch.13.p;patch.14.p;patch.15.p;patch.15.p2;patch.16.p;patch.17.p;patch.18.p;patch.19.p;patch.20.p</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">patch.00.p;patch.01.p;patch.02.p;patch.03.p;patch.03.q;patch.04.p;patch.04.p2;patch.04.q;patch.05.p;patch.05.2.p;patch.06.p;patch.07.p;patch.08.p;patch.09.p;patch.10.p;patch.10.p2;patch.10.q;patch.11.p;patch.11.p2;patch.12.p;patch.13.p;patch.14.p;patch.15.p;patch.15.p2;patch.16.p;patch.17.p;patch.18.p;patch.19.p;patch.20.p;patch.21.p;patch.22.p</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">patch.00.p;patch.01.p;patch.02.p;patch.03.p;patch.03.q;patch.04.p;patch.04.p2;patch.04.q;patch.05.p;patch.05.2.p;patch.06.p;patch.07.p;patch.08.p;patch.09.p;patch.10.p;patch.10.p2;patch.10.q;patch.11.p;patch.11.p2;patch.12.p;patch.13.p;patch.14.p;patch.15.p;patch.15.p2;patch.16.p;patch.17.p;patch.18.p;patch.19.p;patch.20.p;patch.21.p;patch.22.p</Outputs>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(CYGWINDIR)\bin\tcsh -f gen_patch</Command>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(CYGWINDIR)\bin\tcsh -f gen_patch</Command>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(CYGWINDIR)\bin\tcsh -f gen_patch</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">patch.00.p;patch.01.p;patch.02.p;patch.03.p;patch.03.q;patch.04.p;patch.04.p2;patch.04.q;patch.05.p;patch.05.2.p;patch.06.p;patch.07.p;patch.08.p;patch.09.p;patch.10.p;patch.10.p2;patch.10.q;patch.11.p;patch.11.p2;patch.12.p;patch.13.p;patch.14.p;patch.15.p;patch.15.p2;patch.16.p;patch.17.p;patch.18.p;patch.19.p;patch.20.p</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">patch.00.p;patch.01.p;patch.02.p;patch.03.p;patch.03.q;patch.04.p;patch.04.p2;patch.04.q;patch.05.p;patch.05.2.p;patch.06.p;patch.07.p;patch.08.p;patch.09.p;patch.10.p;patch.10.p2;patch.10.q;patch.11.p;patch.11.p2;patch.12.p;patch.13.p;patch.14.p;patch.15.p;patch.15.p2;patch.16.p;patch.17.p;patch.18.p;patch.19.p;patch.20.p</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">patch.00.p;patch.01.p;patch.02.p;patch.03.p;patch.03.q;patch.04.p;patch.04.p2;patch.04.q;patch.05.p;patch.05.2.p;patch.06.p;patch.07.p;patch.08.p;patch.09.p;patch.10.p;patch.10.p2;patch.10.q;patch.11.p;patch.11.p2;patch.12.p;patch.13.p;patch.14.p;patch.15.p;patch.15.p2;patch.16.p;patch.17.p;patch.18.p;patch.19.p;patch.20.p;patch.21.p;patch.22.p</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">patch.00.p;patch.01.p;patch.02.p;patch.03.p;patch.03.q;patch.04.p;patch.04.p2;patch.04.q;patch.05.p;patch.05.2.p;patch.06.p;patch.07.p;patch.08.p;patch.09.p;patch.10.p;patch.10.p2;patch.10.q;patch.11.p;patch.11.p2;patch.12.p;patch.13.p;patch.14.p;patch.15.p;patch.15.p2;patch.16.p;patch.17.p;patch.18.p;patch.19.p;patch.20.p;patch.21.p;patch.22.p</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">gen_patch</Message>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">gen_patch</Message>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">gen_patch</Message>
@@ -249,6 +249,8 @@
     <None Include="patch.18.p" />
     <None Include="patch.19.p" />
     <None Include="patch.20.p" />
+    <None Include="patch.21.p" />
+    <None Include="patch.22.p" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

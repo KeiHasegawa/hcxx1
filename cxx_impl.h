@@ -1425,8 +1425,10 @@ namespace expressions {
     struct info_t : base {
       statements::compound::info_t* m_stmt;
       file_t m_file;
-      info_t(statements::base*);
-      var* gen();
+      info_t(statements::base* stmt)
+	: m_stmt(static_cast<statements::compound::info_t*>(stmt)),
+	m_file(parse::position) {}
+      var* gen(){ return m_stmt->gen_as_expr(); }
       const file_t& file() const { return m_file; }
       ~info_t(){ delete m_stmt; }
     };
