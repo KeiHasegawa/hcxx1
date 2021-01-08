@@ -210,6 +210,58 @@ bool cxx_compiler::wchar_type::_signed() const
   return generator::wchar::type->_signed();
 }
 
+cxx_compiler::char16_type cxx_compiler::char16_type::obj;
+
+void cxx_compiler::char16_type::decl(std::ostream& os, std::string name) const
+{
+  os << "char16_t";
+  if ( !name.empty() )
+    os << ' ' << name;
+}
+
+void cxx_compiler::char16_type::encode(std::ostream& os) const { os << 'w'; }
+
+int cxx_compiler::char16_type::size() const
+{
+  return 2;
+}
+
+const cxx_compiler::type* cxx_compiler::char16_type::promotion() const
+{
+  return int_type::create();
+}
+
+bool cxx_compiler::char16_type::_signed() const
+{
+  return true;
+}
+
+cxx_compiler::char32_type cxx_compiler::char32_type::obj;
+
+void cxx_compiler::char32_type::decl(std::ostream& os, std::string name) const
+{
+  os << "char32_t";
+  if ( !name.empty() )
+    os << ' ' << name;
+}
+
+void cxx_compiler::char32_type::encode(std::ostream& os) const { os << 'w'; }
+
+int cxx_compiler::char32_type::size() const
+{
+  return 4;
+}
+
+const cxx_compiler::type* cxx_compiler::char32_type::promotion() const
+{
+  return int_type::create();
+}
+
+bool cxx_compiler::char32_type::_signed() const
+{
+  return true;
+}
+
 cxx_compiler::bool_type cxx_compiler::bool_type::obj;
 
 void cxx_compiler::bool_type::decl(std::ostream& os, std::string name) const

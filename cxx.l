@@ -117,6 +117,8 @@ break               { return BREAK_KW; }
 case                { return CASE_KW; }
 catch               { return CATCH_KW; }
 char                { return CHAR_KW; }
+char16_t            { return CHAR16_T_KW; }
+char32_t            { return CHAR32_T_KW; }
 class               { return CLASS_KW; }
 const_cast          { return CONST_CAST_KW; }
 const               { return CONST_KW; }

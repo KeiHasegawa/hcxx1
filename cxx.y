@@ -29,8 +29,8 @@ namespace cxx_compiler {
 %token TYPEDEF_KW AUTO_KW REGISTER_KW STATIC_KW EXTERN_KW MUTABLE_KW
 %token INLINE_KW VIRTUAL_KW EXPLICIT_KW FRIEND_KW
 
-%token VOID_KW CHAR_KW WCHAR_T_KW BOOL_KW INT_KW FLOAT_KW FLOAT128_KW DOUBLE_KW
-%token SHORT_KW LONG_KW
+%token VOID_KW CHAR_KW WCHAR_T_KW CHAR16_T_KW CHAR32_T_KW BOOL_KW
+%token INT_KW FLOAT_KW FLOAT128_KW DOUBLE_KW SHORT_KW LONG_KW
 %token SIGNED_KW UNSIGNED_KW
 %token TYPEDEF_NAME_LEX CLASS_NAME_LEX TEMPLATE_NAME_LEX ENUM_NAME_LEX
 
@@ -341,6 +341,10 @@ simple_type_specifier
     { $$ = new cxx_compiler::declarations::type_specifier(CHAR_KW); }
   | WCHAR_T_KW
     { $$ = new cxx_compiler::declarations::type_specifier(WCHAR_T_KW); }
+  | CHAR16_T_KW
+    { $$ = new cxx_compiler::declarations::type_specifier(CHAR16_T_KW); }
+  | CHAR32_T_KW
+    { $$ = new cxx_compiler::declarations::type_specifier(CHAR32_T_KW); }
   | BOOL_KW
     { $$ = new cxx_compiler::declarations::type_specifier(BOOL_KW); }
   | SHORT_KW

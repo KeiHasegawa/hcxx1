@@ -1156,8 +1156,8 @@ struct base {
 
 struct type {
   enum id_t {
-    VOID, CHAR, SCHAR, UCHAR, WCHAR, BOOL, SHORT, USHORT, INT, UINT,
-    LONG, ULONG, LONGLONG, ULONGLONG,
+    VOID, CHAR, SCHAR, UCHAR, WCHAR, CHAR16, CHAR32, BOOL, SHORT, USHORT,
+    INT, UINT, LONG, ULONG, LONGLONG, ULONGLONG,
     FLOAT, DOUBLE, LONG_DOUBLE, FLOAT128,
     BACKPATCH,
     CONST, VOLATILE, RESTRICT,
@@ -1289,6 +1289,30 @@ public:
   const type* promotion() const;
   bool _signed() const;
   static const wchar_type* create(){ return &obj; }
+};
+
+class char16_type : public type {
+  static char16_type obj;
+  char16_type() : type(CHAR16) {}
+public:
+  void decl(std::ostream&, std::string) const;
+  void encode(std::ostream&) const;
+  int size() const;
+  const type* promotion() const;
+  bool _signed() const;
+  static const char16_type* create(){ return &obj; }
+};
+
+class char32_type : public type {
+  static char32_type obj;
+  char32_type() : type(CHAR32) {}
+public:
+  void decl(std::ostream&, std::string) const;
+  void encode(std::ostream&) const;
+  int size() const;
+  const type* promotion() const;
+  bool _signed() const;
+  static const char32_type* create(){ return &obj; }
 };
 
 class bool_type : public type {

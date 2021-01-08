@@ -216,6 +216,8 @@ cxx_compiler::declarations::specifier_seq::updator(const cxx_compiler::type* T, 
 namespace cxx_compiler { namespace declarations { namespace specifier_seq { namespace type {
   const cxx_compiler::type* char_handler(const cxx_compiler::type*);
   const cxx_compiler::type* wchar_handler(const cxx_compiler::type*);
+  const cxx_compiler::type* char16_handler(const cxx_compiler::type*);
+  const cxx_compiler::type* char32_handler(const cxx_compiler::type*);
   const cxx_compiler::type* bool_handler(const cxx_compiler::type*);
   const cxx_compiler::type* short_handler(const cxx_compiler::type*);
   const cxx_compiler::type* int_handler(const cxx_compiler::type*);
@@ -235,6 +237,8 @@ cxx_compiler::declarations::specifier_seq::type::table::table()
 {
   (*this)[CHAR_KW] = char_handler;
   (*this)[WCHAR_T_KW] = wchar_handler;
+  (*this)[CHAR16_T_KW] = char16_handler;
+  (*this)[CHAR32_T_KW] = char32_handler;
   (*this)[BOOL_KW] = bool_handler;
   (*this)[SHORT_KW] = short_handler;
   (*this)[INT_KW] = int_handler;
@@ -261,13 +265,36 @@ cxx_compiler::declarations::specifier_seq::type::char_handler(const cxx_compiler
 }
 
 const cxx_compiler::type*
-cxx_compiler::declarations::specifier_seq::type::wchar_handler(const cxx_compiler::type* T)
+cxx_compiler::declarations::specifier_seq::type::
+wchar_handler(const cxx_compiler::type* T)
 {
   if ( T ){
     using namespace error::declarations::specifier_seq::type;
     multiple(parse::position,T,wchar_type::create());
   }
   return wchar_type::create();
+}
+
+const cxx_compiler::type*
+cxx_compiler::declarations::specifier_seq::type::
+char16_handler(const cxx_compiler::type* T)
+{
+  if (T) {
+    using namespace error::declarations::specifier_seq::type;
+    multiple(parse::position,T,char16_type::create());
+  }
+  return char16_type::create();
+}
+
+const cxx_compiler::type*
+cxx_compiler::declarations::specifier_seq::type::
+char32_handler(const cxx_compiler::type* T)
+{
+  if (T) {
+    using namespace error::declarations::specifier_seq::type;
+    multiple(parse::position,T,char32_type::create());
+  }
+  return char32_type::create();
 }
 
 const cxx_compiler::type*
