@@ -2138,6 +2138,39 @@ namespace cxx_compiler {
         alias_tag* al = new alias_tag(ptr);
         tags[name] = al;
       }
+      void common(tag* ptr, const type* T)
+      {
+	tag::flag_t flag = ptr->m_flag;
+	assert(flag & tag::TEMPLATE);
+	template_tag* tt = static_cast<template_tag*>(ptr);
+	assert(!template_tag::nest.empty());
+	template_tag::info_t& info = template_tag::nest.back();
+	assert(info.m_tt == tt);
+	assert(!info.m_it);
+	if (T) {
+	  if (tag* px = T->get_tag()) {
+	    string name = px->m_name;
+	    const map<string, tag*>& tags = scope::current->m_tags;
+	    typedef map<string, tag*>::const_iterator IT;
+	    IT p = tags.find(name);
+	    if (p != tags.end()) {
+	      tag* py = p->second;
+	      assert(px == py);
+	      tag::flag_t flag = px->m_flag;
+	      if (flag & tag::INSTANTIATE) {
+		info.m_it = static_cast<instantiated_tag*>(px);
+		return;
+	      }
+	    }
+	  }
+	}
+	tag::kind_t kind = tt->m_kind;
+	string name = ptr->m_name;
+	info.m_it = new instantiated_tag(kind, name, parse::position,
+					 0, tt, info.m_key);
+	tag* tmp = info.m_it;
+	tmp->m_types = make_pair(incomplete_tagged_type::create(tmp), T);
+      }
       void action(var* v, type_specifier* ts)
       {
 	auto_ptr<type_specifier> sweeper(ts);
@@ -2151,32 +2184,7 @@ namespace cxx_compiler {
 	  IT p = tags.find(name);
 	  if (p != tags.end()) {
 	    tag* ptr = p->second;
-	    tag::flag_t flag = ptr->m_flag;
-	    if (!(flag & tag::TEMPLATE))
-	      error::not_implemented();
-	    template_tag* tt = static_cast<template_tag*>(ptr);
-	    assert(!template_tag::nest.empty());
-	    template_tag::info_t& info = template_tag::nest.back();
-	    assert(info.m_tt == tt);
-	    assert(!info.m_it);
-	    if (tag* px = T->get_tag()) {
-	      string name = px->m_name;
-	      IT p = tags.find(name);
-	      if (p != tags.end()) {
-		tag* py = p->second;
-		assert(px == py);
-		tag::flag_t flag = px->m_flag;
-		assert(flag & tag::INSTANTIATE); 
-		info.m_it = static_cast<instantiated_tag*>(px);
-		return;
-	      }
-	    }
-	    tag::kind_t kind = tt->m_kind;
-	    info.m_it = new instantiated_tag(kind, name, parse::position,
-					     0, tt, info.m_key);
-	    tag* tmp = info.m_it;
-	    tmp->m_types = make_pair(incomplete_tagged_type::create(tmp), T);
-	    return;
+	    return common(ptr, T);
 	  }
 	  tag* ptr = T->get_tag();
 	  assert(ptr);
@@ -2205,20 +2213,7 @@ namespace cxx_compiler {
 	ITx px = tags.find(name);
 	if (px != tags.end()) {
 	  tag* ptr = px->second;
-	  tag::flag_t flag = ptr->m_flag;
-	  assert(flag & tag::TEMPLATE);
-	  template_tag* tt = static_cast<template_tag*>(ptr);
-	  assert(!template_tag::nest.empty());
-	  template_tag::info_t& info = template_tag::nest.back();
-	  assert(info.m_tt == tt);
-	  assert(!info.m_it);
-	  tag::kind_t kind = tt->m_kind;
-	  info.m_it = new instantiated_tag(kind, name, parse::position,
-					   0, tt, info.m_key);
-	  tag* tmp = info.m_it;
-	  const type* T = tdef->m_type;
-	  tmp->m_types = make_pair(incomplete_tagged_type::create(tmp), T);
-	  return;
+	  return common(ptr, tdef->m_type);
 	}
         map<string, vector<usr*> >& usrs = scope::current->m_usrs;
         typedef map<string, vector<usr*> >::const_iterator ITy;
@@ -2269,8 +2264,10 @@ namespace cxx_compiler {
 	map<string, tag*>& tags = scope::current->m_tags;
 	typedef map<string, tag*>::const_iterator IT;
 	IT it = tags.find(xn);
-	if (it != tags.end())
-	  error::not_implemented();
+	if (it != tags.end()) {
+	  tag* ptr = it->second;
+	  return common(ptr, 0);
+	}
 	const vector<scope::tps_t>& tps = scope::current->m_tps;
 	if (tps.empty())
 	  error::not_implemented();
@@ -2281,7 +2278,7 @@ namespace cxx_compiler {
 	assert(!save_t::nest.empty());
 	save_t* p = save_t::nest.back();
 	assert(!p->m_tag);
-	tag* ptr = new tag(tag::TYPENAME, yn, parse::position, 0);
+	tag* ptr = new tag(tag::TYPENAME, xn, parse::position, 0);
 	ptr->m_parent = scope::current;
 	ptr->m_types.first = incomplete_tagged_type::create(ptr);
 	template_tag* tt = new template_tag(*ptr, b);
