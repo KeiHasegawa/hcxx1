@@ -1276,6 +1276,21 @@ namespace cxx_compiler {
         }
         return false;
       }
+      bool cmp_tag(const tag* cx, const tag* cy)
+      {
+	if (cx == cy)
+	  return true;
+	const type* Tx = cx->m_types.first;
+	if (Tx->m_id != type::TEMPLATE_PARAM)
+	  return false;
+	const type* Ty = cy->m_types.second;
+	if (!Ty)
+	  return false;
+	tag* xtag = const_cast<tag*>(cx);
+	m_table[xtag] = Ty;
+	m_key.push_back(scope::tps_t::val2_t(Ty, 0));
+	return true;
+      }
       bool cmp_type(const type* Tx, const type* Ty)
       {
         tag* xtag = Tx->get_tag();
@@ -1289,6 +1304,18 @@ namespace cxx_compiler {
               Ty = pty->referenced_type();
               return cmp_type(Tx, Ty);
             }
+	    if (Tx->m_id == type::POINTER_MEMBER) {
+	      typedef const pointer_member_type PM;
+	      PM* pmx = static_cast<PM*>(Tx);
+	      Tx = pmx->referenced_type();
+	      PM* pmy = static_cast<PM*>(Ty);
+	      Ty = pmy->referenced_type();
+	      if (!cmp_type(Tx, Ty))
+		return false;
+	      const tag* cx = pmx->ctag();
+	      const tag* cy = pmy->ctag();
+	      return cmp_tag(cx, cy);
+	    }
           }
           return compatible(Tx, Ty);
         }

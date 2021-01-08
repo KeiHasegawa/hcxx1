@@ -47,6 +47,7 @@ while ( <> ){
 #include "patch.13.p"
 #include "patch.13.2.p"
 #include "patch.14.p"
+#include "patch.23.p"
 EOF2
 	;
     ++$yydefault_converted;
