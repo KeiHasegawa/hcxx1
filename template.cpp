@@ -782,8 +782,11 @@ cxx_compiler::template_usr::instantiate(std::vector<var*>* arg, KEY* trial)
   typedef KEY::const_iterator KI;
   KI q = find_if(begin(key), end(key), template_usr_impl::not_constant); 
   if (q != end(key)) {
-    if (parse::templ::save_t::nest.empty())
-      error::not_implemented();
+    if (!parse::templ::save_t::nest.empty())
+      return this;
+    if (instantiate_with_template_param<template_usr>())
+      return this;
+    error::not_implemented();
     return this;
   }
 
@@ -1650,8 +1653,11 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
   typedef KEY::const_iterator KI;
   KI q = find_if(begin(key), end(key), template_usr_impl::not_constant); 
   if (q != end(key)) {
-    if (parse::templ::save_t::nest.empty())
-      error::not_implemented();
+    if (!parse::templ::save_t::nest.empty())
+      return this;
+    if (instantiate_with_template_param<template_tag>())
+      return this;
+    error::not_implemented();
     return this;
   }
 

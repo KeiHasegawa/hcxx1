@@ -235,7 +235,8 @@ namespace cxx_compiler {
       const type* T = ptr->m_types.first;
       if (T->m_id != type::TEMPLATE_PARAM) {
         T = ptr->m_types.second;
-        assert(T);
+	tag::flag_t flag = ptr->m_flag;
+	assert(T || (flag & tag::TEMPLATE));
         return;
       }
       T = ptr->m_types.second;
