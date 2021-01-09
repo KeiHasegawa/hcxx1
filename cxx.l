@@ -110,6 +110,9 @@ __builtin_clz       { return BUILTIN_CLZ; }
 __builtin_clzl      { return BUILTIN_CLZL; }
 __builtin_clzll     { return BUILTIN_CLZLL; }
 __is_base_of        { return BUILTIN_IS_BASE_OF; }
+__is_class          { return BUILTIN_IS_CLASS; }
+__is_enum           { return BUILTIN_IS_ENUM; }
+__is_union          { return BUILTIN_IS_UNION; }
 asm                 { return ASM_KW; }
 auto                { return AUTO_KW; }
 bool                { return BOOL_KW; }

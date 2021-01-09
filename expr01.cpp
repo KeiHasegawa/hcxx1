@@ -2937,6 +2937,21 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::type_ident::gen()
   return ret;
 }
 
+cxx_compiler::var* cxx_compiler::expressions::postfix::is_kind::gen()
+{
+  using namespace primary::literal;
+ tag* ptr = m_type->get_tag();
+ if (!ptr)
+   return integer::create(0);
+ tag::kind_t kind = ptr->m_kind;
+ if (kind == tag::STRUCT) {
+   int n = m_kind == tag::CLASS;
+   return integer::create(n);
+ }
+ int n = kind == m_kind;
+ return integer::create(n);
+}
+
 namespace cxx_compiler {
   using namespace expressions::primary::literal;
   template<> var* refimm<void*>::common()

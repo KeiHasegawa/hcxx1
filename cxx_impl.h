@@ -1021,6 +1021,15 @@ namespace expressions {
       var* gen();
       const file_t& file() const { return m_file; }
     };
+    struct is_kind : base {
+      tag::kind_t m_kind;
+      const type* m_type;
+      file_t m_file;
+      is_kind(tag::kind_t kind, const type* T)
+        : m_kind(kind), m_type(T), m_file(parse::position) {}
+      var* gen();
+      const file_t& file() const { return m_file; }
+    };
   } // end of namespace postfix
   namespace unary {
     struct ppmm : base {

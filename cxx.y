@@ -83,6 +83,7 @@ namespace cxx_compiler {
 %token FALSE_KW TRUE_KW
 %token BUILTIN_VA_ARG BUILTIN_VA_START BUILTIN_VA_END BUILTIN_ADDRESSOF
 %token BUILTIN_IS_BASE_OF BUILTIN_CONSTANT_P
+%token BUILTIN_IS_CLASS BUILTIN_IS_ENUM  BUILTIN_IS_UNION
 %token BUILTIN_CLZ BUILTIN_CLZL BUILTIN_CLZLL
 %token NEW_ARRAY_LEX DELETE_ARRAY_LEX
 %token NOEXCEPT_KW
@@ -2575,6 +2576,21 @@ postfix_expression
     { $$ = new cxx_compiler::expressions::compound::info_t($2,$5); }
   | '(' type_id ')' '{' initializer_list ',' '}'
     { $$ = new cxx_compiler::expressions::compound::info_t($2,$5); }
+  | BUILTIN_IS_ENUM '(' type_id ')'
+    {
+      using namespace cxx_compiler;
+      $$ = new expressions::postfix::is_kind(tag::ENUM, $3);
+    }
+  | BUILTIN_IS_UNION '(' type_id ')'
+    {
+      using namespace cxx_compiler;
+      $$ = new expressions::postfix::is_kind(tag::UNION, $3);
+    }
+  | BUILTIN_IS_CLASS '(' type_id ')'
+    {
+      using namespace cxx_compiler;
+      $$ = new expressions::postfix::is_kind(tag::CLASS, $3);
+    }
   ;
 
 fcast_prev
