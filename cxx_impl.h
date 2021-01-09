@@ -1829,8 +1829,15 @@ bool instance_of(template_usr* tu, usr* ins, templ_base::KEY& key);
 
 inline bool template_param(const scope::tps_t::val2_t& x)
 {
-  if (const type* T = x.first)
-    return T->m_id == type::TEMPLATE_PARAM;
+  if (const type* T = x.first) {
+    if (T->m_id == type::TEMPLATE_PARAM)
+      return true;
+    if (tag* ptr = T->get_tag()) {
+      if (record_impl::should_skip(ptr))
+	return true;
+    }
+    return false;
+  }
   var* v = x.second;
   usr* u = v->usr_cast();
   if (!u)

@@ -929,12 +929,8 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
       if (scope::current->m_id == scope::TAG) {
         tag* ptr = static_cast<tag*>(scope::current);
         const type* T = ptr->m_types.first;
-        if (T->m_id == type::TEMPLATE_PARAM) {
-          int r = create(name);
-          usr* u = cxx_compiler_lval.m_usr;
-          u->m_type = int_type::create();
-          return r;
-        }
+        if (T->m_id == type::TEMPLATE_PARAM)
+	  return create(name, int_type::create());
       }
     }
     else {
@@ -942,12 +938,10 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
 	tag* ptag = static_cast<tag*>(ptr);
 	const type* T1 = ptag->m_types.first;
 	const type* T2 = ptag->m_types.second;
-	if (T1 && !T2 && T1->m_id == type::TEMPLATE_PARAM) {
-          int r = create(name);
-          usr* u = cxx_compiler_lval.m_usr;
-          u->m_type = int_type::create();
-          return r;
-	}
+	if (T1 && !T2 && T1->m_id == type::TEMPLATE_PARAM)
+	  return create(name, int_type::create());
+	if (record_impl::should_skip(ptag))
+	  return create(name, int_type::create());
       }
     }
   }

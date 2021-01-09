@@ -1124,6 +1124,11 @@ void cxx_compiler::optimize::symtab::literal::mark1(tac* tac)
 void cxx_compiler::optimize::symtab::literal::mark2(scope* ptr)
 {
   using namespace std;
+  if (ptr->m_id == scope::TAG) {
+    tag* ptag = static_cast<tag*>(ptr);
+    if (record_impl::should_skip(ptag))
+      return;
+  }
   map<string, vector<usr*> >& usrs = ptr->m_usrs;
   for_each(usrs.begin(), usrs.end(), mark3);
   vector<scope*>& children = ptr->m_children;
