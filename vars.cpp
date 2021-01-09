@@ -82,6 +82,46 @@ cxx_compiler::var* cxx_compiler::with_initial::rvalue()
   return p->second;
 }
 
+cxx_compiler::var* cxx_compiler::with_initial::cast(const type* T)
+{
+  var* y = rvalue();
+  if (y != this)
+    return y->cast(T);
+  return usr::cast(T);
+}
+
+cxx_compiler::var* cxx_compiler::with_initial::plus()
+{
+  var* y = rvalue();
+  if (y != this)
+    return y->plus();
+  return usr::plus();
+}
+
+cxx_compiler::var* cxx_compiler::with_initial::minus()
+{
+  var* y = rvalue();
+  if (y != this)
+    return y->minus();
+  return usr::minus();
+}
+
+cxx_compiler::var* cxx_compiler::with_initial::_not()
+{
+  var* y = rvalue();
+  if (y != this)
+    return y->_not();
+  return usr::_not();
+}
+
+cxx_compiler::var* cxx_compiler::with_initial::tilde()
+{
+  var* y = rvalue();
+  if (y != this)
+    return y->tilde();
+  return usr::tilde();
+}
+
 namespace cxx_compiler {
   namespace genaddr_impl {
     var* appear_templ_case(genaddr* ga)

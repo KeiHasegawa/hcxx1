@@ -1087,6 +1087,11 @@ struct with_initial : usr {
 
   var* rvalue();
   var* indirection();
+  var* cast(const type*);
+  var* plus();
+  var* minus();
+  var* _not();
+  var* tilde();
 };
 
 struct type_def : usr {

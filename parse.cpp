@@ -628,6 +628,8 @@ namespace cxx_compiler {
     {
       if (base_clause.empty())
 	return false;
+      if (templ::arg)
+	return false;
       int c = parse::peek();
       switch (c) {
       case '*': case '/': case '%':
