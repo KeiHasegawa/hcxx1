@@ -933,6 +933,8 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
         const type* T = ptr->m_types.first;
         if (T->m_id == type::TEMPLATE_PARAM)
 	  return create(name, int_type::create());
+	if (record_impl::should_skip(ptr))
+	  return create(name, int_type::create());
       }
     }
     else {
