@@ -1496,8 +1496,8 @@ cxx_compiler::unqualified_id::operator_function_id(int op)
   tag* ptr = static_cast<tag*>(scope::current);
   const type* T = ptr->m_types.second;
   assert(T);
-  const type* rt = reference_type::create(T);
-  const type* rtc = reference_type::create(const_type::create(T));
+  const type* rt = reference_type::create(T, false);
+  const type* rtc = reference_type::create(const_type::create(T), false);
   vector<const type*> tmp;
   tmp.push_back(rtc);
   const func_type* ft = func_type::create(rt, tmp);

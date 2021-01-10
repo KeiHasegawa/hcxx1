@@ -1643,7 +1643,7 @@ namespace cxx_compiler {
       const type* T = ptr->m_types.first;
       if (const_f)
         T = const_type::create(T);
-      return reference_type::create(T);
+      return reference_type::create(T, false);
     }
     inline const func_type* copy_ctor_type(tag* ptr, bool const_f)
     {

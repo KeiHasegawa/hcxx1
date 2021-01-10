@@ -1254,10 +1254,18 @@ void cxx_compiler::reference_type::decl(std::ostream& os, std::string name) cons
   using namespace std;
   const type* T = m_T->prev();
   ostringstream tmp;
-  if ( T == m_T )
-    tmp << '&' << name;
-  else
-    tmp << '(' << '&' << name << ')';
+  if ( T == m_T ) {
+    tmp << '&';
+    if (m_twice)
+      tmp << '&';
+    tmp << name;
+  }
+  else {
+    tmp << '(' << '&';
+    if (m_twice)
+      tmp << '&';
+    tmp << name << ')';
+  }
   m_T->decl(os,tmp.str());
 }
 
@@ -1267,12 +1275,13 @@ void cxx_compiler::reference_type::encode(std::ostream& os) const
   m_T->encode(os);
 }
 
-const cxx_compiler::type* cxx_compiler::reference_type::patch(const type* T, usr* u) const
+const cxx_compiler::type*
+cxx_compiler::reference_type::patch(const type* T, usr* u) const
 {
   T = m_T->patch(T,u);
   if (u)
     u->m_flag = (usr::flag_t)(u->m_flag & ~usr::FUNCTION & ~usr::VL);
-  return create(T);
+  return create(T, m_twice);
 }
 
 bool cxx_compiler::reference_type::compatible(const type* T) const
@@ -1286,7 +1295,8 @@ bool cxx_compiler::reference_type::compatible(const type* T) const
   return this->m_T->compatible(that->m_T);
 }
 
-const cxx_compiler::type* cxx_compiler::reference_type::composite(const type* T) const
+const cxx_compiler::type*
+cxx_compiler::reference_type::composite(const type* T) const
 {
   if (this == T)
     return this;
@@ -1295,22 +1305,24 @@ const cxx_compiler::type* cxx_compiler::reference_type::composite(const type* T)
   typedef const reference_type REF;
   REF* that = static_cast<REF*>(T);
   T = this->m_T->composite(that->m_T);
-  return T ? create(T) : 0;
+  return T ? create(T, m_twice) : 0;
 }
 
 const cxx_compiler::type* cxx_compiler::reference_type::complete_type() const
 {
-  return create(m_T->complete_type());
+  return create(m_T->complete_type(), m_twice);
 }
 
-const cxx_compiler::reference_type* cxx_compiler::reference_type::create(const type* T)
+const cxx_compiler::reference_type*
+cxx_compiler::reference_type::create(const type* T, bool twice)
 {
   table_t& table = T->tmp() ? tmp_tbl : pmt_tbl;
-  table_t::const_iterator p = table.find(T);
+  pair<const type*, bool> key(T, twice);
+  table_t::const_iterator p = table.find(key);
   if ( p != table.end() )
     return p->second;
   else
-    return table[T] = new reference_type(T);
+    return table[key] = new reference_type(T, twice);
 }
 
 void cxx_compiler::reference_type::destroy_tmp()

@@ -206,7 +206,7 @@ namespace cxx_compiler {
         int offset = off.first;
         assert(offset >= 0);
         const type* T = member->m_type;
-        const reference_type* rt = reference_type::create(T);
+        const reference_type* rt = reference_type::create(T, false);
         var* src = new ref(rt);
         const type* pt = pointer_type::create(T);
         var* dst = new var(pt);
@@ -304,7 +304,7 @@ cxx_compiler::var* cxx_compiler::usr::assign(var* op)
       T = volatile_type::create(T);
     if (cvr & 4)
       T = restrict_type::create(T);
-    T = reference_type::create(T);
+    T = reference_type::create(T, false);
   }
   T = expressions::assignment::valid(T, y, &discard, &ctor_conv, 0);
   if (!T) {

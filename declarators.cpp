@@ -50,8 +50,8 @@ cxx_compiler::declarations::declarators::pointer::action(const type* X,
 const cxx_compiler::type*
 cxx_compiler::declarations::declarators::reference::action(bool twice)
 {
-  const type* T = reference_type::create(backpatch_type::create());
   // For f(int&& r), `twice' is true.
+  const type* T = reference_type::create(backpatch_type::create(), twice);
   return T;
 }
 

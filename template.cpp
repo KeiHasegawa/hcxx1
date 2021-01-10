@@ -1303,14 +1303,27 @@ namespace cxx_compiler {
               typedef const pointer_type PT;
               PT* ptx = static_cast<PT*>(Tx);
               Tx = ptx->referenced_type();
+	      assert(Ty->m_id == type::POINTER);
               PT* pty = static_cast<PT*>(Ty);
               Ty = pty->referenced_type();
               return cmp_type(Tx, Ty);
+            }
+            if (Tx->m_id == type::REFERENCE) {
+              typedef const reference_type RT;
+              RT* rtx = static_cast<RT*>(Tx);
+              Tx = rtx->referenced_type();
+              RT* rty = static_cast<RT*>(Ty);
+	      assert(Ty->m_id == type::REFERENCE);
+              Ty = rty->referenced_type();
+	      if (rtx->twice() != rty->twice())
+		return false;
+	      return cmp_type(Tx, Ty);
             }
 	    if (Tx->m_id == type::POINTER_MEMBER) {
 	      typedef const pointer_member_type PM;
 	      PM* pmx = static_cast<PM*>(Tx);
 	      Tx = pmx->referenced_type();
+	      assert(Ty->m_id == type::POINTER_MEMBER);
 	      PM* pmy = static_cast<PM*>(Ty);
 	      Ty = pmy->referenced_type();
 	      if (!cmp_type(Tx, Ty))

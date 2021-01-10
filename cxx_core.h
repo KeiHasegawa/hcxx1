@@ -1680,10 +1680,13 @@ public:
 };
 
 class reference_type : public type {
-  typedef std::map<const type*, const reference_type*> table_t;
+  typedef std::map<std::pair<const type*, bool>, const reference_type*>
+    table_t;
   static table_t tmp_tbl, pmt_tbl;
   const type* m_T;
-  reference_type(const type* T) : type(REFERENCE), m_T(T) {}
+  bool m_twice;
+  reference_type(const type* T, bool twice)
+    : type(REFERENCE), m_T(T), m_twice(twice) {}
 public:
   void decl(std::ostream&, std::string) const;
   void encode(std::ostream&) const;
@@ -1692,12 +1695,13 @@ public:
   const type* patch(const type*, usr*) const;
   bool backpatch() const { return m_T->backpatch(); }
   const type* referenced_type() const { return m_T; }
+  bool twice() const { return m_twice; }
   int size() const;
   bool integer() const { return false; }
   const type* complete_type() const;
   bool tmp() const { return m_T->tmp(); }
   const type* varg() const { return m_T->varg(); }
-  static const reference_type* create(const type*);
+  static const reference_type* create(const type*, bool);
   static void destroy_tmp();
   static void collect_tmp(std::vector<const type*>&);
 };
