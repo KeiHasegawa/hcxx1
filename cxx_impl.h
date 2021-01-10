@@ -1839,6 +1839,7 @@ bool instance_of(template_usr* tu, usr* ins, templ_base::KEY& key);
 inline bool template_param(const scope::tps_t::val2_t& x)
 {
   if (const type* T = x.first) {
+    T = T->unqualified();
     if (T->m_id == type::TEMPLATE_PARAM)
       return true;
     if (tag* ptr = T->get_tag()) {
