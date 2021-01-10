@@ -24,6 +24,7 @@ namespace cxx_compiler {
         return parent;
       }
       int create_templ(std::string);
+      int create_guess(std::string);
     } // end of namespace identifier
   } // end of namespace parse and
 } // end of namespace cxx_compiler
@@ -149,6 +150,21 @@ int cxx_compiler::parse::identifier::create_templ(std::string name)
   tags[name] = tt;
   scope::current->m_children.push_back(tt);
   return TEMPLATE_NAME_LEX;
+}
+
+int cxx_compiler::parse::identifier::create_guess(std::string name)
+{
+  tag* ptr = new tag(tag::GUESS, name, parse::position, 0);
+  assert(!class_or_namespace_name::before.empty());
+  assert(class_or_namespace_name::before.back() == ptr);
+  class_or_namespace_name::before.pop_back();
+  ptr->m_types.first = incomplete_tagged_type::create(ptr);
+  ptr->m_parent = scope::current;
+  map<string, tag*>& tags = scope::current->m_tags;
+  assert(tags.find(name) == tags.end());
+  tags[name] = ptr;
+  cxx_compiler_lval.m_tag = ptr;
+  return CLASS_NAME_LEX;
 }
 
 namespace cxx_compiler {
@@ -915,19 +931,8 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
     if (typenaming)
       return create(name);
     if (!parse::templ::save_t::nest.empty()) {
-      if (should_return_guess()) {
-	tag* ptr = new tag(tag::GUESS, name, parse::position, 0);
-	assert(!class_or_namespace_name::before.empty());
-	assert(class_or_namespace_name::before.back() == ptr);
-	class_or_namespace_name::before.pop_back();
-	ptr->m_types.first = incomplete_tagged_type::create(ptr);
-	ptr->m_parent = scope::current;
-	map<string, tag*>& tags = scope::current->m_tags;
-	assert(tags.find(name) == tags.end());
-	tags[name] = ptr;
-	cxx_compiler_lval.m_tag = ptr;
-	return CLASS_NAME_LEX;
-      }
+      if (should_return_guess())
+	return create_guess(name);
       if (scope::current->m_id == scope::TAG) {
         tag* ptr = static_cast<tag*>(scope::current);
         const type* T = ptr->m_types.first;
@@ -944,8 +949,11 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
 	const type* T2 = ptag->m_types.second;
 	if (T1 && !T2 && T1->m_id == type::TEMPLATE_PARAM)
 	  return create(name, int_type::create());
-	if (record_impl::should_skip(ptag))
+	if (record_impl::should_skip(ptag)) {
+	  if (should_return_guess())
+	    return create_guess(name);
 	  return create(name, int_type::create());
+	}
       }
     }
   }
