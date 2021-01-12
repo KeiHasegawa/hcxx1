@@ -1389,9 +1389,11 @@ namespace cxx_compiler {
     };
     struct match {
       vector<scope::tps_t::val2_t*>* m_pv;
+      bool m_pv_dots;
       template_tag::KEY& m_key;
-      match(vector<scope::tps_t::val2_t*>* pv, template_tag::KEY& key)
-        : m_pv(pv), m_key(key) {}
+      match(vector<scope::tps_t::val2_t*>* pv, bool pv_dots,
+	    template_tag::KEY& key)
+        : m_pv(pv), m_pv_dots(pv_dots), m_key(key) {}
       bool operator()(const partial_special_tag* ps)
       {
         const special_ver_tag* sv = ps->m_sv;
@@ -1399,49 +1401,37 @@ namespace cxx_compiler {
 	if (!m_pv)
 	  return key.empty();
 	bool dots = ps->templ_base::m_tps.m_dots;
+	int n = key.size();
 	if (dots) {
-	  assert(!key.empty());
-	  if (key.size() - 1 != m_pv->size()) {
-	    m_key.clear();
-	    return false;
-	  }
+	  assert(n);
+	  --n;
 	}
-	else {
-	  if (key.size() != m_pv->size()) {
-	    m_key.clear();
-	    return false;
-	  }
+	int m = m_pv->size();
+	if (m_pv_dots) {
+	  assert(m);
+	  --m;
+	}
+	if (n != m) {
+	  m_key.clear();
+	  return false;
 	}
         typedef template_tag::KEY::const_iterator ITx;
         typedef vector<scope::tps_t::val2_t*>::iterator ITy;
-	if (dots) {
-	  pair<ITx, ITy> ret = mismatch(begin(key), end(key) - 1, begin(*m_pv),
-					cmp(m_key));
-	  if (ret != make_pair(end(key) - 1, end(*m_pv))) {
-	    m_key.clear();
-	    return false;
-	  }
-	}
-	else {
-	  pair<ITx, ITy> ret = mismatch(begin(key), end(key), begin(*m_pv),
-					cmp(m_key));
-	  if (ret != make_pair(end(key), end(*m_pv))) {
-	    m_key.clear();
-	    return false;
-	  }
+	pair<ITx, ITy> ret = mismatch(begin(key), begin(key)+n, begin(*m_pv),
+				      cmp(m_key));
+	if (ret != make_pair(begin(key)+n, begin(*m_pv)+n)) {
+	  m_key.clear();
+	  return false;
 	}
         const vector<string>& order = ps->templ_base::m_tps.m_order;
+	int n2 = order.size();
 	if (dots) {
-	  if (order.size() - 1 != m_key.size()) {
-	    m_key.clear();
-	    return false;
-	  }
+	  assert(n2);
+	  --n2;
 	}
-	else {
-	  if (order.size() != m_key.size()) {
-	    m_key.clear();
-	    return false;
-	  }
+	if (n2 != m_key.size()) {
+	  m_key.clear();
+	  return false;
 	}
         return true;
       }
@@ -1585,14 +1575,16 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
 	IT p = tags.find(name);
 	if (p != tags.end())
 	  return p->second;
-        x.m_it = new instantiated_tag(m_kind, name, parse::position,
-                		      m_bases, ps, x.m_key);
-	if (parse::peek() == ':') {
-	  assert(!class_or_namespace_name::before.empty());
-	  assert(class_or_namespace_name::before.back() == x.m_it);
-	  class_or_namespace_name::before.pop_back();
+	if (!x.m_it) {
+	  x.m_it = new instantiated_tag(m_kind, name, parse::position,
+					m_bases, ps, x.m_key);
+	  if (parse::peek() == ':') {
+	    assert(!class_or_namespace_name::before.empty());
+	    assert(class_or_namespace_name::before.back() == x.m_it);
+	    class_or_namespace_name::before.pop_back();
+	  }
+	  return x.m_it;
 	}
-        return x.m_it;
       }
     }
   }
@@ -1600,7 +1592,7 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
   KEY res;
   typedef vector<partial_special_tag*>::reverse_iterator IT;
   IT it = find_if(rbegin(m_partial_special), rend(m_partial_special),
-                  template_tag_impl:: match(pv, res));
+                  template_tag_impl:: match(pv, pv_dots, res));
   if (it != rend(m_partial_special)) {
     vector<scope::tps_t::val2_t*>* pv2 = new vector<scope::tps_t::val2_t*>;
     transform(begin(res), end(res), back_inserter(*pv2),
