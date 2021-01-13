@@ -83,7 +83,7 @@ namespace cxx_compiler {
 %token FALSE_KW TRUE_KW
 %token BUILTIN_VA_ARG BUILTIN_VA_START BUILTIN_VA_END BUILTIN_ADDRESSOF
 %token BUILTIN_IS_BASE_OF BUILTIN_CONSTANT_P
-%token BUILTIN_IS_CLASS BUILTIN_IS_ENUM  BUILTIN_IS_UNION
+%token BUILTIN_IS_CLASS BUILTIN_IS_ENUM  BUILTIN_IS_UNION BUILTIN_IS_SAME_AS
 %token BUILTIN_CLZ BUILTIN_CLZL BUILTIN_CLZLL
 %token NEW_ARRAY_LEX DELETE_ARRAY_LEX
 %token NOEXCEPT_KW
@@ -2600,6 +2600,10 @@ postfix_expression
     {
       using namespace cxx_compiler;
       $$ = new expressions::postfix::is_kind(tag::CLASS, $3);
+    }
+  | BUILTIN_IS_SAME_AS '(' type_id ',' type_id ')'
+    {
+      cxx_compiler::error::not_implemented();
     }
   ;
 
