@@ -1030,6 +1030,15 @@ namespace expressions {
       var* gen();
       const file_t& file() const { return m_file; }
     };
+    struct is_same_as : base {
+      const type* m_Tx;
+      const type* m_Ty;
+      file_t m_file;
+      is_same_as(const type* Tx, const type* Ty)
+        : m_Tx(Tx), m_Ty(Ty), m_file(parse::position) {}
+      var* gen();
+      const file_t& file() const { return m_file; }
+    };
   } // end of namespace postfix
   namespace unary {
     struct ppmm : base {

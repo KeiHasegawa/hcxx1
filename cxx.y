@@ -2603,7 +2603,8 @@ postfix_expression
     }
   | BUILTIN_IS_SAME_AS '(' type_id ',' type_id ')'
     {
-      cxx_compiler::error::not_implemented();
+      using namespace cxx_compiler;
+      $$ = new expressions::postfix::is_same_as($3, $5);
     }
   ;
 

@@ -2940,16 +2940,23 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::type_ident::gen()
 cxx_compiler::var* cxx_compiler::expressions::postfix::is_kind::gen()
 {
   using namespace primary::literal;
- tag* ptr = m_type->get_tag();
- if (!ptr)
-   return integer::create(0);
- tag::kind_t kind = ptr->m_kind;
- if (kind == tag::STRUCT) {
-   int n = m_kind == tag::CLASS;
-   return integer::create(n);
- }
- int n = kind == m_kind;
- return integer::create(n);
+  tag* ptr = m_type->get_tag();
+  if (!ptr)
+    return integer::create(0);
+  tag::kind_t kind = ptr->m_kind;
+  if (kind == tag::STRUCT) {
+    int n = m_kind == tag::CLASS ? 1 : 0;
+    return integer::create(n);
+  }
+  int n = kind == m_kind ? 1 : 0;
+  return integer::create(n);
+}
+
+cxx_compiler::var* cxx_compiler::expressions::postfix::is_same_as::gen()
+{
+  using namespace primary::literal;
+  int n = compatible(m_Tx, m_Ty) ? 1 : 0;
+  return integer::create(n);
 }
 
 namespace cxx_compiler {
