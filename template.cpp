@@ -1035,17 +1035,53 @@ namespace cxx_compiler {
 	  }
 	  return usr_action(tu, dup, false);
 	}
+	struct dup_action {
+	  static map<const instantiated_tag*, vector<tag*> > m_table;
+	  template_tag* m_tt;
+	  const instantiated_tag* m_it;
+	  dup_action(template_tag* tt, const instantiated_tag* it)
+	    : m_tt(tt), m_it(it) {}
+	  void operator()(const scope::tps_t::val2_t& x)
+	  {
+	    vector<scope::tps_t::val2_t*>* pv =
+	      new vector<scope::tps_t::val2_t*>;
+	    const instantiated_tag::SEED& seed = m_it->m_seed;
+	    template_tag::KEY key;
+	    assert(seed.size() > 0);
+	    copy(begin(seed), end(seed)-1, back_inserter(key));
+	    key.push_back(x);
+	    transform(begin(key), end(key), back_inserter(*pv), create);
+	    tag* res = m_tt->instantiate(pv, false);
+	    m_table[m_it].push_back(res);
+	  }
+	};
+	map<const instantiated_tag*, vector<tag*> > dup_action::m_table;
         pair<usr*, tag*>*
         action(pair<usr*, tag*>* x, vector<scope::tps_t::val2_t*>* pv,
-               bool dots)
+               bool dots, bool dup)
         {
-          // Note that `pv' is deleted at `template_tag::common()' or
-          // `template_usr::instantiate_explicit()'
           bool b = parse::templ::save_t::nest.empty();
           auto_ptr<pair<usr*, tag*> > sweeper(b ? x : 0);
           if (tag* ptr = x->second) {
             assert(!x->first);
-            return new pair<usr*, tag*>(0, tag_action(ptr, pv, dots));
+	    tag* res = tag_action(ptr, pv, dots);
+	    if (dup) {
+	      if (!template_tag::nest.empty()) {
+		assert(res->m_flag & tag::INSTANTIATE);
+		instantiated_tag* it = static_cast<instantiated_tag*>(res);
+		assert(ptr->m_flag & tag::TEMPLATE);
+		template_tag* tt = static_cast<template_tag*>(ptr);
+		assert(it->m_src == tt);
+		const instantiated_tag::SEED& seed = it->m_seed;
+		int n = seed.size();
+		template_tag::info_t& info = template_tag::nest.back();
+		const template_tag::KEY& key = info.m_key;
+		assert(mismatch(begin(seed), end(seed), begin(key))
+		       == make_pair(end(seed), begin(key)+n));
+		for_each(begin(key)+n, end(key), dup_action(tt, it));
+	      }
+	    }
+            return new pair<usr*, tag*>(0, res);
           }
           else {
             usr* u = x->first;
@@ -1549,6 +1585,45 @@ namespace cxx_compiler {
       }
       return scope::tps_t::val2_t(0, v);
     }
+    inline scope::tps_t::val2_t conv_dup_tbl(tag* ptr)
+    {
+      assert(ptr->m_flag & tag::INSTANTIATE);
+      const type* T = ptr->m_types.second;
+      if (!T)
+	T = ptr->m_types.first;
+      assert(T);
+      return scope::tps_t::val2_t(T,0);
+    }
+    inline bool copy_dup_tbl(bool dots, bool pv_dots,
+			     vector<scope::tps_t::val2_t>& key)
+    {
+      if (!dots)
+	return false;
+      if (!pv_dots)
+	return false;
+      if (key.empty())
+	return false;
+      const scope::tps_t::val2_t& x = key.back();
+      const type* T = x.first;
+      if (!T)
+	return false;
+      tag* ptr = T->get_tag();
+      if (!ptr)
+	return false;
+      tag::flag_t flag = ptr->m_flag;
+      if (!(flag & tag::INSTANTIATE))
+	return false;
+      instantiated_tag* it = static_cast<instantiated_tag*>(ptr);
+      using namespace declarations::templ::id;
+      typedef map<const instantiated_tag*, vector<tag*> >::iterator IT;
+      IT p = dup_action::m_table.find(it);
+      if (p == dup_action::m_table.end())
+	return false;
+      vector<tag*>& v = p->second;
+      transform(begin(v), end(v), back_inserter(key), conv_dup_tbl);
+      dup_action::m_table.erase(p);
+      return true;
+    }
   } // end of namespace template_tag_impl
 } // end of namespace cxx_compiler
 
@@ -1660,6 +1735,13 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
 		  template_tag_impl::calc_key(table));
       }
     }
+  }
+
+  if (template_tag_impl::copy_dup_tbl(dots, pv_dots, key)) {
+    vector<scope::tps_t::val2_t*>* pv = new vector<scope::tps_t::val2_t*>;
+    transform(begin(key), end(key), back_inserter(*pv),
+	      declarations::templ::create);
+    return common(pv, special_ver, false);
   }
 
   typedef KEY::const_iterator KI;

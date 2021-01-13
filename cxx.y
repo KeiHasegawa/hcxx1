@@ -2123,12 +2123,22 @@ type_parameter
 template_id
   : TEMPLATE_NAME_LEX
     '<' enter_templ_arg template_argument_list leave_templ_arg '>'
-    { $$ = cxx_compiler::declarations::templ::id::action($1, $4, false); }
+    {
+       using namespace cxx_compiler;
+       bool dup = parse::peek() == DOTS_MK;
+       $$ = declarations::templ::id::action($1, $4, false, dup);
+    }
   | TEMPLATE_NAME_LEX
     '<' enter_templ_arg template_argument_list DOTS_MK leave_templ_arg '>'
-    { $$ = cxx_compiler::declarations::templ::id::action($1, $4, true); }
+    {
+       using namespace cxx_compiler;
+       $$ = declarations::templ::id::action($1, $4, true, false);
+    }
   | TEMPLATE_NAME_LEX '<' enter_templ_arg leave_templ_arg '>'
-    { $$ = cxx_compiler::declarations::templ::id::action($1, 0, false); }
+    {
+       using namespace cxx_compiler;
+       $$ = declarations::templ::id::action($1, 0, false, false);
+    }
   ;
 
 enter_templ_arg

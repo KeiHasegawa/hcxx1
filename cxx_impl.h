@@ -866,7 +866,7 @@ namespace declarations {
     extern void decl_end();
     namespace id {
       extern pair<usr*, tag*>*
-      action(pair<usr*, tag*>*, vector<scope::tps_t::val2_t*>*, bool);
+      action(pair<usr*, tag*>*, vector<scope::tps_t::val2_t*>*, bool, bool);
     } // end of namespace id
     namespace specialization {
       extern stack<scope*> nest;
