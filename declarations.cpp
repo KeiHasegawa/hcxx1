@@ -2165,7 +2165,7 @@ namespace cxx_compiler {
         alias_tag* al = new alias_tag(ptr);
         tags[name] = al;
       }
-      void common(tag* ptr, const type* T)
+      void common_a(tag* ptr, const type* T)
       {
 	tag::flag_t flag = ptr->m_flag;
 	assert(flag & tag::TEMPLATE);
@@ -2198,6 +2198,85 @@ namespace cxx_compiler {
 	tag* tmp = info.m_it;
 	tmp->m_types = make_pair(incomplete_tagged_type::create(tmp), T);
       }
+      void common_b(string name, const type* T)
+      {
+	map<string, tag*>& tags = scope::current->m_tags;
+	typedef map<string, tag*>::const_iterator IT;
+	IT p = tags.find(name);
+	if (p != tags.end()) {
+	  tag* ptr = p->second;
+	  return common_a(ptr, T);
+	}
+	tag* ptr = T->get_tag();
+	assert(ptr);
+	const vector<scope::tps_t>& tps = scope::current->m_tps;
+	if (!tps.empty()) {
+	  const scope::tps_t& b = tps.back();
+	  if (!b.m_table.empty()) {
+	    using namespace parse::templ;
+	    assert(!save_t::nest.empty());
+	    save_t* p = save_t::nest.back();
+	    assert(!p->m_tag);
+	    template_tag* tt = new template_tag(*ptr, b);
+	    p->m_tag = tt;
+	    tags[name] = tt;
+	    return;
+	  }
+	}
+	alias_tag* al = new alias_tag(ptr);
+	tags[name] = al;
+      }
+      inline void typename_case(var* x)
+      {
+	assert(x->usr_cast());
+	usr* ux = static_cast<usr*>(x);
+	assert(ux->m_type->m_id == type::BACKPATCH);
+	string xn = ux->m_name;
+	map<string, tag*>& tags = scope::current->m_tags;
+	typedef map<string, tag*>::const_iterator IT;
+	IT it = tags.find(xn);
+	if (it != tags.end()) {
+	  tag* ptr = it->second;
+	  return common_a(ptr, 0);
+	}
+	const vector<scope::tps_t>& tps = scope::current->m_tps;
+	if (tps.empty())
+	  error::not_implemented();
+	const scope::tps_t& b = tps.back();
+	if (b.m_table.empty())
+	  error::not_implemented();
+	using namespace parse::templ;
+	assert(!save_t::nest.empty());
+	save_t* p = save_t::nest.back();
+	assert(!p->m_tag);
+	tag* ptr = new tag(tag::TYPENAME, xn, parse::position, 0);
+	ptr->m_parent = scope::current;
+	ptr->m_types.first = incomplete_tagged_type::create(ptr);
+	template_tag* tt = new template_tag(*ptr, b);
+	p->m_tag = tt;
+	tags[xn] = tt;
+      }
+      void action(var* v, const type* T)
+      {
+	tag* ptr = T->get_tag();
+	if (ptr) {
+	  if (ptr->m_kind == tag::TYPENAME)
+	    return typename_case(v);
+	}
+	assert(v->usr_cast());
+	usr* ident = static_cast<usr*>(v);
+	assert(ident->m_type->m_id == type::BACKPATCH);
+	string name = ident->m_name;
+	if (ptr)
+	  return common_b(name, T);
+	map<string, vector<usr*> >& usrs = scope::current->m_usrs;
+	typedef map<string, vector<usr*> >::const_iterator IT;
+	IT p = usrs.find(name);
+	if (p != usrs.end())
+	  error::not_implemented();
+        alias_usr* al = new alias_usr(name, T);
+	usrs[name].push_back(al);
+      }
       void action(var* v, type_specifier* ts)
       {
 	auto_ptr<type_specifier> sweeper(ts);
@@ -2205,34 +2284,8 @@ namespace cxx_compiler {
 	usr* ident = static_cast<usr*>(v);
 	assert(ident->m_type->m_id == type::BACKPATCH);
 	string name = ident->m_name;
-	if (const type* T = ts->m_type) {
-	  map<string, tag*>& tags = scope::current->m_tags;
-	  typedef map<string, tag*>::const_iterator IT;
-	  IT p = tags.find(name);
-	  if (p != tags.end()) {
-	    tag* ptr = p->second;
-	    return common(ptr, T);
-	  }
-	  tag* ptr = T->get_tag();
-	  assert(ptr);
-	  const vector<scope::tps_t>& tps = scope::current->m_tps;
-	  if (!tps.empty()) {
-	    const scope::tps_t& b = tps.back();
-	    if (!b.m_table.empty()) {
-	      using namespace parse::templ;
-	      assert(!save_t::nest.empty());
-	      save_t* p = save_t::nest.back();
-	      assert(!p->m_tag);
-	      template_tag* tt = new template_tag(*ptr, b);
-	      p->m_tag = tt;
-	      tags[name] = tt;
-	      return;
-	    }
-	  }
-	  alias_tag* al = new alias_tag(ptr);
-	  tags[name] = al;
-	  return;
-	}
+	if (const type* T = ts->m_type)
+	  return common_b(name, T);
 	usr* tdef = ts->m_usr;
 	assert(tdef->m_flag & usr::TYPEDEF);
 	const map<string, tag*>& tags = scope::current->m_tags;
@@ -2240,7 +2293,7 @@ namespace cxx_compiler {
 	ITx px = tags.find(name);
 	if (px != tags.end()) {
 	  tag* ptr = px->second;
-	  return common(ptr, tdef->m_type);
+	  return common_a(ptr, tdef->m_type);
 	}
         map<string, vector<usr*> >& usrs = scope::current->m_usrs;
         typedef map<string, vector<usr*> >::const_iterator ITy;
@@ -2277,40 +2330,6 @@ namespace cxx_compiler {
 	}
         alias_usr* al = new alias_usr(tdef);
         usrs[name].push_back(al);
-      }
-      void action(var* x, var* y)
-      {
-	assert(x->usr_cast());
-	usr* ux = static_cast<usr*>(x);
-	assert(ux->m_type->m_id == type::BACKPATCH);
-	string xn = ux->m_name;
-        assert(y->usr_cast());
-        usr* uy = static_cast<usr*>(y);
-	assert(uy->m_type->m_id == type::BACKPATCH);
-        string yn = uy->m_name;
-	map<string, tag*>& tags = scope::current->m_tags;
-	typedef map<string, tag*>::const_iterator IT;
-	IT it = tags.find(xn);
-	if (it != tags.end()) {
-	  tag* ptr = it->second;
-	  return common(ptr, 0);
-	}
-	const vector<scope::tps_t>& tps = scope::current->m_tps;
-	if (tps.empty())
-	  error::not_implemented();
-	const scope::tps_t& b = tps.back();
-	if (b.m_table.empty())
-	  error::not_implemented();
-	using namespace parse::templ;
-	assert(!save_t::nest.empty());
-	save_t* p = save_t::nest.back();
-	assert(!p->m_tag);
-	tag* ptr = new tag(tag::TYPENAME, xn, parse::position, 0);
-	ptr->m_parent = scope::current;
-	ptr->m_types.first = incomplete_tagged_type::create(ptr);
-	template_tag* tt = new template_tag(*ptr, b);
-	p->m_tag = tt;
-	tags[xn] = tt;
       }
     } // end of namespace declarations
   } // end of namespace declarations

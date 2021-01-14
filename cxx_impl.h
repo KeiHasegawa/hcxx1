@@ -876,8 +876,8 @@ namespace declarations {
   namespace use {
     void action(var*);
     void action(tag*);
+    void action(var*, const type*);
     void action(var*, type_specifier*);
-    void action(var*, var*);
   } // end of namespace use
 } // end of namespace declarations
 
@@ -1935,6 +1935,8 @@ struct alias_usr : usr {
   {
     m_flag2 = usr::flag2_t(m_flag2 | usr::ALIAS);
   }
+  alias_usr(string name, const type* T)
+    : usr(name, T, flag_t::NONE, parse::position, flag2_t::ALIAS), m_org(0) {}
 };
 
 struct alias_tag : tag {

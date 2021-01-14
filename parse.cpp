@@ -509,7 +509,12 @@ namespace cxx_compiler {
           cxx_compiler_lval.m_usr = u;
           if (u->m_flag2 & usr::ALIAS) {
             alias_usr* al = static_cast<alias_usr*>(u);
-            u = al->m_org;
+	    if (usr* org = al->m_org)
+	      u = org;
+	    else {
+	      cxx_compiler_lval.m_type = u->m_type;
+	      return ALIAS_TYPE_LEX;
+	    }
           }
           usr::flag_t flag = u->m_flag;
           if (flag & usr::TYPEDEF) {

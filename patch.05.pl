@@ -17,6 +17,7 @@
 #    COLONCOLON_MK                shift, and go to state SSS7
 #    ANDAND_MK                    shift, and go to state SSS7x
 #    OPERATOR_KW                  shift, and go to state SSS8
+#    ALIAS_TYPE_LEX               shift, and go to state SSS14
 #    '('                          shift, and go to state SSS9
 #    '*'                          shift, and go to state SSS10
 #    '&'                          shift, and go to state SSS11
@@ -76,6 +77,8 @@ while ( <> ){
     next if ( !/ANDAND_MK  +shift, and go to state [0-9]+/);
     $_ = <>; chop;
     next if ( !/OPERATOR_KW +shift, and go to state [0-9]+/);
+    $_ = <>; chop;
+    next if ( !/ALIAS_TYPE_LEX +shift, and go to state [0-9]+/);
     $_ = <>; chop;
     next if ( !/'\(' +shift, and go to state [0-9]+/);
     $_ = <>; chop;

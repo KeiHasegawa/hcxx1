@@ -89,6 +89,7 @@ namespace cxx_compiler {
 %token NOEXCEPT_KW
 %token NULLPTR_KW
 %token CONSTEXPR_KW
+%token ALIAS_TYPE_LEX
 
 %union {
   int m_ival;
@@ -198,6 +199,7 @@ namespace cxx_compiler {
 %type<m_handler> handler
 %type<m_handlers> handler_seq
 %type<m_var> exception_declaration
+%type<m_type> ALIAS_TYPE_LEX
 
 %%
 
@@ -384,6 +386,8 @@ type_name
   | ENUM_NAME_LEX
     { $$ = new cxx_compiler::declarations::type_specifier($1); }
   | TYPEDEF_NAME_LEX
+    { $$ = new cxx_compiler::declarations::type_specifier($1); }
+  | ALIAS_TYPE_LEX
     { $$ = new cxx_compiler::declarations::type_specifier($1); }
   ;
 
@@ -748,18 +752,11 @@ using_declaration
       cxx_compiler::class_or_namespace_name::after(false);
       cxx_compiler::declarations::use::action($3);
     }
-  | USING_KW IDENTIFIER_LEX '=' type_name ';'
+  | USING_KW IDENTIFIER_LEX '=' type_id ';'
     {
       cxx_compiler::declarations::use::action($2, $4);
     }
   | USING_KW IDENTIFIER_LEX '=' typenaming nested_name_specifier type_name ';'
-    {
-      cxx_compiler::class_or_namespace_name::after(false);
-      cxx_compiler::declarations::use::action($2, $6);
-      --cxx_compiler::parse::identifier::typenaming;
-    }
-  | USING_KW IDENTIFIER_LEX '=' typenaming nested_name_specifier
-    unqualified_id ';'
     {
       cxx_compiler::class_or_namespace_name::after(false);
       cxx_compiler::declarations::use::action($2, $6);
