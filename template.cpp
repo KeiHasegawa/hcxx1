@@ -1445,7 +1445,8 @@ namespace cxx_compiler {
 	int m = m_pv->size();
 	if (m_pv_dots) {
 	  assert(m);
-	  --m;
+	  if (m > 1)
+	    --m;
 	}
 	if (n != m) {
 	  m_key.clear();
