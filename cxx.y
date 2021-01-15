@@ -2060,7 +2060,7 @@ type_parameter
       using namespace cxx_compiler;
       parse::identifier::mode = parse::identifier::look;
     } type_id
-    { cxx_compiler::error::not_implemented(); }
+    { cxx_compiler::type_parameter::action(0, $4, false); }
   | typenaming IDENTIFIER_LEX
     {
       cxx_compiler::type_parameter::action($2, 0, false);
@@ -2101,7 +2101,7 @@ type_parameter
       parse::identifier::mode = parse::identifier::look;
     } type_id
     {
-      cxx_compiler::error::not_implemented();
+      cxx_compiler::type_parameter::action(0, $4, false);
       --cxx_compiler::parse::identifier::typenaming;
       assert(cxx_compiler::parse::identifier::typenaming >= 0);
     }

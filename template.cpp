@@ -1676,8 +1676,13 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
   bool dots = templ_base::m_tps.m_dots;
   const vector<string>& order = templ_base::m_tps.m_order;
   if (!pv) {
-    if (!order.empty() && !dots)
-      error::not_implemented();
+    if (!order.empty() && !dots) {
+      pv = new vector<scope::tps_t::val2_t*>;
+      const map<string, pair<const type*, var*> >& def =
+	templ_base::m_tps.m_default;
+      transform(begin(order), end(order), back_inserter(*pv),
+		template_tag_impl::get(def));
+    }
   }
   else {
     int n = pv->size();
