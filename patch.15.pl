@@ -44,7 +44,8 @@ print<<EOF
     pair<usr*, tag*>* ut = yyvsp[0].m_ut;
     if (usr* u = ut->first) {
       usr::flag_t flag = u->m_flag;
-      if (!(flag & usr::TYPEDEF)) {
+      usr::flag2_t flag2 = u->m_flag2;
+      if (!(flag & usr::TYPEDEF) && !(flag2 & usr::ALIAS)) {
         YYDPRINTF((stderr, "patch.15 is applied\\n"));
         yyn = $bbb + 1;
       }
@@ -62,7 +63,8 @@ print <<EOF2
     pair<usr*, tag*>* p = yyvsp[0].m_ut;
     if (usr* u = p->first) {
       usr::flag_t flag = u->m_flag;
-      if (flag & usr::TYPEDEF)
+      usr::flag2_t flag2 = u->m_flag2;
+      if ((flag & usr::TYPEDEF) || (flag2 & usr::ALIAS))
         parse::identifier::mode = parse::identifier::new_obj;
     }
   }

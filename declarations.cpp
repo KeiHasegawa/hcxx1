@@ -2270,12 +2270,42 @@ namespace cxx_compiler {
 	if (ptr)
 	  return common_b(name, T);
 	map<string, vector<usr*> >& usrs = scope::current->m_usrs;
-	typedef map<string, vector<usr*> >::const_iterator IT;
-	IT p = usrs.find(name);
-	if (p != usrs.end())
-	  error::not_implemented();
+	typedef map<string, vector<usr*> >::iterator IT;
+	IT it = usrs.find(name);
+	if (it != usrs.end()) {
+	  vector<usr*>& v = it->second;
+	  usr* u = v.back();
+	  usr::flag2_t flag2 = u->m_flag2;
+	  if (!(flag2 & usr::TEMPLATE))
+	    error::not_implemented();
+	  template_usr* tu = static_cast<template_usr*>(u);
+	  alias_usr* al = new alias_usr(name, T);
+	  assert(!template_usr::nest.empty());
+	  template_usr::info_t& info = template_usr::nest.back();
+	  assert(!info.m_iu);
+	  const template_usr::KEY& key = info.m_key;
+	  instantiated_usr* iu = new instantiated_usr(*al, tu, key);
+	  info.m_iu = iu;
+	  v.pop_back();
+	  v.push_back(iu);
+	  v.push_back(u);
+	  return;
+	}
         alias_usr* al = new alias_usr(name, T);
-	usrs[name].push_back(al);
+	using namespace parse::templ;
+	if (save_t::nest.empty()) {
+	  usrs[name].push_back(al);
+	  return;
+	}
+	save_t* p = save_t::nest.back();
+	assert(!p->m_usr);
+	assert(!p->m_tag);
+	const vector<scope::tps_t>& tps = scope::current->m_tps;
+	assert(!tps.empty());
+	const scope::tps_t& b = tps.back();
+	template_usr* tu = new template_usr(*al, b, false);
+	p->m_usr = tu;
+	usrs[name].push_back(tu);
       }
       void action(var* v, type_specifier* ts)
       {

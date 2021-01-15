@@ -512,8 +512,10 @@ namespace cxx_compiler {
 	    if (usr* org = al->m_org)
 	      u = org;
 	    else {
-	      cxx_compiler_lval.m_type = u->m_type;
-	      return ALIAS_TYPE_LEX;
+	      if (!(u->m_flag2 & usr::TEMPLATE)) {
+		cxx_compiler_lval.m_type = u->m_type;
+		return ALIAS_TYPE_LEX;
+	      }
 	    }
           }
           usr::flag_t flag = u->m_flag;
