@@ -217,6 +217,10 @@ namespace cxx_compiler {
         T = ptr->m_types.first;
         assert(T->m_id == type::TEMPLATE_PARAM);
       }
+      else {
+	if (should_skip(T->get_tag()))
+	  return n;
+      }
       int m = T->size();
       assert(m);
       m -= accumulate(begin(tmp), end(tmp), 0, add_size);
@@ -237,8 +241,18 @@ namespace cxx_compiler {
       int operator()(int n, base* bp)
       {
         tag* ptr = bp->m_tag;
-	if (should_skip(ptr))
-	  return n;
+	const type* T = ptr->m_types.second;
+	if (!T) {
+	  if (should_skip(ptr))
+	    return n;
+	  T = ptr->m_types.first;
+	  if (T->m_id == type::TEMPLATE_PARAM)
+	    return n;
+	}
+	else {
+	  if (should_skip(T->get_tag()))
+	    return n;
+	}
         usr::flag_t flag = bp->m_flag;
         if (!(flag & usr::VIRTUAL)) {
           assert(m_base_offset.find(bp) != m_base_offset.end());
@@ -246,7 +260,6 @@ namespace cxx_compiler {
         }
         assert(m_base_offset.find(bp) == m_base_offset.end());
         m_base_offset[bp] = n;
-        const type* T = ptr->m_types.second;
         assert(T->m_id == type::RECORD);
         typedef const record_type REC;
         REC* rec = static_cast<REC*>(T);
@@ -317,6 +330,10 @@ namespace cxx_compiler {
           assert(T->m_id == type::TEMPLATE_PARAM);
           return n;
         }
+	else {
+	  if (should_skip(T->get_tag()))
+	    return n;
+	}
         assert(T->m_id == type::RECORD);
         typedef const record_type REC;
         REC* rec = static_cast<REC*>(T);

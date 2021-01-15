@@ -1595,11 +1595,8 @@ namespace cxx_compiler {
       assert(T);
       return scope::tps_t::val2_t(T,0);
     }
-    inline bool copy_dup_tbl(bool dots, bool pv_dots,
-			     vector<scope::tps_t::val2_t>& key)
+    inline bool copy_dup_tbl(bool pv_dots, vector<scope::tps_t::val2_t>& key)
     {
-      if (!dots)
-	return false;
       if (!pv_dots)
 	return false;
       if (key.empty())
@@ -1738,10 +1735,15 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
     }
   }
 
-  if (template_tag_impl::copy_dup_tbl(dots, pv_dots, key)) {
+  if (template_tag_impl::copy_dup_tbl(pv_dots, key)) {
     vector<scope::tps_t::val2_t*>* pv = new vector<scope::tps_t::val2_t*>;
     transform(begin(key), end(key), back_inserter(*pv),
 	      declarations::templ::create);
+    if (m_flag & tag::PARTIAL_SPECIAL) {
+      partial_special_tag* ps = static_cast<partial_special_tag*>(this);
+      template_tag* prim = ps->m_primary;
+      return prim->common(pv, special_ver, false);
+    }
     return common(pv, special_ver, false);
   }
 
