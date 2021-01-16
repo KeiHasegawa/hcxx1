@@ -1230,6 +1230,8 @@ initializer
     { $$ = new cxx_compiler::declarations::initializers::info_t($2); }
   | '(' expression_list ')'
     { $$ = new cxx_compiler::declarations::initializers::info_t($2); }
+  | '{' expression_list '}'
+    { $$ = new cxx_compiler::declarations::initializers::info_t($2); }
   ;
 
 initializer_clause

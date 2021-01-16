@@ -2962,9 +2962,21 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::is_same_as::gen()
 cxx_compiler::var* cxx_compiler::expressions::postfix::is_triv::gen()
 {
   using namespace primary::literal;
-  const type* T = m_type->unqualified();
-  type::id_t id = T->m_id;
-  int n = (id < type::BACKPATCH) ? 1 : 0;
+  tag* ptr = m_type->get_tag();
+  if (!ptr)
+    return integer::create(1);
+  usr* ctor = has_ctor_dtor(ptr, false);
+  if (!ctor)
+    return integer::create(1);
+  usr::flag_t flag = ctor->m_flag;
+  assert(flag & usr::OVERLOAD);
+  error::not_implemented();
+  overload* ovl = static_cast<overload*>(ctor);
+  const vector<usr*>& v = ovl->m_candidacy;
+  typedef vector<usr*>::const_iterator IT;
+  IT p = find_if(begin(v), end(v),
+		 [](usr* u){ return !(u->m_flag2 & usr::GENED_BY_COMP); });
+  int n = p != end(v) ? 0 : 1;
   return integer::create(n);
 }
 

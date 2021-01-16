@@ -67,6 +67,9 @@ EOF2
     print "#include \"patch.06.p\"\n";
     print "#include \"patch.11.p\"\n";
     print "#include \"patch.15.p\"\n";
+    print "#include \"patch.13.2.p\"\n";
+    print "#include \"patch.24.p\"\n";
+    print "#include \"patch.25.p\"\n";
   }
   if ( /yystate = 0/ ){
     print "#include \"patch.07.p\"\n";
