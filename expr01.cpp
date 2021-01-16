@@ -2959,6 +2959,15 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::is_same_as::gen()
   return integer::create(n);
 }
 
+cxx_compiler::var* cxx_compiler::expressions::postfix::is_triv::gen()
+{
+  using namespace primary::literal;
+  const type* T = m_type->unqualified();
+  type::id_t id = T->m_id;
+  int n = (id < type::BACKPATCH) ? 1 : 0;
+  return integer::create(n);
+}
+
 namespace cxx_compiler {
   using namespace expressions::primary::literal;
   template<> var* refimm<void*>::common()

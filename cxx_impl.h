@@ -1039,6 +1039,14 @@ namespace expressions {
       var* gen();
       const file_t& file() const { return m_file; }
     };
+    struct is_triv : base {
+      const type* m_type;
+      file_t m_file;
+      is_triv(const type* T)
+        : m_type(T), m_file(parse::position) {}
+      var* gen();
+      const file_t& file() const { return m_file; }
+    };
   } // end of namespace postfix
   namespace unary {
     struct ppmm : base {

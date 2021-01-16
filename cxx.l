@@ -114,6 +114,7 @@ __is_class          { return BUILTIN_IS_CLASS; }
 __is_enum           { return BUILTIN_IS_ENUM; }
 __is_union          { return BUILTIN_IS_UNION; }
 __is_same_as        { return BUILTIN_IS_SAME_AS; }
+__is_trivial        { return BUILTIN_IS_TRIVIAL; }
 asm                 { return ASM_KW; }
 auto                { return AUTO_KW; }
 bool                { return BOOL_KW; }
