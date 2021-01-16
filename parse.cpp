@@ -507,17 +507,17 @@ namespace cxx_compiler {
           const vector<usr*>& v = p->second;
           usr* u = v.back();
           cxx_compiler_lval.m_usr = u;
-          if (u->m_flag2 & usr::ALIAS) {
-            alias_usr* al = static_cast<alias_usr*>(u);
-	    if (usr* org = al->m_org)
-	      u = org;
-	    else {
-	      if (!(u->m_flag2 & usr::TEMPLATE)) {
+	  if (!(u->m_flag2 & usr::TEMPLATE)) {
+	    if (u->m_flag2 & usr::ALIAS) {
+	      alias_usr* al = static_cast<alias_usr*>(u);
+	      if (usr* org = al->m_org)
+		u = org;
+	      else {
 		cxx_compiler_lval.m_type = u->m_type;
 		return ALIAS_TYPE_LEX;
 	      }
 	    }
-          }
+	  }
           usr::flag_t flag = u->m_flag;
           if (flag & usr::TYPEDEF) {
             type_def* tdef = static_cast<type_def*>(u);
