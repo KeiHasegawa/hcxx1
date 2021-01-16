@@ -1280,12 +1280,39 @@ namespace cxx_compiler {
       map<tag*, const type*>& m_table;
       cmp_helper(template_tag::KEY& key, map<tag*, const type*>& table)
         : m_key(key), m_table(table) {}
+      static pair<const type*, const type*>
+      update(const type* Tx, const type* Ty)
+      {
+	type::id_t id = Tx->m_id;
+	if (id != Ty->m_id)
+	  return make_pair(Tx, Ty);
+	if (id == type::REFERENCE) {
+	  typedef const reference_type RT;
+	  RT* rtx = static_cast<RT*>(Tx);
+	  RT* rty = static_cast<RT*>(Ty);
+	  Tx = rtx->referenced_type();
+	  Ty = rty->referenced_type();
+	  return update(Tx, Ty);
+	}
+	if (id == type::POINTER) {
+	  typedef const pointer_type PT;
+	  PT* ptx = static_cast<PT*>(Tx);
+	  PT* pty = static_cast<PT*>(Ty);
+	  Tx = ptx->referenced_type();
+	  Ty = pty->referenced_type();
+	  return update(Tx, Ty);
+	}
+	return make_pair(Tx, Ty);
+      }
       bool operator()(const scope::tps_t::val2_t& x,
                       const scope::tps_t::val2_t& y)
       {
         if (const type* Tx = x.first) {
           const type* Ty = y.first;
           assert(Tx && Ty);
+	  pair<const type*, const type*> ret = update(Tx, Ty);
+	  Tx = ret.first;
+	  Ty = ret.second;
           tag* xtag = Tx->get_tag();
           assert(xtag);
           map<tag*, const type*>::const_iterator p = m_table.find(xtag);
@@ -1423,6 +1450,32 @@ namespace cxx_compiler {
         }
       }
     };
+    struct cmpdef_a {
+      const map<string, pair<const type*, var*> >& m_def;
+      cmpdef_a(const map<string, pair<const type*, var*> >& def)
+	: m_def(def) {}
+      bool operator()(string pn, const scope::tps_t::val2_t& v)
+      {
+	typedef map<string, pair<const type*, var*> >::const_iterator IT;
+	IT p = m_def.find(pn);
+	if (p == m_def.end())
+	  return false;
+	return p->second == v;
+      }
+    };
+    struct cmpdef_b {
+      const map<string, pair<const type*, var*> >& m_def;
+      cmpdef_b(const map<string, pair<const type*, var*> >& def)
+	: m_def(def) {}
+      bool operator()(string pn, const scope::tps_t::val2_t* v)
+      {
+	typedef map<string, pair<const type*, var*> >::const_iterator IT;
+	IT p = m_def.find(pn);
+	if (p == m_def.end())
+	  return false;
+	return p->second == *v;
+      }
+    };
     struct match {
       vector<scope::tps_t::val2_t*>* m_pv;
       bool m_pv_dots;
@@ -1438,11 +1491,34 @@ namespace cxx_compiler {
 	  return key.empty();
 	bool dots = ps->templ_base::m_tps.m_dots;
 	int n = key.size();
+	template_tag* src = sv->m_src;
+	const scope::tps_t& tps = src->templ_base::m_tps;
+	const map<string, pair<const type*, var*> >& def = tps.m_default;
+	if (!def.empty()) {
+	  const vector<string>& order = tps.m_order;
+	  typedef vector<string>::const_reverse_iterator ITx;
+	  typedef template_tag::KEY::const_reverse_iterator ITy;
+	  pair<ITx, ITy> ret =
+	    mismatch(rbegin(order), rend(order), rbegin(key), cmpdef_a(def));
+	  int sz = distance(rbegin(order), ret.first);
+	  assert(n > sz);
+	  n -= sz;
+	}
 	if (dots) {
 	  assert(n);
 	  --n;
 	}
 	int m = m_pv->size();
+	if (!def.empty()) {
+	  const vector<string>& order = tps.m_order;
+	  typedef vector<string>::const_reverse_iterator ITx;
+	  typedef vector<scope::tps_t::val2_t*>::const_reverse_iterator ITy;
+	  pair<ITx, ITy> ret =
+	    mismatch(rbegin(order), rend(order), rbegin(*m_pv), cmpdef_b(def));
+	  int sz = distance(rbegin(order), ret.first);
+	  assert(m > sz);
+	  m -= sz;
+	}
 	if (m_pv_dots) {
 	  assert(m);
 	  if (m > 1)
