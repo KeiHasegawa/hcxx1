@@ -43,7 +43,7 @@ print<<EOF
       usr* u = yyvsp[0].m_usr;
       const type* T = u->m_type;
       type::id_t id = T->m_id;
-      if (id == type::FUNC) {
+      if (id == type::FUNC || error::counter) { // WA
         YYDPRINTF((stderr, "patch.25 is applied\\n"));
         yyn = $ccc + 1;
       }
