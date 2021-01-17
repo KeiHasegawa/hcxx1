@@ -2758,6 +2758,40 @@ namespace cxx_compiler {
           usr* op_fun = v.back();
           return call_impl::wrapper(op_fun, 0, y);
         }
+	struct brace_subr {
+	  var* m_ret;
+	  brace_subr(var* ret) : m_ret(ret) {}
+	  int operator()(int n, var* v)
+	  {
+	    using namespace expressions::primary::literal;
+	    const type* T = m_ret->m_type;
+	    pair<int, const type*> curr = T->current(n);
+	    int off = curr.first;
+	    if (off < 0)
+	      error::not_implemented();
+	    var* offset = integer::create(off);
+	    const type* Tx = curr.second;
+	    bool discard = false;
+	    bool ctor_conv = true;
+	    if (!assignment::valid(Tx, v, &discard, &ctor_conv, 0))
+	      error::not_implemented();
+	    v = v->cast(Tx);
+	    assert(T->aggregate());
+	    code.push_back(new loff3ac(m_ret, offset, v));
+	    return n + 1;
+	  }
+	};
+        var* brace_code(const vector<var*>& arg, var* ret)
+	{
+	  using namespace expressions::primary::literal;
+	  brace_subr op(ret);
+	  int n = accumulate(begin(arg), end(arg), 0, op);
+	  const type* T = ret->m_type;
+	  pair<int, const type*> curr;
+	  while (curr = T->current(n), curr.first >= 0)
+	    n = op(n, integer::create(0));
+	  return ret;
+	}
       } // end of namespace fcast_impl
     } // end of namespace postfix
   } // end of namespace expressions
@@ -2825,6 +2859,8 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::fcast::gen()
     if (fcast_impl::try_call(ctor, &arg, ret))
       return ret;
   }
+  else if (m_brace)
+    return fcast_impl::brace_code(arg, ret);
 
   if (arg.size() != 1)
     return ret;  // already error handled. just return.
