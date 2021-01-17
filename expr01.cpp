@@ -2612,8 +2612,9 @@ cxx_compiler::var* cxx_compiler::generated::ppmm(bool plus, bool post)
 }
 
 cxx_compiler::expressions::postfix::
-fcast::fcast(declarations::type_specifier* ptr, std::vector<base*>* list)
-  : m_list(list), m_file(parse::position)
+fcast::fcast(declarations::type_specifier* ptr, std::vector<base*>* list,
+	     bool brace)
+  : m_list(list), m_file(parse::position), m_brace(brace)
 {
   using namespace parse;
   using namespace declarations;
@@ -2651,34 +2652,26 @@ fcast::fcast(declarations::type_specifier* ptr, std::vector<base*>* list)
 }
 
 cxx_compiler::expressions::postfix::
-fcast::fcast(tag* ptr, std::vector<base*>* list, bool b)
-  : m_list(list), m_file(parse::position)
+fcast::fcast(tag* ptr, std::vector<base*>* list, bool brace)
+  : m_list(list), m_file(parse::position), m_brace(brace)
 {
   m_type = ptr->m_types.second;
   if (!m_type)
     m_type = ptr->m_types.first;
-  if (b) {
-    assert(!class_or_namespace_name::before.empty());
-    scope::current = class_or_namespace_name::before.back();
-  }
 }
 
 cxx_compiler::expressions::postfix::
-fcast::fcast(usr* u, std::vector<base*>* list, bool b)
-  : m_list(list), m_file(parse::position)
+fcast::fcast(usr* u, std::vector<base*>* list, bool brace)
+  : m_list(list), m_brace(brace), m_file(parse::position)
 {
   usr::flag_t flag = u->m_flag;
   assert(flag & usr::TYPEDEF);
   m_type = u->m_type;
-  if (b) {
-    assert(!class_or_namespace_name::before.empty());
-    scope::current = class_or_namespace_name::before.back();
-  }
 }
 
 cxx_compiler::expressions::postfix::
-fcast::fcast(var* v, std::vector<base*>* list)
-  : m_list(list), m_file(parse::position)
+fcast::fcast(var* v, std::vector<base*>* list, bool brace)
+  : m_list(list), m_brace(brace), m_file(parse::position)
 {
   assert(v->usr_cast());
   const type* T = v->m_type;

@@ -2390,24 +2390,24 @@ postfix_expression
   | postfix_expression '(' ')'
     { $$ = new cxx_compiler::expressions::postfix::call($1,0); }
   | simple_type_specifier '(' fcast_prev  expression_list ')'
-    { $$ = new cxx_compiler::expressions::postfix::fcast($1, $4); }
+    { $$ = new cxx_compiler::expressions::postfix::fcast($1, $4, false); }
   | simple_type_specifier '{' fcast_prev  expression_list '}'
-    { $$ = new cxx_compiler::expressions::postfix::fcast($1, $4); }
+    { $$ = new cxx_compiler::expressions::postfix::fcast($1, $4, true); }
   | simple_type_specifier '(' fcast_prev ')'
-    { $$ = new cxx_compiler::expressions::postfix::fcast($1, 0); }
+    { $$ = new cxx_compiler::expressions::postfix::fcast($1, 0, false); }
   | simple_type_specifier '{' fcast_prev '}'
-    { $$ = new cxx_compiler::expressions::postfix::fcast($1, 0); }
+    { $$ = new cxx_compiler::expressions::postfix::fcast($1, 0, true); }
   | typenaming COLONCOLON_MK move_to_root nested_name_specifier
     IDENTIFIER_LEX '(' fcast_prev2 expression_list ')'
     {
-      $$ = new cxx_compiler::expressions::postfix::fcast($5, $8);
+      $$ = new cxx_compiler::expressions::postfix::fcast($5, $8, false);
       --cxx_compiler::parse::identifier::typenaming;
       assert(cxx_compiler::parse::identifier::typenaming >= 0);
     }
   | typenaming COLONCOLON_MK move_to_root nested_name_specifier
     IDENTIFIER_LEX '{' fcast_prev2 expression_list '}'
     {
-      $$ = new cxx_compiler::expressions::postfix::fcast($5, $8);
+      $$ = new cxx_compiler::expressions::postfix::fcast($5, $8, true);
       --cxx_compiler::parse::identifier::typenaming;
       assert(cxx_compiler::parse::identifier::typenaming >= 0);
     }
@@ -2421,7 +2421,7 @@ postfix_expression
   | typenaming COLONCOLON_MK move_to_root nested_name_specifier
     CLASS_NAME_LEX '{' fcast_prev2 expression_list '}'
     {
-      $$ = new cxx_compiler::expressions::postfix::fcast($5, $8, false);
+      $$ = new cxx_compiler::expressions::postfix::fcast($5, $8, true);
       --cxx_compiler::parse::identifier::typenaming;
       assert(cxx_compiler::parse::identifier::typenaming >= 0);
     }
@@ -2435,7 +2435,7 @@ postfix_expression
   | typenaming COLONCOLON_MK move_to_root nested_name_specifier
     TYPEDEF_NAME_LEX '{' fcast_prev2 expression_list '}'
     {
-      $$ = new cxx_compiler::expressions::postfix::fcast($5, $8, false);
+      $$ = new cxx_compiler::expressions::postfix::fcast($5, $8, true);
       --cxx_compiler::parse::identifier::typenaming;
       assert(cxx_compiler::parse::identifier::typenaming >= 0);
     }
@@ -2449,21 +2449,21 @@ postfix_expression
   | typenaming COLONCOLON_MK move_to_root nested_name_specifier
     ENUM_NAME_LEX '{' fcast_prev2 expression_list '}'
     {
-      $$ = new cxx_compiler::expressions::postfix::fcast($5, $8, false);
+      $$ = new cxx_compiler::expressions::postfix::fcast($5, $8, true);
       --cxx_compiler::parse::identifier::typenaming;
       assert(cxx_compiler::parse::identifier::typenaming >= 0);
     }
   | typenaming COLONCOLON_MK move_to_root nested_name_specifier
     IDENTIFIER_LEX '(' fcast_prev2 ')'
     {
-      $$ = new cxx_compiler::expressions::postfix::fcast($5, 0);
+      $$ = new cxx_compiler::expressions::postfix::fcast($5, 0, false);
       --cxx_compiler::parse::identifier::typenaming;
       assert(cxx_compiler::parse::identifier::typenaming >= 0);
     }
   | typenaming COLONCOLON_MK move_to_root nested_name_specifier
     IDENTIFIER_LEX '{' fcast_prev2 '}'
     {
-      $$ = new cxx_compiler::expressions::postfix::fcast($5, 0);
+      $$ = new cxx_compiler::expressions::postfix::fcast($5, 0, true);
       --cxx_compiler::parse::identifier::typenaming;
       assert(cxx_compiler::parse::identifier::typenaming >= 0);
     }
@@ -2477,7 +2477,7 @@ postfix_expression
   | typenaming COLONCOLON_MK move_to_root nested_name_specifier
     CLASS_NAME_LEX '{' fcast_prev2 '}'
     {
-      $$ = new cxx_compiler::expressions::postfix::fcast($5, 0, false);
+      $$ = new cxx_compiler::expressions::postfix::fcast($5, 0, true);
       --cxx_compiler::parse::identifier::typenaming;
       assert(cxx_compiler::parse::identifier::typenaming >= 0);
     }
@@ -2491,7 +2491,7 @@ postfix_expression
   | typenaming COLONCOLON_MK move_to_root nested_name_specifier
     TYPEDEF_NAME_LEX '{' fcast_prev2 '}'
     {
-      $$ = new cxx_compiler::expressions::postfix::fcast($5, 0, false);
+      $$ = new cxx_compiler::expressions::postfix::fcast($5, 0, true);
       --cxx_compiler::parse::identifier::typenaming;
       assert(cxx_compiler::parse::identifier::typenaming >= 0);
     }
@@ -2505,21 +2505,21 @@ postfix_expression
   | typenaming COLONCOLON_MK move_to_root nested_name_specifier
     ENUM_NAME_LEX '{' fcast_prev2 '}'
     {
-      $$ = new cxx_compiler::expressions::postfix::fcast($5, 0, false);
+      $$ = new cxx_compiler::expressions::postfix::fcast($5, 0, true);
       --cxx_compiler::parse::identifier::typenaming;
       assert(cxx_compiler::parse::identifier::typenaming >= 0);
     }
   | typenaming nested_name_specifier
     IDENTIFIER_LEX '(' fcast_prev2 expression_list ')'
     {
-      $$ = new cxx_compiler::expressions::postfix::fcast($3, $6);
+      $$ = new cxx_compiler::expressions::postfix::fcast($3, $6, false);
       --cxx_compiler::parse::identifier::typenaming;
       assert(cxx_compiler::parse::identifier::typenaming >= 0);
     }
   | typenaming nested_name_specifier
     IDENTIFIER_LEX '{' fcast_prev2 expression_list '}'
     {
-      $$ = new cxx_compiler::expressions::postfix::fcast($3, $6);
+      $$ = new cxx_compiler::expressions::postfix::fcast($3, $6, true);
       --cxx_compiler::parse::identifier::typenaming;
       assert(cxx_compiler::parse::identifier::typenaming >= 0);
     }
@@ -2533,7 +2533,7 @@ postfix_expression
   | typenaming nested_name_specifier
     CLASS_NAME_LEX '{' fcast_prev2 expression_list '}'
     {
-      $$ = new cxx_compiler::expressions::postfix::fcast($3, $6, false);
+      $$ = new cxx_compiler::expressions::postfix::fcast($3, $6, true);
       --cxx_compiler::parse::identifier::typenaming;
       assert(cxx_compiler::parse::identifier::typenaming >= 0);
     }
@@ -2547,7 +2547,7 @@ postfix_expression
   | typenaming nested_name_specifier
     TYPEDEF_NAME_LEX '{' fcast_prev2 expression_list '}'
     {
-      $$ = new cxx_compiler::expressions::postfix::fcast($3, $6, false);
+      $$ = new cxx_compiler::expressions::postfix::fcast($3, $6, true);
       --cxx_compiler::parse::identifier::typenaming;
       assert(cxx_compiler::parse::identifier::typenaming >= 0);
     }
@@ -2561,21 +2561,21 @@ postfix_expression
   | typenaming nested_name_specifier
     ENUM_NAME_LEX '{' fcast_prev2 expression_list '}'
     {
-      $$ = new cxx_compiler::expressions::postfix::fcast($3, $6, false);
+      $$ = new cxx_compiler::expressions::postfix::fcast($3, $6, true);
       --cxx_compiler::parse::identifier::typenaming;
       assert(cxx_compiler::parse::identifier::typenaming >= 0);
     }
   | typenaming nested_name_specifier
     IDENTIFIER_LEX '(' fcast_prev2 ')'
     {
-      $$ = new cxx_compiler::expressions::postfix::fcast($3, 0);
+      $$ = new cxx_compiler::expressions::postfix::fcast($3, 0, false);
       --cxx_compiler::parse::identifier::typenaming;
       assert(cxx_compiler::parse::identifier::typenaming >= 0);
     }
   | typenaming nested_name_specifier
     IDENTIFIER_LEX '{' fcast_prev2 '}'
     {
-      $$ = new cxx_compiler::expressions::postfix::fcast($3, 0);
+      $$ = new cxx_compiler::expressions::postfix::fcast($3, 0, true);
       --cxx_compiler::parse::identifier::typenaming;
       assert(cxx_compiler::parse::identifier::typenaming >= 0);
     }
@@ -2589,7 +2589,7 @@ postfix_expression
   | typenaming nested_name_specifier
     CLASS_NAME_LEX '{' fcast_prev2 '}'
     {
-      $$ = new cxx_compiler::expressions::postfix::fcast($3, 0, false);
+      $$ = new cxx_compiler::expressions::postfix::fcast($3, 0, true);
       --cxx_compiler::parse::identifier::typenaming;
       assert(cxx_compiler::parse::identifier::typenaming >= 0);
     }
@@ -2603,7 +2603,7 @@ postfix_expression
   | typenaming nested_name_specifier
     TYPEDEF_NAME_LEX '{' fcast_prev2 '}'
     {
-      $$ = new cxx_compiler::expressions::postfix::fcast($3, 0, false);
+      $$ = new cxx_compiler::expressions::postfix::fcast($3, 0, true);
       --cxx_compiler::parse::identifier::typenaming;
       assert(cxx_compiler::parse::identifier::typenaming >= 0);
     }
@@ -2617,7 +2617,7 @@ postfix_expression
   | typenaming nested_name_specifier
     ENUM_NAME_LEX '{' fcast_prev2 '}'
     {
-      $$ = new cxx_compiler::expressions::postfix::fcast($3, 0, false);
+      $$ = new cxx_compiler::expressions::postfix::fcast($3, 0, true);
       --cxx_compiler::parse::identifier::typenaming;
       assert(cxx_compiler::parse::identifier::typenaming >= 0);
     }

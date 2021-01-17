@@ -1002,13 +1002,14 @@ namespace expressions {
     struct fcast : base {
       const type* m_type;
       vector<base*>* m_list;
+      bool m_brace;
       file_t m_file;
       var* gen();
       const file_t& file() const { return m_file; }
-      fcast(declarations::type_specifier*, vector<base*>* list);
-      fcast(tag*, vector<base*>* list, bool);
-      fcast(usr*, vector<base*>* list, bool);
-      fcast(var*, vector<base*>* list);
+      fcast(declarations::type_specifier*, vector<base*>* list, bool brace);
+      fcast(tag*, vector<base*>* list, bool brace);
+      fcast(usr*, vector<base*>* list, bool brace);
+      fcast(var*, vector<base*>* list, bool brace);
     };
     struct type_ident : base {
       base* m_expr;
