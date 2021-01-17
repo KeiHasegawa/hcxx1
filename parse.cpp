@@ -1530,6 +1530,27 @@ namespace cxx_compiler {
 
 int cxx_compiler::parse::get_token()
 {
+  struct X {
+    int m_prev;
+    X() : m_prev(last_token) {}
+    ~X()
+    {
+      if (last_token == TEMPLATE_NAME_LEX) {
+	switch (m_prev) {
+	case STRUCT_KW: case CLASS_KW: case UNION_KW:
+	  {
+	    pair<usr*, tag*>* ut = cxx_compiler_lval.m_ut;
+	    tag* ptr = ut->second;
+	    classes::specifier::special_ver.insert(ptr);
+	    break;
+	  }
+	default:
+	  break;
+	}
+      }
+    }
+  } x;
+
   if (!g_read.m_token.empty()) {
     position = g_read.m_token.front().second;
     int prev = last_token;

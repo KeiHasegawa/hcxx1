@@ -1469,7 +1469,10 @@ namespace classes {
     extern void begin3(int, pair<usr*, tag*>*, vector<base*>*);
     extern const type* action();
     extern tag::kind_t get(int);
-    extern void  member_function_definition(pair<usr* const, parse::member_function_body::save_t>&);
+    extern void
+    member_function_definition(pair<usr* const,
+			       parse::member_function_body::save_t>&);
+    extern set<tag*> special_ver;
   } // end of namespace specifier
   namespace members {
     extern void action(var*);

@@ -1383,9 +1383,9 @@ class_specifier_begin
   | class_key template_id base_clause '{'
     { cxx_compiler::classes::specifier::begin3($1,$2,$3); }
   | class_key nested_name_specifier template_id '{'
-    { cxx_compiler::error::not_implemented(); }
+    { cxx_compiler::classes::specifier::begin3($1,$3,0); }
   | class_key nested_name_specifier template_id base_clause '{'
-    { cxx_compiler::error::not_implemented(); }
+    { cxx_compiler::classes::specifier::begin3($1,$3,$4); }
   ;
 
 member_specification

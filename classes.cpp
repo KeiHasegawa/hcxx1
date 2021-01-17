@@ -368,6 +368,7 @@ namespace cxx_compiler {
   namespace classes {
     namespace specifier {
       using namespace std;
+      set<tag*> special_ver;
       void
       member_function_definition(pair<usr* const,
                                       parse::member_function_body::save_t>& E)

@@ -946,8 +946,15 @@ namespace cxx_compiler {
           template_tag* tt = static_cast<template_tag*>(ptr);
 	  if (parse::base_clause.empty()) {
             int c = parse::peek();
-            if (c == '{' || c == ':')
-              return tt->special_ver(pv, dots);
+            if (c == '{' || c == ':') {
+	      set<tag*>::iterator p =
+		classes::specifier::special_ver.find(ptr);
+	      if (p != classes::specifier::special_ver.end()) {
+		classes::specifier::special_ver.erase(p);
+		return tt->special_ver(pv, dots);
+	      }
+	    }
+	    classes::specifier::special_ver.erase(ptr);
             if (c == ';') {
               if (!specialization::nest.empty()) {
                 if (specialization::nest.top() == scope::current) {
@@ -968,6 +975,7 @@ namespace cxx_compiler {
               }
             }
           }
+	  classes::specifier::special_ver.erase(ptr);
           sweeper sweeper;
           return tt->instantiate(pv, dots);
         }
