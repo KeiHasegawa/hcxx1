@@ -2988,7 +2988,7 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::is_same_as::gen()
   return integer::create(n);
 }
 
-cxx_compiler::var* cxx_compiler::expressions::postfix::is_triv::gen()
+cxx_compiler::var* cxx_compiler::expressions::postfix::is_common::gen()
 {
   using namespace primary::literal;
   tag* ptr = m_type->get_tag();

@@ -1040,12 +1040,13 @@ namespace expressions {
       var* gen();
       const file_t& file() const { return m_file; }
     };
-    struct is_triv : base {
+    struct is_common : base {
       const type* m_type;
-      bool m_copy;
+      enum kind_t { triv, triv_cp, stdlay };
+      kind_t m_kind;
       file_t m_file;
-      is_triv(const type* T, bool cp)
-        : m_type(T), m_copy(cp), m_file(parse::position) {}
+      is_common(const type* T, kind_t kind)
+        : m_type(T), m_kind(kind), m_file(parse::position) {}
       var* gen();
       const file_t& file() const { return m_file; }
     };
