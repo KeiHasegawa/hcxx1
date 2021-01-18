@@ -1042,9 +1042,10 @@ namespace expressions {
     };
     struct is_triv : base {
       const type* m_type;
+      bool m_copy;
       file_t m_file;
-      is_triv(const type* T)
-        : m_type(T), m_file(parse::position) {}
+      is_triv(const type* T, bool cp)
+        : m_type(T), m_copy(cp), m_file(parse::position) {}
       var* gen();
       const file_t& file() const { return m_file; }
     };
