@@ -1197,6 +1197,43 @@ namespace cxx_compiler {
         assert(T);
         return T;
       }
+      static scope::tps_t::val2_t* update_bb(const scope::tps_t::val2_t& v)
+      {
+	const type* T = v.first;
+	assert(T);
+	assert(T->m_id == type::TEMPLATE_PARAM);
+	tag* ptr = T->get_tag();
+	T = ptr->m_types.second;
+	assert(T);
+	return new scope::tps_t::val2_t(T,0);
+      }
+      var* update_b(var* v)
+      {
+	const type* T = v->m_type;
+	if (T->m_id != type::BACKPATCH)
+	  return v;
+	scope* ps = v->m_scope;
+	assert(ps->m_id == scope::TAG);
+	tag* ptr = static_cast<tag*>(ps);
+	tag::flag_t flag = ptr->m_flag;
+	assert(flag & tag::INSTANTIATE);
+	instantiated_tag* it = static_cast<instantiated_tag*>(ptr);
+	const instantiated_tag::SEED& seed = it->m_seed;
+	vector<scope::tps_t::val2_t*>* pv =
+	  new vector<scope::tps_t::val2_t*>;
+	transform(begin(seed), end(seed), back_inserter(*pv), update_bb);
+	template_tag* tt = it->m_src;
+	tag* res = tt->instantiate(pv, false);
+	assert(v->usr_cast());
+	usr* u = static_cast<usr*>(v);
+	string name = u->m_name;
+	const map<string, vector<usr*> >& usrs = res->m_usrs;
+	typedef map<string, vector<usr*> >::const_iterator IT;
+	IT p = usrs.find(name);
+	assert(p != usrs.end());
+	const vector<usr*>& vec = p->second;
+	return vec.back();
+      }
       scope::tps_t::val2_t
       operator()(scope::tps_t::val2_t* p, string name)
       {
@@ -1227,6 +1264,7 @@ namespace cxx_compiler {
 				   usr::TEMPL_PARAM);
 	  return scope::tps_t::val2_t(0, y->second = u);
 	}
+	v = update_b(v);
         bool discard = false;
         bool ctor_conv = false;
         using namespace expressions;
@@ -1521,9 +1559,9 @@ namespace cxx_compiler {
 	  const vector<string>& order = tps.m_order;
 	  typedef vector<string>::const_reverse_iterator ITx;
 	  typedef vector<scope::tps_t::val2_t*>::const_reverse_iterator ITy;
-      int x = min(m, (int)order.size());
-	  pair<ITx, ITy> ret =
-	    mismatch(rbegin(order), rbegin(order)+x, rbegin(*m_pv), cmpdef_b(def));
+	  int x = min(m, (int)order.size());
+	  pair<ITx, ITy> ret = mismatch(rbegin(order), rbegin(order)+x,
+					rbegin(*m_pv), cmpdef_b(def));
 	  int sz = distance(rbegin(order), ret.first);
 	  assert(m > sz);
 	  m -= sz;
