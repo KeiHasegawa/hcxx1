@@ -2621,16 +2621,26 @@ fcast::fcast(declarations::type_specifier* ptr, std::vector<base*>* list,
   if (m_list) {
     if (context_t::retry[DECL_FCAST_CONFLICT_STATE]) {
       // Note that `ptr' is already deleted.
-      assert(!specifier_seq::info_t::s_stack.empty());
-      specifier_seq::info_t* p = specifier_seq::info_t::s_stack.top();
-      auto_ptr<specifier_seq::info_t> sweeper(p);
+      context_t::retry[DECL_FCAST_CONFLICT_STATE] = false;
+      if (!specifier_seq::info_t::s_stack.empty()) {
+	specifier_seq::info_t* p = specifier_seq::info_t::s_stack.top();
+	auto_ptr<specifier_seq::info_t> sweeper(p);
+	p->update();
+	m_type = p->m_type;
+	return;
+      }
+      assert(!type_specifier_seq::info_t::s_stack.empty());
+      type_specifier_seq::info_t* p =
+	type_specifier_seq::info_t::s_stack.top();
+      auto_ptr<type_specifier_seq::info_t> sweeper(p);
       p->update();
-      m_type = p->m_type;
+      m_type= p->m_type;
       return;
     }
   }
 
   if (context_t::retry[DECL_FCAST_CONFLICT_STATE]) {
+    context_t::retry[DECL_FCAST_CONFLICT_STATE] = false;
     if (specifier_seq::info_t::s_stack.empty()) {
       // `ptr' is aready deleted when
       // type-id : type-specifier abstract-declarator
@@ -2988,7 +2998,7 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::is_same_as::gen()
   return integer::create(n);
 }
 
-cxx_compiler::var* cxx_compiler::expressions::postfix::is_triv::gen()
+cxx_compiler::var* cxx_compiler::expressions::postfix::is_common::gen()
 {
   using namespace primary::literal;
   tag* ptr = m_type->get_tag();

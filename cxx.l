@@ -115,6 +115,16 @@ __is_enum           { return BUILTIN_IS_ENUM; }
 __is_union          { return BUILTIN_IS_UNION; }
 __is_same_as        { return BUILTIN_IS_SAME_AS; }
 __is_trivial        { return BUILTIN_IS_TRIVIAL; }
+__is_trivially_copyable     { return BUILTIN_IS_TRIVIALLY_COPYABLE; }
+__is_standard_layout        { return BUILTIN_IS_STD_LAYOUT; }
+__is_pod            { return BUILTIN_IS_POD; }
+__is_literal_type   { return BUILTIN_IS_LITERAL_TYPE; }
+__is_empty          { return BUILTIN_IS_EMPTY; }
+__is_polymorphic    { return BUILTIN_IS_POLYMORPHIC; }
+__is_final          { return BUILTIN_IS_FINAL; }
+__is_abstract       { return BUILTIN_IS_ABSTRACT; }
+__is_trivially_assignable { return BUILTIN_IS_TRIVIALLY_ASSIGNABLE; }
+__has_trivial_destructor { return BUILTIN_HAS_TRIVIAL_DESTRUCTOR; }
 asm                 { return ASM_KW; }
 auto                { return AUTO_KW; }
 bool                { return BOOL_KW; }
