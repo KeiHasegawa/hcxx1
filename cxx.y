@@ -85,6 +85,9 @@ namespace cxx_compiler {
 %token BUILTIN_IS_BASE_OF BUILTIN_CONSTANT_P
 %token BUILTIN_IS_CLASS BUILTIN_IS_ENUM BUILTIN_IS_UNION BUILTIN_IS_SAME_AS
 %token BUILTIN_IS_TRIVIAL BUILTIN_IS_TRIVIALLY_COPYABLE BUILTIN_IS_STD_LAYOUT
+%token BUILTIN_IS_POD BUILTIN_IS_LITERAL_TYPE BUILTIN_IS_EMPTY
+%token BUILTIN_IS_POLYMORPHIC BUILTIN_IS_FINAL BUILTIN_IS_ABSTRACT
+%token BUILTIN_IS_TRIVIALLY_ASSIGNABLE BUILTIN_HAS_TRIVIAL_DESTRUCTOR
 %token BUILTIN_CLZ BUILTIN_CLZL BUILTIN_CLZLL
 %token NEW_ARRAY_LEX DELETE_ARRAY_LEX
 %token NOEXCEPT_KW
@@ -2790,7 +2793,47 @@ postfix_expression
   | BUILTIN_IS_STD_LAYOUT '(' type_id ')'
     {
       using namespace cxx_compiler::expressions::postfix;
-      $$ = new is_common($3, is_common::stdlay);
+      $$ = new is_common($3, is_common::std_lay);
+    }
+  | BUILTIN_IS_POD '(' type_id ')'
+    {
+      using namespace cxx_compiler::expressions::postfix;
+      $$ = new is_common($3, is_common::pod);
+    }
+  | BUILTIN_IS_LITERAL_TYPE '(' type_id ')'
+    {
+      using namespace cxx_compiler::expressions::postfix;
+      $$ = new is_common($3, is_common::lit_type);
+    }
+  | BUILTIN_IS_EMPTY '(' type_id ')'
+    {
+      using namespace cxx_compiler::expressions::postfix;
+      $$ = new is_common($3, is_common::empty);
+    }
+  | BUILTIN_IS_POLYMORPHIC '(' type_id ')'
+    {
+      using namespace cxx_compiler::expressions::postfix;
+      $$ = new is_common($3, is_common::poly);
+    }
+  | BUILTIN_IS_FINAL '(' type_id ')'
+    {
+      using namespace cxx_compiler::expressions::postfix;
+      $$ = new is_common($3, is_common::fin);
+    }
+  | BUILTIN_IS_ABSTRACT '(' type_id ')'
+    {
+      using namespace cxx_compiler::expressions::postfix;
+      $$ = new is_common($3, is_common::abs);
+    }
+  | BUILTIN_IS_TRIVIALLY_ASSIGNABLE '(' type_id ')'
+    {
+      using namespace cxx_compiler::expressions::postfix;
+      $$ = new is_common($3, is_common::triv_ass);
+    }
+  | BUILTIN_HAS_TRIVIAL_DESTRUCTOR '(' type_id ')'
+    {
+      using namespace cxx_compiler::expressions::postfix;
+      $$ = new is_common($3, is_common::triv_des);
     }
   ;
 
