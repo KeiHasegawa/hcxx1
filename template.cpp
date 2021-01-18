@@ -1521,8 +1521,9 @@ namespace cxx_compiler {
 	  const vector<string>& order = tps.m_order;
 	  typedef vector<string>::const_reverse_iterator ITx;
 	  typedef vector<scope::tps_t::val2_t*>::const_reverse_iterator ITy;
+      int x = min(m, (int)order.size());
 	  pair<ITx, ITy> ret =
-	    mismatch(rbegin(order), rend(order), rbegin(*m_pv), cmpdef_b(def));
+	    mismatch(rbegin(order), rbegin(order)+x, rbegin(*m_pv), cmpdef_b(def));
 	  int sz = distance(rbegin(order), ret.first);
 	  assert(m > sz);
 	  m -= sz;
