@@ -1197,21 +1197,29 @@ namespace cxx_compiler {
         assert(T);
         return T;
       }
-      static scope::tps_t::val2_t* update_bb(const scope::tps_t::val2_t& v)
+      static const type* update_bbb(const scope::tps_t::val2_t& v)
       {
 	const type* T = v.first;
 	assert(T);
 	assert(T->m_id == type::TEMPLATE_PARAM);
 	tag* ptr = T->get_tag();
 	T = ptr->m_types.second;
+	if (!T)
+	  return 0;
+	if (T->m_id == type::TEMPLATE_PARAM)
+	  return 0;
+	return T;
+      }
+      static scope::tps_t::val2_t* update_bb(const scope::tps_t::val2_t& v)
+      {
+	const type* T = update_bbb(v);
 	assert(T);
 	return new scope::tps_t::val2_t(T,0);
       }
-      var* update_b(var* v)
+      static var* update_b(var* v)
       {
 	const type* T = v->m_type;
-	if (T->m_id != type::BACKPATCH)
-	  return v;
+	assert(T->m_id == type::BACKPATCH);
 	scope* ps = v->m_scope;
 	assert(ps->m_id == scope::TAG);
 	tag* ptr = static_cast<tag*>(ps);
@@ -1219,6 +1227,9 @@ namespace cxx_compiler {
 	assert(flag & tag::INSTANTIATE);
 	instantiated_tag* it = static_cast<instantiated_tag*>(ptr);
 	const instantiated_tag::SEED& seed = it->m_seed;
+	auto x = find_if(begin(seed), end(seed), not1(ptr_fun(update_bbb)));
+	if (x != end(seed))
+	  return v;
 	vector<scope::tps_t::val2_t*>* pv =
 	  new vector<scope::tps_t::val2_t*>;
 	transform(begin(seed), end(seed), back_inserter(*pv), update_bb);
@@ -1227,9 +1238,8 @@ namespace cxx_compiler {
 	assert(v->usr_cast());
 	usr* u = static_cast<usr*>(v);
 	string name = u->m_name;
-	const map<string, vector<usr*> >& usrs = res->m_usrs;
-	typedef map<string, vector<usr*> >::const_iterator IT;
-	IT p = usrs.find(name);
+	const auto& usrs = res->m_usrs;
+	auto p = usrs.find(name);
 	assert(p != usrs.end());
 	const vector<usr*>& vec = p->second;
 	return vec.back();
@@ -1264,7 +1274,11 @@ namespace cxx_compiler {
 				   usr::TEMPL_PARAM);
 	  return scope::tps_t::val2_t(0, y->second = u);
 	}
-	v = update_b(v);
+	if (v->m_type->m_id == type::BACKPATCH) {
+	  v = update_b(v);
+	  if (v->m_type->m_id == type::BACKPATCH)
+	    return scope::tps_t::val2_t(0, v);
+	}
         bool discard = false;
         bool ctor_conv = false;
         using namespace expressions;
