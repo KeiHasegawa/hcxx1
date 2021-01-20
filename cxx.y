@@ -876,7 +876,8 @@ declarator
 
 direct_declarator
   : declarator_id
-  | direct_declarator '(' enter_parameter parameter_declaration_clause    leave_parameter ')' cvr_qualifier_seq exception_specification
+  | direct_declarator '(' enter_parameter parameter_declaration_clause
+    leave_parameter ')' cvr_qualifier_seq exception_specification
     {
       using namespace cxx_compiler::declarations::declarators;
       $$ = $1;
@@ -1128,49 +1129,61 @@ abstract_declarator
   ;
 
 direct_abstract_declarator
-  : direct_abstract_declarator '(' enter_parameter parameter_declaration_clause leave_parameter ')' cvr_qualifier_seq exception_specification
-   
-  | direct_abstract_declarator '(' enter_parameter parameter_declaration_clause leave_parameter ')'                   exception_specification
-   
-  | direct_abstract_declarator '(' enter_parameter parameter_declaration_clause leave_parameter ')' cvr_qualifier_seq
-   
-  | direct_abstract_declarator '(' enter_parameter parameter_declaration_clause leave_parameter ')'
-    {
-      $$ = cxx_compiler::declarations::declarators::function::action($1,$4,0,0);
+  : direct_abstract_declarator '(' enter_parameter
+    parameter_declaration_clause leave_parameter ')' cvr_qualifier_seq
+    exception_specification
+  | direct_abstract_declarator '(' enter_parameter
+    parameter_declaration_clause leave_parameter ')' exception_specification
+  | direct_abstract_declarator '(' enter_parameter
+    parameter_declaration_clause leave_parameter ')' cvr_qualifier_seq   
+  | direct_abstract_declarator '(' enter_parameter
+    parameter_declaration_clause leave_parameter ')'
+   {
+      using namespace cxx_compiler;
+      $$ = declarations::declarators::function::action($1,$4,0,0);
     }
-  |                            '(' enter_parameter parameter_declaration_clause leave_parameter ')' cvr_qualifier_seq exception_specification
+  | '(' enter_parameter parameter_declaration_clause leave_parameter ')'
+    cvr_qualifier_seq exception_specification
     { cxx_compiler::error::not_implemented(); }
-  |                            '(' enter_parameter parameter_declaration_clause leave_parameter ')'                   exception_specification
+  | '(' enter_parameter parameter_declaration_clause leave_parameter ')'
+    exception_specification
     { cxx_compiler::error::not_implemented(); }
-  |                            '(' enter_parameter parameter_declaration_clause leave_parameter ')' cvr_qualifier_seq
+  | '(' enter_parameter parameter_declaration_clause leave_parameter ')'
+    cvr_qualifier_seq
     { cxx_compiler::error::not_implemented(); }
   | '(' enter_parameter parameter_declaration_clause leave_parameter ')'
     {
-      $$ = cxx_compiler::declarations::declarators::function::action(cxx_compiler::backpatch_type::create(),$3,0,0);
+      using namespace cxx_compiler::declarations::declarators;
+      $$ = function::action(cxx_compiler::backpatch_type::create(),$3,0,0);
     }
   | direct_abstract_declarator begin_array assignment_expression end_array
     {
-      $$ = cxx_compiler::declarations::declarators::array::action($1,$3,false,0);
+      using namespace cxx_compiler;
+      $$ = declarations::declarators::array::action($1,$3,false,0);
     }
-  |                            begin_array assignment_expression end_array
+  | begin_array assignment_expression end_array
     {
-      $$ = cxx_compiler::declarations::declarators::array::action(cxx_compiler::backpatch_type::create(),$2,false,0);
+      using namespace cxx_compiler::declarations::declarators;
+      $$ = array::action(cxx_compiler::backpatch_type::create(),$2,false,0);
     }
   | direct_abstract_declarator begin_array end_array
     {
-      $$ = cxx_compiler::declarations::declarators::array::action($1,0,false,0);
+      using namespace cxx_compiler;
+      $$ = declarations::declarators::array::action($1,0,false,0);
     }
-  |                            begin_array end_array
+  | begin_array end_array
     {
-      $$ = cxx_compiler::declarations::declarators::array::action(cxx_compiler::backpatch_type::create(),0,false,0);
+      using namespace cxx_compiler::declarations::declarators;
+      $$ = array::action(cxx_compiler::backpatch_type::create(),0,false,0);
     }
   | direct_abstract_declarator begin_array '*' end_array
     {
       $$ = cxx_compiler::declarations::declarators::array::action($1,0,true,0);
     }
-  |                            begin_array '*' end_array
+  | begin_array '*' end_array
     {
-      $$ = cxx_compiler::declarations::declarators::array::action(cxx_compiler::backpatch_type::create(),0,true,0);
+      using namespace cxx_compiler::declarations::declarators;
+      $$ = array::action(cxx_compiler::backpatch_type::create(),0,true,0);
     }
   | '(' abstract_declarator ')' { $$ = $2; }
   ;

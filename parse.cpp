@@ -978,6 +978,8 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
   
   if (name.substr(0,10) == "__builtin_")
     return builtin_entry(name);
+  if (last_token == AUTO_KW)
+    return create(name);
   error::undeclared(parse::position, name);
   int ret = create(name, int_type::create());
   usr* u = cxx_compiler_lval.m_usr;
