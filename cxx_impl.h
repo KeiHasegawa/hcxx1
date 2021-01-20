@@ -634,7 +634,11 @@ namespace declarations {
     } // end of namespace reference
     namespace function {
       extern map<usr*, vector<var*> > default_arg_table;
-      extern const type* action(const type*, vector<pair<const type*, expressions::base*>*>*, var*, vector<int>*);
+      extern map<usr*, const type*> specified_rettype_table;
+      extern const type* action(const type*,
+				vector<pair<const type*,
+				expressions::base*>*>*, var*,
+				vector<int>*, const type*);
       extern const type* parameter(specifier_seq::info_t*, var*);
       extern const type* parameter(specifier_seq::info_t*, const type*);
       namespace definition {

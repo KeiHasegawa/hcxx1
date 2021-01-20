@@ -628,8 +628,19 @@ cxx_compiler::declarations::action1(var* v, bool ini)
       p->update();
     }
     if (!p->m_type && !(flag & mask)) {
-      implicit_int(u);
-      p->m_type = int_type::create();
+      typedef map<usr*, const type*>::const_iterator IT;
+      using namespace declarators::function;
+      IT it = specified_rettype_table.find(u);
+      if (it != specified_rettype_table.end()) {
+	p->m_type = it->second;
+	if (!(p->m_flag & usr::AUTO))
+	  error::not_implemented();
+	p->m_flag = usr::flag_t(p->m_flag & ~usr::AUTO);
+      }
+      else {
+	implicit_int(u);
+	p->m_type = int_type::create();
+      }
     }
     if (installed)
       u = check_installed(u, p, &installed);
@@ -654,6 +665,7 @@ cxx_compiler::declarations::action1(var* v, bool ini)
       }
     }
   }
+  declarators::function::specified_rettype_table.erase(u);
   if (flag & usr::TYPEDEF) {
     type_def* tmp = new type_def(*u);
     u = exchange(installed, tmp, u);

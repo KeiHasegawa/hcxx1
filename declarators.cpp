@@ -59,7 +59,7 @@ const cxx_compiler::type* cxx_compiler::declarations::declarators::
 function::action(const type* T,
                  std::vector<std::pair<const type*, expressions::base*>*>* pdc,
                  var* v,
-                 std::vector<int>* cvr)
+                 std::vector<int>* cvr, const type* spec_ret)
 {
   using namespace std;
   if (pdc)
@@ -69,8 +69,10 @@ function::action(const type* T,
   usr* u = v ? v->usr_cast() : 0;
   if (u) {
     usr::flag_t flag = u->m_flag;
-    if (flag & usr::OVERLOAD)
+    if (flag & usr::OVERLOAD) {
+      assert(!spec_ret);
       return T;
+    }
   }
 
   if (!u && v) {
@@ -83,7 +85,12 @@ function::action(const type* T,
     genaddr* ga = v->genaddr_cast();
     v = ga->m_ref;
     u = v->usr_cast();
+    assert(!spec_ret);
     return u->m_type;
+  }
+  if (u && spec_ret) {
+    assert(specified_rettype_table.find(u) == specified_rettype_table.end());
+    specified_rettype_table[u] = spec_ret;
   }
   if (pdc) {
     const type* ret = T;
@@ -125,6 +132,8 @@ function::action(const type* T,
       param.push_back(void_type::create());
       return T->patch(func_type::create(backpatch_type::create(),param),u);
     }
+    if (spec_ret)
+      error::not_implemented();
     return T;
   }
 }
@@ -135,6 +144,7 @@ namespace cxx_compiler {
       namespace function {
         using namespace std;
         map<usr*, vector<var*> > default_arg_table;
+	map<usr*, const type*> specified_rettype_table;
       } // end of namespace function
     } // end of namespace declarators
   } // end of namespace declarations

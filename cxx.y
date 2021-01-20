@@ -204,6 +204,7 @@ namespace cxx_compiler {
 %type<m_handlers> handler_seq
 %type<m_var> exception_declaration
 %type<m_type> ALIAS_TYPE_LEX
+%type<m_type> specified_return_type
 
 %%
 
@@ -878,31 +879,60 @@ direct_declarator
   : declarator_id
   | direct_declarator '(' enter_parameter parameter_declaration_clause
     leave_parameter ')' cvr_qualifier_seq exception_specification
+    specified_return_type
     {
       using namespace cxx_compiler::declarations::declarators;
       $$ = $1;
-      $$->m_type = function::action($1->m_type,$4,$1,$7);
+      $$->m_type = function::action($1->m_type,$4,$1,$7,$9);
+    }
+  | direct_declarator '(' enter_parameter parameter_declaration_clause
+    leave_parameter ')' cvr_qualifier_seq exception_specification
+    {
+      using namespace cxx_compiler::declarations::declarators;
+      $$ = $1;
+      $$->m_type = function::action($1->m_type,$4,$1,$7,0);
+    }
+  | direct_declarator '(' enter_parameter parameter_declaration_clause
+    leave_parameter ')' exception_specification specified_return_type
+    {
+      using namespace cxx_compiler::declarations::declarators;
+      $$ = $1;
+      $$->m_type = function::action($1->m_type,$4,$1,0,$8);
     }
   | direct_declarator '(' enter_parameter parameter_declaration_clause
     leave_parameter ')' exception_specification
     {
       using namespace cxx_compiler::declarations::declarators;
       $$ = $1;
-      $$->m_type = function::action($1->m_type,$4,$1,0);
+      $$->m_type = function::action($1->m_type,$4,$1,0,0);
+    }
+  | direct_declarator '(' enter_parameter parameter_declaration_clause
+    leave_parameter ')' cvr_qualifier_seq specified_return_type
+    {
+      using namespace cxx_compiler::declarations::declarators;
+      $$ = $1;
+      $$->m_type = function::action($1->m_type,$4,$1,$7,$8);
     }
   | direct_declarator '(' enter_parameter parameter_declaration_clause
     leave_parameter ')' cvr_qualifier_seq
     {
       using namespace cxx_compiler::declarations::declarators;
       $$ = $1;
-      $$->m_type = function::action($1->m_type,$4,$1,$7);
+      $$->m_type = function::action($1->m_type,$4,$1,$7,0);
+    }
+  | direct_declarator '(' enter_parameter parameter_declaration_clause
+    leave_parameter ')' specified_return_type
+    {
+      using namespace cxx_compiler::declarations::declarators;
+      $$ = $1;
+      $$->m_type = function::action($1->m_type,$4,$1,0,$7);
     }
   | direct_declarator '(' enter_parameter parameter_declaration_clause
     leave_parameter ')'
     {
       using namespace cxx_compiler::declarations::declarators;
       $$ = $1;
-      $$->m_type = function::action($1->m_type,$4,$1,0);
+      $$->m_type = function::action($1->m_type,$4,$1,0,0);
     }
   | direct_declarator begin_array assignment_expression end_array
     {
@@ -1140,7 +1170,7 @@ direct_abstract_declarator
     parameter_declaration_clause leave_parameter ')'
    {
       using namespace cxx_compiler;
-      $$ = declarations::declarators::function::action($1,$4,0,0);
+      $$ = declarations::declarators::function::action($1,$4,0,0,0);
     }
   | '(' enter_parameter parameter_declaration_clause leave_parameter ')'
     cvr_qualifier_seq exception_specification
@@ -1154,7 +1184,7 @@ direct_abstract_declarator
   | '(' enter_parameter parameter_declaration_clause leave_parameter ')'
     {
       using namespace cxx_compiler::declarations::declarators;
-      $$ = function::action(cxx_compiler::backpatch_type::create(),$3,0,0);
+      $$ = function::action(cxx_compiler::backpatch_type::create(),$3,0,0,0);
     }
   | direct_abstract_declarator begin_array assignment_expression end_array
     {
@@ -1227,6 +1257,10 @@ exception_specification
   : THROW_KW '(' enter_exception_specification type_id_list ')'
   | THROW_KW '(' enter_exception_specification              ')'
   | NOEXCEPT_KW
+  ;
+
+specified_return_type
+  : ARROW_MK type_id { $$ = $2; }
   ;
 
 type_id_list
