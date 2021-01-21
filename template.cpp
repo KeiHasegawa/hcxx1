@@ -110,12 +110,13 @@ namespace cxx_compiler {
       }
       static usr* ins_if_res;
       inline
-      void instantiate_if1(template_usr* tu, const template_usr::KEY& key)
+      void instantiate_if1(template_usr* tu,  const template_usr::KEY& key,
+			   usr::flag2_t flag2)
       {
         template_usr::KEY::const_iterator p =
           find_if(begin(key), end(key), template_param);
         if (p == end(key))
-          ins_if_res = tu->instantiate(key);
+          ins_if_res = tu->instantiate(key, flag2);
       }
       inline void class_templ_member(usr* prev, template_usr* tu)
       {
@@ -130,7 +131,7 @@ namespace cxx_compiler {
         template_tag* tt = it->m_src;
         map<template_tag::KEY, tag*>& table = tt->m_table;
         for (const auto& p : table)
-          instantiate_if1(tu, p.first);
+          instantiate_if1(tu, p.first, usr::NONE2);
       }
       inline void after_instantiate(template_usr* tu)
       {
@@ -147,7 +148,7 @@ namespace cxx_compiler {
           template_usr* tp = static_cast<template_usr*>(prev);
           map<template_usr::KEY, usr*>& table = tp->m_table;
           for (const auto& p : table)
-            instantiate_if1(tu, p.first);
+            instantiate_if1(tu, p.first, p.second->m_flag2);
           return;
         }
 
@@ -200,7 +201,7 @@ namespace cxx_compiler {
         typedef template_usr::KEY::const_iterator IT;
         IT p = find_if(begin(key), end(key), template_param);
         if (p == end(key))
-          tu->instantiate(key);
+          tu->instantiate(key, usr::NONE2);
       }
     } // end of namespace templ
   } // end of namespace declarations
@@ -871,7 +872,7 @@ namespace cxx_compiler {
 } // end of namespace cxx_compiler
 
 cxx_compiler::usr*
-cxx_compiler::template_usr::instantiate(const KEY& key)
+cxx_compiler::template_usr::instantiate(const KEY& key, usr::flag2_t flag2)
 {
   table_t::const_iterator p = m_table.find(key);
   if (p != m_table.end())
@@ -887,7 +888,9 @@ cxx_compiler::template_usr::instantiate(const KEY& key)
   templ_base tmp = *this;
   template_usr_impl::sweeper_b sweeper_b(m_decled, &tmp);
   declarations::templ::ins_if_res = 0;
-  nest.push_back(info_t(this, 0, info_t::NONE, key));
+  info_t::mode_t mode = (flag2 & usr::EXPLICIT_INSTANTIATE) ?
+    info_t::EXPLICIT : info_t::NONE;
+  nest.push_back(info_t(this, 0, mode, key));
   tinfos.push_back(make_pair(&nest.back(),(template_tag::info_t*)0));
   cxx_compiler_parse();
   tinfos.pop_back();
@@ -904,7 +907,6 @@ cxx_compiler::template_usr::instantiate(const KEY& key)
   }
   assert(ret->m_src == this);
   assert(ret->m_seed == key);
-  assert(!(ret->m_flag2 & usr::EXPLICIT_INSTANTIATE));
   return m_table[key] = ret;
 }
 

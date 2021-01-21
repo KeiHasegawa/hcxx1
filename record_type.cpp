@@ -2955,7 +2955,7 @@ void cxx_compiler::handle_copy_ctor(tag* ptr)
       usr* u = *r;
       assert(u->m_flag2 & usr::TEMPLATE);
       template_usr* tu = static_cast<template_usr*>(u);
-      tu->instantiate(key);
+      tu->instantiate(key, usr::NONE2);
       return;
     }
   }

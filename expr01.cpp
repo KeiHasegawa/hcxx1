@@ -261,7 +261,7 @@ cxx_compiler::member_function::call(std::vector<var*>* arg)
           assert(u->m_flag2 & usr::INSTANTIATE);
           instantiated_usr* iu = static_cast<instantiated_usr*>(u);
           const instantiated_usr::SEED& seed = iu->m_seed;
-          next->instantiate(seed);
+          next->instantiate(seed, usr::NONE2);
         }
         T = fun->m_type;
         assert(T->m_id == type::FUNC); 
@@ -443,10 +443,10 @@ cxx_compiler::usr* cxx_compiler::instantiate_if(usr* fun)
   if (p == end(tbl))
     return fun;
   if (template_usr* outer = tu->m_outer) {
-    usr* ret = outer->instantiate(it->m_seed);
+    usr* ret = outer->instantiate(it->m_seed, usr::NONE2);
     return ret ? ret : fun;
   }
-  return tu->instantiate(it->m_seed);
+  return tu->instantiate(it->m_seed, usr::NONE2);
 }
 
 namespace cxx_compiler {
@@ -461,7 +461,7 @@ namespace cxx_compiler {
         template_usr* tu = static_cast<template_usr*>(u);
         template_usr::KEY key;
         if (tu->instantiate(arg, &key))
-          u = tu->instantiate(key);
+  	  u = tu->instantiate(key, usr::NONE2);
       }
       const type* T = u->m_type;
       assert(T->m_id == type::FUNC);
@@ -726,7 +726,7 @@ cxx_compiler::partial_ordering::call(std::vector<var*>* arg)
   if (template_usr* next = tu->m_next) {
     assert(ins->m_flag2 & usr::INSTANTIATE);
     instantiated_usr* iu = static_cast<instantiated_usr*>(ins);
-    next->instantiate(iu->m_seed);
+    next->instantiate(iu->m_seed, usr::NONE2);
   }
   scope* ps = ins->m_scope;
   if (ps->m_id == scope::TAG) {
@@ -1657,17 +1657,14 @@ member::end(info_t* info, pair<declarations::type_specifier*, bool>* x)
   declarations::type_specifier* spec = x->first;
   auto_ptr<declarations::type_specifier> sweeper2(spec);
   if (const type* T = spec->m_type) {
-    assert(T->m_id == type::RECORD);
-    typedef const record_type REC;
-    REC* rec = static_cast<REC*>(T);
-    tag* ptr = rec->get_tag();
+    tag* ptr = T->get_tag();
     const map<string, vector<usr*> >& usrs = ptr->m_usrs;
     string name = ptr->m_name;
     name = '~' + name;
     typedef map<string, vector<usr*> >::const_iterator IT;
     IT p = usrs.find(name);
     if (p == usrs.end()) {
-      info->m_type = rec;
+      info->m_type = T;
       return end(info, (var*)0);
     }
     const vector<usr*>& v = p->second;

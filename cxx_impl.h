@@ -1788,7 +1788,7 @@ struct template_usr : usr, templ_base {
       m_flag = usr::flag_t(m_flag | usr::INLINE);
   }
   virtual usr* instantiate(vector<var*>* arg, KEY* trial);
-  usr* instantiate(const KEY& key);
+  usr* instantiate(const KEY& key, usr::flag2_t);
   usr* instantiate_common(vector<scope::tps_t::val2_t*>*, info_t::mode_t);
   usr* instantiate_explicit(vector<scope::tps_t::val2_t*>* pv)
   { return instantiate_common(pv, info_t::EXPLICIT); }

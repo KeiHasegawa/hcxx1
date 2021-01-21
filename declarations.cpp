@@ -1291,7 +1291,7 @@ namespace cxx_compiler {
         typedef template_usr::info_t X;
         typedef template_tag::info_t Y;
         tinfos.push_back(make_pair((X*)0, (Y*)1));
-        usr* xi = x->instantiate(key);
+	usr* xi = x->instantiate(key, usr::NONE2);
         tinfos.pop_back();
         scope* ps = xi->m_scope;
         map<string, vector<usr*> >& usrs = ps->m_usrs;
