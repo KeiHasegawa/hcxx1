@@ -2128,6 +2128,31 @@ std::string cxx_compiler::partial_special_tag::instantiated_name() const
   return name;
 }
 
+namespace cxx_compiler {
+  namespace template_usr_impl {
+    struct get {
+      const map<string, pair<const type*, var*> >& m_default;
+      template_usr::KEY& m_key;
+      get(const map<string, pair<const type*, var*> >& def,
+	  template_usr::KEY& key) : m_default(def), m_key(key) {}
+      bool operator()(string name)
+      {
+        typedef map<string, pair<const type*, var*> >::const_iterator IT;
+        IT p = m_default.find(name);
+        if (p == m_default.end())
+          return false;
+	pair<const type*, var*> v = p->second;
+	if (const type* T = v.first) {
+	  T = T->complete_type();
+	  v.first = T;
+	}
+	m_key.push_back(v);
+        return true;
+      }
+    };
+  } // end of namespace template_usr_impl
+} // end of namespace cxx_compiler
+
 cxx_compiler::usr*
 cxx_compiler::template_usr::
 instantiate_common(vector<scope::tps_t::val2_t*>* pv, info_t::mode_t mode)
@@ -2136,6 +2161,13 @@ instantiate_common(vector<scope::tps_t::val2_t*>* pv, info_t::mode_t mode)
   KEY key;
   transform(begin(*pv), end(*pv), back_inserter(key),
             [](scope::tps_t::val2_t* p){ return *p; });
+
+  const vector<string>& order = m_tps.m_order;
+  if (order.size() > key.size()) {
+    template_usr_impl::sweeper_c sweeper_c(m_tps, key, false);
+    find_if(begin(order)+key.size(), end(order),
+	    template_usr_impl::get(m_tps.m_default, key));
+  }
   table_t::const_iterator it = m_table.find(key);
   if (it != m_table.end())
     return it->second;
@@ -2145,7 +2177,7 @@ instantiate_common(vector<scope::tps_t::val2_t*>* pv, info_t::mode_t mode)
   if (it != m_table.end())
     return m_table[key] = it->second;
 
-  if (m_tps.m_order.size() > key.size())
+  if (order.size() > key.size())
     return m_table[key] = new partial_instantiated(*this, key);
 
   template_usr_impl::sweeper_c sweeper_c(m_tps, key, true);

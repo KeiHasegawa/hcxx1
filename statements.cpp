@@ -1264,8 +1264,26 @@ int cxx_compiler::statements::return_stmt::info_t::gen()
     }
     expr = T->aggregate() ?
       aggregate_conv(T, expr, ctor_conv, 0) : expr->cast(T);
-    if (T->m_id == type::REFERENCE && res->m_id != type::REFERENCE)
-      expr = expr->address();
+    if (T->m_id == type::REFERENCE && res->m_id != type::REFERENCE) {
+      typedef const reference_type RT;
+      RT* rt = static_cast<RT*>(T);
+      if (rt->twice()) {
+	if (expr->lvalue())
+	  error::not_implemented();
+	expr = expr->rvalue();
+	var* ret = new var(rt);
+	if (scope::current->m_id == scope::BLOCK) {
+	  block* b = static_cast<block*>(scope::current);
+	  b->m_vars.push_back(ret);
+	}
+	else
+	  garbage.push_back(ret);
+	code.push_back(new addr3ac(ret, expr));
+	expr = ret;
+      }
+      else
+	expr = expr->address();
+    }
     expr = copy_ctor(T, expr);
   }
   else {
