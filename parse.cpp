@@ -1490,6 +1490,7 @@ namespace cxx_compiler {
       templ_base* ptr;
       bool param;
       int arg;
+      int parenthesis;
       bool func()
       {
         if (!save_t::nest.empty()) {
@@ -1547,6 +1548,17 @@ int cxx_compiler::parse::get_token()
 	    break;
 	  }
 	default:
+	  break;
+	}
+      }
+      if (parse::templ::arg > 0) {
+	switch (last_token) {
+	case '(':
+	  ++parse::templ::parenthesis;
+	  break;
+	case ')':
+	  assert(parse::templ::parenthesis > 0);
+	  --parse::templ::parenthesis;
 	  break;
 	}
       }

@@ -44,7 +44,8 @@ print<<EOF
   if (yystate == $xxx) {
     if (yychar == '>') {
       using namespace cxx_compiler;
-      if (parse::templ::param || parse::templ::arg > 0) {
+      if (parse::templ::param ||
+	  parse::templ::arg > 0 && !parse::templ::parenthesis) {
         YYDPRINTF((stderr, "patch.14 is applied\\n"));
         yyn = $eee + 1;
         goto yyreduce;

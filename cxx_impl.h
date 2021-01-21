@@ -113,6 +113,7 @@ namespace parse {
     };
     extern bool param;
     extern int arg;
+    extern int parenthesis;
     extern bool func();
     extern void patch_13_2(save_t*, const read_t& pr, pair<int, int>);
   } // end of namespace templ
