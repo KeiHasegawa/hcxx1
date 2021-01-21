@@ -99,6 +99,15 @@ function::action(const type* T,
       transform(begin(*pdc), end(*pdc), back_inserter(param),
                 [](pair<const type*, expressions::base*>* p)
                 { return p->first; });
+      if (param.size() == 1) {
+	const type* pt = param[0];
+	type::id_t id = pt->m_id;
+	if (id == type::ELLIPSIS) {
+	  assert(!specifier_seq::info_t::s_stack.empty());
+	  assert(!specifier_seq::info_t::s_stack.top());
+	  specifier_seq::info_t::s_stack.pop();
+	}
+      }
       ret = T->patch(func_type::create(backpatch_type::create(),param),u);
     }
     vector<var*> default_arg;
