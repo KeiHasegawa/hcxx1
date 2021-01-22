@@ -1174,8 +1174,10 @@ namespace cxx_compiler {
         assert(T);
         tag* ptr = T->get_tag();
         if (!ptr)
-          return T;
-        if (T->m_id == type::TEMPLATE_PARAM) {
+          return T->unqualified();
+
+	const type* U = T->unqualified();
+        if (U->m_id == type::TEMPLATE_PARAM) {
           string name = ptr->m_name;
           typedef map<string, scope::tps_t::value_t>::const_iterator IT;
           IT p = m_table.find(name);
@@ -1188,7 +1190,7 @@ namespace cxx_compiler {
 	    if (T2->m_id != type::TEMPLATE_PARAM)
 	      return T2;
 	  }
-          return T;
+	  return U;
         }
         if (!(ptr->m_flag & tag::INSTANTIATE))
           return T;
@@ -1667,6 +1669,7 @@ namespace cxx_compiler {
     }
     bool out_addr(const type* T)
     {
+      T = T->unqualified();
       if (T->m_id == type::TEMPLATE_PARAM)
 	return true;
       tag* ptr = T->get_tag();
