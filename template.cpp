@@ -1008,8 +1008,16 @@ namespace cxx_compiler {
 	  const vector<template_usr*>& c = po->m_candidacy;
 	  vector<usr*> ins;
 	  for (auto tu : c) {
-	    if (pv->size() <= tu->m_tps.m_order.size())
+	    const vector<string>& order = tu->m_tps.m_order;
+	    if (pv->size() == order.size())
 	      ins.push_back(helper(tu, pv));
+	  }
+	  if (ins.empty()) {
+	    for (auto tu : c) {
+	      const vector<string>& order = tu->m_tps.m_order;
+	      if (pv->size() < order.size())
+		ins.push_back(helper(tu, pv));
+	    }
 	  }
 	  if (pv) {
 	    for (auto p : *pv)

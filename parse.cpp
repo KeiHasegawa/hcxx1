@@ -269,6 +269,12 @@ namespace cxx_compiler {
               m_choice.push_back(tmp);
               return true;
             }
+	    usr::flag2_t flag2 = u->m_flag2;
+	    if (flag2 & usr::PARTIAL_ORDERING) {
+	      tmp.m_kind = TEMPLATE_NAME_LEX;
+              m_choice.push_back(tmp);
+              return true;
+	    }
             const type* T = u->m_type;
             if (const pointer_type* G = T->ptr_gen())
               garbage.push_back(tmp.m_lval = new genaddr(G,T,u,0));
@@ -441,14 +447,22 @@ namespace cxx_compiler {
             return 0;
           if (choice.size() == 1) {
             const info_t& x = choice.back();
-            cxx_compiler_lval.m_var = x.m_lval;
-            const vector<base*>& v = x.m_base;
-            transform(begin(v), end(v), back_inserter(route),
-                      [](base* bp){
-                	const record_type* zero = 0;
-                	return make_pair(bp, zero);
-                      });
-            return x.m_kind;
+	    const vector<base*>& v = x.m_base;
+	    transform(begin(v), end(v), back_inserter(route),
+		      [](base* bp){
+			const record_type* zero = 0;
+			return make_pair(bp, zero);
+		      });
+	    int kind = x.m_kind;
+	    var* xv = x.m_lval;
+	    if (kind == TEMPLATE_NAME_LEX) {
+	      assert(xv->usr_cast());
+	      usr* u = static_cast<usr*>(xv);
+	      cxx_compiler_lval.m_ut = new pair<usr*, tag*>(u, 0);
+	      return kind;
+	    }
+	    cxx_compiler_lval.m_var = xv;
+	    return kind;
           }
 
           typedef vector<info_t>::const_iterator IT;
@@ -1056,10 +1070,16 @@ namespace cxx_compiler {
         IT p = token.begin();
         IT finish = token.end();
 
-        assert(p != finish);
-        if (p->first != '<')
-          return false;
-        ++p;
+	if (p != finish) {
+	  if (p->first != '<')
+	    return false;
+	  ++p;
+	}
+	else {
+	  int c = lex_and_save();
+	  if (c != '<')
+	    return false;
+	}
 
         identifier::mode_t org = identifier::mode;
         var* org2 = cxx_compiler_lval.m_var;
