@@ -1038,6 +1038,8 @@ cxx_compiler::var* cxx_compiler::call_impl::convert::operator()(var* arg)
   if (U->m_id != type::REFERENCE)
     arg = arg->rvalue();
   if (T->m_id == type::ELLIPSIS) {
+    if (m_trial_cost)
+      *m_trial_cost += 2;
     const type* Ta = arg->m_type;
     const type* Tav = Ta->varg();
     if ( Ta->compatible(Tav) )

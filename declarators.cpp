@@ -431,7 +431,13 @@ namespace cxx_compiler {
               if (param.size() != 1)
                 return false;
               const type* T = param.back();
-              return T->m_id == type::VOID;
+	      type::id_t id = T->m_id;
+	      switch (id) {
+	      case type::VOID: case type::ELLIPSIS:
+		return true;
+	      default:
+		return false;
+	      }
             }
             int m = param.size();
             assert(m);
