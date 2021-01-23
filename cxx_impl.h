@@ -1048,11 +1048,19 @@ namespace expressions {
     struct is_common : base {
       const type* m_type;
       enum kind_t { triv, triv_cp, std_lay, pod, lit_type, empty, poly,
-		    fin, abs, triv_ass, triv_des, cons };
+		    fin, abs, triv_ass, triv_des };
       kind_t m_kind;
       file_t m_file;
       is_common(const type* T, kind_t kind)
         : m_type(T), m_kind(kind), m_file(parse::position) {}
+      var* gen();
+      const file_t& file() const { return m_file; }
+    };
+    struct is_constructible : base {
+      vector<const type*>* m_types;
+      file_t m_file;
+      is_constructible(vector<const type*>* types)
+	: m_types(types), m_file(parse::position) {}
       var* gen();
       const file_t& file() const { return m_file; }
     };

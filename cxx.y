@@ -206,6 +206,7 @@ namespace cxx_compiler {
 %type<m_var> exception_declaration
 %type<m_type> ALIAS_TYPE_LEX
 %type<m_type> specified_return_type
+%type<m_types> type_id_list
 
 %%
 
@@ -1267,7 +1268,15 @@ specified_return_type
 
 type_id_list
   : type_id
+    {
+      using namespace cxx_compiler;
+      $$ = new vector<const type*>; $$->push_back($1);
+    }
   | type_id_list ',' type_id
+    {
+      $1->push_back($3);
+      $$ = $1;
+    }
   ;
 
 enter_exception_specification
@@ -2887,12 +2896,12 @@ postfix_expression
   | BUILTIN_IS_CONSTRUCTIBLE '(' type_id_list ')'
     {
       using namespace cxx_compiler::expressions::postfix;
-      $$ = new is_common(0, is_common::cons);
+      $$ = new is_constructible($3);
     }
   | BUILTIN_IS_CONSTRUCTIBLE '(' type_id_list DOTS_MK ')'
     {
       using namespace cxx_compiler::expressions::postfix;
-      $$ = new is_common(0, is_common::cons);
+      $$ = new is_constructible($3);
     }
   | NOEXCEPT_KW '(' expression ')'
     {

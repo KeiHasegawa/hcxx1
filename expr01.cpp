@@ -3018,6 +3018,13 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::is_common::gen()
   return integer::create(n);
 }
 
+cxx_compiler::var* cxx_compiler::expressions::postfix::is_constructible::gen()
+{
+  using namespace primary::literal;
+  auto_ptr<vector<const type*>> sweeper(m_types);
+  return integer::create(1);
+}
+
 cxx_compiler::var* cxx_compiler::expressions::postfix::no_except::gen()
 {
   using namespace primary::literal;
