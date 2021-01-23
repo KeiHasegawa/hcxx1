@@ -125,6 +125,7 @@ __is_final          { return BUILTIN_IS_FINAL; }
 __is_abstract       { return BUILTIN_IS_ABSTRACT; }
 __is_trivially_assignable { return BUILTIN_IS_TRIVIALLY_ASSIGNABLE; }
 __has_trivial_destructor { return BUILTIN_HAS_TRIVIAL_DESTRUCTOR; }
+__is_constructible  { return BUILTIN_IS_CONSTRUCTIBLE; }
 asm                 { return ASM_KW; }
 auto                { return AUTO_KW; }
 bool                { return BOOL_KW; }

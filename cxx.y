@@ -88,6 +88,7 @@ namespace cxx_compiler {
 %token BUILTIN_IS_POD BUILTIN_IS_LITERAL_TYPE BUILTIN_IS_EMPTY
 %token BUILTIN_IS_POLYMORPHIC BUILTIN_IS_FINAL BUILTIN_IS_ABSTRACT
 %token BUILTIN_IS_TRIVIALLY_ASSIGNABLE BUILTIN_HAS_TRIVIAL_DESTRUCTOR
+%token BUILTIN_IS_CONSTRUCTIBLE
 %token BUILTIN_CLZ BUILTIN_CLZL BUILTIN_CLZLL
 %token NEW_ARRAY_LEX DELETE_ARRAY_LEX
 %token NOEXCEPT_KW
@@ -2882,6 +2883,16 @@ postfix_expression
     {
       using namespace cxx_compiler::expressions::postfix;
       $$ = new is_common($3, is_common::triv_des);
+    }
+  | BUILTIN_IS_CONSTRUCTIBLE '(' type_id_list ')'
+    {
+      using namespace cxx_compiler::expressions::postfix;
+      $$ = new is_common(0, is_common::cons);
+    }
+  | BUILTIN_IS_CONSTRUCTIBLE '(' type_id_list DOTS_MK ')'
+    {
+      using namespace cxx_compiler::expressions::postfix;
+      $$ = new is_common(0, is_common::cons);
     }
   | NOEXCEPT_KW '(' expression ')'
     {

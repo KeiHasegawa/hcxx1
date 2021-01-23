@@ -3020,7 +3020,8 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::is_common::gen()
 
 cxx_compiler::var* cxx_compiler::expressions::postfix::no_except::gen()
 {
-  error::not_implemented();
+  using namespace primary::literal;
+  return integer::create(0);
 }
 
 namespace cxx_compiler {

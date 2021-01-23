@@ -1048,7 +1048,7 @@ namespace expressions {
     struct is_common : base {
       const type* m_type;
       enum kind_t { triv, triv_cp, std_lay, pod, lit_type, empty, poly,
-		    fin, abs, triv_ass, triv_des };
+		    fin, abs, triv_ass, triv_des, cons };
       kind_t m_kind;
       file_t m_file;
       is_common(const type* T, kind_t kind)
