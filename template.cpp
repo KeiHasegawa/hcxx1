@@ -956,7 +956,6 @@ namespace cxx_compiler {
 		return tt->special_ver(pv, dots);
 	      }
 	    }
-	    classes::specifier::special_ver.erase(ptr);
             if (c == ';') {
               if (!specialization::nest.empty()) {
                 if (specialization::nest.top() == scope::current) {
@@ -977,7 +976,6 @@ namespace cxx_compiler {
               }
             }
           }
-	  classes::specifier::special_ver.erase(ptr);
           sweeper sweeper;
           return tt->instantiate(pv, dots);
         }
@@ -1251,7 +1249,8 @@ namespace cxx_compiler {
 	string name = u->m_name;
 	const auto& usrs = res->m_usrs;
 	auto p = usrs.find(name);
-	assert(p != usrs.end());
+	if (p == usrs.end())
+	  return v;
 	const vector<usr*>& vec = p->second;
 	return vec.back();
       }
