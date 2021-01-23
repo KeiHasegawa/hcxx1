@@ -1056,6 +1056,13 @@ namespace expressions {
       var* gen();
       const file_t& file() const { return m_file; }
     };
+    struct no_except : base {
+      base* m_expr;
+      file_t m_file;
+      no_except(base* expr) : m_expr(expr), m_file(parse::position) {} 
+      var* gen();
+      const file_t& file() const { return m_file; }
+    };
   } // end of namespace postfix
   namespace unary {
     struct ppmm : base {

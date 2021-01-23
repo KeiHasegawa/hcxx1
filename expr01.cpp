@@ -3018,6 +3018,11 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::is_common::gen()
   return integer::create(n);
 }
 
+cxx_compiler::var* cxx_compiler::expressions::postfix::no_except::gen()
+{
+  error::not_implemented();
+}
+
 namespace cxx_compiler {
   using namespace expressions::primary::literal;
   template<> var* refimm<void*>::common()

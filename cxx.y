@@ -1257,6 +1257,7 @@ exception_specification
   : THROW_KW '(' enter_exception_specification type_id_list ')'
   | THROW_KW '(' enter_exception_specification              ')'
   | NOEXCEPT_KW
+  | NOEXCEPT_KW '(' constant_expression ')'
   ;
 
 specified_return_type
@@ -2881,6 +2882,11 @@ postfix_expression
     {
       using namespace cxx_compiler::expressions::postfix;
       $$ = new is_common($3, is_common::triv_des);
+    }
+  | NOEXCEPT_KW '(' expression ')'
+    {
+      using namespace cxx_compiler::expressions::postfix;
+      $$ = new no_except($3);
     }
   ;
 
