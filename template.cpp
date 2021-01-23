@@ -1213,7 +1213,6 @@ namespace cxx_compiler {
       {
 	const type* T = v.first;
 	assert(T);
-	assert(T->m_id == type::TEMPLATE_PARAM);
 	tag* ptr = T->get_tag();
 	T = ptr->m_types.second;
 	if (!T)
