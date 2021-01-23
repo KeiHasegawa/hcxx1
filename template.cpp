@@ -2015,6 +2015,8 @@ namespace cxx_compiler {
         const pair<tag*, scope::tps_t::val2_t*>& x = p->second;
         if (tag* ptr = x.first) {
           const type* T = ptr->m_types.second;
+	  if (!T)  // case that last variable parameter is not specified
+	    return name;
           ostringstream os;
           T->decl(os, "");
 	  if (out_addr(T))
