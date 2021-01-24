@@ -15,6 +15,7 @@ while ( <> ){
     print "      yychar = cxx_compiler::parse::get_token();\n";
     print "#include \"patch.04.p2\"\n";
     print "#include \"patch.21.p\"\n";
+    print "#include \"patch.26.p\"\n";
     ++$yychar_converted;
     next;
   }
@@ -22,6 +23,7 @@ while ( <> ){
     print "      yychar = cxx_compiler::parse::get_token();\n";
     print "#include \"patch.04.p2\"\n";
     print "#include \"patch.21.p\"\n";
+    print "#include \"patch.26.p\"\n";
     ++$yychar_converted;
     next;
   }
@@ -86,6 +88,7 @@ EOF2
      print "#include \"patch.19.p\"\n";
      print "#include \"patch.20.p\"\n";
      print "#include \"patch.21.p\"\n";
+     print "#include \"patch.26.p\"\n";
   }
   if (/yyn = -yyn;/) {
      print "#include \"patch.22.p\"\n";

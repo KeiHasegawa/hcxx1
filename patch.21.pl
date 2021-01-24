@@ -1,3 +1,5 @@
+# See also patch.26.pl
+#
 #State XXX1
 #
 #  AAA1 template_id: TEMPLATE_NAME_LEX '<' enter_templ_arg leave_templ_arg . '>'
