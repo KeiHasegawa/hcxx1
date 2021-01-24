@@ -1150,6 +1150,13 @@ struct instantiated_usr : usr {
   {
     m_flag2 = usr::flag2_t(m_flag2 | usr::INSTANTIATE);
   }
+  var* rvalue();
+  var* indirection();
+  var* cast(const type*);
+  var* plus();
+  var* minus();
+  var* _not();
+  var* tilde();
 };
 
 struct base {

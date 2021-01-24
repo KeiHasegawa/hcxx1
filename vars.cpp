@@ -122,6 +122,76 @@ cxx_compiler::var* cxx_compiler::with_initial::tilde()
   return usr::tilde();
 }
 
+cxx_compiler::var* cxx_compiler::with_initial::indirection()
+{
+  var* y = rvalue();
+  if (y != this)
+    return y->indirection();
+  return usr::indirection();
+}
+
+cxx_compiler::var* cxx_compiler::instantiated_usr::rvalue()
+{
+  if (!(m_flag & usr::STATIC_DEF))
+    return usr::rvalue();
+  const auto& usrs = m_scope->m_usrs;
+  auto p = usrs.find(m_name);
+  assert(p != usrs.end());
+  const auto& v = p->second;
+  assert(v.size() == 2);
+  assert(v.back() == this);
+  usr* prev = v[0];
+  return prev->rvalue();
+}
+
+cxx_compiler::var* cxx_compiler::instantiated_usr::cast(const type* T)
+{
+  var* y = rvalue();
+  if (y != this)
+    return y->cast(T);
+  return usr::cast(T);
+}
+
+cxx_compiler::var* cxx_compiler::instantiated_usr::plus()
+{
+  var* y = rvalue();
+  if (y != this)
+    return y->plus();
+  return usr::plus();
+}
+
+cxx_compiler::var* cxx_compiler::instantiated_usr::minus()
+{
+  var* y = rvalue();
+  if (y != this)
+    return y->minus();
+  return usr::minus();
+}
+
+cxx_compiler::var* cxx_compiler::instantiated_usr::_not()
+{
+  var* y = rvalue();
+  if (y != this)
+    return y->_not();
+  return usr::_not();
+}
+
+cxx_compiler::var* cxx_compiler::instantiated_usr::tilde()
+{
+  var* y = rvalue();
+  if (y != this)
+    return y->tilde();
+  return usr::tilde();
+}
+
+cxx_compiler::var* cxx_compiler::instantiated_usr::indirection()
+{
+  var* y = rvalue();
+  if (y != this)
+    return y->indirection();
+  return usr::indirection();
+}
+
 namespace cxx_compiler {
   namespace genaddr_impl {
     var* appear_templ_case(genaddr* ga)

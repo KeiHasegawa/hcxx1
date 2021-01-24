@@ -620,14 +620,6 @@ namespace cxx_compiler {
   }
 } // end of namespace cxx_compiler
 
-cxx_compiler::var* cxx_compiler::with_initial::indirection()
-{
-  var* y = rvalue();
-  if (y != this)
-    return y->indirection();
-  return usr::indirection();
-}
-
 cxx_compiler::var* cxx_compiler::var::address()
 {
   var* expr = rvalue();
