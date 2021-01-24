@@ -2940,6 +2940,8 @@ expression_list
     }
   | expression_list ',' assignment_expression
     { $$ = $1; $$->push_back($3); }
+  | expression_list DOTS_MK
+    { $$ = $1; }
   ;
 
 pseudo_destructor_name

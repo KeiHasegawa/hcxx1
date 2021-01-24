@@ -1676,20 +1676,46 @@ namespace cxx_compiler {
       tag::kind_t kind = ptr->m_kind;
       return kind == tag::TYPENAME;
     }
-    // `add_special' is very similar to `template_tag_impl::helper::operator'
-    string add_special(string s, scope::tps_t::val2_t* p)
+    string add_special_a(string name, const type* T)
     {
-      if (const type* T = p->first) {
-	ostringstream os;
-	T->decl(os, "");
-	if (out_addr(T))
-	  os << '.' << T;
-	os << ',';
-	return s + os.str();
+      ostringstream os;
+      T->decl(os, "");
+      if (out_addr(T))
+	os << '.' << T;
+      os << ',';
+      return name + os.str();
+    }
+    string add_special_b(string name, var* v)
+    {
+      if (usr* u = v->usr_cast()) {
+	usr::flag2_t flag2 = u->m_flag2;
+	if (flag2 & usr::TEMPL_PARAM) {
+	  ostringstream os;
+	  os << u->m_name << '.' << u << ',';
+	  return name + os.str();
+	}
       }
+      assert(v->isconstant(true));
+      if (v->isconstant()) {
+	ostringstream os;
+	assert(v->usr_cast());
+	usr* u = static_cast<usr*>(v);
+	os << u->m_name;
+	return name + os.str() + ',';
+      }
+      addrof* a = v->addrof_cast();
+      assert(a);
+      assert(!a->m_offset);
+      v = a->m_ref;
+      usr* u = v->usr_cast();
+      return name + u->m_name + ',';
+    }
+    string add_special(string s, const scope::tps_t::val2_t* p)
+    {
+      if (const type* T = p->first)
+	return add_special_a(s, T);
       var* v = p->second;
-      error::not_implemented();
-      return s;
+      return add_special_b(s, v);
     }
     string
     special_name(template_tag* tt, bool dots,
@@ -2006,7 +2032,6 @@ namespace cxx_compiler {
       const map<string, scope::tps_t::value_t>& m_table;
       helper(const map<string, scope::tps_t::value_t>& table)
         : m_table(table) {}
-      // very similar to `add_special'
       string operator()(string name, string pn)
       {
         map<string, scope::tps_t::value_t>::const_iterator p =
@@ -2017,38 +2042,13 @@ namespace cxx_compiler {
           const type* T = ptr->m_types.second;
 	  if (!T)  // case that last variable parameter is not specified
 	    return name;
-          ostringstream os;
-          T->decl(os, "");
-	  if (out_addr(T))
-            os << '.' << T;
-          return name + os.str() + ',';
+	  return add_special_a(name, T);
         }
         const scope::tps_t::val2_t* y = x.second;
         assert(y);
         assert(y->first);
         var* v = y->second;
-        if (usr* u = v->usr_cast()) {
-          usr::flag2_t flag2 = u->m_flag2;
-          if (flag2 & usr::TEMPL_PARAM) {
-	    ostringstream os;
-	    os << u->m_name << '.' << u << ',';
-	    return name + os.str();
-          }
-        }
-        assert(v->isconstant(true));
-        if (v->isconstant()) {
-	  ostringstream os;
-          assert(v->usr_cast());
-          usr* u = static_cast<usr*>(v);
-          os << u->m_name;
-          return name + os.str() + ',';
-        }
-        addrof* a = v->addrof_cast();
-        assert(a);
-        assert(!a->m_offset);
-        v = a->m_ref;
-        usr* u = v->usr_cast();
-        return name + u->m_name + ',';
+	return add_special_b(name, v);
       }
     };
   } // end of namespace template_tag_impl

@@ -3028,7 +3028,7 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::is_constructible::gen()
 cxx_compiler::var* cxx_compiler::expressions::postfix::no_except::gen()
 {
   using namespace primary::literal;
-  return integer::create(0);
+  return integer::create(1);
 }
 
 namespace cxx_compiler {
