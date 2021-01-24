@@ -74,7 +74,7 @@ cxx_compiler::var* cxx_compiler::with_initial::rvalue()
 {
   if (!m_type->scalar())
     return usr::rvalue();
-  if (m_type->modifiable())
+  if (m_type->modifiable() && (!(m_flag & usr::CONSTEXPR)))
     return usr::rvalue();
   assert(m_value.size() == 1);
   map<int, var*>::const_iterator p = m_value.find(0);
