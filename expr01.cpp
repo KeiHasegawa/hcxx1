@@ -2990,10 +2990,21 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::is_kind::gen()
   return integer::create(n);
 }
 
-cxx_compiler::var* cxx_compiler::expressions::postfix::is_same_as::gen()
+cxx_compiler::var* cxx_compiler::expressions::postfix::is_common2::gen()
 {
   using namespace primary::literal;
-  int n = compatible(m_Tx, m_Ty) ? 1 : 0;
+  switch (m_kind) {
+  case same:
+    int n = compatible(m_Tx, m_Ty) ? 1 : 0;
+    return integer::create(n);
+  }
+  assert(m_kind == ass);
+  using namespace expressions;
+  var tmp(m_Ty);
+  bool discard = false;
+  bool ctor_conv = false;
+  const type* T = assignment::valid(m_Tx, &tmp, &discard, &ctor_conv, 0);
+  int n = T ? 1 : 0;
   return integer::create(n);
 }
 

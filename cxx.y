@@ -88,7 +88,7 @@ namespace cxx_compiler {
 %token BUILTIN_IS_POD BUILTIN_IS_LITERAL_TYPE BUILTIN_IS_EMPTY
 %token BUILTIN_IS_POLYMORPHIC BUILTIN_IS_FINAL BUILTIN_IS_ABSTRACT
 %token BUILTIN_IS_TRIVIALLY_ASSIGNABLE BUILTIN_HAS_TRIVIAL_DESTRUCTOR
-%token BUILTIN_IS_CONSTRUCTIBLE
+%token BUILTIN_IS_CONSTRUCTIBLE BUILTIN_IS_ASSIGNABLE
 %token BUILTIN_CLZ BUILTIN_CLZL BUILTIN_CLZLL
 %token NEW_ARRAY_LEX DELETE_ARRAY_LEX
 %token NOEXCEPT_KW
@@ -2835,8 +2835,13 @@ postfix_expression
     }
   | BUILTIN_IS_SAME_AS '(' type_id ',' type_id ')'
     {
-      using namespace cxx_compiler;
-      $$ = new expressions::postfix::is_same_as($3, $5);
+      using namespace cxx_compiler::expressions::postfix;
+      $$ = new is_common2($3, $5, is_common2::same);
+    }
+  | BUILTIN_IS_ASSIGNABLE '(' type_id ',' type_id ')'
+    {
+      using namespace cxx_compiler::expressions::postfix;
+      $$ = new is_common2($3, $5, is_common2::ass);
     }
   | BUILTIN_IS_TRIVIAL '(' type_id ')'
     {

@@ -1036,12 +1036,14 @@ namespace expressions {
       var* gen();
       const file_t& file() const { return m_file; }
     };
-    struct is_same_as : base {
+    struct is_common2 : base {
+      enum kind_t { same, ass };
+      kind_t m_kind;
       const type* m_Tx;
       const type* m_Ty;
       file_t m_file;
-      is_same_as(const type* Tx, const type* Ty)
-        : m_Tx(Tx), m_Ty(Ty), m_file(parse::position) {}
+      is_common2(const type* Tx, const type* Ty, kind_t kind)
+        : m_Tx(Tx), m_Ty(Ty), m_kind(kind), m_file(parse::position) {}
       var* gen();
       const file_t& file() const { return m_file; }
     };
