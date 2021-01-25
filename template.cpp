@@ -1670,6 +1670,18 @@ namespace cxx_compiler {
       T = T->unqualified();
       if (T->m_id == type::TEMPLATE_PARAM)
 	return true;
+      if (T->m_id == type::POINTER) {
+	typedef const pointer_type PT;
+	PT* pt = static_cast<PT*>(T);
+	T = pt->referenced_type();
+	return out_addr(T);
+      }
+      if (T->m_id == type::REFERENCE) {
+	typedef const reference_type RT;
+	RT* rt = static_cast<RT*>(T);
+	T = rt->referenced_type();
+	return out_addr(T);
+      }
       tag* ptr = T->get_tag();
       if (!ptr)
 	return false;
