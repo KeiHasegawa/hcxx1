@@ -1060,9 +1060,10 @@ namespace expressions {
     };
     struct is_constructible : base {
       vector<const type*>* m_types;
+      bool m_triv;
       file_t m_file;
-      is_constructible(vector<const type*>* types)
-	: m_types(types), m_file(parse::position) {}
+      is_constructible(vector<const type*>* types, bool triv)
+	: m_types(types), m_triv(triv), m_file(parse::position) {}
       var* gen();
       const file_t& file() const { return m_file; }
     };

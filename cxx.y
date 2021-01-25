@@ -89,6 +89,7 @@ namespace cxx_compiler {
 %token BUILTIN_IS_POLYMORPHIC BUILTIN_IS_FINAL BUILTIN_IS_ABSTRACT
 %token BUILTIN_IS_TRIVIALLY_ASSIGNABLE BUILTIN_HAS_TRIVIAL_DESTRUCTOR
 %token BUILTIN_IS_CONSTRUCTIBLE BUILTIN_IS_ASSIGNABLE
+%token BUILTIN_IS_TRIVIALLY_CONSTRUCTIBLE
 %token BUILTIN_CLZ BUILTIN_CLZL BUILTIN_CLZLL
 %token NEW_ARRAY_LEX DELETE_ARRAY_LEX
 %token NOEXCEPT_KW
@@ -2901,12 +2902,22 @@ postfix_expression
   | BUILTIN_IS_CONSTRUCTIBLE '(' type_id_list ')'
     {
       using namespace cxx_compiler::expressions::postfix;
-      $$ = new is_constructible($3);
+      $$ = new is_constructible($3, false);
     }
   | BUILTIN_IS_CONSTRUCTIBLE '(' type_id_list DOTS_MK ')'
     {
       using namespace cxx_compiler::expressions::postfix;
-      $$ = new is_constructible($3);
+      $$ = new is_constructible($3, false);
+    }
+  | BUILTIN_IS_TRIVIALLY_CONSTRUCTIBLE '(' type_id_list ')'
+    {
+      using namespace cxx_compiler::expressions::postfix;
+      $$ = new is_constructible($3, true);
+    }
+  | BUILTIN_IS_TRIVIALLY_CONSTRUCTIBLE '(' type_id_list DOTS_MK ')'
+    {
+      using namespace cxx_compiler::expressions::postfix;
+      $$ = new is_constructible($3, true);
     }
   | NOEXCEPT_KW '(' expression ')'
     {
