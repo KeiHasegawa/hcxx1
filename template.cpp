@@ -2481,4 +2481,36 @@ namespace cxx_compiler {
   } // end of namespace declarations
 } // end of namespace cxx_compiler
 
-
+namespace cxx_compiler {
+  bool template_param(const scope::tps_t::val2_t& x)
+  {
+    if (const type* T = x.first) {
+      T = T->unqualified();
+      if (T->m_id == type::POINTER) {
+	typedef const pointer_type PT;
+	PT* pt = static_cast<PT*>(T);
+	const type* X = pt->referenced_type();
+	return template_param(scope::tps_t::val2_t(X,0));
+      }
+      if (T->m_id == type::REFERENCE) {
+	typedef const reference_type RT;
+	RT* rt = static_cast<RT*>(T);
+	const type* X = rt->referenced_type();
+	return template_param(scope::tps_t::val2_t(X,0));
+      }
+      if (T->m_id == type::TEMPLATE_PARAM)
+	return true;
+      if (tag* ptr = T->get_tag()) {
+	if (record_impl::should_skip(ptr))
+	  return true;
+      }
+      return false;
+    }
+    var* v = x.second;
+    usr* u = v->usr_cast();
+    if (!u)
+      return false;
+    usr::flag2_t flag2 = u->m_flag2;
+    return flag2 & usr::TEMPL_PARAM;
+  }
+} // end of namespace cxx_compiler

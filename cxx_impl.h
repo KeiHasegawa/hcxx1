@@ -1882,25 +1882,7 @@ namespace parse {
 
 bool instance_of(template_usr* tu, usr* ins, templ_base::KEY& key);
 
-inline bool template_param(const scope::tps_t::val2_t& x)
-{
-  if (const type* T = x.first) {
-    T = T->unqualified();
-    if (T->m_id == type::TEMPLATE_PARAM)
-      return true;
-    if (tag* ptr = T->get_tag()) {
-      if (record_impl::should_skip(ptr))
-	return true;
-    }
-    return false;
-  }
-  var* v = x.second;
-  usr* u = v->usr_cast();
-  if (!u)
-    return false;
-  usr::flag2_t flag2 = u->m_flag2;
-  return flag2 & usr::TEMPL_PARAM;
-}
+bool template_param(const scope::tps_t::val2_t& x);
 
 template<class C>
 inline bool instantiate_with_template_param()

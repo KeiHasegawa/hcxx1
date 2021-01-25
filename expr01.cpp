@@ -2975,9 +2975,31 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::type_ident::gen()
   return ret;
 }
 
+namespace cxx_compiler {
+  namespace expressions {
+    namespace postfix {
+      bool unjudge(const type* T)
+      {
+	return template_param(scope::tps_t::val2_t(T,0));
+      }
+      usr* later()
+      {
+	string name = new_name(".param");
+	const type* T = int_type::create();
+	usr* u = new templ_param(name, T, usr::NONE, parse::position,
+				 usr::TEMPL_PARAM);
+	garbage.push_back(u);
+	return u;
+      }
+    } // end of namespace postfix
+  } // end of namespace expressions
+} // end of namespace cxx_compiler
+
 cxx_compiler::var* cxx_compiler::expressions::postfix::is_kind::gen()
 {
   using namespace primary::literal;
+  if (unjudge(m_type))
+    return later();
   tag* ptr = m_type->get_tag();
   if (!ptr)
     return integer::create(0);
@@ -2990,9 +3012,12 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::is_kind::gen()
   return integer::create(n);
 }
 
+
 cxx_compiler::var* cxx_compiler::expressions::postfix::is_common2::gen()
 {
   using namespace primary::literal;
+  if (unjudge(m_Tx) || unjudge(m_Ty))
+    return later();
   switch (m_kind) {
   case same:
     int n = compatible(m_Tx, m_Ty) ? 1 : 0;
@@ -3000,6 +3025,26 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::is_common2::gen()
   }
   assert(m_kind == ass);
   using namespace expressions;
+
+  // inspired by usr::assign(var*)
+  if (m_Tx->m_id == type::REFERENCE) {
+    typedef const reference_type RT;
+    RT* rtx = static_cast<RT*>(m_Tx);
+    m_Tx = rtx->referenced_type();
+    if (m_Ty->m_id == type::REFERENCE) {
+      RT* rty = static_cast<RT*>(m_Ty);
+      m_Ty = rty->referenced_type();
+    }
+    int cvr = 0;
+    m_Ty->unqualified(&cvr);
+    if (cvr & 1)
+      m_Tx = const_type::create(m_Tx);
+    if (cvr & 2)
+      m_Tx = volatile_type::create(m_Tx);
+    if (cvr & 4)
+      m_Tx = restrict_type::create(m_Tx);
+    m_Tx = reference_type::create(m_Tx, false);
+  }
   var tmp(m_Ty);
   bool discard = false;
   bool ctor_conv = false;
@@ -3010,6 +3055,8 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::is_common2::gen()
 
 cxx_compiler::var* cxx_compiler::expressions::postfix::is_common::gen()
 {
+  if (unjudge(m_type))
+    return later();
   using namespace primary::literal;
   tag* ptr = m_type->get_tag();
   if (!ptr)

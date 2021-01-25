@@ -2350,6 +2350,8 @@ int cxx_compiler::record_impl::layouter::operator()(int offset, usr* member)
       if (array)
         T = element(array);
       if (tag* ptr = T->get_tag()) {
+	if (should_skip(ptr))
+	  return offset;
         tag::flag_t flag = ptr->m_flag;
         if (flag & tag::TYPENAMED) {
           *X++ = make_pair(name,make_pair(offset,member));
