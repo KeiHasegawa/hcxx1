@@ -344,8 +344,17 @@ gencode(info_t* c, argument* arg)
     return assign(c->m_expr->gen(),arg);
   if (c->m_list)
     return lsting(c->m_list,arg);
-  assert(parse::templ::func());
-  return 0;
+  // = x.m where x depends on template parameter
+  // or
+  // = {}
+  using namespace expressions::primary::literal;
+  const type* T = arg->T;
+  if (T->scalar()) {
+    var* v = integer::create(0);
+    return assign(v, arg);
+  }
+  vector<element*> dummy;
+  return lsting(&dummy, arg);
 }
 
 int cxx_compiler::declarations::initializers::

@@ -1629,14 +1629,29 @@ cxx_compiler::expressions::brace::info_t::~info_t()
 namespace cxx_compiler {
   var* ini_list::cast(const type* T)
   {
+    using namespace expressions::primary::literal;
     if (T->scalar()) {
-      if (m_vars.size() != 1)
-	error::not_implemented();
-      var* v = m_vars[0];
-      return v->cast(T);
+      int n = m_vars.size();
+      switch (n) {
+      case 0:
+	{
+	  var* v = integer::create(0);
+	  return v->cast(T);
+	}
+      case 1:
+	{
+	  var* v = m_vars[0];
+	  return v->cast(T);
+	}
+      default:
+	{
+	  error::not_implemented();
+	}
+      }
     }
     error::not_implemented();
   }
+
   namespace ini_list_impl {
     void fill_a(var* x, int off, const type* T, var* y)
     {

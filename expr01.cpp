@@ -2464,9 +2464,8 @@ assignment::valid(const type* T, var* src, bool* discard, bool* ctor_conv,
     BT* bt = static_cast<BT*>(yy);
     const vector<const type*>& vt = bt->types();
     ini_list& il = dynamic_cast<ini_list&>(*src);
-    if (vt.empty()) {
-      error::not_implemented();
-    }
+    if (vt.empty())
+      return xx;
     if (vt.size() == 1) {
       vector<var*>& v = il.m_vars;
       assert(v.size() == 1);
