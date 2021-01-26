@@ -376,10 +376,26 @@ simple_type_specifier
     { $$ = new cxx_compiler::declarations::type_specifier(DOUBLE_KW); }
   | VOID_KW
     { $$ = new cxx_compiler::declarations::type_specifier(VOID_KW); }
-  | DECLTYPE_KW '(' expression ')'
-    { $$ = cxx_compiler::declarations::decl_type($3); }
-  | DECLTYPE_KW '(' AUTO_KW ')'
-    { cxx_compiler::error::not_implemented(); }
+  | decltype '(' expression ')'
+    {
+      $$ = cxx_compiler::declarations::decl_type($3);
+      using namespace cxx_compiler::declarations::specifier_seq;
+      info_t::s_stack.pop();
+    }
+  | decltype '(' AUTO_KW ')'
+    {
+      cxx_compiler::error::not_implemented();
+      using namespace cxx_compiler::declarations::specifier_seq;
+      info_t::s_stack.pop();
+    }
+  ;
+
+decltype
+  : DECLTYPE_KW
+  {
+    using namespace cxx_compiler::declarations::specifier_seq;
+    info_t::s_stack.push(0);
+  }
   ;
 
 type_name
