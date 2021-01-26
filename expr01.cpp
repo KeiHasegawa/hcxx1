@@ -1097,13 +1097,19 @@ cxx_compiler::var* cxx_compiler::call_impl::convert::operator()(var* arg)
       }
     }
     else {
-      assert(Ty->m_id == type::RECORD);
-      typedef const record_type REC;
-      REC* rec = static_cast<REC*>(Ty);
-      if (usr* fun = cast_impl::conversion_function(rec, T, true)) {
-        arg = call_impl::wrapper(fun, 0, arg);
-        if (m_trial_cost)
-          ++*m_trial_cost;
+      if (Ty->m_id == type::BRACE) {
+	ini_list& il = dynamic_cast<ini_list&>(*arg);
+	arg = il.cast(T);
+      }
+      else {
+	assert(Ty->m_id == type::RECORD);
+	typedef const record_type REC;
+	REC* rec = static_cast<REC*>(Ty);
+	if (usr* fun = cast_impl::conversion_function(rec, T, true)) {
+	  arg = call_impl::wrapper(fun, 0, arg);
+	  if (m_trial_cost)
+	    ++*m_trial_cost;
+	}
       }
     }
   }
