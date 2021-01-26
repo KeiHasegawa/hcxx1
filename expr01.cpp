@@ -1109,6 +1109,18 @@ cxx_compiler::var* cxx_compiler::call_impl::convert::operator()(var* arg)
   }
   else {
     arg = aggregate_conv(T, arg, ctor_conv, 0);
+    if (arg->m_type->m_id == type::BRACE) {
+      ini_list& il = dynamic_cast<ini_list&>(*arg);
+      var* tmp = new var(T);
+      if (scope::current->m_id == scope::BLOCK) {
+	block* b = static_cast<block*>(scope::current);
+	b->m_vars.push_back(tmp);
+      }
+      else
+	garbage.push_back(tmp);
+      il.fill(tmp);
+      arg = tmp;
+    }
     if (m_trial_cost) {
       T = T->unqualified();
       const type* Ty = arg->result_type();
