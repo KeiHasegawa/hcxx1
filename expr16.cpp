@@ -333,8 +333,14 @@ cxx_compiler::var* cxx_compiler::usr::assign(var* op)
       REC* rec = static_cast<REC*>(T);
       operator_assign::gen(px, y, rec);
     }
-    else
-      code.push_back(new assign3ac(this, y));
+    else {
+      if (Ty->m_id == type::BRACE) {
+	ini_list& il = dynamic_cast<ini_list&>(*y);
+	il.fill(this);
+      }
+      else
+	code.push_back(new assign3ac(this, y));
+    }
   }
   if ( !y->isconstant() )
     return y;

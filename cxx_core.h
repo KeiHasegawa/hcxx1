@@ -1176,6 +1176,7 @@ struct type {
     POINTER, REFERENCE, ARRAY, FUNC, RECORD, ENUM, BIT_FIELD, ELLIPSIS,
     INCOMPLETE_TAGGED, VARRAY,
     POINTER_MEMBER, TEMPLATE_PARAM,
+    BRACE
   };
   id_t m_id;
   type(id_t id) : m_id(id) {}

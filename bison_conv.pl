@@ -49,6 +49,7 @@ while ( <> ){
 #include "patch.13.p"
 #include "patch.13.2.p"
 #include "patch.14.p"
+#include "patch.22.p"
 #include "patch.23.p"
 EOF2
 	;
@@ -90,9 +91,6 @@ EOF2
      print "#include \"patch.21.p\"\n";
      print "#include \"patch.26.p\"\n";
   }
-  if (/yyn = -yyn;/) {
-     print "#include \"patch.22.p\"\n";
-  } 
   if (/^yyerrlab:/) {
       print<<EOF
   if (!cxx_compiler::parse::context_t::all.empty()) {

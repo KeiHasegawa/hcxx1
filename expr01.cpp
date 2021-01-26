@@ -2301,6 +2301,8 @@ assignment::valid(const type* T, var* src, bool* discard, bool* ctor_conv,
         return xx;
       }
     }
+    if (yy->m_id == type::BRACE)
+      return xx;
     return 0;
   }
 
@@ -2455,6 +2457,22 @@ assignment::valid(const type* T, var* src, bool* discard, bool* ctor_conv,
   if (xx->m_id == type::BOOL) {
     if (yy->scalar())
       return xx;
+  }
+
+  if (yy->m_id == type::BRACE) {
+    typedef const brace_type BT;
+    BT* bt = static_cast<BT*>(yy);
+    const vector<const type*>& vt = bt->types();
+    ini_list& il = dynamic_cast<ini_list&>(*src);
+    if (vt.empty()) {
+      error::not_implemented();
+    }
+    if (vt.size() == 1) {
+      vector<var*>& v = il.m_vars;
+      assert(v.size() == 1);
+      return valid(xx, v[0], discard, ctor_conv, exp_ctor);
+    }
+    error::not_implemented();
   }
 
   return 0;

@@ -1601,3 +1601,69 @@ cxx_compiler::var* cxx_compiler::qualified_id::action(var* v)
   ga->m_qualified_func = true;
   return ga;
 }
+
+cxx_compiler::var* cxx_compiler::expressions::brace::info_t::gen()
+{
+  vector<var*> res;
+  if (m_exprs) {
+    for (auto p : *m_exprs)
+      res.push_back(p->gen());
+  }
+  vector<const type*> vt;
+  for (auto v : res)
+    vt.push_back(v->m_type);
+  const type* T = brace_type::create(vt);
+  var* ret = new ini_list(T, res);
+  garbage.push_back(ret);
+  return ret;
+}
+
+cxx_compiler::expressions::brace::info_t::~info_t()
+{
+  if (m_exprs) {
+    for (auto p : *m_exprs)
+      delete p;
+  }
+}
+
+namespace cxx_compiler {
+  var* ini_list::cast(const type* T)
+  {
+    if (T->scalar()) {
+      if (m_vars.size() != 1)
+	error::not_implemented();
+      var* v = m_vars[0];
+      return v->cast(T);
+    }
+    error::not_implemented();
+  }
+  namespace ini_list_impl {
+    void fill_a(var* x, int off, const type* T, var* y)
+    {
+      using namespace expressions::primary::literal;
+      var* offset = integer::create(off);
+      if (!y) {
+	if (T->scalar())
+	  y = integer::create(0);
+	else
+	  error::not_implemented();
+      }
+      y = y->cast(T);
+      code.push_back(new loff3ac(x,offset,y));
+    }
+  } // end of namespace ini_list_impl
+  void ini_list::fill(var* x)
+  {
+    using namespace ini_list_impl;
+    const type* T = x->m_type;
+    int n = 0;
+    pair<int, const type*> curr;
+    for ( ; curr = T->current(n), curr.first >= 0 ; ++n) {
+      var* v = n < m_vars.size() ? m_vars[n] : 0;
+      fill_a(x,curr.first,curr.second,v);
+    }
+    if (n < m_vars.size())
+      error::not_implemented();
+  }
+} // end of namespace cxx_compiler
+

@@ -1898,3 +1898,16 @@ cxx_compiler::template_param_type::create(tag* ptr)
     return p->second;
   return table[ptr] = new template_param_type(ptr);
 }
+
+namespace cxx_compiler {
+  map<vector<const type*>, brace_type*> brace_type::m_table;
+}
+
+const cxx_compiler::brace_type*
+cxx_compiler::brace_type::create(const vector<const type*>& vt)
+{
+  auto p = m_table.find(vt);
+  if (p != m_table.end())
+    return p->second;
+  return m_table[vt] = new brace_type(vt);
+}

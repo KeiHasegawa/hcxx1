@@ -1475,19 +1475,38 @@ namespace statements {
 } // end of namespace statements
 
 namespace expressions {
-  namespace compound_stmt {
+  namespace brace {
     struct info_t : base {
-      statements::compound::info_t* m_stmt;
+      vector<base*>* m_exprs;
       file_t m_file;
-      info_t(statements::base* stmt)
-	: m_stmt(static_cast<statements::compound::info_t*>(stmt)),
-	m_file(parse::position) {}
-      var* gen(){ return m_stmt->gen_as_expr(); }
+      info_t(vector<base*>* exprs)
+	: m_exprs(exprs), m_file(parse::position) {}
+      var* gen();
       const file_t& file() const { return m_file; }
-      ~info_t(){ delete m_stmt; }
+      ~info_t();
     };
-  } // end of namespace compound_stmt
+  } // end of namespace brace
 } // end of namespace expressions
+
+class brace_type : public type {
+  vector<const type*> m_types;
+  static map<vector<const type*>, brace_type*> m_table;
+  brace_type(const vector<const type*>& vt) : type(BRACE), m_types(vt) {}
+public:
+  void decl(ostream&, string) const { assert(0); }
+  void encode(ostream&) const { assert(0); }
+  int size() const { assert(0); }
+  bool scalar() const { return false; }
+  const vector<const type*>& types() const { return m_types; }
+  static const brace_type* create(const vector<const type*>&);
+};
+
+struct ini_list : var {
+  vector<var*> m_vars;
+  ini_list(const type* T, const vector<var*>& v) : var(T), m_vars(v) {}
+  var* cast(const type*);
+  void fill(var*);
+};
 
 namespace classes {
   namespace specifier {
