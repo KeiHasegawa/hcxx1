@@ -478,6 +478,7 @@ namespace cxx_compiler {
         calc_impl::table.find(Tx->m_id);
       if (p != calc_impl::table.end())
         return (p->second)(Tx, Ty, m_table, m_unq);
+      Ty = Ty->unqualified();
       return Tx == Ty;
     }
     inline bool
@@ -739,6 +740,36 @@ namespace cxx_compiler {
 
 namespace cxx_compiler {
   vector<template_usr::info_t> template_usr::nest;
+  template_usr::template_usr(usr& u, const scope::tps_t& tps, bool patch_13_2)
+    : usr(u), templ_base(tps), m_patch_13_2(patch_13_2), m_decled(0),
+      m_prev(0), m_next(0), m_outer(0)
+  {
+    m_flag2 = usr::flag2_t(m_flag2 | usr::TEMPLATE);
+    if (m_flag2 & usr::HAS_DEFAULT_ARG) {
+      using namespace declarations::declarators::function;
+      auto p = default_arg_table.find(&u);
+      assert(p != default_arg_table.end());
+      const auto & v = p->second;
+      default_arg_table[this] = v;
+    }
+    if (m_patch_13_2)
+      m_flag = usr::flag_t(m_flag | usr::INLINE);
+  }
+  namespace template_usr_impl {
+    void install_def_arg(template_usr* tu, usr* ret)
+    {
+      usr::flag2_t flag2 = tu->m_flag2;
+      if (!(flag2 & usr::HAS_DEFAULT_ARG))
+	return;
+      using namespace declarations::declarators::function;
+      auto it = default_arg_table.find(tu);
+      assert(it != default_arg_table.end());
+      const auto& v = it->second;
+      assert(ret->m_flag2 & usr::HAS_DEFAULT_ARG);
+      assert(default_arg_table.find(ret) == default_arg_table.end());
+      default_arg_table[ret] = v;
+    }
+  } // end of namespace template_usr_impl
 } // end of namespace cxx_compiler
 
 cxx_compiler::usr*
@@ -754,6 +785,22 @@ cxx_compiler::template_usr::instantiate(std::vector<var*>* arg, KEY* trial)
   typedef const func_type FT;
   FT* ft = static_cast<FT*>(m_type);
   const vector<const type*>& param = ft->param();
+  if (atype.size() < param.size()) {
+    if (m_flag2 & usr::HAS_DEFAULT_ARG) {
+      using namespace declarations::declarators::function;
+      auto it = default_arg_table.find(this);
+      assert(it != default_arg_table.end());
+      const auto& v = it->second;
+      int n = atype.size();
+      for (auto p = begin(v)+n ; p != end(v) ; ++p) {
+	var* v = *p;
+	if (!v)
+	  break;
+	if (const type* T = v->m_type)
+	  atype.push_back(T);
+      }
+    }
+  }
   if (atype.size() != param.size())
     return 0;
 
@@ -823,6 +870,7 @@ cxx_compiler::template_usr::instantiate(std::vector<var*>* arg, KEY* trial)
     if (partial_ordering::info.back().first == this)
       return ret;
   }
+  template_usr_impl::install_def_arg(this, ret);
   return m_table[key] = ret;
 }
 
@@ -907,6 +955,7 @@ cxx_compiler::template_usr::instantiate(const KEY& key, usr::flag2_t flag2)
   }
   assert(ret->m_src == this);
   assert(ret->m_seed == key);
+  template_usr_impl::install_def_arg(this, ret);
   return m_table[key] = ret;
 }
 

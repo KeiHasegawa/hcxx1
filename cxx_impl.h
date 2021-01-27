@@ -1816,14 +1816,7 @@ struct template_usr : usr, templ_base {
   usr* m_prev;
   template_usr* m_next;
   template_usr* m_outer;
-  template_usr(usr& u, const scope::tps_t& tps, bool patch_13_2)
-    : usr(u), templ_base(tps), m_patch_13_2(patch_13_2), m_decled(0),
-      m_prev(0), m_next(0), m_outer(0)
-  {
-    m_flag2 = usr::flag2_t(m_flag2 | usr::TEMPLATE);
-    if (m_patch_13_2)
-      m_flag = usr::flag_t(m_flag | usr::INLINE);
-  }
+  template_usr(usr& u, const scope::tps_t& tps, bool patch_13_2);
   virtual usr* instantiate(vector<var*>* arg, KEY* trial);
   usr* instantiate(const KEY& key, usr::flag2_t);
   usr* instantiate_common(vector<scope::tps_t::val2_t*>*, info_t::mode_t);
