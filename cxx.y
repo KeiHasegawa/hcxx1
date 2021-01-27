@@ -89,10 +89,10 @@ namespace cxx_compiler {
 %token BUILTIN_IS_POLYMORPHIC BUILTIN_IS_FINAL BUILTIN_IS_ABSTRACT
 %token BUILTIN_IS_TRIVIALLY_ASSIGNABLE BUILTIN_HAS_TRIVIAL_DESTRUCTOR
 %token BUILTIN_IS_CONSTRUCTIBLE BUILTIN_IS_ASSIGNABLE
-%token BUILTIN_IS_TRIVIALLY_CONSTRUCTIBLE
+%token BUILTIN_IS_TRIVIALLY_CONSTRUCTIBLE BUILTIN_HAS_VIRTUAL_DESTRUCTOR
 %token BUILTIN_CLZ BUILTIN_CLZL BUILTIN_CLZLL
 %token NEW_ARRAY_LEX DELETE_ARRAY_LEX
-%token NOEXCEPT_KW
+%token NOEXCEPT_KW ALIGNOF_KW
 %token NULLPTR_KW
 %token CONSTEXPR_KW
 %token ALIAS_TYPE_LEX
@@ -2907,15 +2907,20 @@ postfix_expression
       using namespace cxx_compiler::expressions::postfix;
       $$ = new is_common($3, is_common::abs);
     }
-  | BUILTIN_IS_TRIVIALLY_ASSIGNABLE '(' type_id ')'
+  | BUILTIN_IS_TRIVIALLY_ASSIGNABLE '(' type_id ',' type_id ')'
     {
       using namespace cxx_compiler::expressions::postfix;
-      $$ = new is_common($3, is_common::triv_ass);
+      $$ = new is_common2($3, $5, is_common2::triv_ass);
     }
   | BUILTIN_HAS_TRIVIAL_DESTRUCTOR '(' type_id ')'
     {
       using namespace cxx_compiler::expressions::postfix;
       $$ = new is_common($3, is_common::triv_des);
+    }
+  | BUILTIN_HAS_VIRTUAL_DESTRUCTOR '(' type_id ')'
+    {
+      using namespace cxx_compiler::expressions::postfix;
+      $$ = new is_common($3, is_common::virt_des);
     }
   | BUILTIN_IS_CONSTRUCTIBLE '(' type_id_list ')'
     {
@@ -2941,6 +2946,11 @@ postfix_expression
     {
       using namespace cxx_compiler::expressions::postfix;
       $$ = new no_except($3);
+    }
+  | ALIGNOF_KW '(' type_id ')'
+    {
+      using namespace cxx_compiler::expressions::postfix;
+      $$ = new align_of($3);
     }
   ;
 

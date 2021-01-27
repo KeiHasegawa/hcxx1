@@ -1037,7 +1037,7 @@ namespace expressions {
       const file_t& file() const { return m_file; }
     };
     struct is_common2 : base {
-      enum kind_t { same, ass };
+      enum kind_t { same, ass, triv_ass };
       kind_t m_kind;
       const type* m_Tx;
       const type* m_Ty;
@@ -1050,7 +1050,7 @@ namespace expressions {
     struct is_common : base {
       const type* m_type;
       enum kind_t { triv, triv_cp, std_lay, pod, lit_type, empty, poly,
-		    fin, abs, triv_ass, triv_des };
+		    fin, abs, triv_des, virt_des };
       kind_t m_kind;
       file_t m_file;
       is_common(const type* T, kind_t kind)
@@ -1071,6 +1071,13 @@ namespace expressions {
       base* m_expr;
       file_t m_file;
       no_except(base* expr) : m_expr(expr), m_file(parse::position) {} 
+      var* gen();
+      const file_t& file() const { return m_file; }
+    };
+    struct align_of : base {
+      const type* m_type;
+      file_t m_file;
+      align_of(const type* T) : m_type(T), m_file(parse::position) {}
       var* gen();
       const file_t& file() const { return m_file; }
     };

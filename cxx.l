@@ -128,6 +128,8 @@ __has_trivial_destructor { return BUILTIN_HAS_TRIVIAL_DESTRUCTOR; }
 __is_constructible  { return BUILTIN_IS_CONSTRUCTIBLE; }
 __is_assignable     { return BUILTIN_IS_ASSIGNABLE; }
 __is_trivially_constructible { return BUILTIN_IS_TRIVIALLY_CONSTRUCTIBLE; }
+__has_virtual_destructor { return BUILTIN_HAS_VIRTUAL_DESTRUCTOR; }
+alignof             { return ALIGNOF_KW; }
 asm                 { return ASM_KW; }
 auto                { return AUTO_KW; }
 bool                { return BOOL_KW; }

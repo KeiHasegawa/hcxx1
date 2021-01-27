@@ -3058,7 +3058,7 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::is_common2::gen()
     int n = compatible(m_Tx, m_Ty) ? 1 : 0;
     return integer::create(n);
   }
-  assert(m_kind == ass);
+  assert(m_kind == ass || m_kind == triv_ass);
   using namespace expressions;
 
   // inspired by usr::assign(var*)
@@ -3122,6 +3122,15 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::no_except::gen()
 {
   using namespace primary::literal;
   return integer::create(1);
+}
+
+cxx_compiler::var* cxx_compiler::expressions::postfix::align_of::gen()
+{
+  using namespace primary::literal;
+  if (unjudge(m_type))
+    return later();
+  int n = m_type->align();
+  return integer::create(n);
 }
 
 namespace cxx_compiler {
