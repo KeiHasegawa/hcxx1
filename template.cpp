@@ -1575,11 +1575,30 @@ namespace cxx_compiler {
 	: m_def(def) {}
       bool operator()(string pn, const scope::tps_t::val2_t& v)
       {
-	typedef map<string, pair<const type*, var*> >::const_iterator IT;
-	IT p = m_def.find(pn);
+	auto p = m_def.find(pn);
 	if (p == m_def.end())
 	  return false;
-	return p->second == v;
+	scope::tps_t::val2_t x = p->second;
+	if (x == v)
+	  return true;
+	var* y = x.second;
+	if (!y)
+	  return false;
+	assert(y->usr_cast());
+	usr* u = static_cast<usr*>(y);
+	const type* T = u->m_type;
+	if (T->m_id != type::BACKPATCH)
+	  return false;
+	string name = u->m_name;
+	scope* ps = u->m_scope;
+	const auto& usrs = ps->m_usrs;
+	auto q = usrs.find(name);
+	if (q == usrs.end())
+	  return false;
+	const auto& vec = q->second;
+	usr* u2 = vec.back();
+	var* rv = u2->rvalue();
+	return rv == v.second;
       }
     };
     struct cmpdef_b {

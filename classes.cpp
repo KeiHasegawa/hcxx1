@@ -236,7 +236,8 @@ namespace cxx_compiler {
       if (T->m_id != type::TEMPLATE_PARAM) {
         T = ptr->m_types.second;
 	tag::flag_t flag = ptr->m_flag;
-	assert(T || (flag & tag::TEMPLATE));
+	tag::flag_t mask = tag::flag_t(tag::TEMPLATE | tag::TYPENAMED);
+	assert(T || (flag & mask));
         return;
       }
       T = ptr->m_types.second;
