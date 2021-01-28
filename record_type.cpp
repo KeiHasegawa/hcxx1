@@ -3277,6 +3277,15 @@ bool cxx_compiler::must_call_dtor(const type* T)
 
 bool cxx_compiler::record_impl::should_skip(const tag* ptr)
 {
+  if (!ptr->m_types.second) {
+    if (scope* parent = ptr->m_parent) {
+      if (parent->m_id == scope::TAG) {
+	tag* ptag = static_cast<tag*>(parent);
+	if (should_skip(ptag))
+	  return true;
+      }
+    }
+  }
   tag::kind_t kind = ptr->m_kind;
   if (kind == tag::GUESS)
     return true;

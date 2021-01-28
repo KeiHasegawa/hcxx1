@@ -2,6 +2,7 @@
 #include "cxx_core.h"
 #include "cxx_impl.h"
 #include "yy.h"
+#include "cxx_y.h"
 
 namespace cxx_compiler {
   namespace type_parameter {
@@ -841,6 +842,10 @@ cxx_compiler::template_usr::instantiate(std::vector<var*>* arg, KEY* trial)
       return this;
     if (instantiate_with_template_param<template_usr>())
       return this;
+    var* v = q->second;
+    const type* T = v->m_type;
+    if (T->m_id == type::BACKPATCH)
+      return this;
     error::not_implemented();
     return this;
   }
@@ -1298,8 +1303,13 @@ namespace cxx_compiler {
 	string name = u->m_name;
 	const auto& usrs = res->m_usrs;
 	auto p = usrs.find(name);
-	if (p == usrs.end())
-	  return v;
+	if (p == usrs.end()) {
+	  int r = parse::identifier::base_lookup::action(name, res);
+	  if (!r)
+	    return v;
+	  assert(r == IDENTIFIER_LEX);
+	  return cxx_compiler_lval.m_var;
+	}
 	const vector<usr*>& vec = p->second;
 	return vec.back();
       }
@@ -1384,7 +1394,8 @@ namespace cxx_compiler {
   namespace template_tag_impl {
     struct get {
       const map<string, pair<const type*, var*> >& m_default;
-      get(const map<string, pair<const type*, var*> >& def) : m_default(def) {}
+      get(const map<string, pair<const type*, var*> >& def)
+	: m_default(def) {}
       scope::tps_t::val2_t* operator()(string name)
       {
         typedef map<string, pair<const type*, var*> >::const_iterator IT;
@@ -2012,6 +2023,10 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
     if (!parse::templ::save_t::nest.empty())
       return this;
     if (instantiate_with_template_param<template_tag>())
+      return this;
+    var* v = q->second;
+    const type* T = v->m_type;
+    if (T->m_id == type::BACKPATCH)
       return this;
     error::not_implemented();
     return this;

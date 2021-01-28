@@ -177,11 +177,19 @@ namespace cxx_compiler {
     combine(tag* prev, tag::kind_t kind, const file_t& file,
             vector<base*>* bases)
     {
-      if (prev->m_kind != kind) {
-	if (prev->m_kind != tag::GUESS) {
+      tag::kind_t pkind = prev->m_kind;
+      if (pkind != kind) {
+	switch (pkind) {
+	case tag::GUESS:
+	  prev->m_kind = kind;
+	  break;
+	case tag::TYPENAME:
+	  break;
+	default:
 	  using namespace error::classes;
 	  string name = prev->m_name;
 	  redeclaration(parse::position,prev->m_file.back(),name);
+	  break;
 	}
       }
       pair<const type*, const type*> types = prev->m_types;

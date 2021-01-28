@@ -975,6 +975,10 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
 	    return create_guess(name);
 	  return create(name, int_type::create());
 	}
+	else {
+	  if (should_return_guess())
+	    return create_guess(name);
+	}
       }
     }
   }
