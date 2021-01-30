@@ -1414,17 +1414,20 @@ class_key
   : CLASS_KW
     {
       using namespace cxx_compiler;
-      parse::identifier::mode = parse::identifier::new_obj; $$ = CLASS_KW;
+      parse::identifier::mode = parse::identifier::new_obj;
+      $$ = CLASS_KW;
     }
   | STRUCT_KW
     {
       using namespace cxx_compiler;
-      parse::identifier::mode = parse::identifier::new_obj; $$ = STRUCT_KW;
+      parse::identifier::mode = parse::identifier::new_obj;
+      $$ = STRUCT_KW;
     }
   | UNION_KW
     {
       using namespace cxx_compiler;
-      parse::identifier::mode = parse::identifier::new_obj; $$ = UNION_KW;
+      parse::identifier::mode = parse::identifier::new_obj;
+      $$ = UNION_KW;
     }
   ;
 
@@ -2070,7 +2073,7 @@ template_declaration
 enter_templ_param
   : {
       using namespace cxx_compiler;
-      parse::identifier::mode = parse::identifier::new_obj;
+      parse::identifier::mode = parse::identifier::look;
       assert(!parse::templ::param);
       parse::templ::param = true;
       vector<scope::tps_t>& tps = scope::current->m_tps;

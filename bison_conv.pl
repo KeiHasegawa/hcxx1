@@ -90,6 +90,8 @@ EOF2
      print "#include \"patch.20.p\"\n";
      print "#include \"patch.21.p\"\n";
      print "#include \"patch.26.p\"\n";
+     print "#include \"patch.27.p\"\n";
+     print "#include \"patch.28.p\"\n";
   }
   if (/^yyerrlab:/) {
       print<<EOF
