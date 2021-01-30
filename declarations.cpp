@@ -2180,7 +2180,8 @@ namespace cxx_compiler {
       void common_a(tag* ptr, const type* T)
       {
 	tag::flag_t flag = ptr->m_flag;
-	assert(flag & tag::TEMPLATE);
+	if (!(flag & tag::TEMPLATE))
+	  return;
 	template_tag* tt = static_cast<template_tag*>(ptr);
 	assert(!template_tag::nest.empty());
 	template_tag::info_t& info = template_tag::nest.back();

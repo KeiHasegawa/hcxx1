@@ -567,10 +567,6 @@ namespace record_impl {
   extern bool should_skip(const tag*);
 } // end of namespace record_impl
 
-namespace expressions {
-  struct base;
-} // end of namespace expressions
-
 namespace declarations {
   extern void destroy();
   struct type_specifier;
@@ -1754,6 +1750,7 @@ namespace type_parameter {
 
 namespace templ_parameter {
   extern void action(pair<const type*, expressions::base*>*);
+  extern var* resolve(usr*);
 } // end of namespace templ_parameter
 
 namespace call_impl {

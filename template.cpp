@@ -39,8 +39,8 @@ void cxx_compiler::type_parameter::action(var* v, const type* T, bool dots)
   vector<string>& order = b.m_order;
   order.push_back(name);
   if (T) {
-    map<string, pair<const type*, var*> >& def = b.m_default;
-    def[name] = make_pair(T, (var*)0);
+    auto& def = b.m_default;
+    def[name] = make_pair(T, (expressions::base*)0);
     parse::identifier::mode = parse::identifier::new_obj;
   }
   if (dots) {
@@ -57,18 +57,15 @@ templ_parameter::action(pair<const type*, expressions::base*>* p)
   expressions::base* expr = p->second;
   if (!expr)
     return;
-  auto_ptr<expressions::base> sweeper2(expr);
-  var* v = expr->gen();
-  v = v->rvalue();
   vector<scope::tps_t>& tps = scope::current->m_tps;
   assert(!tps.empty());
   scope::tps_t& b = tps.back();
   const vector<string>& order = b.m_order;
   assert(!order.empty());
   string name = order.back();
-  map<string, pair<const type*, var*> >& def = b.m_default;
+  auto& def = b.m_default;
   assert(def.find(name) == def.end());
-  def[name] = make_pair((const type*)0, v);
+  def[name] = make_pair((const type*)0, expr);
 }
 
 void cxx_compiler::declarations::templ::decl_begin()
@@ -921,7 +918,71 @@ namespace cxx_compiler {
 	}
       }
     };
+    struct sweeper_d : sweeper_a {
+      typedef map<string, cxx_compiler::scope::tps_t::value_t> table_t;
+      static stack<const table_t*> s_stack;
+      sweeper_d(const table_t& table)
+	: sweeper_a(table)
+      {
+	s_stack.push(&table);
+      }
+      ~sweeper_d()
+      {
+	s_stack.pop();
+      }
+    };
+    stack<const sweeper_d::table_t*> sweeper_d::s_stack;
   } // end of namespace template_usr_impl
+  namespace templ_parameter {
+    using namespace template_usr_impl;
+    var* resolve_a(usr* u)
+    {
+      if (sweeper_d::s_stack.empty())
+	return 0;
+      auto ptr = sweeper_d::s_stack.top();
+      const auto& table = *ptr;
+      string name = u->m_name;
+      auto it = table.find(name);
+      assert(it != table.end());
+      const auto& val = it->second;
+      auto q = val.second;
+      assert(q);
+      var* ret = q->second;
+      assert(ret);
+      return ret;
+    }
+    var* resolve_b(usr* u)
+    {
+      if (sweeper_d::s_stack.empty())
+	return 0;
+      auto ptr = sweeper_d::s_stack.top();
+      const auto& table = *ptr;
+      scope* ps = u->m_scope;
+      if (ps->m_id != scope::TAG)
+	return 0;
+      tag* ptag = static_cast<tag*>(ps);
+      string name = ptag->m_name;
+      auto it = table.find(name);
+      if (it == table.end())
+	return 0;
+      const auto& val = it->second;
+      tag* q = val.first;
+      assert(q);
+      const type* T2 = q->m_types.second;
+      tag* ptr2 = T2->get_tag();
+      const auto& usrs = ptr2->m_usrs;
+      auto r = usrs.find(u->m_name);
+      assert(r != usrs.end());
+      const auto& vec = r->second;
+      var* ret = vec.back();
+      return ret->rvalue();
+    }
+    var* resolve(usr* u)
+    {
+      usr::flag2_t flag2 = u->m_flag2;
+      return (flag2 & usr::TEMPL_PARAM) ? resolve_a(u) : resolve_b(u);
+    }
+  } // end of namespace templ_parameter
 } // end of namespace cxx_compiler
 
 cxx_compiler::usr*
@@ -1393,16 +1454,21 @@ namespace cxx_compiler {
 namespace cxx_compiler {
   namespace template_tag_impl {
     struct get {
-      const map<string, pair<const type*, var*> >& m_default;
-      get(const map<string, pair<const type*, var*> >& def)
+      const map<string, pair<const type*, expressions::base*> >& m_default;
+      get(const map<string, pair<const type*, expressions::base*> >& def)
 	: m_default(def) {}
       scope::tps_t::val2_t* operator()(string name)
       {
-        typedef map<string, pair<const type*, var*> >::const_iterator IT;
-        IT p = m_default.find(name);
+        auto p = m_default.find(name);
         if (p == m_default.end())
           error::not_implemented();
-        return new scope::tps_t::val2_t(p->second);
+	const auto& val = p->second;
+	if (const type* T = val.first)
+	  return new scope::tps_t::val2_t(T, (var*)0);
+	expressions::base* expr = val.second;
+	var* v = expr->gen();
+	v = v->rvalue();
+	return new scope::tps_t::val2_t((const type*)0, v);
       }
     };
     struct cmp_helper {
@@ -1581,20 +1647,24 @@ namespace cxx_compiler {
       }
     };
     struct cmpdef_a {
-      const map<string, pair<const type*, var*> >& m_def;
-      cmpdef_a(const map<string, pair<const type*, var*> >& def)
+      const map<string, pair<const type*, expressions::base*> >& m_def;
+      cmpdef_a(const map<string, pair<const type*, expressions::base*> >& def)
 	: m_def(def) {}
       bool operator()(string pn, const scope::tps_t::val2_t& v)
       {
 	auto p = m_def.find(pn);
 	if (p == m_def.end())
 	  return false;
-	scope::tps_t::val2_t x = p->second;
-	if (x == v)
+	const auto& x = p->second;
+	if (const type* T = x.first) {
+	  return T == v.first;
+	}
+
+	expressions::base* expr = x.second;
+	var* y = expr->gen();
+	y = y->rvalue();
+	if (y == v.second)
 	  return true;
-	var* y = x.second;
-	if (!y)
-	  return false;
 	assert(y->usr_cast());
 	usr* u = static_cast<usr*>(y);
 	const type* T = u->m_type;
@@ -1613,16 +1683,21 @@ namespace cxx_compiler {
       }
     };
     struct cmpdef_b {
-      const map<string, pair<const type*, var*> >& m_def;
-      cmpdef_b(const map<string, pair<const type*, var*> >& def)
+      const map<string, pair<const type*, expressions::base*> >& m_def;
+      cmpdef_b(const map<string, pair<const type*, expressions::base*> >& def)
 	: m_def(def) {}
       bool operator()(string pn, const scope::tps_t::val2_t* v)
       {
-	typedef map<string, pair<const type*, var*> >::const_iterator IT;
-	IT p = m_def.find(pn);
+	auto p = m_def.find(pn);
 	if (p == m_def.end())
 	  return false;
-	return p->second == *v;
+	const auto x = p->second;
+	if (const type* T = x.first)
+	  return T == v->first;
+	expressions::base* expr = x.second;
+	var* y = expr->gen();
+	y = y->rvalue();
+	return y == v->second;
       }
     };
     struct match {
@@ -1642,7 +1717,7 @@ namespace cxx_compiler {
 	int n = key.size();
 	template_tag* src = sv->m_src;
 	const scope::tps_t& tps = src->templ_base::m_tps;
-	const map<string, pair<const type*, var*> >& def = tps.m_default;
+	const auto& def = tps.m_default;
 	if (!def.empty()) {
 	  const vector<string>& order = tps.m_order;
 	  typedef vector<string>::const_reverse_iterator ITx;
@@ -1943,8 +2018,7 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
   if (!pv) {
     if (!order.empty() && !dots) {
       pv = new vector<scope::tps_t::val2_t*>;
-      const map<string, pair<const type*, var*> >& def =
-	templ_base::m_tps.m_default;
+      const auto& def =	templ_base::m_tps.m_default;
       transform(begin(order), end(order), back_inserter(*pv),
 		template_tag_impl::get(def));
     }
@@ -1954,16 +2028,19 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
     int m = order.size();
     if (dots) {
       if (n < m - 1) {
-	const map<string, pair<const type*, var*> >& def =
-	  templ_base::m_tps.m_default;
+	const auto& def = templ_base::m_tps.m_default;
 	transform(begin(order) + n, end(order) - 1, back_inserter(*pv),
 		  template_tag_impl::get(def));
       }
     }
     else {
       if (n < m) {
-	const map<string, pair<const type*, var*> >& def =
-	  templ_base::m_tps.m_default;
+	KEY key;
+	const auto& table = templ_base::m_tps.m_table;
+	template_usr_impl::sweeper_d sweeper_d(table);
+	transform(begin(*pv), end(*pv), begin(order), back_inserter(key),
+		  template_tag_impl::calc_key(table));
+	const auto& def = templ_base::m_tps.m_default;
 	transform(begin(order) + n, end(order), back_inserter(*pv),
 		  template_tag_impl::get(def));
       }
@@ -2239,23 +2316,26 @@ std::string cxx_compiler::partial_special_tag::instantiated_name() const
 namespace cxx_compiler {
   namespace template_usr_impl {
     struct get {
-      const map<string, pair<const type*, var*> >& m_default;
+      const map<string, pair<const type*, expressions::base*> >& m_default;
       template_usr::KEY& m_key;
-      get(const map<string, pair<const type*, var*> >& def,
+      get(const map<string, pair<const type*, expressions::base*> >& def,
 	  template_usr::KEY& key) : m_default(def), m_key(key) {}
       bool operator()(string name)
       {
-        typedef map<string, pair<const type*, var*> >::const_iterator IT;
-        IT p = m_default.find(name);
+        auto p = m_default.find(name);
         if (p == m_default.end())
           return false;
-	pair<const type*, var*> v = p->second;
-	if (const type* T = v.first) {
+	const auto& val = p->second;
+	if (const type* T = val.first) {
 	  T = T->complete_type();
-	  v.first = T;
+	  m_key.push_back(scope::tps_t::val2_t(T,(var*)0));
+	  return true;
 	}
-	m_key.push_back(v);
-        return true;
+	expressions::base* expr = val.second;
+	var* v = expr->gen();
+	v = v->rvalue();
+	m_key.push_back(scope::tps_t::val2_t((const type*)0, v));
+	return true;
       }
     };
   } // end of namespace template_usr_impl
@@ -2609,3 +2689,4 @@ namespace cxx_compiler {
     return flag2 & usr::TEMPL_PARAM;
   }
 } // end of namespace cxx_compiler
+

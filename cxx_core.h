@@ -9,6 +9,10 @@ struct type;
 struct var;
 struct name_space;
 
+namespace expressions {
+  struct base;
+} // end of namespace expressions
+
 struct scope {
   enum id_t { NONE, PARAM, BLOCK, TAG, NAMESPACE };
   id_t m_id;
@@ -24,7 +28,8 @@ struct scope {
     typedef std::pair<tag*, val2_t*> value_t;
     std::map<std::string, value_t> m_table;
     std::vector<std::string> m_order;
-    std::map<std::string, std::pair<const type*, var*> > m_default;
+    std::map<std::string, std::pair<const type*, expressions::base*> >
+      m_default;
     bool m_dots;
     tps_t() : m_dots(false) {}
   };

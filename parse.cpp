@@ -95,6 +95,8 @@ int cxx_compiler::parse::identifier::judge(std::string name)
       return r;
     if (templ::arg)
       return r;
+    if (templ::param)
+      return r;
     using namespace declarations::specifier_seq;
     const stack<info_t*>& s = info_t::s_stack;
     if (s.empty()) {

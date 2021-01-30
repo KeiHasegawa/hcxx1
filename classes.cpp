@@ -96,30 +96,30 @@ namespace cxx_compiler {
           assert(Tc);
           return Tc;
         }
-        pair<const type*, var*> calc(const pair<const type*, var*>& x)
+        pair<const type*, expressions::base*>
+	calc(const pair<const type*, expressions::base*>& x)
         {
           if (const type* T = x.first)
-            return make_pair(calc_type(T), (var*)0);
-          var* v = x.second;
-          return make_pair((const type*)0, v);
+            return make_pair(calc_type(T), (expressions::base*)0);
+	  expressions::base* expr = x.second;
+          return make_pair((const type*)0, expr);
         }
         bool operator()(string p, string c)
         {
-          map<string, pair<const type*, var*> >& pdef = m_ptps.m_default;
-          map<string, pair<const type*, var*> >& cdef = m_ctps.m_default;
-          typedef map<string, pair<const type*, var*> >::const_iterator IT;
-          IT pit = pdef.find(p);
+          auto& pdef = m_ptps.m_default;
+          auto& cdef = m_ctps.m_default;
+	  auto pit = pdef.find(p);
           if (pit == pdef.end())
             return true;
-          pair<const type*, var*> x = pit->second;
-          IT cit = cdef.find(c);
+	  const auto& x = pit->second;
+          auto cit = cdef.find(c);
           if (cit == cdef.end()) {
             cdef[c] = calc(x);
             return true;
           }
           error::not_implemented();
           return false;
-        }
+	}
       };
       inline void default_arg(template_tag* prev, template_tag* curr)
       {

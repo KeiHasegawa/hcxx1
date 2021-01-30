@@ -15,6 +15,8 @@ namespace cxx_compiler {
         usr* u = v->usr_cast();
         if (!u)
           return v;
+	if (var* ret = templ_parameter::resolve(u))
+	  return ret;
         if (!fundef::current)
           return u;
         usr* func = fundef::current->m_usr;
