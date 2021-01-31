@@ -919,29 +919,46 @@ namespace cxx_compiler {
       }
     };
     struct sweeper_d : sweeper_a {
-      typedef map<string, cxx_compiler::scope::tps_t::value_t> table_t;
-      static stack<const table_t*> s_stack;
-      sweeper_d(const table_t& table)
-	: sweeper_a(table)
+      static stack<template_tag*> s_stack;
+      sweeper_d(template_tag* tt)
+	: sweeper_a(tt->templ_base::m_tps.m_table)
       {
-	s_stack.push(&table);
+	s_stack.push(tt);
       }
       ~sweeper_d()
       {
 	s_stack.pop();
       }
     };
-    stack<const sweeper_d::table_t*> sweeper_d::s_stack;
+    stack<template_tag*> sweeper_d::s_stack;
   } // end of namespace template_usr_impl
   namespace templ_parameter {
     using namespace template_usr_impl;
+    string correspond(string name, template_tag* curr)
+    {
+      const auto& table = curr->templ_base::m_tps.m_table;
+      auto p = table.find(name);
+      if (p != table.end())
+	return name;
+      template_tag* prev = curr->m_prev;
+      if (!prev)
+	return name;
+      string pn = correspond(name, prev);
+      const auto& po = prev->templ_base::m_tps.m_order;
+      auto q = find(begin(po),end(po),pn);
+      int n = distance(begin(po),q);
+      const auto& order = curr->templ_base::m_tps.m_order;
+      assert(n < order.size());
+      return order[n];
+    }
     var* resolve_a(usr* u)
     {
       if (sweeper_d::s_stack.empty())
 	return 0;
-      auto ptr = sweeper_d::s_stack.top();
-      const auto& table = *ptr;
+      template_tag* tt = sweeper_d::s_stack.top();
+      const auto& table = tt->templ_base::m_tps.m_table;
       string name = u->m_name;
+      name = correspond(name, tt);
       auto it = table.find(name);
       assert(it != table.end());
       const auto& val = it->second;
@@ -955,13 +972,14 @@ namespace cxx_compiler {
     {
       if (sweeper_d::s_stack.empty())
 	return 0;
-      auto ptr = sweeper_d::s_stack.top();
-      const auto& table = *ptr;
+      template_tag* tt = sweeper_d::s_stack.top();
+      const auto& table = tt->templ_base::m_tps.m_table;
       scope* ps = u->m_scope;
       if (ps->m_id != scope::TAG)
 	return 0;
       tag* ptag = static_cast<tag*>(ps);
       string name = ptag->m_name;
+      name = correspond(name, tt);
       auto it = table.find(name);
       if (it == table.end())
 	return 0;
@@ -2037,7 +2055,7 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
       if (n < m) {
 	KEY key;
 	const auto& table = templ_base::m_tps.m_table;
-	template_usr_impl::sweeper_d sweeper_d(table);
+	template_usr_impl::sweeper_d sweeper_d(this);
 	transform(begin(*pv), end(*pv), begin(order), back_inserter(key),
 		  template_tag_impl::calc_key(table));
 	const auto& def = templ_base::m_tps.m_default;

@@ -144,6 +144,7 @@ namespace cxx_compiler {
   std::vector<val2_t*>* m_templ_arg_list;
   cxx_compiler::statements::try_block::HANDLER* m_handler;
   cxx_compiler::statements::try_block::HANDLERS* m_handlers;
+  bool m_bool;
 }
 
 %type<m_var> IDENTIFIER_LEX unqualified_id id_expression declarator_id
@@ -208,6 +209,7 @@ namespace cxx_compiler {
 %type<m_type> ALIAS_TYPE_LEX
 %type<m_type> specified_return_type
 %type<m_types> type_id_list
+%type<m_bool> class_specifier_begin
 
 %%
 
@@ -1433,7 +1435,11 @@ class_key
 
 class_specifier
   : class_specifier_begin member_specification '}'
-    { $$ = cxx_compiler::classes::specifier::action(); }
+    {
+      $$ = cxx_compiler::classes::specifier::action();
+      if ($1)
+	cxx_compiler::class_or_namespace_name::after(false);
+    }
   | class_specifier_begin '}'
     {
       using namespace std;
@@ -1443,30 +1449,62 @@ class_specifier
       assert(!s.top());
       s.pop();
       $$ = cxx_compiler::classes::specifier::action();
+      if ($1)
+	cxx_compiler::class_or_namespace_name::after(false);
     }
   ;
 
 class_specifier_begin
   : class_key '{'
-    { cxx_compiler::classes::specifier::begin($1,0,0); }
+    {
+      cxx_compiler::classes::specifier::begin($1,0,0);
+      $$ = false;
+    }
   | class_key base_clause '{'
-    { cxx_compiler::classes::specifier::begin($1,0,$2); }
+    {
+      cxx_compiler::classes::specifier::begin($1,0,$2);
+      $$ = false;
+    }
   | class_key IDENTIFIER_LEX '{'
-    { cxx_compiler::classes::specifier::begin($1,$2,0); }
+    {
+      cxx_compiler::classes::specifier::begin($1,$2,0);
+      $$ = false;
+    }
   | class_key IDENTIFIER_LEX base_clause '{'
-    { cxx_compiler::classes::specifier::begin($1,$2,$3); }
+    {
+      cxx_compiler::classes::specifier::begin($1,$2,$3);
+      $$ = false;
+    }
   | class_key nested_name_specifier CLASS_NAME_LEX '{'
-    { cxx_compiler::classes::specifier::begin2($1,$3,0); }
+    {
+      cxx_compiler::classes::specifier::begin2($1,$3,0);
+      $$ = true;
+    }
   | class_key nested_name_specifier CLASS_NAME_LEX base_clause '{'
-    { cxx_compiler::classes::specifier::begin2($1,$3,$4); }
+    {
+      cxx_compiler::classes::specifier::begin2($1,$3,$4);
+      $$ = true;
+    }
   | class_key template_id '{'
-    { cxx_compiler::classes::specifier::begin3($1,$2,0); }
+    {
+      cxx_compiler::classes::specifier::begin3($1,$2,0);
+      $$ = false;
+    }
   | class_key template_id base_clause '{'
-    { cxx_compiler::classes::specifier::begin3($1,$2,$3); }
+    {
+      cxx_compiler::classes::specifier::begin3($1,$2,$3);
+      $$ = false;
+    }
   | class_key nested_name_specifier template_id '{'
-    { cxx_compiler::classes::specifier::begin3($1,$3,0); }
+    {
+      cxx_compiler::classes::specifier::begin3($1,$3,0);
+      $$ = true;
+    }
   | class_key nested_name_specifier template_id base_clause '{'
-    { cxx_compiler::classes::specifier::begin3($1,$3,$4); }
+    {
+      cxx_compiler::classes::specifier::begin3($1,$3,$4);
+      $$ = true;
+    }
   ;
 
 member_specification

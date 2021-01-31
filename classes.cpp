@@ -141,9 +141,19 @@ namespace cxx_compiler {
       merge_impl::default_arg(prev, curr);
       curr->m_prev = prev;
     }
+    inline  const vector<scope::tps_t>& get_tps(bool before_tps)
+    {
+      if (before_tps) {
+	int n = class_or_namespace_name::before.size();
+	assert(n >= 2);
+	scope* ps = class_or_namespace_name::before[n-2];
+	return ps->m_tps;
+      }
+      return scope::current->m_tps;
+    }
     inline tag*
     get_tag(tag::kind_t kind, string name, const file_t& file,
-            vector<base*>* bases)
+            vector<base*>* bases, bool before_tps)
     {
       if (!template_tag::nest.empty()) {
         template_tag::info_t& x = template_tag::nest.back();
@@ -155,7 +165,7 @@ namespace cxx_compiler {
       }
 
       tag* ret = new tag(kind, name, file, bases);
-      const vector<scope::tps_t>& tps = scope::current->m_tps;
+      const vector<scope::tps_t>& tps = get_tps(before_tps);
       if (!tps.empty()) {
         const scope::tps_t& b = tps.back();
         if (!b.m_table.empty()) {
@@ -175,7 +185,7 @@ namespace cxx_compiler {
     }
     inline void
     combine(tag* prev, tag::kind_t kind, const file_t& file,
-            vector<base*>* bases)
+            vector<base*>* bases, bool before_tps)
     {
       tag::kind_t pkind = prev->m_kind;
       if (pkind != kind) {
@@ -221,7 +231,7 @@ namespace cxx_compiler {
       }
       template_tag* tprev = static_cast<template_tag*>(prev);
       string name = tprev->m_name;
-      tag* ptr = get_tag(kind, name, file, bases);
+      tag* ptr = get_tag(kind, name, file, bases, before_tps);
       if (!(ptr->m_flag & tag::TEMPLATE))
         error::not_implemented();
 
@@ -273,9 +283,9 @@ cxx_compiler::classes::specifier::begin(int keyword, var* v,
   map<string, tag*>& tags = scope::current->m_tags;
   map<string, tag*>::const_iterator p = tags.find(name);
   if (p != tags.end())
-    return classes_impl::combine(p->second, kind, file, bases);
+    return classes_impl::combine(p->second, kind, file, bases, true);
 
-  tag* ptr = classes_impl::get_tag(kind, name, file, bases);
+  tag* ptr = classes_impl::get_tag(kind, name, file, bases, false);
   ptr->m_parent = scope::current;
   ptr->m_parent->m_children.push_back(ptr);
   ptr->m_types.first = incomplete_tagged_type::create(ptr);
@@ -306,8 +316,10 @@ specifier::begin3(int keyword, pair<usr*, tag*>* x, std::vector<base*>* bases)
   string name = ptr->m_name;
   map<string,tag*>& tags = scope::current->m_tags;
   map<string,tag*>::const_iterator p = tags.find(name);
-  if (p != tags.end())
-    return classes_impl::combine(p->second, kind, parse::position, bases);
+  if (p != tags.end()) {
+    tag* prev = p->second;
+    return classes_impl::combine(prev, kind, parse::position, bases, false);
+  }
 
   ptr->m_parent = scope::current;
   ptr->m_parent->m_children.push_back(ptr);

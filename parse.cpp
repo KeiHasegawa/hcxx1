@@ -1205,7 +1205,8 @@ namespace cxx_compiler {
     }
     inline instantiated_tag* get_itag(scope* p)
     {
-      assert(p);
+      if (!p)
+	return 0;
       if (p->m_id != scope::TAG)
         return get_itag(p->m_parent);
       tag* ptr = static_cast<tag*>(p);
@@ -1229,6 +1230,7 @@ namespace cxx_compiler {
       tag::flag_t flag = ptr->m_flag;
       if (flag & tag::TEMPLATE) {
         instantiated_tag* it = get_itag(scope::current);
+	assert(it);
         cxx_compiler_lval.m_tag = it;
       }
       return r;
@@ -1409,8 +1411,8 @@ namespace cxx_compiler {
             return r;
           }
           if (flag & tag::TEMPLATE) {
-            instantiated_tag* it = get_itag(scope::current);
-            cxx_compiler_lval.m_tag = it;
+	    if (instantiated_tag* it = get_itag(scope::current))
+	      cxx_compiler_lval.m_tag = it;
             return CLASS_NAME_LEX;
           }
           if (!templ::save_t::nest.empty()) {
