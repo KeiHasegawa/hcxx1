@@ -1312,16 +1312,11 @@ namespace cxx_compiler {
 	    if (Y* info = b.second) {
 	      template_tag* tt = info->m_tt;
 	      assert(!tt->m_read.m_token.empty());
-	      pair<int, file_t>& fr = tt->m_read.m_token.front();
-	      if (fr.first == USING_KW) {
-		const map<string, scope::tps_t::value_t>& table =
-		  tt->templ_base::m_tps.m_table;
-		typedef map<string, scope::tps_t::value_t>::const_iterator IT;
-		IT p = table.find(name);
-		using namespace identifier;
-		if (p != table.end())
-		  return templ_param_lex(name, p->second, true);
-	      }
+	      const auto& table = tt->templ_base::m_tps.m_table;
+	      auto p = table.find(name);
+	      using namespace identifier;
+	      if (p != table.end())
+		return templ_param_lex(name, p->second, true);
 	    }
 	  }
           return last_token = identifier::judge(name);

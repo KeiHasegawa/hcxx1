@@ -990,7 +990,8 @@ namespace cxx_compiler {
       tag* ptr2 = T2->get_tag();
       const auto& usrs = ptr2->m_usrs;
       auto r = usrs.find(u->m_name);
-      assert(r != usrs.end());
+      if (r == usrs.end())
+	return 0;
       const auto& vec = r->second;
       var* ret = vec.back();
       return ret->rvalue();
@@ -1637,15 +1638,27 @@ namespace cxx_compiler {
         const template_tag::KEY& xs = itx->m_seed;
         const template_tag::KEY& ys = ity->m_seed;
         typedef template_tag::KEY::const_iterator IT;
-        pair<IT, IT> ret = mismatch(begin(xs), end(xs), begin(ys),
+	if (xs.size() != ys.size())
+	    assert(ttx->templ_base::m_tps.m_dots);
+	int m = min(xs.size(), ys.size());
+        pair<IT, IT> ret = mismatch(begin(xs), begin(xs)+m, begin(ys),
                 		    cmp_helper(m_key, m_table));
-        return ret == make_pair(end(xs), end(ys));
+        return ret == make_pair(begin(xs)+m, begin(ys)+m);
       }
       bool cmp_var(var* vx, var* vy)
       {
 	assert(vx->isconstant());
 	assert(vy->isconstant());
-	return vx->value() == vy->value();
+	if (vx->value() == vy->value())
+	  return true;
+	assert(vx->usr_cast());
+	usr* ux = static_cast<usr*>(vx);
+	usr::flag2_t flag2 = ux->m_flag2;
+	if  (flag2 & usr::TEMPL_PARAM) {
+	  m_key.push_back(scope::tps_t::val2_t((const type*)0,vy));
+	  return true;
+	}
+	return false;
       }
       cmp(template_tag::KEY& key) : m_key(key) {}
       bool
@@ -1683,8 +1696,9 @@ namespace cxx_compiler {
 	y = y->rvalue();
 	if (y == v.second)
 	  return true;
-	assert(y->usr_cast());
-	usr* u = static_cast<usr*>(y);
+	usr* u = y->usr_cast();
+	if (!u)
+	  return false;
 	const type* T = u->m_type;
 	if (T->m_id != type::BACKPATCH)
 	  return false;
@@ -1718,6 +1732,15 @@ namespace cxx_compiler {
 	return y == v->second;
       }
     };
+    struct sweeper_e {
+      int m_size;
+      sweeper_e() : m_size(code.size()) {}
+      ~sweeper_e()
+      {
+	for_each(begin(code)+m_size, end(code), [](tac* p){ delete p; });
+	code.resize(m_size);
+      }
+    };
     struct match {
       vector<scope::tps_t::val2_t*>* m_pv;
       bool m_pv_dots;
@@ -1740,6 +1763,7 @@ namespace cxx_compiler {
 	  const vector<string>& order = tps.m_order;
 	  typedef vector<string>::const_reverse_iterator ITx;
 	  typedef template_tag::KEY::const_reverse_iterator ITy;
+	  sweeper_e sweeper_e;
 	  pair<ITx, ITy> ret =
 	    mismatch(rbegin(order), rend(order), rbegin(key), cmpdef_a(def));
 	  int sz = distance(rbegin(order), ret.first);
@@ -1748,7 +1772,8 @@ namespace cxx_compiler {
 	}
 	if (dots) {
 	  assert(n);
-	  --n;
+	  if (key.back().first)
+	    --n;
 	}
 	int m = m_pv->size();
 	if (!def.empty()) {
@@ -1756,6 +1781,7 @@ namespace cxx_compiler {
 	  typedef vector<string>::const_reverse_iterator ITx;
 	  typedef vector<scope::tps_t::val2_t*>::const_reverse_iterator ITy;
 	  int x = min(m, (int)order.size());
+	  sweeper_e sweeper_e;
 	  pair<ITx, ITy> ret = mismatch(rbegin(order), rbegin(order)+x,
 					rbegin(*m_pv), cmpdef_b(def));
 	  int sz = distance(rbegin(order), ret.first);
@@ -1980,6 +2006,20 @@ namespace cxx_compiler {
       dup_action::m_table.erase(p);
       return true;
     }
+    inline bool should_calc(bool pv_dots, vector<scope::tps_t::val2_t*>* pv)
+    {
+      if (!pv_dots)
+	return true;
+      assert(pv);
+      if (pv->size() != 1)
+	return true;
+      assert(pv->size() == 1);
+      auto ptr = (*pv)[0];
+      const type* T = ptr->first;
+      if (!T)
+	return true;
+      return T->m_id != type::TEMPLATE_PARAM;
+    }
   } // end of namespace template_tag_impl
 } // end of namespace cxx_compiler
 
@@ -2080,8 +2120,10 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
   KEY key;
   if (pv) {
     if (order.size() == pv->size()) {
-      transform(begin(*pv), end(*pv), begin(order), back_inserter(key),
-		template_tag_impl::calc_key(table));
+      if (template_tag_impl::should_calc(pv_dots, pv)) {
+	transform(begin(*pv), end(*pv), begin(order), back_inserter(key),
+		  template_tag_impl::calc_key(table));
+      }
     }
     else {
       assert(dots);
@@ -2089,8 +2131,10 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
 	int n = order.size();
 	transform(begin(*pv), begin(*pv)+n, begin(order), back_inserter(key),
 		  template_tag_impl::calc_key(table));
-	transform(begin(*pv)+n, end(*pv), back_inserter(key),
-		  template_tag_impl::calc_key2);
+	if (!pv_dots || special_ver) {
+	  transform(begin(*pv)+n, end(*pv), back_inserter(key),
+		    template_tag_impl::calc_key2);
+	}
       }
       else {
 	assert(order.size() - 1 == pv->size());

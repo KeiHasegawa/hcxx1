@@ -36,16 +36,14 @@ namespace cxx_compiler {
         const type* template_param_case(tag* ptr)
         {
           string pn = ptr->m_name;
-          const vector<string>& po = m_ptps.m_order;
-          typedef vector<string>::const_iterator ITx;
-          ITx p = find(begin(po), end(po), pn);
+          const auto& po = m_ptps.m_order;
+          auto p = find(begin(po), end(po), pn);
           assert(p != end(po));
           int n = distance(begin(po), p);
-          const vector<string>& co = m_ctps.m_order;
+          const auto& co = m_ctps.m_order;
           string cn = co[n];
-          const map<string, scope::tps_t::value_t>& table = m_ctps.m_table;
-          typedef map<string, scope::tps_t::value_t>::const_iterator ITy;
-          ITy q = table.find(cn);
+          const auto& table = m_ctps.m_table;
+          auto q = table.find(cn);
           assert(q != table.end());
           const scope::tps_t::value_t& value = q->second;
           assert(!value.second);
@@ -82,7 +80,7 @@ namespace cxx_compiler {
             return Tp;
           typedef instantiated_tag IT;
           IT* it = static_cast<IT*>(ptr);
-          const IT::SEED& seed = it->m_seed;
+	  const auto& seed = it->m_seed;
           vector<scope::tps_t::val2_t*>* pv =
             new vector<scope::tps_t::val2_t*>;
           transform(begin(seed), end(seed), back_inserter(*pv),
@@ -129,8 +127,7 @@ namespace cxx_compiler {
         const vector<string>& corder = ctps.m_order;
         if (porder.size() != corder.size())
           error::not_implemented();
-        typedef vector<string>::const_iterator IT;
-        pair<IT, IT> ret =
+	auto ret =
           mismatch(begin(porder), end(porder), begin(corder), cmp(ptps, ctps));
         if (ret != make_pair(end(porder), end(corder)))
           error::not_implemented();
@@ -202,7 +199,7 @@ namespace cxx_compiler {
 	  break;
 	}
       }
-      pair<const type*, const type*> types = prev->m_types;
+      const auto& types = prev->m_types;
       if (types.second) {
         using namespace error::classes;
         string name = prev->m_name;
@@ -280,8 +277,8 @@ cxx_compiler::classes::specifier::begin(int keyword, var* v,
   if (bases)
     for_each(begin(*bases), end(*bases), classes_impl::update);
   const file_t& file = u ? u->m_file : parse::position;
-  map<string, tag*>& tags = scope::current->m_tags;
-  map<string, tag*>::const_iterator p = tags.find(name);
+  auto& tags = scope::current->m_tags;
+  auto p = tags.find(name);
   if (p != tags.end())
     return classes_impl::combine(p->second, kind, file, bases, true);
 
@@ -314,8 +311,8 @@ specifier::begin3(int keyword, pair<usr*, tag*>* x, std::vector<base*>* bases)
   tag* ptr = x->second;
   tag::kind_t kind = get(keyword);
   string name = ptr->m_name;
-  map<string,tag*>& tags = scope::current->m_tags;
-  map<string,tag*>::const_iterator p = tags.find(name);
+  auto& tags = scope::current->m_tags;
+  auto p = tags.find(name);
   if (p != tags.end()) {
     tag* prev = p->second;
     return classes_impl::combine(prev, kind, parse::position, bases, false);
@@ -336,10 +333,10 @@ const cxx_compiler::type* cxx_compiler::classes::specifier::action()
   assert(scope::current->m_id == scope::TAG);
   tag* ptr = static_cast<tag*>(scope::current);
   scope* ps = ptr->m_parent;
-  vector<scope::tps_t>& tps = ps->m_tps;
+  auto& tps = ps->m_tps;
   if (!tps.empty()) {
     scope::tps_t& b = tps.back();
-    const map<string, scope::tps_t::value_t>& table = b.m_table;
+    const auto& table = b.m_table;
     if (!table.empty()) {
       if (ptr->m_flag & tag::TEMPLATE) {
         template_tag* tt = static_cast<template_tag*>(ptr);
@@ -356,8 +353,7 @@ const cxx_compiler::type* cxx_compiler::classes::specifier::action()
   ptr->m_types.second = ret;
   handle_copy_ctor(ptr);
 
-  map<usr*, parse::member_function_body::save_t>& tbl =
-    parse::member_function_body::stbl[ptr];
+  auto& tbl = parse::member_function_body::stbl[ptr];
   if (tbl.empty()) {
     handle_vdel(ptr);
     assert(!class_or_namespace_name::before.empty());
@@ -404,11 +400,11 @@ namespace cxx_compiler {
 	  return;
         u->m_type = u->m_type->complete_type();
         scope::current = u->m_scope;
-        vector<scope*>& children = scope::current->m_children;
+        auto& children = scope::current->m_children;
         scope* param = E.second.m_param;
         children.push_back(param);
         fundef::current = new fundef(u,param);
-        const vector<usr*>& order = param->m_order;
+        const auto& order = param->m_order;
         for_each(order.begin(),order.end(),check_object);
         using namespace parse;
         member_function_body::saved = &E.second;
