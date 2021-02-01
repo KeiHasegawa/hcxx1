@@ -274,6 +274,8 @@ namespace cxx_compiler {
 	    usr::flag2_t flag2 = u->m_flag2;
 	    if (flag2 & usr::PARTIAL_ORDERING) {
 	      tmp.m_kind = TEMPLATE_NAME_LEX;
+	      auto p = new pair<usr*, tag*>(u, 0);
+	      tmp.m_lval = (var*)p;
               m_choice.push_back(tmp);
               return true;
 	    }
@@ -289,8 +291,16 @@ namespace cxx_compiler {
             if (p == end(tags))
               return false;
             tag* ptr = p->second;
-            info_t tmp(CLASS_NAME_LEX, (var*)ptr, bp);
-            m_choice.push_back(tmp);
+	    tag::flag_t flag = ptr->m_flag;
+	    if (flag & tag::TEMPLATE) {
+	      auto p = new pair<usr*, tag*>(0, ptr);
+	      info_t tmp(TEMPLATE_NAME_LEX, (var*)p, bp);
+	      m_choice.push_back(tmp);
+	    }
+	    else {
+	      info_t tmp(CLASS_NAME_LEX, (var*)ptr, bp);
+	      m_choice.push_back(tmp);
+	    }
             return true;
           }
           static inline void insert(info_t& info, base* bp)
@@ -457,12 +467,6 @@ namespace cxx_compiler {
 		      });
 	    int kind = x.m_kind;
 	    var* xv = x.m_lval;
-	    if (kind == TEMPLATE_NAME_LEX) {
-	      assert(xv->usr_cast());
-	      usr* u = static_cast<usr*>(xv);
-	      cxx_compiler_lval.m_ut = new pair<usr*, tag*>(u, 0);
-	      return kind;
-	    }
 	    cxx_compiler_lval.m_var = xv;
 	    return kind;
           }
