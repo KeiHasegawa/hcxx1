@@ -2056,6 +2056,10 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
 	  }
 	  return x.m_it;
 	}
+	if (pv_dots) {
+	  if (pv->size() == 1)
+	    pv = 0;
+	}
       }
     }
   }

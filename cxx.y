@@ -2270,8 +2270,11 @@ enter_templ_arg
       ++parse::templ::arg;
       parse::identifier::mode = parse::identifier::look;
       if (parse::base_clause.empty()) {
-        if (!class_or_namespace_name::before.empty())
-          class_or_namespace_name::after(false);
+        if (!class_or_namespace_name::before.empty()) {
+	  scope* ps = class_or_namespace_name::before.back();
+	  if (scope::current->m_parent != ps)
+	    class_or_namespace_name::after(false);
+	}
       }
       else {
 	scope* ps = parse::base_clause.back();
