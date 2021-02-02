@@ -519,6 +519,15 @@ namespace cxx_compiler {
   namespace parse {
     namespace identifier {
       using namespace std;
+      inline bool should_defer(tag* org)
+      {
+	if (templ::save_t::nest.empty())
+	  return false;
+	tag::flag_t flag = org->m_flag;
+	if (!(flag & tag::INSTANTIATE))
+	  return false;
+	return record_impl::should_skip(org);
+      } 
       int get_here(string name, scope* ptr)
       {
         const map<string, vector<usr*> >& usrs = ptr->m_usrs;
@@ -653,7 +662,19 @@ namespace cxx_compiler {
 	  tag::flag_t flag = ptag->m_flag;
 	  if (flag & tag::ALIAS) {
 	    alias_tag* al = static_cast<alias_tag*>(ptag);
-	    cxx_compiler_lval.m_tag = ptag = al->m_org;
+	    tag* org = al->m_org;
+	    if (should_defer(org)) {
+	      tag::kind_t dont_care = ptag->m_kind;
+	      tag* ptr = new tag(dont_care, name, parse::position, 0);
+	      ptr->m_flag = tag::TYPENAMED;  // for lookup after
+	      assert(!class_or_namespace_name::before.empty());
+	      assert(class_or_namespace_name::before.back() == ptr);
+	      class_or_namespace_name::before.pop_back();
+	      cxx_compiler_lval.m_tag = ptr;
+	      ptr->m_types.first = incomplete_tagged_type::create(ptr);
+	      return CLASS_NAME_LEX;
+	    } 
+	    cxx_compiler_lval.m_tag = ptag = org;
 	  }
           if (ptag->m_kind == tag::ENUM)
             return ENUM_NAME_LEX;

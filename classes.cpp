@@ -318,7 +318,11 @@ specifier::begin3(int keyword, pair<usr*, tag*>* x, std::vector<base*>* bases)
     return classes_impl::combine(prev, kind, parse::position, bases, false);
   }
 
-  ptr->m_parent = scope::current;
+  tag::flag_t flag = ptr->m_flag;
+  if (flag & tag::SPECIAL_VER)
+    assert(ptr->m_parent);
+  else
+    ptr->m_parent = scope::current;
   ptr->m_parent->m_children.push_back(ptr);
   ptr->m_types.first = incomplete_tagged_type::create(ptr);
   ptr->m_bases = bases;

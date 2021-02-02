@@ -1818,6 +1818,20 @@ namespace cxx_compiler {
         return true;
       }
     };
+    partial_special_tag* get_ps(template_tag* tt,
+				vector<scope::tps_t::val2_t*>* pv,
+				bool pv_dots,
+				template_tag::KEY& res)
+    {
+      vector<partial_special_tag*>& ps = tt->m_partial_special;
+      auto it = find_if(rbegin(ps), rend(ps),
+			template_tag_impl:: match(pv, pv_dots, res));
+      if (it != rend(ps))
+	return *it;
+      if (template_tag* prev = tt->m_prev)
+	return get_ps(prev, pv, pv_dots, res);
+      return 0;
+    }
     bool typenamed(const scope::tps_t::val2_t& v)
     {
       const type* T = v.first;
@@ -2065,14 +2079,12 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
   }
 
   KEY res;
-  typedef vector<partial_special_tag*>::reverse_iterator IT;
-  IT it = find_if(rbegin(m_partial_special), rend(m_partial_special),
-                  template_tag_impl:: match(pv, pv_dots, res));
-  if (it != rend(m_partial_special)) {
+  if (partial_special_tag* ps =
+      template_tag_impl::get_ps(this, pv, pv_dots, res)) {
     vector<scope::tps_t::val2_t*>* pv2 = new vector<scope::tps_t::val2_t*>;
     transform(begin(res), end(res), back_inserter(*pv2),
       [](scope::tps_t::val2_t& x){ return new scope::tps_t::val2_t(x); });
-    return (*it)->common(pv2, special_ver, pv_dots);
+    return ps->common(pv2, special_ver, pv_dots);
   }
 
   bool dots = templ_base::m_tps.m_dots;
@@ -2188,11 +2200,6 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
   if (special_ver) {
     string name = template_tag_impl::special_name(this, dots, pv, pv_dots);
     special_ver_tag* sv = new special_ver_tag(name, this, key);
-    if (parse::peek() == ':') {
-      assert(!class_or_namespace_name::before.empty());
-      assert(class_or_namespace_name::before.back() == sv);
-      class_or_namespace_name::before.pop_back();
-    }
     const vector<scope::tps_t>& tps = scope::current->m_tps;
     if (!tps.empty()) {
       const scope::tps_t& b = tps.back();
@@ -2301,7 +2308,9 @@ std::string cxx_compiler::template_tag::instantiated_name() const
   name += '<';
   name = accumulate(begin(order), end(order), name,
                     template_tag_impl::helper(table));
-  name.erase(name.size()-1);
+  int n = name.size()-1;
+  if (name[n] == ',')
+    name.erase(n);
   name += '>';
   return name;
 }

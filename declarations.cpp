@@ -2239,7 +2239,7 @@ namespace cxx_compiler {
 	alias_tag* al = new alias_tag(ptr);
 	tags[name] = al;
       }
-      inline void typename_case(var* x)
+      inline void typename_case(var* x, tag* py)
       {
 	assert(x->usr_cast());
 	usr* ux = static_cast<usr*>(x);
@@ -2253,8 +2253,10 @@ namespace cxx_compiler {
 	  return common_a(ptr, 0);
 	}
 	const vector<scope::tps_t>& tps = scope::current->m_tps;
-	if (tps.empty())
-	  error::not_implemented();
+	if (tps.empty()) {
+	  tags[xn] = py;
+	  return;
+	}
 	const scope::tps_t& b = tps.back();
 	if (b.m_table.empty())
 	  error::not_implemented();
@@ -2274,7 +2276,7 @@ namespace cxx_compiler {
 	tag* ptr = T->get_tag();
 	if (ptr) {
 	  if (ptr->m_kind == tag::TYPENAME)
-	    return typename_case(v);
+	    return typename_case(v, ptr);
 	}
 	assert(v->usr_cast());
 	usr* ident = static_cast<usr*>(v);

@@ -121,14 +121,19 @@ tagx(std::pair<std::string, tag*> p, int ntab)
   tag* ptr = p.second;
   int n = ntab;
   while ( n-- ) cout << '\t';
-  if (ptr->m_flag & tag::TEMPLATE)
+  tag::flag_t flag = ptr->m_flag;
+  if (flag & tag::TEMPLATE)
     cout << "template ";
+  if (flag & tag::ALIAS) {
+    string s = p.first;
+    cout << s << " alias ";
+  }
   cout << tag::keyword(ptr->m_kind);
   string name = ptr->m_name;
   if ( !name.empty() )
     cout << ' ' << name;
   cout << '\n';
-  if (ptr->m_flag & tag::TEMPLATE)
+  if (flag & tag::TEMPLATE)
     return;
   scope* org = scope::current;
   scope::current = ptr;
