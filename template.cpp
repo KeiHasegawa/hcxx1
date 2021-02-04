@@ -1859,11 +1859,18 @@ namespace cxx_compiler {
 	return get_ps(prev, pv, pv_dots, res);
       return 0;
     }
-    bool typenamed(const scope::tps_t::val2_t& v)
+    bool typenamed_or_templ_param(const scope::tps_t::val2_t& v)
     {
       const type* T = v.first;
-      if (!T)
-	return false;
+      if (!T) {
+	var* v2 = v.second;
+	if (addrof* a = v2->addrof_cast())
+	  v2 = a->m_ref;
+	assert(v2->usr_cast());
+	usr* u = static_cast<usr*>(v2);
+	usr::flag2_t flag2 = u->m_flag2;
+	return flag2 & usr::TEMPL_PARAM;
+      }
       tag* ptr = T->get_tag();
       if (!ptr)
 	return false;
@@ -2285,7 +2292,8 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
   // ret->m_src == this is almost all true except for bellow situation:
   // template<class C> using X = S<C>;
   m_table[key] = ret;
-  KI r = find_if(begin(key), end(key), template_tag_impl::typenamed);
+  KI r = find_if(begin(key), end(key),
+		 template_tag_impl::typenamed_or_templ_param);
   if (r == end(key)) {
     for_each(begin(m_static_def), end(m_static_def),
 	     template_tag_impl::instantiate(key));

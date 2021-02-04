@@ -467,6 +467,15 @@ namespace cxx_compiler {
 		      });
 	    int kind = x.m_kind;
 	    var* xv = x.m_lval;
+	    if (kind == IDENTIFIER_LEX) {
+	      if (record_impl::should_skip(ptr)) {
+		if (usr* u = xv->usr_cast()) {
+		  usr::flag_t flag = u->m_flag;
+		  if (flag & usr::WITH_INI)
+		    return 0;
+		}
+	      }
+	    }
 	    cxx_compiler_lval.m_var = xv;
 	    return kind;
           }
@@ -946,35 +955,33 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
 
   if (ptr->m_id == scope::TAG) {
     tag* ptag = static_cast<tag*>(ptr);
-    if (!record_impl::should_skip(ptag)) {
-      if (int n = base_lookup::action(name, ptag))
-	return n;
-      if (parse::templ::ptr) {
-	if (ptag->m_flag & tag::INSTANTIATE) {
-	  instantiated_tag* it = static_cast<instantiated_tag*>(ptag);
-	  template_tag* src = it->m_src;
-	  if (it->m_types.second) {
-	    const vector<string>& v = src->templ_base::m_tps.m_order;
-	    typedef vector<string>::const_iterator IT;
-	    IT p = find(begin(v), end(v), name);
-	    if (p != end(v)) {
-	      int n = distance(begin(v), p);
-	      const vector<scope::tps_t::val2_t>& s = it->m_seed;
-	      assert(n < s.size());
-	      scope::tps_t::val2_t x = s[n];
-	      if (var* v = x.second) {
-		const type* T = v->m_type;
-		return templ_param_lex(v, T);
-	      }
+    if (int n = base_lookup::action(name, ptag))
+      return n;
+    if (parse::templ::ptr) {
+      if (ptag->m_flag & tag::INSTANTIATE) {
+	instantiated_tag* it = static_cast<instantiated_tag*>(ptag);
+	template_tag* src = it->m_src;
+	if (it->m_types.second) {
+	  const vector<string>& v = src->templ_base::m_tps.m_order;
+	  typedef vector<string>::const_iterator IT;
+	  IT p = find(begin(v), end(v), name);
+	  if (p != end(v)) {
+	    int n = distance(begin(v), p);
+	    const vector<scope::tps_t::val2_t>& s = it->m_seed;
+	    assert(n < s.size());
+	    scope::tps_t::val2_t x = s[n];
+	    if (var* v = x.second) {
+	      const type* T = v->m_type;
+	      return templ_param_lex(v, T);
 	    }
 	  }
-	  const map<string, scope::tps_t::value_t>& table =
-	    src->templ_base::m_tps.m_table;
-	  map<string, scope::tps_t::value_t>::const_iterator p =
-	    table.find(name);
-	  if (p != table.end())
-	    return templ_param_lex(name, p->second, true);
 	}
+	const map<string, scope::tps_t::value_t>& table =
+	  src->templ_base::m_tps.m_table;
+	map<string, scope::tps_t::value_t>::const_iterator p =
+	  table.find(name);
+	if (p != table.end())
+	  return templ_param_lex(name, p->second, true);
       }
     }
   }
