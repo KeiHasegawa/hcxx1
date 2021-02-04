@@ -1863,7 +1863,7 @@ template_param_type::decl(std::ostream& os, std::string name) const
   const type* T = m_tag->m_types.second;
   if (T && T != this) {
     if (T->m_id == type::TEMPLATE_PARAM)
-      return record_impl::decl(os, name, m_tag, true);
+      return record_impl::decl(os, name, T->get_tag(), true);
     return T->decl(os, name);
   }
 
