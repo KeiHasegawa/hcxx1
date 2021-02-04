@@ -1305,9 +1305,8 @@ namespace cxx_compiler {
       {
         assert(T);
         tag* ptr = T->get_tag();
-        if (!ptr)
-          return T->unqualified();
-
+	if (!ptr)
+	  return T;
 	const type* U = T->unqualified();
         if (U->m_id == type::TEMPLATE_PARAM) {
           string name = ptr->m_name;
@@ -1467,6 +1466,7 @@ namespace cxx_compiler {
       m_flag = flag_t(m_flag | tag::PARTIAL_SPECIAL);
     }
     string instantiated_name() const;
+    string encode_name() const;
   };
 } // end of namespace cxx_compiler
 
@@ -1562,6 +1562,32 @@ namespace cxx_compiler {
           m_key.push_back(scope::tps_t::val2_t(Ty, 0));
           return true;
         }
+	if (Tx->m_id == Ty->m_id) {
+	  if (Tx->m_id == type::CONST) {
+	    typedef const const_type CT;
+	    CT* ctx = static_cast<CT*>(Tx);
+	    Tx = ctx->referenced_type();
+	    CT* cty = static_cast<CT*>(Ty);
+	    Ty = cty->referenced_type();
+	    return cmp_type(Tx, xtag, Ty);
+	  }
+	  if (Tx->m_id == type::VOLATILE) {
+	    typedef const volatile_type VT;
+	    VT* vtx = static_cast<VT*>(Tx);
+	    Tx = vtx->referenced_type();
+	    VT* vty = static_cast<VT*>(Ty);
+	    Ty = vty->referenced_type();
+	    return cmp_type(Tx, xtag, Ty);
+	  }
+	  if (Tx->m_id == type::RESTRICT) {
+	    typedef const restrict_type RT;
+	    RT* rtx = static_cast<RT*>(Tx);
+	    Tx = rtx->referenced_type();
+	    RT* rty = static_cast<RT*>(Ty);
+	    Ty = rty->referenced_type();
+	    return cmp_type(Tx, xtag, Ty);
+	  }
+	}
         return false;
       }
       bool cmp_tag(const tag* cx, const tag* cy)
@@ -1648,6 +1674,7 @@ namespace cxx_compiler {
       bool cmp_var(var* vx, var* vy)
       {
 	assert(vx->isconstant());
+	vy = vy->rvalue();
 	assert(vy->isconstant());
 	if (vx->value() == vy->value())
 	  return true;
@@ -2324,8 +2351,8 @@ namespace cxx_compiler {
       string decl(string name, const type* T)
       {
         ostringstream os;
-        T->decl(os, "");
-        return name + os.str() + ',';
+	T->decl(os, "");
+	return name + os.str() + ',';
       }
       string type_case(string name, const type* T)
       {
@@ -2385,6 +2412,40 @@ std::string cxx_compiler::partial_special_tag::instantiated_name() const
   }
   name.erase(name.size()-1);
   name += '>';
+  return name;
+}
+
+namespace cxx_compiler {
+  namespace partial_special_impl {
+      string type_case(string name, const type* T)
+      {
+	// just WA
+	if (T->m_id == type::CONST)
+	  return name + 'c';
+	return name;
+      }
+      string var_case(string name, var* v)
+      {
+        assert(v->usr_cast());
+        usr* u = static_cast<usr*>(v);
+        string s = u->m_name;
+        return name + s;
+      }
+      string helper2(string name, const scope::tps_t::val2_t& p)
+      {
+        const type* T = p.first;
+        return T ? type_case(name, T) : var_case(name, p.second);
+      }
+  } // end of namespace partial_special_impl
+} // end of namespace cxx_compiler
+
+std::string cxx_compiler::partial_special_tag::encode_name() const
+{
+  template_tag* tt = m_sv->m_src;
+  string name = tt->m_name;
+  const KEY& key = m_sv->m_key;
+  name = accumulate(begin(key), end(key), name,
+		    partial_special_impl::helper2);
   return name;
 }
 

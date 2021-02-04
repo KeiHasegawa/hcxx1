@@ -1877,6 +1877,7 @@ struct template_tag : templ_base, tag {
   tag* special_ver(vector<scope::tps_t::val2_t*>* pv, bool dots)
   { return common(pv, true, dots); }
   virtual string instantiated_name() const;
+  virtual string encode_name() const { return m_name; }
 };
 
 extern vector<pair<template_usr::info_t*, template_tag::info_t*> > tinfos;

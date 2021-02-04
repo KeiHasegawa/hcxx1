@@ -1523,6 +1523,7 @@ public:
   const type* vla2a() const { return create(m_T->vla2a()); }
   void decide_dim() const { m_T->decide_dim(); }
   tag* get_tag() const { return m_T->get_tag(); }
+  const type* referenced_type() const { return m_T; }
   static const type* create(const type*);
   static void destroy_tmp();
   static void collect_tmp(std::vector<const type*>&);
@@ -1559,6 +1560,7 @@ public:
   void decide_dim() const { m_T->decide_dim(); }  
   const type* qualified(int) const;
   tag* get_tag() const { return m_T->get_tag(); }
+  const type* referenced_type() const { return m_T; }
   static const type* create(const type*);
   static void destroy_tmp();
   static void collect_tmp(std::vector<const type*>&);
@@ -1594,6 +1596,7 @@ public:
   void decide_dim() const { m_T->decide_dim(); }  
   const type* qualified(int) const;
   tag* get_tag() const { return m_T->get_tag(); }
+  const type* referenced_type() const { return m_T; }
   static const type* create(const type*);
   static void destroy_tmp();
   static void collect_tmp(std::vector<const type*>&);

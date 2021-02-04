@@ -2570,11 +2570,7 @@ void cxx_compiler::record_impl::encode(std::ostream& os, const tag* ptr)
     os << name.length() << name;
     return;
   }
-  name = tt->m_name;
-  if (tt->m_flag & tag::PARTIAL_SPECIAL) {
-    string::size_type p = name.find_first_of('<');
-    name.erase(p);
-  }
+  name = tt->encode_name();
   os << name.length() << name;
   os << 'I';
   const vector<scope::tps_t::val2_t>& seed = get_seed(ptr);

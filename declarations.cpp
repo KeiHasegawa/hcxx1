@@ -1898,9 +1898,14 @@ cxx_compiler::declarations::type_specifier_seq::info_t::info_t(type_specifier* s
   }
   else if ( specifier->m_type ){
     m_type = specifier->m_type;
+    if (follow)
+      m_tmp = follow->m_tmp;
   }
-  else
+  else {
     m_type = specifier->m_usr->m_type;
+    if (follow)
+      m_tmp = follow->m_tmp;
+  }
   delete specifier;
   delete follow;
   s_stack.push(this);

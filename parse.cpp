@@ -527,7 +527,17 @@ namespace cxx_compiler {
 	if (!(flag & tag::INSTANTIATE))
 	  return false;
 	return record_impl::should_skip(org);
-      } 
+      }
+      map<tag*, type_def*> exchange;
+      inline bool exchange_after(tag* ptr)
+      {
+	tag::flag_t flag = ptr->m_flag;
+	if (flag & tag::TYPENAMED)
+	  return true;
+	if (flag & tag::INSTANTIATE)
+	  return record_impl::should_skip(ptr);
+	return false;
+      }
       int get_here(string name, scope* ptr)
       {
         const map<string, vector<usr*> >& usrs = ptr->m_usrs;
@@ -554,6 +564,10 @@ namespace cxx_compiler {
             if (mode == mem_ini || peek() == COLONCOLON_MK) {
               const type* T = u->m_type;
               if (tag* ptr = T->get_tag()) {
+		if (exchange_after(ptr)) {
+		  assert(exchange.find(ptr) == exchange.end());
+		  exchange[ptr] = tdef;
+		}
                 cxx_compiler_lval.m_tag = ptr;
                 return CLASS_NAME_LEX;
               }
@@ -652,6 +666,12 @@ namespace cxx_compiler {
             if (template_usr::nest.empty())
               garbage.push_back(cxx_compiler_lval.m_var);
           }
+	  if (flag & usr::WITH_INI) {
+	    if (ptr->m_id == scope::TAG) {
+	      if (record_impl::should_skip(static_cast<tag*>(ptr)))
+		return 0;
+	    }
+	  }
           return IDENTIFIER_LEX;
         }
         const map<string, tag*>& tags = ptr->m_tags;
@@ -926,33 +946,35 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
 
   if (ptr->m_id == scope::TAG) {
     tag* ptag = static_cast<tag*>(ptr);
-    if (int n = base_lookup::action(name, ptag))
-      return n;
-    if (parse::templ::ptr) {
-      if (ptag->m_flag & tag::INSTANTIATE) {
-        instantiated_tag* it = static_cast<instantiated_tag*>(ptag);
-        template_tag* src = it->m_src;
-	if (it->m_types.second) {
-	  const vector<string>& v = src->templ_base::m_tps.m_order;
-	  typedef vector<string>::const_iterator IT;
-	  IT p = find(begin(v), end(v), name);
-	  if (p != end(v)) {
-	    int n = distance(begin(v), p);
-	    const vector<scope::tps_t::val2_t>& s = it->m_seed;
-	    assert(n < s.size());
-	    scope::tps_t::val2_t x = s[n];
-	    if (var* v = x.second) {
-	      const type* T = v->m_type;
-	      return templ_param_lex(v, T);
+    if (!record_impl::should_skip(ptag)) {
+      if (int n = base_lookup::action(name, ptag))
+	return n;
+      if (parse::templ::ptr) {
+	if (ptag->m_flag & tag::INSTANTIATE) {
+	  instantiated_tag* it = static_cast<instantiated_tag*>(ptag);
+	  template_tag* src = it->m_src;
+	  if (it->m_types.second) {
+	    const vector<string>& v = src->templ_base::m_tps.m_order;
+	    typedef vector<string>::const_iterator IT;
+	    IT p = find(begin(v), end(v), name);
+	    if (p != end(v)) {
+	      int n = distance(begin(v), p);
+	      const vector<scope::tps_t::val2_t>& s = it->m_seed;
+	      assert(n < s.size());
+	      scope::tps_t::val2_t x = s[n];
+	      if (var* v = x.second) {
+		const type* T = v->m_type;
+		return templ_param_lex(v, T);
+	      }
 	    }
 	  }
+	  const map<string, scope::tps_t::value_t>& table =
+	    src->templ_base::m_tps.m_table;
+	  map<string, scope::tps_t::value_t>::const_iterator p =
+	    table.find(name);
+	  if (p != table.end())
+	    return templ_param_lex(name, p->second, true);
 	}
-        const map<string, scope::tps_t::value_t>& table =
-          src->templ_base::m_tps.m_table;
-        map<string, scope::tps_t::value_t>::const_iterator p =
-          table.find(name);
-        if (p != table.end())
-          return templ_param_lex(name, p->second, true);
       }
     }
   }
@@ -1371,6 +1393,9 @@ namespace cxx_compiler {
         lval.pop_front();
         if (templ) {
           usr* u = cxx_compiler_lval.m_usr;
+	  usr::flag2_t flag2 = u->m_flag2;
+	  if (flag2 & usr::ALIAS)
+	    return n;
           string name = u->m_name;
 	  n = last_token = identifier::lookup(name, scope::current);
 	  assert(n);
@@ -1401,6 +1426,15 @@ namespace cxx_compiler {
                   return CLASS_NAME_LEX;
               }
             }
+	    if (peek() == COLONCOLON_MK) {
+	      auto p = identifier::exchange.find(ptr);
+	      if (p != identifier::exchange.end()) {
+		auto v = p->second;
+		int r = identifier::lookup(v->m_name, scope::current);
+		assert(r == CLASS_NAME_LEX);
+		return r;
+	      }
+	    }
             instantiated_tag* it = static_cast<instantiated_tag*>(ptr);
             const instantiated_tag::SEED& seed = it->m_seed;
             typedef instantiated_tag::SEED::const_iterator IT;
@@ -1416,6 +1450,15 @@ namespace cxx_compiler {
               return r;
             }
           }
+	  if (peek() == COLONCOLON_MK) {
+	    auto p = identifier::exchange.find(ptr);
+	    if (p != identifier::exchange.end()) {
+	      auto v = p->second;
+	      int r = identifier::lookup(v->m_name, scope::current);
+	      assert(r == CLASS_NAME_LEX);
+	      return r;
+	    }
+	  }
           if ((flag & tag::TYPENAMED) || inside_templ(ptr->m_parent)) {
             string name = ptr->m_name;
             int r = identifier::lookup(name, scope::current);
