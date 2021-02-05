@@ -1784,7 +1784,7 @@ namespace cxx_compiler {
 	  return true;
 
 	if (dots)
-	  return ++*n == m;
+	  return ++*n <= m;
 
 	if (pv_dots)
 	  return *n == m + 1;
