@@ -1992,19 +1992,10 @@ namespace cxx_compiler {
 	tt = ps->m_primary;
       }
       string name = tt->m_name;
-      if (!pv || pv_dots && pv->size() == 1) {
-	ostringstream os;
-	os << name;
-	os << '<' << '>';
-	return os.str();
-      }
+      if (!pv)
+	return name + "<>";
       name += '<';
-      if (pv_dots) {
-	assert(pv->size() > 1);
-	name = accumulate(begin(*pv), end(*pv) - 1, name, add_special);
-      }
-      else
-	name = accumulate(begin(*pv), end(*pv), name, add_special);
+      name = accumulate(begin(*pv), end(*pv), name, add_special);
       name.erase(name.size()-1);
       name += '>';
       return name;
@@ -2108,10 +2099,6 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
 	    class_or_namespace_name::before.pop_back();
 	  }
 	  return x.m_it;
-	}
-	if (pv_dots) {
-	  if (pv->size() == 1)
-	    pv = 0;
 	}
       }
     }

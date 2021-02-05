@@ -327,6 +327,17 @@ namespace cxx_compiler {
               return;
             }
 
+	    tag::flag_t flag = ptr->m_flag;
+	    if (flag & tag::INSTANTIATE) {
+	      instantiated_tag* it = static_cast<instantiated_tag*>(ptr);
+	      template_tag* tt = it->m_src;
+	      if (tt->m_name == m_name) {
+		pair<usr*, tag*>* tmp = new pair<usr*, tag*>(0, tt);
+		m_choice.push_back(info_t(TEMPLATE_NAME_LEX, (var*)tmp, bp));
+		return;
+	      }
+	    }
+
             if (vector<base*>* bases = ptr->m_bases) {
               vector<info_t> tmp;
               for_each(begin(*bases), end(*bases), gather(m_name, tmp));
