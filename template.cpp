@@ -1676,8 +1676,6 @@ namespace cxx_compiler {
 	assert(vx->isconstant());
 	vy = vy->rvalue();
 	assert(vy->isconstant());
-	if (vx->value() == vy->value())
-	  return true;
 	assert(vx->usr_cast());
 	usr* ux = static_cast<usr*>(vx);
 	usr::flag2_t flag2 = ux->m_flag2;
@@ -1685,7 +1683,7 @@ namespace cxx_compiler {
 	  m_key.push_back(scope::tps_t::val2_t((const type*)0,vy));
 	  return true;
 	}
-	return false;
+	return vx->value() == vy->value();
       }
       cmp(template_tag::KEY& key) : m_key(key) {}
       bool
