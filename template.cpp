@@ -1770,6 +1770,27 @@ namespace cxx_compiler {
       vector<scope::tps_t::val2_t*>* m_pv;
       bool m_pv_dots;
       template_tag::KEY& m_key;
+      static bool match_x(int* n, int m, bool dots, bool pv_dots)
+      {
+	if (dots) {
+	  assert(*n);
+	  --*n;
+	}
+	if (pv_dots) {
+	  assert(m);
+	  --m;
+	}
+	if (*n == m)
+	  return true;
+
+	if (dots)
+	  return ++*n == m;
+
+	if (pv_dots)
+	  return *n == m + 1;
+
+	return false;
+      }
       match(vector<scope::tps_t::val2_t*>* pv, bool pv_dots,
 	    template_tag::KEY& key)
         : m_pv(pv), m_pv_dots(pv_dots), m_key(key) {}
@@ -1795,11 +1816,6 @@ namespace cxx_compiler {
 	  assert(n > sz);
 	  n -= sz;
 	}
-	if (dots) {
-	  assert(n);
-	  if (key.back().first)
-	    --n;
-	}
 	int m = m_pv->size();
 	if (!def.empty()) {
 	  const vector<string>& order = tps.m_order;
@@ -1813,12 +1829,7 @@ namespace cxx_compiler {
 	  assert(m > sz);
 	  m -= sz;
 	}
-	if (m_pv_dots) {
-	  assert(m);
-	  if (m > 1)
-	    --m;
-	}
-	if (n != m) {
+	if (!match_x(&n, m, dots, m_pv_dots)) {
 	  m_key.clear();
 	  return false;
 	}
@@ -1832,11 +1843,7 @@ namespace cxx_compiler {
 	}
         const vector<string>& order = ps->templ_base::m_tps.m_order;
 	int n2 = order.size();
-	if (dots) {
-	  assert(n2);
-	  --n2;
-	}
-	if (n2 != m_key.size()) {
+	if (!match_x(&n2, m_key.size(), dots, false)) {
 	  m_key.clear();
 	  return false;
 	}
