@@ -1678,13 +1678,17 @@ namespace cxx_compiler {
 	int m = min(xs.size(), ys.size());
         pair<IT, IT> ret = mismatch(begin(xs), begin(xs)+m, begin(ys),
                 		    cmp_helper(m_key, m_table));
-        return ret == make_pair(begin(xs)+m, begin(ys)+m);
+	if (ret != make_pair(begin(xs)+m, begin(ys)+m))
+	  return false;
+	copy(begin(ys)+m,end(ys),back_inserter(m_key));
+	return true;
       }
       bool cmp_var(var* vx, var* vy)
       {
 	assert(vx->isconstant());
 	vy = vy->rvalue();
-	assert(vy->isconstant());
+	if (!vy->isconstant())
+	  return false;
 	assert(vx->usr_cast());
 	usr* ux = static_cast<usr*>(vx);
 	usr::flag2_t flag2 = ux->m_flag2;
@@ -1779,20 +1783,41 @@ namespace cxx_compiler {
       vector<scope::tps_t::val2_t*>* m_pv;
       bool m_pv_dots;
       template_tag::KEY& m_key;
-      static bool last_is_templ(vector<scope::tps_t::val2_t*>* pv)
+      static bool last_is_templ(vector<scope::tps_t::val2_t*>* pv,
+                                const partial_special_tag* ps)
       {
 	if (!pv)
 	  return false;
-	scope::tps_t::val2_t* val = pv->back();
-	if (const type* T = val->first)
-	  return T->m_id == type::TEMPLATE_PARAM;
-	var* v = val->second;
+	scope::tps_t::val2_t* bk = pv->back();
+
+	const auto& order = ps->templ_base::m_tps.m_order;
+	assert(!order.empty());
+	string name = order.back();
+	const auto& tbl = ps->templ_base::m_tps.m_table;
+	auto p = tbl.find(name);
+	assert(p != tbl.end());
+	const auto& val = p->second;
+
+	if (const type* T = bk->first) {
+	  if (T->m_id != type::TEMPLATE_PARAM)
+	    return false;
+	  tag* x = val.first;
+	  assert(x);
+	  tag* y = T->get_tag();
+	  return x == y;
+	}
+	var* v = bk->second;
 	assert(v->usr_cast());
 	usr* u = static_cast<usr*>(v);
 	usr::flag2_t flag2 = u->m_flag2;
-	return flag2 & usr::TEMPL_PARAM;
+	if (!(flag2 & usr::TEMPL_PARAM))
+	  return false;
+	var* x = val.second->second;
+	assert(x);
+	return x == u;
       }
       static bool match_x(int* n, int m, bool dots, bool pv_dots,
+			  const partial_special_tag* ps,
 			  vector<scope::tps_t::val2_t*>* pv)
       {
 	if (dots) {
@@ -1808,7 +1833,7 @@ namespace cxx_compiler {
 
 	if (dots) {
 	  if (pv_dots) {
-	    if (!last_is_templ(pv))
+	    if (!last_is_templ(pv, ps))
 	      return *n == m + 1;
 	  }
 	  return ++*n <= m;
@@ -1824,6 +1849,8 @@ namespace cxx_compiler {
         : m_pv(pv), m_pv_dots(pv_dots), m_key(key) {}
       bool operator()(const partial_special_tag* ps)
       {
+	if (ps->m_read.m_token.empty())
+	  return false; // if `ps' is now declarated, not match
         const special_ver_tag* sv = ps->m_sv;
         const template_tag::KEY& key = sv->m_key;
 	if (!m_pv)
@@ -1857,7 +1884,7 @@ namespace cxx_compiler {
 	  assert(m > sz);
 	  m -= sz;
 	}
-	if (!match_x(&n, m, dots, m_pv_dots, m_pv)) {
+	if (!match_x(&n, m, dots, m_pv_dots, ps, m_pv)) {
 	  m_key.clear();
 	  return false;
 	}
@@ -1871,7 +1898,7 @@ namespace cxx_compiler {
 	}
         const vector<string>& order = ps->templ_base::m_tps.m_order;
 	int n2 = order.size();
-	if (!match_x(&n2, m_key.size(), dots, false, 0)) {
+	if (!match_x(&n2, m_key.size(), dots, false, 0, 0)) {
 	  m_key.clear();
 	  return false;
 	}
@@ -2146,15 +2173,6 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
     }
   }
 
-  KEY res;
-  if (partial_special_tag* ps =
-      template_tag_impl::get_ps(this, pv, pv_dots, res)) {
-    vector<scope::tps_t::val2_t*>* pv2 = new vector<scope::tps_t::val2_t*>;
-    transform(begin(res), end(res), back_inserter(*pv2),
-      [](scope::tps_t::val2_t& x){ return new scope::tps_t::val2_t(x); });
-    return ps->common(pv2, special_ver, pv_dots);
-  }
-
   bool dots = templ_base::m_tps.m_dots;
   const vector<string>& order = templ_base::m_tps.m_order;
   if (!pv) {
@@ -2197,6 +2215,15 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
     }
     if (order.size() != pv->size() && !dots)
       error::not_implemented();
+  }
+
+  KEY res;
+  if (partial_special_tag* ps =
+      template_tag_impl::get_ps(this, pv, pv_dots, res)) {
+    vector<scope::tps_t::val2_t*>* pv2 = new vector<scope::tps_t::val2_t*>;
+    transform(begin(res), end(res), back_inserter(*pv2),
+      [](scope::tps_t::val2_t& x){ return new scope::tps_t::val2_t(x); });
+    return ps->common(pv2, special_ver, pv_dots);
   }
 
   const map<string, scope::tps_t::value_t>& table = templ_base::m_tps.m_table;
