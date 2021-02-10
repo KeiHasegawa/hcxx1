@@ -2201,14 +2201,13 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
 	if (p != tags.end())
 	  return p->second;
 	if (!x.m_it) {
-	  x.m_it = new instantiated_tag(m_kind, name, parse::position,
-					m_bases, ps, x.m_key);
-	  if (parse::peek() == ':') {
-	    assert(!class_or_namespace_name::before.empty());
-	    assert(class_or_namespace_name::before.back() == x.m_it);
-	    class_or_namespace_name::before.pop_back();
-	  }
-	  return x.m_it;
+	  instantiated_tag* ptr =
+	    new instantiated_tag(m_kind, name, parse::position,
+				 m_bases, ps, x.m_key);
+	  assert(special_ver);
+	  ptr->m_flag = tag::flag_t(ptr->m_flag | tag::SPECIAL_VER);
+	  ptr->m_parent = scope::current;
+	  return x.m_it = ptr;
 	}
       }
     }
