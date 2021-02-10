@@ -1483,6 +1483,11 @@ namespace cxx_compiler {
 	      return r;
 	    }
 	  }
+	  const type* T = ptr->m_types.first;
+	  if (T->m_id == type::TEMPLATE_PARAM) {
+	    if (ptr->m_types.second)
+	      return CLASS_NAME_LEX;
+	  }
           if ((flag & tag::TYPENAMED) || inside_templ(ptr->m_parent)) {
             string name = ptr->m_name;
             int r = identifier::lookup(name, scope::current);
