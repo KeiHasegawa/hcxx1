@@ -86,12 +86,46 @@ cxx_compiler::declarations::type_specifier::type_specifier(usr* u)
   parse::identifier::mode = parse::identifier::new_obj;
 }
 
+namespace cxx_compiler {
+  namespace declarations {
+    namespace type_specifier_impl {
+      const type* get(tag* ptr)
+      {
+	const type* T1 = ptr->m_types.first;
+	assert(T1);
+	const type* T2 = ptr->m_types.second;
+	if (!T2)
+	  return T1;
+	if (T1->m_id != type::TEMPLATE_PARAM)
+	  return T2;
+	if (template_tag::nest.empty())
+	  return T2;
+	const auto& info = template_tag::nest.back();
+	template_tag* tt = info.m_tt;
+	bool dots = tt->templ_base::m_tps.m_dots;
+	if (!dots)
+	  return T2;
+	const auto& order = tt->templ_base::m_tps.m_order;
+	assert(!order.empty());
+	string name = ptr->m_name;
+	if (order.back() != name)
+	  return T2;
+	const auto& key = info.m_key;
+	if (key.size() <= order.size())
+	  return T2;
+	if (parse::peek() != DOTS_MK)
+	  return T2;
+	return T1;
+      }
+    } // end of namespace type_specifier_impl
+  } // end of namespace declarations
+} // end of namespace cxx_compiler
+
 cxx_compiler::declarations::type_specifier::type_specifier(tag* ptr)
  : m_keyword(0), m_type(0), m_usr(0)
 {
   parse::identifier::base_lookup::route.clear();
-  m_type = ptr->m_types.second ? ptr->m_types.second : ptr->m_types.first;
-  assert(m_type);
+  m_type = type_specifier_impl::get(ptr);
   parse::identifier::mode = parse::identifier::new_obj;
 }
 
@@ -886,12 +920,16 @@ void cxx_compiler::declarations::check_object(usr* u)
         tag::flag_t flag = y->m_flag;
         if (flag & tag::INSTANTIATE) {
           string name = x->m_name;
-          int r = parse::identifier::lookup(name, parent);
-          assert(r == TYPEDEF_NAME_LEX);
-          usr* v = cxx_compiler_lval.m_usr;
-          const type* T = v->m_type;
-          u->m_type = T;
-          size = T->size();
+	  const auto& usrs = parent->m_usrs;
+          auto p = usrs.find(name);
+	  assert(p != usrs.end());
+	  const auto& v = p->second;
+	  usr* bk = v.back();
+	  usr::flag_t flag = bk->m_flag;
+	  assert(flag & usr::TYPEDEF);
+	  T = bk->m_type;
+	  u->m_type = T;
+	  size = T->size();
         }
       }
     }
@@ -2226,7 +2264,11 @@ namespace cxx_compiler {
 	  return common_a(ptr, T);
 	}
 	tag* ptr = T->get_tag();
-	assert(ptr);
+	if (!ptr) {
+	  const type* bt = backpatch_type::create();
+	  usr* u = new usr(name,bt,usr::NONE,parse::position,usr::NONE2);
+	  return action(u, T);
+	}
 	const vector<scope::tps_t>& tps = scope::current->m_tps;
 	if (!tps.empty()) {
 	  const scope::tps_t& b = tps.back();
@@ -2319,7 +2361,10 @@ namespace cxx_compiler {
 	}
 	save_t* p = save_t::nest.back();
 	assert(!p->m_usr);
-	assert(!p->m_tag);
+	if (p->m_tag) {
+	  usrs[name].push_back(al);
+	  return;
+	}
 	const vector<scope::tps_t>& tps = scope::current->m_tps;
 	assert(!tps.empty());
 	const scope::tps_t& b = tps.back();

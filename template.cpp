@@ -1084,9 +1084,51 @@ namespace cxx_compiler {
             parse::g_read = m_org;
           }
         };
+	inline bool cmp(scope::tps_t::val2_t x, scope::tps_t::val2_t* y)
+	{
+	  return x.first == y->first && x.second == y->second;
+	}
+	inline void change_if(vector<scope::tps_t::val2_t*>* pv)
+	{
+	  assert(pv);
+	  assert(!pv->empty());
+	  auto& bk = pv->back();
+	  const type* T = bk->first;
+	  if (!T)
+	    return;
+	  if (T->m_id != type::TEMPLATE_PARAM)
+	    return;
+	  tag* ptr = T->get_tag();
+	  const type* T2 = ptr->m_types.second;
+	  if (!T2)
+	    return;
+	  assert(!template_tag::nest.empty());
+	  const auto& info = template_tag::nest.back();
+	  template_tag* tt = info.m_tt;
+	  bool dots = tt->templ_base::m_tps.m_dots;
+	  assert(dots);
+	  const auto& order = tt->templ_base::m_tps.m_order;
+	  string name = ptr->m_name;
+	  assert(order.back() == name);
+
+	  // change because type_specifier_impl::get() didn't convert
+	  bk->first = T2;
+
+	  // fill if necessary
+	  const auto& key = info.m_key;
+	  int n = order.size();
+	  --n;
+	  assert(0 <= n && n < key.size());
+	  auto p = find_if(begin(key)+n, end(key),
+			   bind2nd(ptr_fun(cmp), bk));
+	  assert(p != end(key));
+	  transform(p+1, end(key), back_inserter(*pv), create);
+	}
         inline tag*
 	tag_action(tag* ptr, vector<scope::tps_t::val2_t*>* pv, bool dots)
         {
+	  if (dots)
+	    change_if(pv);
           assert(ptr->m_flag & tag::TEMPLATE);
           template_tag* tt = static_cast<template_tag*>(ptr);
 	  if (parse::base_clause.empty()) {
@@ -1844,6 +1886,17 @@ namespace cxx_compiler {
 
 	return false;
       }
+      struct tparam_or_cp {
+	template_tag::KEY& m_key;
+	tparam_or_cp(template_tag::KEY& key) : m_key(key) {}
+	bool operator()(scope::tps_t::val2_t* p)
+	{
+	  if (template_param(*p))
+	    return true;
+	  m_key.push_back(*p);
+	  return false;
+	}
+      };
       match(vector<scope::tps_t::val2_t*>* pv, bool pv_dots,
 	    template_tag::KEY& key)
         : m_pv(pv), m_pv_dots(pv_dots), m_key(key) {}
@@ -1896,6 +1949,8 @@ namespace cxx_compiler {
 	  m_key.clear();
 	  return false;
 	}
+	assert(n <= m);
+	find_if(begin(*m_pv)+n,begin(*m_pv)+m, tparam_or_cp(m_key));
         const vector<string>& order = ps->templ_base::m_tps.m_order;
 	int n2 = order.size();
 	if (!match_x(&n2, m_key.size(), dots, false, 0, 0)) {
@@ -2069,20 +2124,6 @@ namespace cxx_compiler {
       name += '>';
       return name;
     }
-    scope::tps_t::val2_t calc_key2(scope::tps_t::val2_t* p)
-    {
-      if (const type* T = p->first)
-	return scope::tps_t::val2_t(T, 0);
-      var* v = p->second;
-      if (v->addrof_cast()) {
-	typedef vector<var*>::reverse_iterator IT;
-	IT p = find(rbegin(garbage), rend(garbage), v);
-	assert(p != rend(garbage));
-	vector<var*>::iterator q = p.base() - 1;
-	garbage.erase(q);
-      }
-      return scope::tps_t::val2_t(0, v);
-    }
     inline scope::tps_t::val2_t conv_dup_tbl(tag* ptr)
     {
       assert(ptr->m_flag & tag::INSTANTIATE);
@@ -2222,7 +2263,7 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
       template_tag_impl::get_ps(this, pv, pv_dots, res)) {
     vector<scope::tps_t::val2_t*>* pv2 = new vector<scope::tps_t::val2_t*>;
     transform(begin(res), end(res), back_inserter(*pv2),
-      [](scope::tps_t::val2_t& x){ return new scope::tps_t::val2_t(x); });
+	      declarations::templ::create);
     return ps->common(pv2, special_ver, pv_dots);
   }
 
@@ -2244,7 +2285,7 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
 		  template_tag_impl::calc_key(table));
 	if (!pv_dots || special_ver) {
 	  transform(begin(*pv)+n, end(*pv), back_inserter(key),
-		    template_tag_impl::calc_key2);
+		    [](scope::tps_t::val2_t* p){ return *p; });
 	}
       }
       else {
@@ -2820,13 +2861,19 @@ const cxx_compiler::type* cxx_compiler::typenamed::action(var* v)
       return T;
   }
   string name = u->m_name;
+  auto& tags = scope::current->m_tags;
+  auto p = tags.find(name);
+  if (p != tags.end()) {
+    tag* ptr = p->second;
+    const type* T1 = ptr->m_types.first;
+    const type* T2 = ptr->m_types.second;
+    return T2 ? T2 : T1;
+  }
   tag* ptr = new tag(tag::TYPENAME, name, parse::position, 0);
   assert(!class_or_namespace_name::before.empty());
   assert(class_or_namespace_name::before.back() == ptr);
   class_or_namespace_name::before.pop_back();
   ptr->m_types.first = incomplete_tagged_type::create(ptr);
-  map<string, tag*>& tags = scope::current->m_tags;
-  assert(tags.find(name) == tags.end());
   tags[name] = ptr;
   scope::current->m_children.push_back(ptr);
   ptr->m_parent = scope::current;

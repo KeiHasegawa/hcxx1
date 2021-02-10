@@ -703,6 +703,11 @@ namespace cxx_compiler {
 	  if (flag & tag::ALIAS) {
 	    alias_tag* al = static_cast<alias_tag*>(ptag);
 	    tag* org = al->m_org;
+	    const type* T = org->m_types.first;
+	    if (T->m_id == type::TEMPLATE_PARAM) {
+	      if (last_token == COLONCOLON_MK)
+		return create(name);
+	    }
 	    if (should_defer(org)) {
 	      tag::kind_t dont_care = ptag->m_kind;
 	      tag* ptr = new tag(dont_care, name, parse::position, 0);
@@ -1243,6 +1248,7 @@ namespace cxx_compiler {
       case ORIGINAL_NAMESPACE_NAME_LEX:
       case NAMESPACE_ALIAS_LEX:
       case TEMPLATE_NAME_LEX:
+      case ALIAS_TYPE_LEX:
         return true;
       }
       return false;
@@ -1548,6 +1554,11 @@ namespace cxx_compiler {
         assert(!lval.empty());
         cxx_compiler_lval.m_name_space =
           static_cast<name_space*>(lval.front());
+        lval.pop_front();
+        return n;
+      case ALIAS_TYPE_LEX:
+        assert(!lval.empty());
+        cxx_compiler_lval.m_type = static_cast<const type*>(lval.front());
         lval.pop_front();
         return n;
       default:
