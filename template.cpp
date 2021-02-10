@@ -1876,7 +1876,7 @@ namespace cxx_compiler {
 	if (dots) {
 	  if (pv_dots) {
 	    if (!last_is_templ(pv, ps))
-	      return *n == m + 1;
+	      return *n <= m + 1;
 	  }
 	  return ++*n <= m;
 	}
