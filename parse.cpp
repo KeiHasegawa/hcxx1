@@ -585,8 +585,15 @@ namespace cxx_compiler {
               const type* T = u->m_type;
               if (tag* ptr = T->get_tag()) {
 		if (exchange_after(ptr)) {
-		  assert(exchange.find(ptr) == exchange.end());
-		  exchange[ptr] = tdef;
+		  auto p = exchange.find(ptr);
+		  if (p != exchange.end()) {
+		    auto v = p->second;
+		    const type* Tx = v->m_type;
+		    const type* Ty = tdef->m_type;
+		    assert(compatible(Tx, Ty));
+		  }
+		  else
+		    exchange[ptr] = tdef;
 		}
                 cxx_compiler_lval.m_tag = ptr;
                 return CLASS_NAME_LEX;

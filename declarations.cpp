@@ -83,6 +83,15 @@ cxx_compiler::declarations::type_specifier::type_specifier(usr* u)
  : m_keyword(0), m_type(0), m_usr(u)
 {
   assert(m_usr);
+  const type* T = m_usr->m_type;
+  if (T->m_id == type::TEMPLATE_PARAM) {
+    tag* ptr = T->get_tag();
+    const type* T2 = ptr->m_types.second;
+    if (T2) {
+      m_usr = 0;
+      m_type = T2;
+    }
+  }
   parse::identifier::mode = parse::identifier::new_obj;
 }
 
