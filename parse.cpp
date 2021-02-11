@@ -558,6 +558,16 @@ namespace cxx_compiler {
 	  return record_impl::should_skip(ptr);
 	return false;
       }
+      inline usr* rollback(usr* u)
+      {
+	usr::flag2_t flag2 = u->m_flag2;
+	if (!(flag2 & usr::ALIAS))
+	  return u;
+	alias_usr* al = static_cast<alias_usr*>(u);
+	if (usr* org = al->m_org)
+	  return rollback(org);
+	return u;
+      }
       int get_here(string name, scope* ptr)
       {
         const map<string, vector<usr*> >& usrs = ptr->m_usrs;
@@ -570,7 +580,7 @@ namespace cxx_compiler {
 	    if (u->m_flag2 & usr::ALIAS) {
 	      alias_usr* al = static_cast<alias_usr*>(u);
 	      if (usr* org = al->m_org)
-		u = org;
+		u = rollback(org);
 	      else {
 		cxx_compiler_lval.m_type = u->m_type;
 		return ALIAS_TYPE_LEX;
