@@ -279,6 +279,15 @@ namespace cxx_compiler {
               m_choice.push_back(tmp);
               return true;
 	    }
+	    if (flag2 & usr::ALIAS) {
+	      alias_usr* al = static_cast<alias_usr*>(u);
+	      if (!al->m_org) {
+		tmp.m_kind = ALIAS_TYPE_LEX;
+		tmp.m_lval = (var*)al->m_type;
+		m_choice.push_back(tmp);
+		return true;
+	      }
+	    }
             const type* T = u->m_type;
             if (const pointer_type* G = T->ptr_gen())
               garbage.push_back(tmp.m_lval = new genaddr(G,T,u,0));
@@ -479,13 +488,8 @@ namespace cxx_compiler {
 	    int kind = x.m_kind;
 	    var* xv = x.m_lval;
 	    if (kind == IDENTIFIER_LEX) {
-	      if (record_impl::should_skip(ptr)) {
-		if (usr* u = xv->usr_cast()) {
-		  usr::flag_t flag = u->m_flag;
-		  if (flag & usr::WITH_INI)
-		    return 0;
-		}
-	      }
+	      if (record_impl::should_skip(ptr))
+		return 0;
 	    }
 	    cxx_compiler_lval.m_var = xv;
 	    return kind;
@@ -543,10 +547,18 @@ namespace cxx_compiler {
       {
 	if (templ::save_t::nest.empty())
 	  return false;
-	tag::flag_t flag = org->m_flag;
-	if (!(flag & tag::INSTANTIATE))
-	  return false;
 	return record_impl::should_skip(org);
+      }
+      inline int defered(string name, tag::kind_t dont_care)
+      {
+	tag* ptr = new tag(dont_care, name, parse::position, 0);
+	ptr->m_flag = tag::TYPENAMED;  // for lookup after
+	assert(!class_or_namespace_name::before.empty());
+	assert(class_or_namespace_name::before.back() == ptr);
+	class_or_namespace_name::before.pop_back();
+	cxx_compiler_lval.m_tag = ptr;
+	ptr->m_types.first = incomplete_tagged_type::create(ptr);
+	return CLASS_NAME_LEX;
       }
       map<tag*, type_def*> exchange;
       inline bool exchange_after(tag* ptr)
@@ -725,19 +737,19 @@ namespace cxx_compiler {
 	      if (last_token == COLONCOLON_MK)
 		return create(name);
 	    }
-	    if (should_defer(org)) {
-	      tag::kind_t dont_care = ptag->m_kind;
-	      tag* ptr = new tag(dont_care, name, parse::position, 0);
-	      ptr->m_flag = tag::TYPENAMED;  // for lookup after
-	      assert(!class_or_namespace_name::before.empty());
-	      assert(class_or_namespace_name::before.back() == ptr);
-	      class_or_namespace_name::before.pop_back();
-	      cxx_compiler_lval.m_tag = ptr;
-	      ptr->m_types.first = incomplete_tagged_type::create(ptr);
-	      return CLASS_NAME_LEX;
-	    } 
+	    if (should_defer(org))
+	      return defered(name, ptag->m_kind);
 	    cxx_compiler_lval.m_tag = ptag = org;
 	  }
+
+	  if (ptag->m_flag & tag::TYPENAMED) {
+	    if (ptr->m_id == scope::TAG) {
+	      tag* tmp = static_cast<tag*>(ptr);
+	      if (should_defer(tmp))
+		return defered(name, ptag->m_kind);
+	    }
+	  }
+
           if (ptag->m_kind == tag::ENUM)
             return ENUM_NAME_LEX;
           if (!(ptag->m_flag & tag::TEMPLATE))
@@ -1508,7 +1520,9 @@ namespace cxx_compiler {
           if ((flag & tag::TYPENAMED) || inside_templ(ptr->m_parent)) {
             string name = ptr->m_name;
             int r = identifier::lookup(name, scope::current);
-            assert(r == CLASS_NAME_LEX || r == TYPEDEF_NAME_LEX ||
+            assert(r == CLASS_NAME_LEX ||
+		   r == TYPEDEF_NAME_LEX ||
+		   r == ALIAS_TYPE_LEX ||
 		   identifier::typenaming && r == IDENTIFIER_LEX);
             if ((flag & tag::TYPENAMED) && templ) {
 	      scope* p = (r == CLASS_NAME_LEX) ?

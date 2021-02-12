@@ -1266,6 +1266,8 @@ namespace expressions {
       ~info_t(){ delete m_expr; }
     };
   } // end of namespace throw_impl
+  bool unjudge(const type* T);
+  usr* later();
 } // end of namespace expressions
 
 namespace statements {

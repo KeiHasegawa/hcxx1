@@ -58,7 +58,10 @@ namespace cxx_compiler {
 cxx_compiler::var* cxx_compiler::expressions::unary::size_of::gen()
 {
   using namespace std;
+  using namespace postfix;
   if (m_type) {
+    if (unjudge(m_type))
+      return later();
     const type* T = m_type->complete_type();
     if (tag* ptr = T->get_tag()) {
       tag::flag_t flag = ptr->m_flag;

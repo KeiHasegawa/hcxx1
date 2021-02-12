@@ -941,76 +941,6 @@ namespace cxx_compiler {
     };
     stack<template_tag*> sweeper_d::s_stack;
   } // end of namespace template_usr_impl
-  namespace templ_parameter {
-    using namespace template_usr_impl;
-    string correspond(string name, template_tag* curr)
-    {
-      const auto& table = curr->templ_base::m_tps.m_table;
-      auto p = table.find(name);
-      if (p != table.end())
-	return name;
-      template_tag* prev = curr->m_prev;
-      if (!prev)
-	return name;
-      string pn = correspond(name, prev);
-      const auto& po = prev->templ_base::m_tps.m_order;
-      auto q = find(begin(po),end(po),pn);
-      int n = distance(begin(po),q);
-      const auto& order = curr->templ_base::m_tps.m_order;
-      assert(n < order.size());
-      return order[n];
-    }
-    var* resolve_a(usr* u)
-    {
-      if (sweeper_d::s_stack.empty())
-	return 0;
-      template_tag* tt = sweeper_d::s_stack.top();
-      const auto& table = tt->templ_base::m_tps.m_table;
-      string name = u->m_name;
-      name = correspond(name, tt);
-      auto it = table.find(name);
-      assert(it != table.end());
-      const auto& val = it->second;
-      auto q = val.second;
-      assert(q);
-      var* ret = q->second;
-      assert(ret);
-      return ret;
-    }
-    var* resolve_b(usr* u)
-    {
-      if (sweeper_d::s_stack.empty())
-	return 0;
-      template_tag* tt = sweeper_d::s_stack.top();
-      const auto& table = tt->templ_base::m_tps.m_table;
-      scope* ps = u->m_scope;
-      if (ps->m_id != scope::TAG)
-	return 0;
-      tag* ptag = static_cast<tag*>(ps);
-      string name = ptag->m_name;
-      name = correspond(name, tt);
-      auto it = table.find(name);
-      if (it == table.end())
-	return 0;
-      const auto& val = it->second;
-      tag* q = val.first;
-      assert(q);
-      const type* T2 = q->m_types.second;
-      tag* ptr2 = T2->get_tag();
-      const auto& usrs = ptr2->m_usrs;
-      auto r = usrs.find(u->m_name);
-      if (r == usrs.end())
-	return 0;
-      const auto& vec = r->second;
-      var* ret = vec.back();
-      return ret->rvalue();
-    }
-    var* resolve(usr* u)
-    {
-      usr::flag2_t flag2 = u->m_flag2;
-      return (flag2 & usr::TEMPL_PARAM) ? resolve_a(u) : resolve_b(u);
-    }
-  } // end of namespace templ_parameter
 } // end of namespace cxx_compiler
 
 cxx_compiler::usr*
@@ -1414,7 +1344,8 @@ namespace cxx_compiler {
 	const type* T = v->m_type;
 	assert(T->m_id == type::BACKPATCH);
 	scope* ps = v->m_scope;
-	assert(ps->m_id == scope::TAG);
+	if (ps->m_id != scope::TAG)
+	  return v;
 	tag* ptr = static_cast<tag*>(ps);
 	tag::flag_t flag = ptr->m_flag;
 	assert(flag & tag::INSTANTIATE);
@@ -1519,6 +1450,83 @@ namespace cxx_compiler {
     string instantiated_name() const;
     string encode_name() const;
   };
+} // end of namespace cxx_compiler
+
+namespace cxx_compiler {
+  namespace templ_parameter {
+    using namespace template_usr_impl;
+    string correspond(string name, template_tag* curr)
+    {
+      const auto& table = curr->templ_base::m_tps.m_table;
+      auto p = table.find(name);
+      if (p != table.end())
+	return name;
+      template_tag* prev = curr->m_prev;
+      if (!prev)
+	return name;
+      string pn = correspond(name, prev);
+      const auto& po = prev->templ_base::m_tps.m_order;
+      auto q = find(begin(po),end(po),pn);
+      int n = distance(begin(po),q);
+      const auto& order = curr->templ_base::m_tps.m_order;
+      assert(n < order.size());
+      return order[n];
+    }
+    var* resolve_a(usr* u)
+    {
+      if (sweeper_d::s_stack.empty())
+	return 0;
+      template_tag* tt = sweeper_d::s_stack.top();
+      const auto& table = tt->templ_base::m_tps.m_table;
+      string name = u->m_name;
+      name = correspond(name, tt);
+      auto it = table.find(name);
+      assert(it != table.end());
+      const auto& val = it->second;
+      auto q = val.second;
+      assert(q);
+      var* ret = q->second;
+      assert(ret);
+      return ret;
+    }
+    var* resolve_b(usr* u)
+    {
+      if (sweeper_d::s_stack.empty())
+	return 0;
+      template_tag* tt = sweeper_d::s_stack.top();
+      const auto& table = tt->templ_base::m_tps.m_table;
+      scope* ps = u->m_scope;
+      if (ps->m_id != scope::TAG)
+	return 0;
+      tag* ptag = static_cast<tag*>(ps);
+      string name = ptag->m_name;
+      name = correspond(name, tt);
+      auto it = table.find(name);
+      if (it == table.end())
+	return 0;
+      const auto& val = it->second;
+      tag* q = val.first;
+      assert(q);
+      const type* T2 = q->m_types.second;
+      tag* ptr2 = T2->get_tag();
+      const auto& usrs = ptr2->m_usrs;
+      auto r = usrs.find(u->m_name);
+      if (r == usrs.end())
+	return 0;
+      const auto& vec = r->second;
+      var* ret = vec.back();
+      return ret->rvalue();
+    }
+    var* resolve(usr* u)
+    {
+      if (const type* T = u->m_type) {
+	if (T->m_id == type::BACKPATCH)
+	  return template_tag_impl::calc_key::update_b(u);
+      }
+      usr::flag2_t flag2 = u->m_flag2;
+      return (flag2 & usr::TEMPL_PARAM) ? resolve_a(u) : resolve_b(u);
+    }
+  } // end of namespace templ_parameter
 } // end of namespace cxx_compiler
 
 namespace cxx_compiler {
@@ -1757,10 +1765,10 @@ namespace cxx_compiler {
         }
       }
     };
+    typedef map<string, pair<const type*, expressions::base*> > cmpdef_tbl;
     struct cmpdef_a {
-      const map<string, pair<const type*, expressions::base*> >& m_def;
-      cmpdef_a(const map<string, pair<const type*, expressions::base*> >& def)
-	: m_def(def) {}
+      const cmpdef_tbl& m_def;
+      cmpdef_a(const cmpdef_tbl& def) : m_def(def) {}
       bool operator()(string pn, const scope::tps_t::val2_t& v)
       {
 	auto p = m_def.find(pn);
@@ -1770,34 +1778,15 @@ namespace cxx_compiler {
 	if (const type* T = x.first) {
 	  return T == v.first;
 	}
-
 	expressions::base* expr = x.second;
 	var* y = expr->gen();
 	y = y->rvalue();
-	if (y == v.second)
-	  return true;
-	usr* u = y->usr_cast();
-	if (!u)
-	  return false;
-	const type* T = u->m_type;
-	if (T->m_id != type::BACKPATCH)
-	  return false;
-	string name = u->m_name;
-	scope* ps = u->m_scope;
-	const auto& usrs = ps->m_usrs;
-	auto q = usrs.find(name);
-	if (q == usrs.end())
-	  return false;
-	const auto& vec = q->second;
-	usr* u2 = vec.back();
-	var* rv = u2->rvalue();
-	return rv == v.second;
+	return y == v.second;
       }
     };
     struct cmpdef_b {
-      const map<string, pair<const type*, expressions::base*> >& m_def;
-      cmpdef_b(const map<string, pair<const type*, expressions::base*> >& def)
-	: m_def(def) {}
+      const cmpdef_tbl& m_def;
+      cmpdef_b(const cmpdef_tbl& def) : m_def(def) {}
       bool operator()(string pn, const scope::tps_t::val2_t* v)
       {
 	auto p = m_def.find(pn);
@@ -2192,15 +2181,10 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
       partial_special_tag* ps = static_cast<partial_special_tag*>(tt);
       template_tag* primary = ps->m_primary;
       if (primary == this) {
-	using namespace template_tag_impl;
-	bool dots = ps->templ_base::m_tps.m_dots;
-	string name = special_name(ps, dots, pv, pv_dots);
-	const map<string, tag*>& tags = m_parent->m_tags;
-	typedef map<string, tag*>::const_iterator IT;
-	IT p = tags.find(name);
-	if (p != tags.end())
-	  return p->second;
 	if (!x.m_it) {
+	  using namespace template_tag_impl;
+	  bool dots = ps->templ_base::m_tps.m_dots;
+	  string name = special_name(ps, dots, pv, pv_dots);
 	  instantiated_tag* ptr =
 	    new instantiated_tag(m_kind, name, parse::position,
 				 m_bases, ps, x.m_key);

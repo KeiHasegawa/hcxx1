@@ -3288,11 +3288,17 @@ bool cxx_compiler::record_impl::should_skip(const tag* ptr)
   tag::flag_t flag = ptr->m_flag;
   if (flag & tag::TEMPLATE)
     return true;
-  if (!(flag & tag::INSTANTIATE))
-    return false;
-  const instantiated_tag* it = static_cast<const instantiated_tag*>(ptr);
-  const instantiated_tag::SEED& seed = it->m_seed;
-  typedef instantiated_tag::SEED::const_iterator IT;
-  IT p = find_if(begin(seed), end(seed), template_param);
-  return p != end(seed);
+  if (flag & tag::INSTANTIATE) {
+    auto it = static_cast<const instantiated_tag*>(ptr);
+    const auto& seed = it->m_seed;
+    auto p = find_if(begin(seed), end(seed), template_param);
+    return p != end(seed);
+  }
+  if (flag & tag::SPECIAL_VER) {
+    auto sv = static_cast<const special_ver_tag*>(ptr);
+    const auto& seed = sv->m_key;
+    auto p = find_if(begin(seed), end(seed), template_param);
+    return p != end(seed);
+  }
+  return false;
 }

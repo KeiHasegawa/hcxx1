@@ -3012,21 +3012,23 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::type_ident::gen()
 
 namespace cxx_compiler {
   namespace expressions {
-    namespace postfix {
-      bool unjudge(const type* T)
-      {
+    bool unjudge(const type* T)
+    {
+      tag* ptr = T->get_tag();
+      if (!ptr)
 	return template_param(scope::tps_t::val2_t(T,0));
-      }
-      usr* later()
-      {
-	string name = new_name(".param");
-	const type* T = int_type::create();
-	usr* u = new templ_param(name, T, usr::NONE, parse::position,
-				 usr::TEMPL_PARAM);
-	garbage.push_back(u);
-	return u;
-      }
-    } // end of namespace postfix
+      if (const type* T2 = ptr->m_types.second)
+	return template_param(scope::tps_t::val2_t(T2,0));
+      return template_param(scope::tps_t::val2_t(T,0));
+    }
+    usr* later()
+    {
+      string name = new_name(".param");
+      const type* T = int_type::create();
+      usr* u = new templ_param(name, T, usr::NONE, parse::position,
+			       usr::TEMPL_PARAM);
+      return u;
+    }
   } // end of namespace expressions
 } // end of namespace cxx_compiler
 
@@ -3035,7 +3037,8 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::is_kind::gen()
   using namespace primary::literal;
   if (unjudge(m_type))
     return later();
-  tag* ptr = m_type->get_tag();
+  const type* T = m_type->complete_type();
+  tag* ptr = T->get_tag();
   if (!ptr)
     return integer::create(0);
   tag::kind_t kind = ptr->m_kind;
@@ -3047,43 +3050,44 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::is_kind::gen()
   return integer::create(n);
 }
 
-
 cxx_compiler::var* cxx_compiler::expressions::postfix::is_common2::gen()
 {
   using namespace primary::literal;
   if (unjudge(m_Tx) || unjudge(m_Ty))
     return later();
+  const type* Tx = m_Tx->complete_type();
+  const type* Ty = m_Ty->complete_type();
   switch (m_kind) {
   case same:
-    int n = compatible(m_Tx, m_Ty) ? 1 : 0;
+    int n = compatible(Tx, Ty) ? 1 : 0;
     return integer::create(n);
   }
   assert(m_kind == ass || m_kind == triv_ass);
   using namespace expressions;
 
   // inspired by usr::assign(var*)
-  if (m_Tx->m_id == type::REFERENCE) {
+  if (Tx->m_id == type::REFERENCE) {
     typedef const reference_type RT;
-    RT* rtx = static_cast<RT*>(m_Tx);
-    m_Tx = rtx->referenced_type();
-    if (m_Ty->m_id == type::REFERENCE) {
-      RT* rty = static_cast<RT*>(m_Ty);
-      m_Ty = rty->referenced_type();
+    RT* rtx = static_cast<RT*>(Tx);
+    Tx = rtx->referenced_type();
+    if (Ty->m_id == type::REFERENCE) {
+      RT* rty = static_cast<RT*>(Ty);
+      Ty = rty->referenced_type();
     }
     int cvr = 0;
-    m_Ty->unqualified(&cvr);
+    Ty->unqualified(&cvr);
     if (cvr & 1)
-      m_Tx = const_type::create(m_Tx);
+      Tx = const_type::create(Tx);
     if (cvr & 2)
-      m_Tx = volatile_type::create(m_Tx);
+      Tx = volatile_type::create(Tx);
     if (cvr & 4)
-      m_Tx = restrict_type::create(m_Tx);
-    m_Tx = reference_type::create(m_Tx, false);
+      Tx = restrict_type::create(Tx);
+    Tx = reference_type::create(Tx, false);
   }
-  var tmp(m_Ty);
+  var tmp(Ty);
   bool discard = false;
   bool ctor_conv = false;
-  const type* T = assignment::valid(m_Tx, &tmp, &discard, &ctor_conv, 0);
+  const type* T = assignment::valid(Tx, &tmp, &discard, &ctor_conv, 0);
   int n = T ? 1 : 0;
   return integer::create(n);
 }
@@ -3093,7 +3097,8 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::is_common::gen()
   if (unjudge(m_type))
     return later();
   using namespace primary::literal;
-  tag* ptr = m_type->get_tag();
+  const type* T = m_type->complete_type();
+  tag* ptr = T->get_tag();
   if (!ptr)
     return integer::create(1);
   usr* ctor = has_ctor_dtor(ptr, false);
@@ -3111,7 +3116,8 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::is_common::gen()
   return integer::create(n);
 }
 
-cxx_compiler::var* cxx_compiler::expressions::postfix::is_constructible::gen()
+cxx_compiler::var*
+cxx_compiler::expressions::postfix::is_constructible::gen()
 {
   using namespace primary::literal;
   auto_ptr<vector<const type*>> sweeper(m_types);
@@ -3129,7 +3135,8 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::align_of::gen()
   using namespace primary::literal;
   if (unjudge(m_type))
     return later();
-  int n = m_type->align();
+  const type* T = m_type->complete_type();
+  int n = T->align();
   return integer::create(n);
 }
 
