@@ -469,6 +469,25 @@ namespace cxx_compiler {
           }
           return false;
         }
+	inline bool confirmed(var* v, tag* ptr)
+	{
+	  usr* u = v->usr_cast();
+	  if (!u)
+	    return true;
+	  usr::flag_t uf = u->m_flag;
+	  usr::flag_t mask = usr::flag_t(usr::WITH_INI | usr::STATIC);
+	  if (!(uf & mask))
+	    return true;
+	  const type* T = u->m_type;
+	  if (!T->scalar())
+	    return true;
+	  tag::flag_t tf = ptr->m_flag;
+	  if (tf & tag::TEMPLATE)
+	    return true;
+	  if (!record_impl::should_skip(ptr))
+	    return true;
+	  return false;
+	}
         int action(string name, tag* ptr)
         {
           vector<info_t> choice;
@@ -488,7 +507,7 @@ namespace cxx_compiler {
 	    int kind = x.m_kind;
 	    var* xv = x.m_lval;
 	    if (kind == IDENTIFIER_LEX) {
-	      if (record_impl::should_skip(ptr))
+	      if (!confirmed(xv, ptr))
 		return 0;
 	    }
 	    cxx_compiler_lval.m_var = xv;

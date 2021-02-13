@@ -511,19 +511,19 @@ void cxx_compiler::classes::members::action2(var* v, expressions::base* expr)
       }
       if (T->m_id != type::TEMPLATE_PARAM) {
         var* tmp = cons->cast(T);
-        assert(tmp->usr_cast());
-        cons = static_cast<usr*>(tmp);
-        with_initial* wi = new with_initial(*u);
-        wi->m_value[0] = cons;
-        scope* p = u->m_scope;
-        string name = u->m_name;
-        assert(p->m_order.back() == u);
-        p->m_order.back() = wi;
-        assert(p->m_usrs[name].back() == u);
-        p->m_usrs[name].back() = wi;
-        wi->m_flag = usr::flag_t(flag | usr::WITH_INI | usr::STATIC_DEF);
-        delete u;
-        u = wi;
+	if (cons = tmp->usr_cast()) {
+	  with_initial* wi = new with_initial(*u);
+	  wi->m_value[0] = cons;
+	  scope* p = u->m_scope;
+	  string name = u->m_name;
+	  assert(p->m_order.back() == u);
+	  p->m_order.back() = wi;
+	  assert(p->m_usrs[name].back() == u);
+	  p->m_usrs[name].back() = wi;
+	  wi->m_flag = usr::flag_t(flag | usr::WITH_INI | usr::STATIC_DEF);
+	  delete u;
+	  u = wi;
+	}
       }
     }
   }
