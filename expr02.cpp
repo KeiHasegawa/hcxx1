@@ -50,18 +50,31 @@ namespace cxx_compiler {
             }
           }
         }
+	var* n_templ_param(const type* T)
+	{
+	  if (T->m_id != type::TEMPLATE_PARAM)
+	    error::not_implemented();
+	  assert(!template_tag::nest.empty());
+	  const auto& info = template_tag::nest.back();
+	  const auto& key = info.m_key;
+	  int n = key.size();
+	  return sizeof_impl::common(n);
+	}
       } // end of namespace sizoef_impl
     } // end of namespace unary
   } // end of namespace expressions
 } // end of namespace cxx_compiler
 
+int cxx_compiler::expressions::unary::size_of::dots_spec;
+
 cxx_compiler::var* cxx_compiler::expressions::unary::size_of::gen()
 {
   using namespace std;
-  using namespace postfix;
   if (m_type) {
     if (unjudge(m_type))
       return later();
+    if (m_dots)
+      return sizeof_impl::n_templ_param(m_type);
     const type* T = m_type->complete_type();
     if (tag* ptr = T->get_tag()) {
       tag::flag_t flag = ptr->m_flag;

@@ -119,6 +119,8 @@ namespace cxx_compiler {
 	string name = ptr->m_name;
 	if (order.back() != name)
 	  return T2;
+	if (expressions::unary::size_of::dots_spec)
+	  return T1;
 	const auto& key = info.m_key;
 	if (key.size() <= order.size())
 	  return T2;

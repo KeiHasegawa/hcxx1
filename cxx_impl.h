@@ -1098,9 +1098,12 @@ namespace expressions {
     struct size_of : base {
       base* m_expr;
       const type* m_type;
+      bool m_dots;
       const file_t m_file;
-      size_of(base* expr) : m_expr(expr), m_type(0) {}
-      size_of(const type* T) : m_expr(0), m_type(T), m_file(parse::position) {}
+      static int dots_spec;
+      size_of(base* expr) : m_expr(expr), m_type(0), m_dots(false) {}
+      size_of(const type* T, bool dots)
+	: m_expr(0), m_type(T), m_dots(dots), m_file(parse::position) {}
       var* gen();
       const file_t& file() const;
       ~size_of(){ delete m_expr; }

@@ -3117,7 +3117,19 @@ unary_expression
   | SIZEOF_KW chmod_look '(' type_id ')'
     {
       using namespace cxx_compiler;
-      $$ = new expressions::unary::size_of($4);
+      $$ = new expressions::unary::size_of($4, false);
+      parse::identifier::mode = parse::identifier::look;
+    }
+  | SIZEOF_KW chmod_look DOTS_MK
+    {
+      using namespace cxx_compiler;
+      ++expressions::unary::size_of::dots_spec;
+    }
+    '(' type_id ')'
+    {
+      using namespace cxx_compiler;
+      --expressions::unary::size_of::dots_spec;
+      $$ = new expressions::unary::size_of($6, true);
       parse::identifier::mode = parse::identifier::look;
     }
   | new_expression

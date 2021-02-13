@@ -2428,6 +2428,25 @@ namespace cxx_compiler {
 	return add_special_b(name, v);
       }
     };
+    inline string helper2(string name, const scope::tps_t::val2_t& x)
+    {
+      if (const type* T = x.first) 
+	return add_special_a(name, T);
+      var* v = x.second;
+      return add_special_b(name, v);
+    }
+    inline string fill_if(string name)
+    {
+      if (template_tag::nest.empty())
+	return name;
+      const auto& info = template_tag::nest.back();
+      const auto& key = info.m_key;
+      if (key.empty())
+	return name;
+      name = accumulate(begin(key)+1, end(key), name,
+			template_tag_impl::helper2);
+      return name;
+    }
   } // end of namespace template_tag_impl
 } // end of namespace cxx_compiler
 
@@ -2440,6 +2459,8 @@ std::string cxx_compiler::template_tag::instantiated_name() const
   name += '<';
   name = accumulate(begin(order), end(order), name,
                     template_tag_impl::helper(table));
+  if (templ_base::m_tps.m_dots)
+    name = template_tag_impl::fill_if(name);
   int n = name.size()-1;
   if (name[n] == ',')
     name.erase(n);
