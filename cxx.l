@@ -129,6 +129,7 @@ __is_constructible  { return BUILTIN_IS_CONSTRUCTIBLE; }
 __is_assignable     { return BUILTIN_IS_ASSIGNABLE; }
 __is_trivially_constructible { return BUILTIN_IS_TRIVIALLY_CONSTRUCTIBLE; }
 __has_virtual_destructor { return BUILTIN_HAS_VIRTUAL_DESTRUCTOR; }
+__alignof__         { return ALIGNOF_KW; }
 alignof             { return ALIGNOF_KW; }
 asm                 { return ASM_KW; }
 auto                { return AUTO_KW; }

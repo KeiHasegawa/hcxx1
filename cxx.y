@@ -2991,10 +2991,15 @@ postfix_expression
       using namespace cxx_compiler::expressions::postfix;
       $$ = new no_except($3);
     }
-  | ALIGNOF_KW '(' type_id ')'
+  | ALIGNOF_KW
+    { 
+      using namespace cxx_compiler;
+      parse::identifier::mode = parse::identifier::look;
+    }
+    '(' type_id ')'
     {
       using namespace cxx_compiler::expressions::postfix;
-      $$ = new align_of($3);
+      $$ = new align_of($4);
     }
   ;
 
