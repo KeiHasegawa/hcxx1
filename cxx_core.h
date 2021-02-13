@@ -68,6 +68,7 @@ struct tag : scope {
     TYPENAMED       = 1 << 3,
     PARTIAL_SPECIAL = 1 << 4,
     ALIAS           = 1 << 5,
+    DEFERED         = 1 << 6,
   };
   flag_t m_flag;
   std::string m_name;

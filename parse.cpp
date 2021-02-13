@@ -571,7 +571,7 @@ namespace cxx_compiler {
       inline int defered(string name, tag::kind_t dont_care)
       {
 	tag* ptr = new tag(dont_care, name, parse::position, 0);
-	ptr->m_flag = tag::TYPENAMED;  // for lookup after
+	ptr->m_flag = tag::DEFERED;
 	assert(!class_or_namespace_name::before.empty());
 	assert(class_or_namespace_name::before.back() == ptr);
 	class_or_namespace_name::before.pop_back();
@@ -1118,6 +1118,12 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
     return builtin_entry(name);
   if (last_token == AUTO_KW)
     return create(name);
+  if (scope::current->m_id == scope::TAG) {
+    tag* ptr = static_cast<tag*>(scope::current);
+    tag::flag_t flag = ptr->m_flag;
+    if (flag & tag::DEFERED)
+      return create(name, int_type::create());
+  }
   error::undeclared(parse::position, name);
   int ret = create(name, int_type::create());
   usr* u = cxx_compiler_lval.m_usr;
@@ -1536,7 +1542,8 @@ namespace cxx_compiler {
 	    if (ptr->m_types.second)
 	      return CLASS_NAME_LEX;
 	  }
-          if ((flag & tag::TYPENAMED) || inside_templ(ptr->m_parent)) {
+          tag::flag_t mask = tag::flag_t(tag::TYPENAMED | tag::DEFERED);
+          if ((flag & mask) || inside_templ(ptr->m_parent)) {
             string name = ptr->m_name;
             int r = identifier::lookup(name, scope::current);
             assert(r == CLASS_NAME_LEX ||

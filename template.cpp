@@ -867,8 +867,9 @@ cxx_compiler::template_usr::instantiate(std::vector<var*>* arg, KEY* trial)
 
   templ_base tmp = *this;
   template_usr_impl::sweeper_b sweeper_b(m_scope, &tmp);
-  nest.push_back(info_t(this, 0, info_t::NONE, key));
-  tinfos.push_back(make_pair(&nest.back(),(template_tag::info_t*)0));
+  info_t info(this, 0, info_t::NONE, key);
+  nest.push_back(info);
+  tinfos.push_back(make_pair(&info,(template_tag::info_t*)0));
   cxx_compiler_parse();
   tinfos.pop_back();
   instantiated_usr* ret = nest.back().m_iu;
@@ -962,8 +963,9 @@ cxx_compiler::template_usr::instantiate(const KEY& key, usr::flag2_t flag2)
   declarations::templ::ins_if_res = 0;
   info_t::mode_t mode = (flag2 & usr::EXPLICIT_INSTANTIATE) ?
     info_t::EXPLICIT : info_t::NONE;
-  nest.push_back(info_t(this, 0, mode, key));
-  tinfos.push_back(make_pair(&nest.back(),(template_tag::info_t*)0));
+  info_t info(this, 0, mode, key);
+  nest.push_back(info);
+  tinfos.push_back(make_pair(&info,(template_tag::info_t*)0));
   cxx_compiler_parse();
   tinfos.pop_back();
   instantiated_usr* ret = nest.back().m_iu;
@@ -1018,20 +1020,20 @@ namespace cxx_compiler {
 	{
 	  return x.first == y->first && x.second == y->second;
 	}
-	inline void change_if(vector<scope::tps_t::val2_t*>* pv)
+	inline bool change_if(vector<scope::tps_t::val2_t*>* pv)
 	{
 	  assert(pv);
 	  assert(!pv->empty());
 	  auto& bk = pv->back();
 	  const type* T = bk->first;
 	  if (!T)
-	    return;
+	    return true;
 	  if (T->m_id != type::TEMPLATE_PARAM)
-	    return;
+	    return true;
 	  tag* ptr = T->get_tag();
 	  const type* T2 = ptr->m_types.second;
 	  if (!T2)
-	    return;
+	    return true;
 	  assert(!template_tag::nest.empty());
 	  const auto& info = template_tag::nest.back();
 	  template_tag* tt = info.m_tt;
@@ -1053,12 +1055,13 @@ namespace cxx_compiler {
 			   bind2nd(ptr_fun(cmp), bk));
 	  assert(p != end(key));
 	  transform(p+1, end(key), back_inserter(*pv), create);
+	  return false;
 	}
         inline tag*
 	tag_action(tag* ptr, vector<scope::tps_t::val2_t*>* pv, bool dots)
         {
 	  if (dots)
-	    change_if(pv);
+	    dots = change_if(pv);
           assert(ptr->m_flag & tag::TEMPLATE);
           template_tag* tt = static_cast<template_tag*>(ptr);
 	  if (parse::base_clause.empty()) {
@@ -1361,6 +1364,9 @@ namespace cxx_compiler {
 	if (ps->m_id != scope::TAG)
 	  return v;
 	tag* ptr = static_cast<tag*>(ps);
+	tag::flag_t flag = ptr->m_flag;
+	if (flag & tag::DEFERED)
+	  return v;
 	auto pr = update_b4(ptr);
 	auto& seed = *pr.first;
 	auto x = find_if(begin(seed), end(seed), not1(ptr_fun(update_bbb)));
@@ -2366,8 +2372,9 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
 
   templ_base tmp = *this;
   template_usr_impl::sweeper_b sweeper_b(m_parent, &tmp);
-  nest.push_back(info_t(this, (instantiated_tag*)0, key));
-  tinfos.push_back(make_pair((template_usr::info_t*)0,&nest.back()));
+  info_t info(this, (instantiated_tag*)0, key);
+  nest.push_back(info);
+  tinfos.push_back(make_pair((template_usr::info_t*)0,&info));
   cxx_compiler_parse();
   tinfos.pop_back();
   instantiated_tag* ret = nest.back().m_it;
