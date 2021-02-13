@@ -1339,6 +1339,20 @@ namespace cxx_compiler {
 	assert(T);
 	return new scope::tps_t::val2_t(T,0);
       }
+      static pair<instantiated_tag::SEED*, template_tag*>
+      update_b4(tag* ptr)
+      {
+	tag::flag_t flag = ptr->m_flag;
+	if (flag & tag::INSTANTIATE) {
+	  auto it = static_cast<instantiated_tag*>(ptr);
+	  return make_pair(&it->m_seed, it->m_src);
+	}
+	else {
+	  assert(flag & tag::SPECIAL_VER);
+	  auto sv = static_cast<special_ver_tag*>(ptr);
+	  return make_pair(&sv->m_key, sv->m_src);
+	}
+      }
       static var* update_b(var* v)
       {
 	const type* T = v->m_type;
@@ -1347,17 +1361,15 @@ namespace cxx_compiler {
 	if (ps->m_id != scope::TAG)
 	  return v;
 	tag* ptr = static_cast<tag*>(ps);
-	tag::flag_t flag = ptr->m_flag;
-	assert(flag & tag::INSTANTIATE);
-	instantiated_tag* it = static_cast<instantiated_tag*>(ptr);
-	const instantiated_tag::SEED& seed = it->m_seed;
+	auto pr = update_b4(ptr);
+	auto& seed = *pr.first;
 	auto x = find_if(begin(seed), end(seed), not1(ptr_fun(update_bbb)));
 	if (x != end(seed))
 	  return v;
 	vector<scope::tps_t::val2_t*>* pv =
 	  new vector<scope::tps_t::val2_t*>;
 	transform(begin(seed), end(seed), back_inserter(*pv), update_bb);
-	template_tag* tt = it->m_src;
+	template_tag* tt = pr.second;
 	tag* res = tt->instantiate(pv, false);
 	assert(v->usr_cast());
 	usr* u = static_cast<usr*>(v);

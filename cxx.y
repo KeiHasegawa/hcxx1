@@ -2991,15 +2991,17 @@ postfix_expression
       using namespace cxx_compiler::expressions::postfix;
       $$ = new no_except($3);
     }
-  | ALIGNOF_KW
-    { 
-      using namespace cxx_compiler;
-      parse::identifier::mode = parse::identifier::look;
-    }
-    '(' type_id ')'
+  | ALIGNOF_KW chmod_look '(' type_id ')'
     {
       using namespace cxx_compiler::expressions::postfix;
       $$ = new align_of($4);
+    }
+  ;
+
+chmod_look
+  : { 
+      using namespace cxx_compiler;
+      parse::identifier::mode = parse::identifier::look;
     }
   ;
 
@@ -3110,12 +3112,12 @@ unary_expression
     { $$ = new cxx_compiler::expressions::unary::ppmm(false,$2); }
   | unary_operator cast_expression
     { $$ = new cxx_compiler::expressions::unary::ope($1,$2); }
-  | SIZEOF_KW unary_expression
-    { $$ = new cxx_compiler::expressions::unary::size_of($2); }
-  | SIZEOF_KW '(' type_id ')'
+  | SIZEOF_KW chmod_look unary_expression
+    { $$ = new cxx_compiler::expressions::unary::size_of($3); }
+  | SIZEOF_KW chmod_look '(' type_id ')'
     {
       using namespace cxx_compiler;
-      $$ = new expressions::unary::size_of($3);
+      $$ = new expressions::unary::size_of($4);
       parse::identifier::mode = parse::identifier::look;
     }
   | new_expression
