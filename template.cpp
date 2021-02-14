@@ -1327,7 +1327,8 @@ namespace cxx_compiler {
       static const type* update_bbb(const scope::tps_t::val2_t& v)
       {
 	const type* T = v.first;
-	assert(T);
+	if (!T)
+	  return 0;
 	tag* ptr = T->get_tag();
 	T = ptr->m_types.second;
 	if (!T)

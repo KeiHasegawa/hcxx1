@@ -336,6 +336,8 @@ cxx_compiler::declarations::declarators::array::action(const type* T,
       v = v->cast(int_type::create());
     }
     if ( !v->isconstant() ){
+      if (scope::current->m_id == scope::TAG)
+	return array_type::create(T,0);
       if (scope::current != &scope::root) {
         var* tmp = new var(v->m_type);
         if (v->lvalue()) {

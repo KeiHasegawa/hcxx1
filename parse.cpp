@@ -508,7 +508,7 @@ namespace cxx_compiler {
 	    var* xv = x.m_lval;
 	    if (kind == IDENTIFIER_LEX) {
 	      if (!confirmed(xv, ptr))
-		return 0;
+		return create(name);
 	    }
 	    cxx_compiler_lval.m_var = xv;
 	    return kind;
@@ -598,6 +598,14 @@ namespace cxx_compiler {
 	if (usr* org = al->m_org)
 	  return rollback(org);
 	return u;
+      }
+      int create_a(string name)
+      {
+	if (last_token == COLONCOLON_MK) {
+	  if (!parse::templ::save_t::nest.empty())
+	    return create(name, int_type::create());
+	}
+	return create(name);
       }
       int get_here(string name, scope* ptr)
       {
@@ -737,7 +745,7 @@ namespace cxx_compiler {
 	  if (flag & usr::WITH_INI) {
 	    if (ptr->m_id == scope::TAG) {
 	      if (record_impl::should_skip(static_cast<tag*>(ptr)))
-		return 0;
+                return create_a(name);
 	    }
 	  }
           return IDENTIFIER_LEX;
