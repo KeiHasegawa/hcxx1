@@ -243,7 +243,7 @@ namespace cxx_compiler {
 	const type* T = u->m_type;
 	if (!T->scalar())
 	  return true;
-	if (T->m_id != type::CONST)
+	if (T->m_id != type::CONST && !(uf & usr::CONSTEXPR))
 	  return true;
 	tag::flag_t tf = ptr->m_flag;
 	if (tf & tag::TEMPLATE)
