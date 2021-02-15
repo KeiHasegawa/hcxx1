@@ -2201,7 +2201,14 @@ namespace cxx_compiler {
       const type* T = ptr->first;
       if (!T)
 	return true;
-      return T->m_id != type::TEMPLATE_PARAM;
+      if (T->m_id != type::TEMPLATE_PARAM)
+	return true;
+      if (parse::templ::save_t::nest.empty())
+	return false;
+      auto b = parse::templ::save_t::nest.back();
+      if (b->m_tag)
+	return false;
+      return true;
     }
   } // end of namespace template_tag_impl
 } // end of namespace cxx_compiler

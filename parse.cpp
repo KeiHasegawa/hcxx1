@@ -2272,6 +2272,7 @@ namespace cxx_compiler {
       switch (n) {
       case IDENTIFIER_LEX:
       case TYPEDEF_NAME_LEX:
+      case INTEGER_LITERAL_LEX:
 	{
 	  assert(!lval.empty());
 	  void* p = lval.front();
@@ -2338,7 +2339,7 @@ namespace cxx_compiler {
         output(p.first, ls2);
       cout << endl;
       if (!ls2.empty())
-	cerr << "error detected at `debug_read" << endl;
+	cerr << "error detected at `debug_read'" << endl;
     }
 #endif // YYDEBUG
     void debug_read2(const read_t& r)
