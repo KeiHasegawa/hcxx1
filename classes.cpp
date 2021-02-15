@@ -127,8 +127,8 @@ namespace cxx_compiler {
         const vector<string>& corder = ctps.m_order;
         if (porder.size() != corder.size())
           error::not_implemented();
-	auto ret =
-          mismatch(begin(porder), end(porder), begin(corder), cmp(ptps, ctps));
+	auto ret = mismatch(begin(porder), end(porder), begin(corder),
+			    cmp(ptps, ctps));
         if (ret != make_pair(end(porder), end(corder)))
           error::not_implemented();
       }

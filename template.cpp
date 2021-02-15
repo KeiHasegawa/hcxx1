@@ -574,6 +574,7 @@ namespace cxx_compiler {
       int m_templ_arg;
       bool m_constant_flag;
       vector<scope*> m_base_clause;
+      int m_typenaming;
       static bool block_or_param(scope* p)
       {
         scope::id_t id = p->m_id;
@@ -632,7 +633,8 @@ namespace cxx_compiler {
           m_saved(parse::member_function_body::saved),
 	  m_param(parse::templ::param), m_templ_arg(parse::templ::arg),
 	  m_constant_flag(expressions::constant_flag),
-	  m_base_clause(parse::base_clause)
+	  m_base_clause(parse::base_clause),
+	  m_typenaming(parse::identifier::typenaming)
       {
         vector<scope::tps_t>& tps = scope::current->m_tps;
         tps.clear();
@@ -664,9 +666,11 @@ namespace cxx_compiler {
 	parse::templ::arg = 0;
 	expressions::constant_flag = false;
 	parse::base_clause.clear();
+	parse::identifier::typenaming = 0;
       } 
       ~sweeper_b()
       {
+	parse::identifier::typenaming = m_typenaming;
 	parse::base_clause = m_base_clause;
 	expressions::constant_flag = m_constant_flag;
 	parse::templ::arg = m_templ_arg;
@@ -929,15 +933,19 @@ namespace cxx_compiler {
       }
     };
     struct sweeper_d : sweeper_a {
+      sweeper_d* m_prev;
       static stack<template_tag*> s_stack;
       sweeper_d(template_tag* tt)
-	: sweeper_a(tt->templ_base::m_tps.m_table, true)
+	: sweeper_a(tt->templ_base::m_tps.m_table, true), m_prev(0)
       {
+	if (template_tag* prev = tt->m_prev)
+	  m_prev = new sweeper_d(prev);
 	s_stack.push(tt);
       }
       ~sweeper_d()
       {
 	s_stack.pop();
+	delete m_prev;
       }
     };
     stack<template_tag*> sweeper_d::s_stack;
@@ -1366,7 +1374,8 @@ namespace cxx_compiler {
 	  return v;
 	tag* ptr = static_cast<tag*>(ps);
 	tag::flag_t flag = ptr->m_flag;
-	if (flag & tag::DEFERED)
+	tag::flag_t mask = tag::flag_t(tag::TEMPLATE | tag::DEFERED);
+	if (flag & mask)
 	  return v;
 	auto pr = update_b4(ptr);
 	auto& seed = *pr.first;
@@ -1444,7 +1453,17 @@ namespace cxx_compiler {
         }
         return scope::tps_t::val2_t(0, v);
       }
-    };
+    };  // end of struct calc_key
+    void calc_recursive(template_tag* tt, vector<scope::tps_t::val2_t*>* pv)
+    {
+      if (auto prev = tt->m_prev)
+	calc_recursive(prev, pv);
+      template_tag::KEY key;
+      const auto& order = tt->templ_base::m_tps.m_order;
+      const auto& table = tt->templ_base::m_tps.m_table;
+      transform(begin(*pv), end(*pv), begin(order), back_inserter(key),
+		template_tag_impl::calc_key(table));
+    }
   } // end of namespace template_tag_impl
 
   vector<template_tag::info_t> template_tag::nest;
@@ -1486,6 +1505,8 @@ namespace cxx_compiler {
       string pn = correspond(name, prev);
       const auto& po = prev->templ_base::m_tps.m_order;
       auto q = find(begin(po),end(po),pn);
+      if (q == end(po))
+	return name;
       int n = distance(begin(po),q);
       const auto& order = curr->templ_base::m_tps.m_order;
       assert(n < order.size());
@@ -2243,6 +2264,8 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
 	template_usr_impl::sweeper_d sweeper_d(this);
 	transform(begin(*pv), end(*pv), begin(order), back_inserter(key),
 		  template_tag_impl::calc_key(table));
+	if (m_prev)
+	  template_tag_impl::calc_recursive(m_prev, pv);
 	const auto& def = templ_base::m_tps.m_default;
 	transform(begin(order) + n, end(order), back_inserter(*pv),
 		  template_tag_impl::get(def));

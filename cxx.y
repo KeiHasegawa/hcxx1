@@ -2176,13 +2176,19 @@ type_parameter
       using namespace cxx_compiler;
       parse::identifier::mode = parse::identifier::look;
     } type_id
-    { cxx_compiler::type_parameter::action($2, $5, false); }
+    {
+      using namespace cxx_compiler;
+      type_parameter::action($2, $5, false);
+    }
   | CLASS_KW '='
     {
       using namespace cxx_compiler;
       parse::identifier::mode = parse::identifier::look;
     } type_id
-    { cxx_compiler::type_parameter::action(0, $4, false); }
+    {
+      using namespace cxx_compiler;
+      type_parameter::action(0, $4, false);
+    }
   | typenaming IDENTIFIER_LEX
     {
       cxx_compiler::type_parameter::action($2, 0, false);
@@ -3731,3 +3737,16 @@ static_assert_declaration
   ;
 
 %%
+
+#ifdef YYDEBUG
+namespace cxx_compiler {
+  namespace parse {
+    using namespace std;
+    string token_name(int n)
+    {
+      assert(0 <= n && n < sizeof yytname/sizeof yytname[0]);
+      return yytname[n];
+    }
+  } // end of namespace parse
+} // end of namespace cxx_compiler
+#endif // YYDEBUG

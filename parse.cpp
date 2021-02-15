@@ -231,6 +231,27 @@ namespace cxx_compiler {
 	}
 	return templ_param_lex(v, T);
       }
+      inline bool confirmed(var* v, tag* ptr)
+      {
+	usr* u = v->usr_cast();
+	if (!u)
+	  return true;
+	usr::flag_t uf = u->m_flag;
+	usr::flag_t mask = usr::flag_t(usr::WITH_INI | usr::STATIC);
+	if (!(uf & mask))
+	  return true;
+	const type* T = u->m_type;
+	if (!T->scalar())
+	  return true;
+	if (T->m_id != type::CONST)
+	  return true;
+	tag::flag_t tf = ptr->m_flag;
+	if (tf & tag::TEMPLATE)
+	  return true;
+	if (!record_impl::should_skip(ptr))
+	  return true;
+	return false;
+      }
       namespace underscore_func {
         int action();
       } // end of namespace underscore_func
@@ -469,25 +490,6 @@ namespace cxx_compiler {
           }
           return false;
         }
-	inline bool confirmed(var* v, tag* ptr)
-	{
-	  usr* u = v->usr_cast();
-	  if (!u)
-	    return true;
-	  usr::flag_t uf = u->m_flag;
-	  usr::flag_t mask = usr::flag_t(usr::WITH_INI | usr::STATIC);
-	  if (!(uf & mask))
-	    return true;
-	  const type* T = u->m_type;
-	  if (!T->scalar())
-	    return true;
-	  tag::flag_t tf = ptr->m_flag;
-	  if (tf & tag::TEMPLATE)
-	    return true;
-	  if (!record_impl::should_skip(ptr))
-	    return true;
-	  return false;
-	}
         int action(string name, tag* ptr)
         {
           vector<info_t> choice;
@@ -508,7 +510,7 @@ namespace cxx_compiler {
 	    var* xv = x.m_lval;
 	    if (kind == IDENTIFIER_LEX) {
 	      if (!confirmed(xv, ptr))
-		return create(name);
+		return last_token == COLONCOLON_MK ? 0 : create(name);
 	    }
 	    cxx_compiler_lval.m_var = xv;
 	    return kind;
@@ -598,14 +600,6 @@ namespace cxx_compiler {
 	if (usr* org = al->m_org)
 	  return rollback(org);
 	return u;
-      }
-      int create_a(string name)
-      {
-	if (last_token == COLONCOLON_MK) {
-	  if (!parse::templ::save_t::nest.empty())
-	    return create(name, int_type::create());
-	}
-	return create(name);
       }
       int get_here(string name, scope* ptr)
       {
@@ -742,11 +736,10 @@ namespace cxx_compiler {
             if (template_usr::nest.empty())
               garbage.push_back(cxx_compiler_lval.m_var);
           }
-	  if (flag & usr::WITH_INI) {
-	    if (ptr->m_id == scope::TAG) {
-	      if (record_impl::should_skip(static_cast<tag*>(ptr)))
-                return create_a(name);
-	    }
+	  if (ptr->m_id == scope::TAG) {
+	    tag* ptag = static_cast<tag*>(ptr);
+	    if (!confirmed(u, ptag))
+	      return last_token == COLONCOLON_MK ? 0 : create(name);
 	  }
           return IDENTIFIER_LEX;
         }
@@ -2272,7 +2265,83 @@ namespace cxx_compiler {
 namespace cxx_compiler {
   namespace parse {
     // called from debugger command line
+#ifdef YYDEBUG
+    extern string token_name(int);  // defined at cxx.y
+    void output(int n, list<void*>& lval)
+    {
+      switch (n) {
+      case IDENTIFIER_LEX:
+      case TYPEDEF_NAME_LEX:
+	{
+	  assert(!lval.empty());
+	  void* p = lval.front();
+	  lval.pop_front();
+	  var* v = (var*)p;
+	  if (genaddr* ga = v->genaddr_cast())
+	    v = ga->m_ref;
+	  usr* u = v->usr_cast();
+	  string name = u->m_name;
+	  cout << name << ' ';
+	  return;
+	}
+      case CLASS_NAME_LEX:
+	{
+	  assert(!lval.empty());
+	  void* p = lval.front();
+	  lval.pop_front();
+	  tag* ptr = (tag*)p;
+	  string name = ptr->m_name;
+	  cout << name << ' ';
+	  return;
+	}
+      case TEMPLATE_NAME_LEX:
+	{
+	  assert(!lval.empty());
+	  void* p = lval.front();
+	  lval.pop_front();
+	  auto xy = (pair<template_usr*, template_tag*>*)p;
+	  if (auto x = xy->first) {
+	    string name = x->m_name;
+	    cout << name << ' ';
+	    return;
+	  }
+	  auto y = xy->second;
+	  string name = y->m_name;
+	  cout << name << ' ';
+	  return;
+	}
+      case COLONCOLON_MK:
+	cout << ":: ";
+	return;
+      default:
+	if (isascii(n)) {
+	  char c = n;
+	  cout << c;
+	  switch (c) {
+	  case '{': case ';':
+	    cout << '\n';
+	    return;
+	  default:
+	    cout << ' ';
+	    return;
+	  }
+	}
+	cout << token_name(n-255) << ' ';
+	return;
+      }
+    }
     void debug_read(const read_t& r)
+    {
+      const list<pair<int, file_t> >& ls = r.m_token;
+      list<void*> ls2 = r.m_lval;
+      for (auto p : ls)
+        output(p.first, ls2);
+      cout << endl;
+      if (!ls2.empty())
+	cerr << "error detected at `debug_read" << endl;
+    }
+#endif // YYDEBUG
+    void debug_read2(const read_t& r)
     {
       const list<pair<int, file_t> >& ls = r.m_token;
       for (auto p : ls)
