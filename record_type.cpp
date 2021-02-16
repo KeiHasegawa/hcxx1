@@ -331,6 +331,8 @@ namespace cxx_compiler {
           return n;
         }
 	else {
+	  if (T->m_id == type::TEMPLATE_PARAM)
+	    return n;
 	  if (should_skip(T->get_tag()))
 	    return n;
 	}

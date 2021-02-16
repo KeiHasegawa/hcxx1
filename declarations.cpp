@@ -2300,7 +2300,8 @@ namespace cxx_compiler {
 	    assert(!save_t::nest.empty());
 	    save_t* p = save_t::nest.back();
 	    assert(!p->m_tag);
-	    template_tag* tt = create(ptr, name, b);
+	    template_tag* tt = T->m_id == type::TEMPLATE_PARAM ?
+	      create(ptr, name, b) : new template_tag(*ptr, b);
 	    p->m_tag = tt;
 	    tags[name] = tt;
 	    return;

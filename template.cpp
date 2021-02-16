@@ -1918,6 +1918,7 @@ namespace cxx_compiler {
 
 	if (pv_dots)
 	  return *n == m + 1;
+
 	return *n == pv->size();
       }
       struct tparam_or_cp {

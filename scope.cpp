@@ -131,6 +131,13 @@ cxx_compiler::base::base(int access, bool virt, tag* ptr)
   PUBLIC_KEY: m_access = usr::PUBLIC; break;
   }
   m_flag = virt ? usr::VIRTUAL : usr::NONE;
+  const type* T = m_tag->m_types.first;
+  if (T->m_id == type::TEMPLATE_PARAM) {
+    if (const type* T2 = m_tag->m_types.second) {
+      if (tag* ptr2 = T2->get_tag())
+	m_tag = ptr2;
+    }
+  }
 }
 
 void cxx_compiler::original_namespace_definition(var* v, bool inl)
