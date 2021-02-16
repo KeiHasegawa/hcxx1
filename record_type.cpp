@@ -3288,7 +3288,8 @@ bool cxx_compiler::record_impl::should_skip(const tag* ptr)
   if (kind == tag::GUESS)
     return true;
   tag::flag_t flag = ptr->m_flag;
-  if (flag & tag::TEMPLATE)
+  tag::flag_t mask = tag::flag_t(tag::TEMPLATE | tag::DEFERED);
+  if (flag & mask)
     return true;
   if (flag & tag::INSTANTIATE) {
     auto it = static_cast<const instantiated_tag*>(ptr);
