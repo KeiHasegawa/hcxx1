@@ -217,7 +217,8 @@ namespace cxx_compiler {
         if (!v) {
           assert(!instantiate);
           usr::flag2_t flag2 = usr::TEMPL_PARAM;
-          usr* u = new templ_param(name, T, usr::NONE, parse::position, flag2);
+          usr* u = new templ_param(name, T, usr::NONE,
+				   parse::position, flag2);
           cxx_compiler_lval.m_usr = u;
           return IDENTIFIER_LEX;
         }

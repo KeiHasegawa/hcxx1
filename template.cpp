@@ -845,8 +845,7 @@ cxx_compiler::template_usr::instantiate(std::vector<var*>* arg, KEY* trial)
     return reinterpret_cast<usr*>(-1);
   }
 
-  typedef KEY::const_iterator KI;
-  KI q = find_if(begin(key), end(key), template_usr_impl::not_constant); 
+  auto q = find_if(begin(key), end(key), template_usr_impl::not_constant); 
   if (q != end(key)) {
     if (!parse::templ::save_t::nest.empty())
       return this;
@@ -1119,9 +1118,16 @@ namespace cxx_compiler {
 	  po->m_candidacy.push_back(tu);
 	  return po;
 	}
+	inline void update(scope::tps_t::val2_t* p)
+	{
+	  var* v = p->second;
+	  if (v)
+	    p->second = v->rvalue();
+	}
         inline usr*
 	usr_action(usr* u, vector<scope::tps_t::val2_t*>* pv, bool dots)
         {
+	  for_each(begin(*pv), end(*pv), update);
 	  usr::flag2_t flag2 = u->m_flag2;
 	  if (flag2 & usr::TEMPLATE) {
 	    template_usr* tu = static_cast<template_usr*>(u);
@@ -1912,8 +1918,7 @@ namespace cxx_compiler {
 
 	if (pv_dots)
 	  return *n == m + 1;
-
-	return false;
+	return *n == pv->size();
       }
       struct tparam_or_cp {
 	template_tag::KEY& m_key;
@@ -1978,8 +1983,8 @@ namespace cxx_compiler {
 	  m_key.clear();
 	  return false;
 	}
-	assert(n <= m);
-	find_if(begin(*m_pv)+n,begin(*m_pv)+m, tparam_or_cp(m_key));
+	if (n <= m)
+	  find_if(begin(*m_pv)+n,begin(*m_pv)+m, tparam_or_cp(m_key));
         const vector<string>& order = ps->templ_base::m_tps.m_order;
 	int n2 = order.size();
 	if (!match_x(&n2, m_key.size(), dots, false, 0, 0)) {
@@ -2340,8 +2345,7 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
     return common(pv, special_ver, false);
   }
 
-  typedef KEY::const_iterator KI;
-  KI q = find_if(begin(key), end(key), template_usr_impl::not_constant); 
+  auto q = find_if(begin(key), end(key), template_usr_impl::not_constant); 
   if (q != end(key)) {
     if (!parse::templ::save_t::nest.empty())
       return this;
@@ -2409,6 +2413,7 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
   cxx_compiler_parse();
   tinfos.pop_back();
   instantiated_tag* ret = nest.back().m_it;
+  const type* using_type = nest.back().m_using;
   nest.pop_back();
   if (!ret) {
     string name = instantiated_name();
@@ -2423,12 +2428,13 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
     scope::current->m_children.push_back(ret);
     ret->m_parent = scope::current;
     ret->m_types.first = incomplete_tagged_type::create(ret);
+    ret->m_types.second = using_type;
   }
   // ret->m_src == this is almost all true except for bellow situation:
   // template<class C> using X = S<C>;
   m_table[key] = ret;
-  KI r = find_if(begin(key), end(key),
-		 template_tag_impl::typenamed_or_templ_param);
+  auto r = find_if(begin(key), end(key),
+		   template_tag_impl::typenamed_or_templ_param);
   if (r == end(key)) {
     for_each(begin(m_static_def), end(m_static_def),
 	     template_tag_impl::instantiate(key));
@@ -2656,6 +2662,21 @@ instantiate_common(vector<scope::tps_t::val2_t*>* pv, info_t::mode_t mode)
     find_if(begin(order)+key.size(), end(order),
 	    template_usr_impl::get(m_tps.m_default, key));
   }
+
+  auto q = find_if(begin(key), end(key), template_usr_impl::not_constant); 
+  if (q != end(key)) {
+    if (!parse::templ::save_t::nest.empty())
+      return this;
+    if (instantiate_with_template_param<template_usr>())
+      return this;
+    var* v = q->second;
+    const type* T = v->m_type;
+    if (T->m_id == type::BACKPATCH)
+      return this;
+    error::not_implemented();
+    return this;
+  }
+
   table_t::const_iterator it = m_table.find(key);
   if (it != m_table.end())
     return it->second;
@@ -2672,8 +2693,9 @@ instantiate_common(vector<scope::tps_t::val2_t*>* pv, info_t::mode_t mode)
 
   templ_base tmp = *this;
   template_usr_impl::sweeper_b sweeper_b(m_scope, &tmp);
-  nest.push_back(info_t(this, 0, mode, key));
-  tinfos.push_back(make_pair(&nest.back(), (template_tag::info_t*)0));
+  info_t info(this, 0, mode, key);
+  nest.push_back(info);
+  tinfos.push_back(make_pair(&info, (template_tag::info_t*)0));
   cxx_compiler_parse();
   tinfos.pop_back();
   assert(!nest.empty());

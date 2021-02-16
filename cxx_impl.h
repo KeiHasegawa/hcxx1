@@ -1862,9 +1862,10 @@ struct template_tag : templ_base, tag {
   struct info_t {
     template_tag* m_tt;
     instantiated_tag* m_it;
+    const type* m_using;
     KEY m_key;
     info_t(template_tag* tt, instantiated_tag* it, const KEY& key)
-    : m_tt(tt), m_it(it), m_key(key) {}
+    : m_tt(tt), m_it(it), m_key(key), m_using(0) {}
   };
   static vector<info_t> nest;
   typedef map<KEY, tag*> table_t;
