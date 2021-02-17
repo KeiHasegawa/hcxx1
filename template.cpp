@@ -2025,8 +2025,6 @@ namespace cxx_compiler {
 	  return false;
 	}
 
-	assert(xres.size() == yres.size());
-
 	const auto& xo = x->templ_base::m_tps.m_order;
 	const auto& yo = y->templ_base::m_tps.m_order;
 	int xn = xo.size();

@@ -2015,12 +2015,17 @@ namespace cxx_compiler {
         return false;
       return true;
     }
+    inline bool notskip(base* bp)
+    {
+      tag* ptr = bp->m_tag;
+      return !should_skip(ptr);
+    }
   } // end of namespace record_imp
 } // end of namespace cxx_compiler
 
 cxx_compiler::record_type::record_type(tag* ptr)
-  : type(RECORD), m_size(0), m_modifiable(true), m_partially_modifiable(false),
-    m_tag(ptr)
+  : type(RECORD), m_size(0), m_modifiable(true),
+    m_partially_modifiable(false), m_tag(ptr)
 {
   using namespace std;
   using namespace record_impl;
@@ -2107,7 +2112,13 @@ cxx_compiler::record_type::record_type(tag* ptr)
     }
     else
       error::not_implemented();
+    if (!m_size) {
+      // This situation is all bases class is `should_skip(ptr)'
+      assert(find_if(begin(*bases), end(*bases), notskip) == end(*bases));
+      m_size = 1;
+    }
   }
+
 
   int nbvf = 0;
   if (bases) {
@@ -3273,6 +3284,22 @@ bool cxx_compiler::must_call_dtor(const type* T)
   return must_call_ctor_dtor_common(T, false);
 }
 
+namespace cxx_compiler {
+  namespace record_impl {
+    inline bool skip_helper(const scope::tps_t::val2_t& x)
+    {
+      const type* T = x.first;
+      if (!T)
+	return false;
+      if (T->m_id != type::INCOMPLETE_TAGGED)
+	return false;
+      tag* ptr = T->get_tag();
+      tag::flag_t flag = ptr->m_flag;
+      return flag & tag::TYPENAMED;
+    }
+  } // end of namespace record_impl
+} // end of namespace cxx_compiler
+
 bool cxx_compiler::record_impl::should_skip(const tag* ptr)
 {
   if (!ptr->m_types.second) {
@@ -3284,6 +3311,7 @@ bool cxx_compiler::record_impl::should_skip(const tag* ptr)
       }
     }
   }
+
   tag::kind_t kind = ptr->m_kind;
   if (kind == tag::GUESS)
     return true;
@@ -3295,7 +3323,13 @@ bool cxx_compiler::record_impl::should_skip(const tag* ptr)
     auto it = static_cast<const instantiated_tag*>(ptr);
     const auto& seed = it->m_seed;
     auto p = find_if(begin(seed), end(seed), template_param);
-    return p != end(seed);
+    if (p != end(seed))
+      return true;
+    const type* T2 = ptr->m_types.second;
+    if (T2)
+      return false;
+    auto q = find_if(begin(seed), end(seed), skip_helper);
+    return q != end(seed);
   }
   if (flag & tag::SPECIAL_VER) {
     auto sv = static_cast<const special_ver_tag*>(ptr);
