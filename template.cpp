@@ -2025,6 +2025,8 @@ namespace cxx_compiler {
 	  return false;
 	}
 
+	assert(xres.size() == yres.size());
+
 	const auto& xo = x->templ_base::m_tps.m_order;
 	const auto& yo = y->templ_base::m_tps.m_order;
 	int xn = xo.size();
@@ -2041,9 +2043,12 @@ namespace cxx_compiler {
     };
     inline bool valid(bool special_ver,
 		      vector<scope::tps_t::val2_t*>* pv,
+		      bool pv_dots,
 		      template_tag::KEY& res)
     {
       if (!special_ver)
+	return true;
+      if (!pv_dots)
 	return true;
       return pv->size() == res.size();
     }
@@ -2059,7 +2064,7 @@ namespace cxx_compiler {
 	  template_tag_impl::match op(pv, pv_dots, res);
 	  partial_special_tag* bk = ps.back();
 	  if (op(bk))
-	    if (valid(special_ver, pv, res))
+            if (valid(special_ver, pv, pv_dots, res))
 	      return bk;
 	}
 	else {
@@ -2068,7 +2073,7 @@ namespace cxx_compiler {
 		template_tag_impl::cmp_ps(pv, pv_dots, res, &matched));
 	  if (matched) {
 	    assert(it != end(ps));
-	    if (valid(special_ver, pv, res))
+	    if (valid(special_ver, pv, pv_dots, res))
 	      return *it;
 	  }
 	}
