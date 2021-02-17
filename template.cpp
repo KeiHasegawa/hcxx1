@@ -1994,19 +1994,87 @@ namespace cxx_compiler {
 	}
         return true;
       }
+    };  // end of struct match
+    struct cmp_ps {
+      vector<scope::tps_t::val2_t*>* m_pv;
+      bool m_pv_dots;
+      template_tag::KEY& m_res;
+      bool* m_matched;
+      cmp_ps(vector<scope::tps_t::val2_t*>* pv, bool pv_dots,
+	     template_tag::KEY& res, bool* matched)
+	: m_pv(pv), m_pv_dots(pv_dots), m_res(res), m_matched(matched) {}
+      bool operator()(partial_special_tag* x, partial_special_tag* y)
+      {
+	template_tag::KEY xres;
+	match opx(m_pv, m_pv_dots, xres);
+	bool xx = opx(x);
+	template_tag::KEY yres;
+	match opy(m_pv, m_pv_dots, yres);
+	bool yy = opy(y);
+	if (!xx && !yy)
+	  return false;
+
+	*m_matched = true;
+	if (xx && !yy) {
+	  m_res = xres;
+	  return true;
+	}
+
+	if (!xx && yy) {
+	  m_res = yres;
+	  return false;
+	}
+
+	const auto& xo = x->templ_base::m_tps.m_order;
+	const auto& yo = y->templ_base::m_tps.m_order;
+	int xn = xo.size();
+	int yn = yo.size();
+	assert(xn != yn);
+	if (xn < yn) {
+	  m_res = xres;
+	  return true;
+	}
+
+	m_res = yres;
+	return false;
+      }
     };
+    inline bool valid(bool special_ver,
+		      vector<scope::tps_t::val2_t*>* pv,
+		      template_tag::KEY& res)
+    {
+      if (!special_ver)
+	return true;
+      return pv->size() == res.size();
+    }
     partial_special_tag* get_ps(template_tag* tt,
 				vector<scope::tps_t::val2_t*>* pv,
 				bool pv_dots,
+				bool special_ver,
 				template_tag::KEY& res)
     {
-      vector<partial_special_tag*>& ps = tt->m_partial_special;
-      auto it = find_if(rbegin(ps), rend(ps),
-			template_tag_impl:: match(pv, pv_dots, res));
-      if (it != rend(ps))
-	return *it;
+      const auto& ps = tt->m_partial_special;
+      if (!ps.empty()) {
+	if (ps.size() == 1) {
+	  template_tag_impl::match op(pv, pv_dots, res);
+	  partial_special_tag* bk = ps.back();
+	  if (op(bk))
+	    if (valid(special_ver, pv, res))
+	      return bk;
+	}
+	else {
+	  bool matched = false;
+	  auto it = min_element(begin(ps), end(ps),
+		template_tag_impl::cmp_ps(pv, pv_dots, res, &matched));
+	  if (matched) {
+	    assert(it != end(ps));
+	    if (valid(special_ver, pv, res))
+	      return *it;
+	  }
+	}
+      }
       if (template_tag* prev = tt->m_prev)
-	return get_ps(prev, pv, pv_dots, res);
+	return get_ps(prev, pv, pv_dots, special_ver, res);
       return 0;
     }
     bool typenamed_or_templ_param(const scope::tps_t::val2_t& v)
@@ -2298,14 +2366,14 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
 
   KEY res;
   if (partial_special_tag* ps =
-      template_tag_impl::get_ps(this, pv, pv_dots, res)) {
+      template_tag_impl::get_ps(this, pv, pv_dots, special_ver, res)) {
     vector<scope::tps_t::val2_t*>* pv2 = new vector<scope::tps_t::val2_t*>;
     transform(begin(res), end(res), back_inserter(*pv2),
 	      declarations::templ::create);
     return ps->common(pv2, special_ver, pv_dots);
   }
 
-  const map<string, scope::tps_t::value_t>& table = templ_base::m_tps.m_table;
+  const auto& table = templ_base::m_tps.m_table;
   template_usr_impl::sweeper_a sweeper_a(table, true);
   KEY key;
   if (pv) {
