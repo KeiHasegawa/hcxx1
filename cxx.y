@@ -90,6 +90,7 @@ namespace cxx_compiler {
 %token BUILTIN_IS_TRIVIALLY_ASSIGNABLE BUILTIN_HAS_TRIVIAL_DESTRUCTOR
 %token BUILTIN_IS_CONSTRUCTIBLE BUILTIN_IS_ASSIGNABLE
 %token BUILTIN_IS_TRIVIALLY_CONSTRUCTIBLE BUILTIN_HAS_VIRTUAL_DESTRUCTOR
+%token BUILTIN_UNDERLYING_TYPE
 %token BUILTIN_CLZ BUILTIN_CLZL BUILTIN_CLZLL
 %token NEW_ARRAY_LEX DELETE_ARRAY_LEX
 %token NOEXCEPT_KW ALIGNOF_KW
@@ -114,7 +115,7 @@ namespace cxx_compiler {
   std::vector<type*>* m_types;
   typedef cxx_compiler::expressions::base expr;
   expr* m_expression;
-  typedef std::vector<expr*> exprs;
+  typedef cxx_compiler::expr_list exprs;
   exprs* m_expressions;
   std::vector<int>* m_vi;
   typedef cxx_compiler::statements::base stmt;
@@ -259,6 +260,8 @@ block_declaration
     { $$ = 0; }
   | using_directive
     { $$ = 0; }
+  | static_assert_declaration
+    { $$ = 0; }
   ;
 
 simple_declaration
@@ -389,6 +392,10 @@ simple_type_specifier
       cxx_compiler::error::not_implemented();
       using namespace cxx_compiler::declarations::specifier_seq;
       info_t::s_stack.pop();
+    }
+  | BUILTIN_UNDERLYING_TYPE '(' type_id ')'
+    {
+      $$ = cxx_compiler::declarations::under_type($3);
     }
   ;
 
@@ -3036,13 +3043,16 @@ member_access_begin
 expression_list
   : assignment_expression
     {
-      $$ = new std::vector<cxx_compiler::expressions::base*>;
+      $$ = new cxx_compiler::expr_list;
       $$->push_back($1);
     }
   | expression_list ',' assignment_expression
     { $$ = $1; $$->push_back($3); }
   | expression_list DOTS_MK
-    { $$ = $1; }
+    {
+      $$ = $1;
+      $$->m_dots = true;
+    }
   ;
 
 pseudo_destructor_name
@@ -3297,8 +3307,7 @@ new_declarator
     {
       using namespace std;
       typedef const cxx_compiler::type type;
-      typedef cxx_compiler::expressions::base expr;
-      typedef vector<expr*> exprs;
+      typedef cxx_compiler::expr_list exprs;
       $$ = $2;
       $$->push_front(pair<type*, exprs*>($1,0)); 
     }
@@ -3306,8 +3315,7 @@ new_declarator
     {
       using namespace std;
       typedef const cxx_compiler::type type;
-      typedef cxx_compiler::expressions::base expr;
-      typedef vector<expr*> exprs;
+      typedef cxx_compiler::expr_list exprs;
       $$ = new list<pair<type*, exprs*> >;
       $$->push_back(pair<type*, exprs*>($1,0)); 
     }
@@ -3315,8 +3323,7 @@ new_declarator
     {
       using namespace std;
       typedef const cxx_compiler::type type;
-      typedef cxx_compiler::expressions::base expr;
-      typedef vector<expr*> exprs;
+      typedef cxx_compiler::expr_list exprs;
       $$ = new list<pair<type*, exprs*> >;
       $$->push_back(pair<type*, exprs*>(0,$1)); 
     }
@@ -3332,7 +3339,7 @@ direct_new_declarator
     {
       using namespace std;
       using namespace cxx_compiler;
-      $$ = new vector<expressions::base*>;
+      $$ = new expr_list;
       $$->push_back($3); 
     }
   | direct_new_declarator '[' constant_expression ']'

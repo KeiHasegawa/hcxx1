@@ -101,15 +101,128 @@ cxx_compiler::var* cxx_compiler::genaddr::subscripting(var* y)
   return offref(T,offset);
 }
 
+namespace cxx_compiler {
+  namespace expressions {
+    var* dup(scope::tps_t::val2_t x, base* b)
+    {
+      assert(!x.second);
+      const type* T = x.first;
+      assert(T);
+
+      assert(!template_usr::nest.empty());
+      auto& info = template_usr::nest.back();
+      template_usr* tu = info.m_tu;
+      assert(tu->m_tps.m_dots);
+      const auto& order = tu->m_tps.m_order;
+      assert(!order.empty());
+      string name = order.back();
+      const auto& table = tu->m_tps.m_table;
+      auto p = table.find(name);
+      assert(p != table.end());
+      const auto& v = p->second;
+      assert(!v.second);
+      tag* ptr = v.first;
+      const type* org = ptr->m_types.second;
+      ptr->m_types.second = T;
+      var* ret = b->gen();
+      ptr->m_types.second = org;
+      return ret;
+    }
+    void gen_arg(const expr_list* exprs, vector<var*>& arg)
+    {
+      if (!exprs->m_dots) {
+	transform(begin(*exprs), end(*exprs), back_inserter(arg),
+		  mem_fun(&base::gen));
+	return;
+      }
+      assert(!exprs->empty());
+      transform(begin(*exprs), end(*exprs)-1, back_inserter(arg),
+		mem_fun(&base::gen));
+      if (template_usr::nest.empty())
+	return;
+      auto& info = template_usr::nest.back();
+      template_usr* tu = info.m_tu;
+      assert(tu->m_tps.m_dots);
+      const auto& order = tu->m_tps.m_order;
+      int n = order.size();
+      const auto& key = info.m_key;
+      assert(n <= key.size());
+      const auto& x = key[n-1];
+      assert(!x.second);
+      const type* T = x.first;
+      if (!T)
+	return;
+      base* b = exprs->back();
+      var* v = b->gen();
+      arg.push_back(v);
+      if (n == key.size())
+	return;
+      transform(begin(key)+n, end(key), back_inserter(arg),
+		bind2nd(ptr_fun(dup), b));
+    }
+    bool match(scope::tps_t::val2_t x, tag* ptr)
+    {
+      assert(!x.second);
+      const type* T = x.first;
+      assert(T);
+      return T->get_tag() == ptr;
+    }
+    scope::tps_t::val2_t* conv(scope::tps_t::val2_t x, tag* ptr)
+    {
+      assert(!x.second);
+      const type* T = x.first;
+      if (T->get_tag() == ptr) {
+	T = ptr->m_types.second;
+	assert(T);
+      }
+      return new scope::tps_t::val2_t(T, (var*)0);
+    }
+    var* change_if(var* func)
+    {
+      usr* u = func->usr_cast();
+      if (!u)
+	return func;
+      usr::flag2_t flag2 = u->m_flag2;
+      if (!(flag2 & usr::INSTANTIATE))
+	return func;
+      auto iu = static_cast<instantiated_usr*>(u);
+      const auto& seed = iu->m_seed;
+      if (template_usr::nest.empty())
+	return func;
+      auto& info = template_usr::nest.back();
+      template_usr* tu = info.m_tu;
+      if (!tu->m_tps.m_dots)
+	return func;
+      const auto& order = tu->m_tps.m_order;
+      assert(!order.empty());
+      string name = order.back();
+      const auto& table = tu->m_tps.m_table;
+      auto p = table.find(name);
+      assert(p != table.end());
+      const auto& v = p->second;
+      assert(!v.second);
+      tag* ptr = v.first;
+      assert(ptr);
+      auto q = find_if(begin(seed), end(seed), bind2nd(ptr_fun(match),ptr));
+      if (q == end(seed))
+	return func;
+      template_usr* src = iu->m_src;
+      auto pv = new vector<scope::tps_t::val2_t*>;
+      transform(begin(seed), end(seed), back_inserter(*pv),
+		bind2nd(ptr_fun(conv),ptr));
+      return src->instantiate_explicit(pv);
+    }
+  } // end of namespace expressions
+} // end of namespace cxx_compiler
+
 cxx_compiler::var* cxx_compiler::expressions::postfix::call::gen()
 {
   using namespace std;
   var* func = m_func->gen();
+  func = change_if(func);
   vector<var*> arg;
-  if (m_arg) {
-    transform(begin(*m_arg), end(*m_arg), back_inserter(arg),
-              mem_fun(&base::gen));
-  }
+  if (m_arg)
+    gen_arg(m_arg, arg);
   return func->call(&arg);
 }
 
@@ -165,6 +278,8 @@ cxx_compiler::var* cxx_compiler::var::call(std::vector<var*>* arg)
     PT* pt = static_cast<PT*>(T);
     T = pt->referenced_type();
   }
+  if (T->m_id == type::TEMPLATE_PARAM)
+    return this;
   if (T->m_id == type::FUNC) {
     typedef const func_type FT;
     FT* ft = static_cast<FT*>(T);

@@ -516,6 +516,8 @@ namespace cxx_compiler {
       if (v.first)
 	return false;
       var* v2 = v.second;
+      if (!v2)
+	return false;
       return !v2->isconstant(true);
     }
     struct sweeper_a {
@@ -780,6 +782,21 @@ namespace cxx_compiler {
       assert(default_arg_table.find(ret) == default_arg_table.end());
       default_arg_table[ret] = v;
     }
+    inline bool match(vector<const type*>& atype,
+		      const vector<const type*>& param)
+    {
+      if (atype.size() == param.size())
+	return true;
+      if (!atype.empty())
+	return false;
+      if (param.size() != 1)
+	return false;
+      const type* T = param.back();
+      if (T->m_id != type::VOID)
+	return false;
+      atype.push_back(T);
+      return true;
+    }
   } // end of namespace template_usr_impl
 } // end of namespace cxx_compiler
 
@@ -812,7 +829,7 @@ cxx_compiler::template_usr::instantiate(std::vector<var*>* arg, KEY* trial)
       }
     }
   }
-  if (atype.size() != param.size())
+  if (!template_usr_impl::match(atype, param))
     return 0;
 
   const map<string, scope::tps_t::value_t>& table = m_tps.m_table;
@@ -831,9 +848,17 @@ cxx_compiler::template_usr::instantiate(std::vector<var*>* arg, KEY* trial)
   ITy py = find_if(begin(table), end(table),
                    template_usr_impl::not_decided);
   if (py != end(table)) {
-    if (trial)
-      return 0;
-    error::not_implemented();
+    if (m_tps.m_dots) {
+      string name = py->first;
+      const auto& order = m_tps.m_order;
+      assert(!order.empty());
+      string bk = order.back();
+      if (name != bk) {
+	if (trial)
+	  return 0;
+	error::not_implemented();
+      }
+    }
   }
 
   KEY key;
@@ -916,13 +941,13 @@ namespace cxx_compiler {
           return true;
         }
       };
-      sweeper_c(const scope::tps_t& tps, const template_usr::KEY& key, bool b)
-        : sweeper_a(tps.m_table, true)
+      sweeper_c(const scope::tps_t& tps, const template_usr::KEY& key,
+		bool b) : sweeper_a(tps.m_table, true)
       {
         const map<string, scope::tps_t::value_t>& table = tps.m_table;
         const vector<string>& v = tps.m_order;
 	if (b) {
-	  assert(v.size() == key.size());
+	  assert(v.size() <= key.size());
 	  mismatch(begin(v), end(v), begin(key), helper(table));
 	}
 	else {
@@ -1000,7 +1025,8 @@ cxx_compiler::partial_instantiated::call(std::vector<var*>* arg)
 }
 
 cxx_compiler::usr*
-cxx_compiler::partial_instantiated::instantiate(vector<var*>* arg, KEY* trial)
+cxx_compiler::partial_instantiated::instantiate(vector<var*>* arg,
+						KEY* trial)
 {
   template_usr_impl::sweeper_c sweeper_c(m_tps, m_key, false);
   return template_usr::instantiate(arg, trial);
@@ -2918,6 +2944,28 @@ namespace cxx_compiler {
         return comp(tu->m_scope, ins->m_scope, key);
       return false;
     }
+    inline bool helper(template_usr* tu, usr* ins, templ_base::KEY& key)
+    {
+      scope* x = tu->m_scope;
+      if (x->m_id != scope::TAG)
+	return false;
+      tag* px = static_cast<tag*>(x);
+      tag::flag_t fx = px->m_flag;
+      if (!(fx & tag::INSTANTIATE))
+	return false;
+      instantiated_tag* itx = static_cast<instantiated_tag*>(px);
+      scope* y = ins->m_scope;
+      assert(y->m_id == scope::TAG);
+      tag* py = static_cast<tag*>(y);
+      tag::flag_t fy = py->m_flag;
+      if (!(fy & tag::INSTANTIATE))
+	return false;
+      instantiated_tag* ity = static_cast<instantiated_tag*>(py);
+      if (itx->m_src != ity->m_src)
+	return false;
+      key = ity->m_seed;
+      return true;
+    }
   } // end of namespace instance_of_impl
 } // end of namespace cxx_compiler
 
@@ -2951,31 +2999,32 @@ cxx_compiler::instance_of(template_usr* tu, usr* ins, templ_base::KEY& key)
   ITy py = find_if(begin(table), end(table),
                    template_usr_impl::not_decided);
   if (py != end(table)) {
-    scope* x = tu->m_scope;
-    if (x->m_id == scope::TAG) {
-      tag* px = static_cast<tag*>(x);
-      tag::flag_t fx = px->m_flag;
-      if (fx & tag::INSTANTIATE) {
-        instantiated_tag* itx = static_cast<instantiated_tag*>(px);
-        scope* y = ins->m_scope;
-        assert(y->m_id == scope::TAG);
-        tag* py = static_cast<tag*>(y);
-        tag::flag_t fy = py->m_flag;
-        if (fy & tag::INSTANTIATE) {
-          instantiated_tag* ity = static_cast<instantiated_tag*>(py);
-          if (itx->m_src == ity->m_src) {
-            key = ity->m_seed;
-            return true;
-          }
-        }
-      }
-    }
-    return false;
+    if (instance_of_impl::helper(tu, ins, key))
+      return true;
+    if (!tu->m_tps.m_dots)
+      return false;
+    string name = py->first;
+    const auto& order = tu->m_tps.m_order;
+    assert(!order.empty());
+    string bk = order.back();
+    if (name != bk)
+      return false;
   }
 
   const vector<string>& order = tu->m_tps.m_order;
   transform(begin(order), end(order), back_inserter(key),
             template_usr_impl::decide(table));
+  if (tu->m_tps.m_dots) {
+    assert(!template_usr::nest.empty());
+    const auto& info = template_usr::nest.back();
+    const auto& ans = info.m_key;
+    assert(key.size() <= ans.size());
+    auto p = mismatch(begin(key), end(key), begin(ans));
+    assert(p.first == end(key));
+
+    // Only this case, just cheating
+    copy(begin(ans)+key.size(),end(ans),back_inserter(key));
+  }
   if (key.size() == 1) {
     const type* T = void_type::create();
     if (key[0].first == T) {
@@ -3082,6 +3131,8 @@ namespace cxx_compiler {
       return false;
     }
     var* v = x.second;
+    if (!v)
+      return false;
     usr* u = v->usr_cast();
     if (!u)
       return false;

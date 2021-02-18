@@ -2274,6 +2274,7 @@ namespace cxx_compiler {
       case IDENTIFIER_LEX:
       case TYPEDEF_NAME_LEX:
       case INTEGER_LITERAL_LEX:
+      case STRING_LITERAL_LEX:
 	{
 	  assert(!lval.empty());
 	  void* p = lval.front();
@@ -2314,6 +2315,69 @@ namespace cxx_compiler {
 	}
       case COLONCOLON_MK:
 	cout << ":: ";
+	return;
+      case DOTASTER_MK:
+	cout << ".* ";
+	return;
+      case DOTS_MK:
+	cout << "... ";
+	return;
+      case ARROW_MK:
+	cout << "-> ";
+	return;
+      case MUL_ASSIGN_MK:
+	cout << "*= ";
+	return;
+      case DIV_ASSIGN_MK:
+	cout << "/= ";
+	return;
+      case MOD_ASSIGN_MK:
+	cout << "%= ";
+	return;
+      case ADD_ASSIGN_MK:
+	cout << "+= ";
+	return;
+      case SUB_ASSIGN_MK:
+	cout << "-= ";
+	return;
+      case RSH_ASSIGN_MK:
+	cout << ">>= ";
+	return;
+      case LSH_ASSIGN_MK:
+	cout << "<<= ";
+	return;
+      case AND_ASSIGN_MK:
+	cout << "&= ";
+	return;
+      case XOR_ASSIGN_MK:
+	cout << "^= ";
+	return;
+      case OR_ASSIGN_MK:
+	cout << "|= ";
+	return;
+      case OROR_MK:
+	cout << "|| ";
+	return;
+      case ANDAND_MK:
+	cout << "&& ";
+	return;
+      case EQUAL_MK:
+	cout << "== ";
+	return;
+      case NOTEQ_MK:
+	cout << "!= ";
+	return;
+      case LESSEQ_MK:
+	cout << "<= ";
+	return;
+      case GREATEREQ_MK:
+	cout << ">= ";
+	return;
+      case LSH_MK:
+	cout << "<< ";
+	return;
+      case RSH_MK:
+	cout << ">> ";
 	return;
       default:
 	if (isascii(n)) {

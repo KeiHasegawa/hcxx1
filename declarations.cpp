@@ -98,6 +98,30 @@ cxx_compiler::declarations::type_specifier::type_specifier(usr* u)
 namespace cxx_compiler {
   namespace declarations {
     namespace type_specifier_impl {
+      const type* get_b(tag* ptr)
+      {
+	const type* T1 = ptr->m_types.first;
+	assert(T1);
+	assert(T1->m_id == type::TEMPLATE_PARAM);
+	const type* T2 = ptr->m_types.second;
+	assert(T2);
+	if (template_usr::nest.empty())
+	  return T2;
+	const auto& info = template_usr::nest.back();
+	template_usr* tu = info.m_tu;
+	bool dots = tu->m_tps.m_dots;
+	if (!dots)
+	  return T2;
+	const auto& order = tu->m_tps.m_order;
+	assert(!order.empty());
+	string name = ptr->m_name;
+	if (order.back() != name)
+	  return T2;
+	const auto& key = info.m_key;
+	if (key.size() <= order.size())
+	  return T2;
+	return T1;
+      }
       const type* get(tag* ptr)
       {
 	const type* T1 = ptr->m_types.first;
@@ -108,7 +132,7 @@ namespace cxx_compiler {
 	if (T1->m_id != type::TEMPLATE_PARAM)
 	  return T2;
 	if (template_tag::nest.empty())
-	  return T2;
+	  return get_b(ptr);
 	const auto& info = template_tag::nest.back();
 	template_tag* tt = info.m_tt;
 	bool dots = tt->templ_base::m_tps.m_dots;
@@ -2191,6 +2215,10 @@ namespace cxx_compiler {
       for_each(begin(code) + n, end(code), [](tac* ptr){ delete ptr; });
       code.resize(n);
       const type* T = v->result_type();
+      return new type_specifier(T);
+    }
+    type_specifier* under_type(const type* T)
+    {
       return new type_specifier(T);
     }
   } // end of namespace declarations

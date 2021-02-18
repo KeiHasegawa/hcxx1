@@ -8,6 +8,11 @@ namespace cxx_compiler {
 using namespace std;  
 extern vector<tac*> code;
 
+struct expr_list : vector<expressions::base*> {
+  bool m_dots;
+  expr_list() : m_dots(false) {}
+};
+
 namespace misc {
   template<class C> class pvector : public vector<C*> {
   public:
@@ -739,7 +744,7 @@ namespace declarations {
         } // end of namespace static_inline
         namespace mem_initializer {
           typedef pair<usr*, tag*> PAIR;
-          typedef vector<expressions::base*> EXPRS;
+	  typedef expr_list EXPRS;
           typedef vector<pair<PAIR*,EXPRS*> > VALUE;
           extern map<usr*, VALUE> for_parse;  // key is constructor
           void action(PAIR*, EXPRS*);
@@ -786,9 +791,9 @@ namespace declarations {
     namespace clause { struct info_t; }
     struct info_t {
       clause::info_t* m_clause;
-      vector<expressions::base*>* m_exprs;
+      expr_list* m_exprs;
       info_t(clause::info_t* c) : m_clause(c), m_exprs(0) {}
-      info_t(vector<expressions::base*>* exprs) : m_clause(0), m_exprs(exprs) {}
+      info_t(expr_list* exprs) : m_clause(0), m_exprs(exprs) {}
       ~info_t();
     };
     struct element;
@@ -857,7 +862,7 @@ namespace declarations {
     };
   } // end of namespace asm_definition
   namespace new_type_id {
-    typedef pair<const type*, vector<expressions::base*>*> LIST_ELEMENT;
+    typedef pair<const type*, expr_list*> LIST_ELEMENT;
     typedef list<LIST_ELEMENT> LIST;
     extern const type* action(type_specifier_seq::info_t*, LIST*);
     extern map<const type*, vector<tac*> > table;
@@ -874,6 +879,7 @@ namespace declarations {
     } // end of namespace specialization
   } // end of namespace templ
   type_specifier* decl_type(expressions::base*);
+  type_specifier* under_type(const type*);
   namespace use {
     void action(var*);
     void action(tag*);
@@ -962,8 +968,8 @@ namespace expressions {
   namespace postfix {
     struct call : base {
       base* m_func;
-      vector<base*>* m_arg;
-      call(base* func, vector<base*>* arg)
+      expr_list* m_arg;
+      call(base* func, expr_list* arg)
         : m_func(func), m_arg(arg) {}
       var* gen();
       const file_t& file() const;
