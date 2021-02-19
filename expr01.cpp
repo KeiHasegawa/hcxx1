@@ -2043,6 +2043,7 @@ cxx_compiler::var::ptr_member(var* expr, bool dot)
     return this;
   typedef const record_type REC;
   REC* rec = static_cast<REC*>(T);
+  expr = expr->rvalue();
   T = expr->m_type;
   if (T->m_id != type::POINTER_MEMBER) {
     error::not_implemented();

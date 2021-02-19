@@ -2189,6 +2189,18 @@ namespace cxx_compiler {
 	T = rt->referenced_type();
 	return out_addr(T);
       }
+      if (T->m_id == type::POINTER_MEMBER) {
+	typedef const pointer_member_type PM;
+	PM* pm = static_cast<PM*>(T);
+	T = pm->referenced_type();
+	if (out_addr(T))
+	  return true;
+	const tag* ptr = pm->ctag();
+	if (const type* T2 = ptr->m_types.second)
+	  return out_addr(T2);
+	T = ptr->m_types.first;
+	return out_addr(T);
+      }
       tag* ptr = T->get_tag();
       if (!ptr)
 	return false;
