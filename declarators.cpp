@@ -302,16 +302,37 @@ namespace cxx_compiler {
           else
             return false;
         }
+	const type*
+	templ_arg_array(const type* T, usr* u, var* v, bool asterisc)
+	{
+	  if (u)
+	    return 0;
+	  if (asterisc)
+	    return 0;
+	  if (!v)
+	    return 0;
+	  usr* dim = v->usr_cast();
+	  if (!dim)
+	    return 0;
+	  usr::flag2_t flag2 = dim->m_flag2;
+	  if (!(flag2 & usr::TEMPL_PARAM))
+	    return 0;
+	  if (!parse::templ::arg)
+	    return  0;
+	  const type* bt = backpatch_type::create();
+	  return T->patch(varray_type::create(bt, v), 0);
+	}
       } // end of namespace array_impl
     } // end of namespace declarators
   } // end of namespace declarations
 } // end of namespace cxx_compiler
 
-const cxx_compiler::type*
-cxx_compiler::declarations::declarators::array::action(const type* T,
-                                                       expressions::base* expr,
-                                                       bool asterisc,
-                                                       var* v)
+const cxx_compiler::type* 
+cxx_compiler::declarations::
+declarators::array::action(const type* T,
+			   expressions::base* expr,
+			   bool asterisc,
+			   var* v)
 {
   using namespace std;
   using namespace error::declarations::declarators::array;
@@ -327,6 +348,9 @@ cxx_compiler::declarations::declarators::array::action(const type* T,
   v = 0;
   if ( expr )
     v = expr->gen();
+
+  if (const type* ret = array_impl::templ_arg_array(T, u, v, asterisc))
+    return ret;
 
   int dim = 0;
   if ( v ){

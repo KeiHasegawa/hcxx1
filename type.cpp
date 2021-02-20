@@ -1124,7 +1124,8 @@ cxx_compiler::var* cxx_compiler::array_type::vsize() const
   return size->mul(dim);
 }
 
-const cxx_compiler::array_type* cxx_compiler::array_type::create(const type* T, int dim)
+const cxx_compiler::array_type*
+cxx_compiler::array_type::create(const type* T, int dim)
 {
   using namespace std;
   table_t& table = T->tmp() ? tmp_tbl : pmt_tbl;
@@ -1725,15 +1726,21 @@ void cxx_compiler::varray_type::decide_dim() const
   m_T->decide_dim();
 }
 
-const cxx_compiler::varray_type* cxx_compiler::varray_type::create(const type* T, var* dim)
+const cxx_compiler::varray_type*
+cxx_compiler::varray_type::create(const type* T, var* dim)
 {
   using namespace std;
   pair<const type*, var*> key(T,dim);
   table_t::const_iterator p = table.find(key);
   if ( p != table.end() )
     return p->second;
-  else
-    return table[key] = new varray_type(T,dim);
+  varray_type* ret = new varray_type(T,dim);
+  if (usr* u = dim->usr_cast()) {
+    usr::flag2_t flag2 = u->m_flag2;
+    if (flag2 & usr::TEMPL_PARAM)
+      return ret;
+  }
+  return table[key] = ret;
 }
 
 void cxx_compiler::varray_type::destroy_tmp()

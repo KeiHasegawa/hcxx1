@@ -179,7 +179,7 @@ namespace cxx_compiler {
           tt->m_table[key] = ptr;
           return;
         }
-        vector<scope::tps_t::val2_t*>* pv = new vector<scope::tps_t::val2_t*>;
+        auto pv = new vector<scope::tps_t::val2_t*>;
         transform(begin(key), end(key), back_inserter(*pv), create);
         tt->instantiate(pv, false);
       }
@@ -1621,11 +1621,36 @@ namespace cxx_compiler {
 	return new scope::tps_t::val2_t((const type*)0, v);
       }
     };
+    inline void set_key(string name, const vector<string>& order,
+			template_tag::KEY& key,
+			const scope::tps_t::val2_t& y)
+    {
+      auto p = find(begin(order), end(order), name);
+      assert(p != end(order));
+      int n = distance(begin(order), p);
+      if (n >= key.size())
+	key.resize(n+1);
+      if (const type* Tx = key[n].first) {
+	assert(!key[n].second);
+	const type* Ty = y.first;
+	assert(compatible(Tx, Ty));
+	return;
+      }
+      if (var* vx = key[n].second) {
+	assert(!key[n].first);
+	var* vy = y.second;
+	assert(vx == vy);
+	return;
+      }
+      key[n] = y;
+    }
     struct cmp_helper {
       template_tag::KEY& m_key;
+      const vector<string>& m_order;
       map<tag*, const type*>& m_table;
-      cmp_helper(template_tag::KEY& key, map<tag*, const type*>& table)
-        : m_key(key), m_table(table) {}
+      cmp_helper(template_tag::KEY& key, const vector<string>& order,
+		 map<tag*, const type*>& table)
+        : m_key(key), m_order(order), m_table(table) {}
       static pair<const type*, const type*>
       update(const type* Tx, const type* Ty)
       {
@@ -1666,7 +1691,8 @@ namespace cxx_compiler {
             const type* Tz = p->second;
             return Ty == Tz;
           }
-          m_key.push_back(y);
+	  string name = xtag->m_name;
+	  set_key(name, m_order, m_key, y);
           return true;
         }
         else {
@@ -1680,6 +1706,7 @@ namespace cxx_compiler {
     };
     struct cmp {
       template_tag::KEY& m_key;
+      const vector<string>& m_order;
       map<tag*, const type*> m_table;
       bool cmp_type(const type* Tx, tag* xtag, const type* Ty)
       {
@@ -1690,7 +1717,8 @@ namespace cxx_compiler {
             return compatible(Ty, Tz);
           }
           m_table[xtag] = Ty;
-          m_key.push_back(scope::tps_t::val2_t(Ty, 0));
+	  string name = xtag->m_name;
+	  set_key(name, m_order, m_key, scope::tps_t::val2_t(Ty, 0));
           return true;
         }
 	if (Tx->m_id == Ty->m_id) {
@@ -1733,9 +1761,30 @@ namespace cxx_compiler {
 	  return false;
 	tag* xtag = const_cast<tag*>(cx);
 	m_table[xtag] = Ty;
-	m_key.push_back(scope::tps_t::val2_t(Ty, 0));
+	string name = xtag->m_name;
+	set_key(name, m_order, m_key, scope::tps_t::val2_t(Ty, 0));
 	return true;
       }
+      struct helper {
+	cmp* m_cmp;
+	helper(cmp* c) : m_cmp(c) {}
+	bool operator()(const type* Tx, const type* Ty);
+      };
+      int num_arg(const vector<const type*>& x, const vector<const type*>& y)
+      {
+	assert(!x.empty());
+	assert(!y.empty());
+	if (x.size() == y.size())
+	  return x.size();
+	if (x.size() != y.size()+1)
+	  return 0;
+	const type* T = x.back();
+	if (T->m_id != type::ELLIPSIS)
+	  return 0;
+	int n = x.size()-1;
+	assert(n);
+	return n;
+      } 
       bool cmp_type(const type* Tx, const type* Ty)
       {
         tag* xtag = Tx->get_tag();
@@ -1774,7 +1823,69 @@ namespace cxx_compiler {
 	      const tag* cy = pmy->ctag();
 	      return cmp_tag(cx, cy);
 	    }
+	    if (Tx->m_id == type::FUNC) {
+	      typedef const func_type FT;
+	      FT* ftx = static_cast<FT*>(Tx);
+	      Tx = ftx->return_type();
+	      assert(Ty->m_id == type::FUNC);
+	      FT* fty = static_cast<FT*>(Ty);
+	      Ty = fty->return_type();
+	      if (!cmp_type(Tx, Ty))
+		return false;
+	      const auto& px = ftx->param();
+	      const auto& py = fty->param();
+	      int n = num_arg(px, py);
+	      if (!n)
+		return 0;
+	      auto ret = mismatch(begin(px), begin(px)+n, begin(py),
+				  helper(this));
+	      if (ret.first != begin(px)+n)
+		return false;
+	      return true;
+	    }
+	    if (Tx->m_id == type::ARRAY) {
+	      typedef const array_type AT;
+	      AT* atx = static_cast<AT*>(Tx);
+	      Tx = atx->element_type();
+	      assert(Ty->m_id == type::ARRAY);
+	      AT* aty = static_cast<AT*>(Ty);
+	      Ty = aty->element_type();
+	      if (!cmp_type(Tx, Ty))
+		return false;
+	      int dx = atx->dim();
+	      int dy = aty->dim();
+	      return dx == dy;
+	    }
+	    if (Tx->m_id == type::VARRAY) {
+	      typedef const varray_type VA;
+	      VA* vax = static_cast<VA*>(Tx);
+	      Tx = vax->element_type();
+	      assert(Ty->m_id == type::VARRAY);
+	      VA* vay = static_cast<VA*>(Ty);
+	      Ty = vay->element_type();
+	      if (!cmp_type(Tx, Ty))
+		return false;
+	      var* dx = vax->dim();
+	      var* dy = vay->dim();
+	      return cmp_var(dx, dy);
+	    }
           }
+	  if (Tx->m_id == type::VARRAY) {
+	    if (Ty->m_id == type::ARRAY) {
+	      typedef const varray_type VA;
+	      VA* vax = static_cast<VA*>(Tx);
+	      typedef const array_type AT;
+	      AT* aty = static_cast<AT*>(Ty);
+	      Tx = vax->element_type();
+	      Ty = aty->element_type();
+	      if (!cmp_type(Tx, Ty))
+		return false;
+	      var* vx = vax->dim();
+	      using namespace expressions::primary::literal;
+	      var* vy = integer::create(aty->dim());
+	      return cmp_var(vx, vy);
+	    }
+	  }
           return compatible(Tx, Ty);
         }
         tag* ytag = Ty->get_tag();
@@ -1798,8 +1909,8 @@ namespace cxx_compiler {
 	if (xs.size() != ys.size())
 	    assert(ttx->templ_base::m_tps.m_dots);
 	int m = min(xs.size(), ys.size());
-        pair<IT, IT> ret = mismatch(begin(xs), begin(xs)+m, begin(ys),
-                		    cmp_helper(m_key, m_table));
+	auto ret = mismatch(begin(xs), begin(xs)+m, begin(ys),
+			    cmp_helper(m_key, m_order, m_table));
 	if (ret != make_pair(begin(xs)+m, begin(ys)+m))
 	  return false;
 	copy(begin(ys)+m,end(ys),back_inserter(m_key));
@@ -1815,14 +1926,16 @@ namespace cxx_compiler {
 	usr* ux = static_cast<usr*>(vx);
 	usr::flag2_t flag2 = ux->m_flag2;
 	if  (flag2 & usr::TEMPL_PARAM) {
-	  m_key.push_back(scope::tps_t::val2_t((const type*)0,vy));
+	  string name = ux->m_name;
+	  set_key(name, m_order, m_key, scope::tps_t::val2_t(0,vy));
 	  return true;
 	}
 	return vx->value() == vy->value();
       }
-      cmp(template_tag::KEY& key) : m_key(key) {}
-      bool
-      operator()(const scope::tps_t::val2_t& x, const scope::tps_t::val2_t* y)
+      cmp(template_tag::KEY& key, const vector<string>& order)
+	: m_key(key), m_order(order) {}
+      bool operator()(const scope::tps_t::val2_t& x,
+		      const scope::tps_t::val2_t* y)
       {
         if (const type* Tx = x.first) {
           const type* Ty = y->first;
@@ -1837,6 +1950,11 @@ namespace cxx_compiler {
         }
       }
     };
+    bool cmp::helper::operator()(const type* Tx, const type* Ty)
+    {
+      return m_cmp->cmp_type(Tx, Ty);
+    }
+
     typedef map<string, pair<const type*, expressions::base*> > cmpdef_tbl;
     struct cmpdef_a {
       const cmpdef_tbl& m_def;
@@ -1975,25 +2093,21 @@ namespace cxx_compiler {
 	const scope::tps_t& tps = src->templ_base::m_tps;
 	const auto& def = tps.m_default;
 	if (!def.empty()) {
-	  const vector<string>& order = tps.m_order;
-	  typedef vector<string>::const_reverse_iterator ITx;
-	  typedef template_tag::KEY::const_reverse_iterator ITy;
+	  const auto& order = tps.m_order;
 	  sweeper_e sweeper_e;
-	  pair<ITx, ITy> ret =
-	    mismatch(rbegin(order), rend(order), rbegin(key), cmpdef_a(def));
+	  auto ret = mismatch(rbegin(order), rend(order),
+			      rbegin(key), cmpdef_a(def));
 	  int sz = distance(rbegin(order), ret.first);
 	  assert(n > sz);
 	  n -= sz;
 	}
 	int m = m_pv->size();
 	if (!def.empty()) {
-	  const vector<string>& order = tps.m_order;
-	  typedef vector<string>::const_reverse_iterator ITx;
-	  typedef vector<scope::tps_t::val2_t*>::const_reverse_iterator ITy;
+	  const auto& order = tps.m_order;
 	  int x = min(m, (int)order.size());
 	  sweeper_e sweeper_e;
-	  pair<ITx, ITy> ret = mismatch(rbegin(order), rbegin(order)+x,
-					rbegin(*m_pv), cmpdef_b(def));
+	  auto ret = mismatch(rbegin(order), rbegin(order)+x,
+			      rbegin(*m_pv), cmpdef_b(def));
 	  int sz = distance(rbegin(order), ret.first);
 	  assert(m > sz);
 	  m -= sz;
@@ -2002,17 +2116,15 @@ namespace cxx_compiler {
 	  m_key.clear();
 	  return false;
 	}
-        typedef template_tag::KEY::const_iterator ITx;
-        typedef vector<scope::tps_t::val2_t*>::iterator ITy;
-	pair<ITx, ITy> ret = mismatch(begin(key), begin(key)+n, begin(*m_pv),
-				      cmp(m_key));
+        const auto& order = ps->templ_base::m_tps.m_order;
+	auto ret = mismatch(begin(key), begin(key)+n, begin(*m_pv),
+			    cmp(m_key, order));
 	if (ret != make_pair(begin(key)+n, begin(*m_pv)+n)) {
 	  m_key.clear();
 	  return false;
 	}
 	if (n <= m)
 	  find_if(begin(*m_pv)+n,begin(*m_pv)+m, tparam_or_cp(m_key));
-        const vector<string>& order = ps->templ_base::m_tps.m_order;
 	int n2 = order.size();
 	if (!match_x(&n2, m_key.size(), dots, false, 0, 0)) {
 	  m_key.clear();
@@ -2838,22 +2950,34 @@ cxx_compiler::template_usr::explicit_instantiating(KEY& key)
 
 namespace cxx_compiler {
   namespace instance_of_impl {
-    scope::tps_t::val2_t
-    calc(const scope::tps_t::val2_t& x, const scope::tps_t::val2_t& y)
-    {
-      if (const type* Tx = x.first) {
-        assert(Tx->m_id == type::TEMPLATE_PARAM);
-        assert(y.first);
-        return y;
+    struct calc {
+      templ_base::KEY& m_key; 
+      const vector<string>& m_order;
+      calc(templ_base::KEY& key, const vector<string>& order)
+	: m_key(key), m_order(order) {}
+      bool operator()(const scope::tps_t::val2_t& x,
+		      const scope::tps_t::val2_t& y)
+      {
+	using namespace template_tag_impl;
+	if (const type* Tx = x.first) {
+	  assert(Tx->m_id == type::TEMPLATE_PARAM);
+	  assert(y.first);
+	  tag* ptr = Tx->get_tag();
+	  string name = ptr->m_name;
+	  set_key(name, m_order, m_key, y);
+	  return true;
+	}
+	var* v = x.second;
+	assert(v->usr_cast());
+	usr* u = static_cast<usr*>(v);
+	usr::flag2_t flag = u->m_flag2;
+	assert(flag & usr::TEMPL_PARAM);
+	assert(y.second);
+	string name = u->m_name;
+	set_key(name, m_order, m_key, y);
+	return true;
       }
-      var* v = x.second;
-      assert(v->usr_cast());
-      usr* u = static_cast<usr*>(v);
-      usr::flag2_t flag = u->m_flag2;
-      assert(flag & usr::TEMPL_PARAM);
-      assert(y.second);
-      return y;
-    }
+    };
     bool none_tag_case(template_usr* tu, usr* ins, templ_base::KEY& key)
     {
       string x = tu->m_name;
@@ -2876,11 +3000,12 @@ namespace cxx_compiler {
       const IT::SEED& xseed = xit->m_seed;
       const IT::SEED& yseed = yit->m_seed;
       assert(xseed.size() == yseed.size());
-      transform(begin(xseed), end(xseed), begin(yseed), back_inserter(key),
-                calc);
+      const auto& order = tu->m_tps.m_order;
+      mismatch(begin(xseed), end(xseed), begin(yseed), calc(key, order));
       return true;
     }
-    bool comp(scope* x, scope* y, templ_base::KEY& key)
+    bool comp(scope* x, scope* y, templ_base::KEY& key,
+	      const vector<string>& order)
     {
       if (x == y)
         return true;
@@ -2906,9 +3031,8 @@ namespace cxx_compiler {
       const IT::SEED& xseed = xit->m_seed;
       const IT::SEED& yseed = yit->m_seed;
       assert(xseed.size() == yseed.size());
-      transform(begin(xseed), end(xseed), begin(yseed), back_inserter(key),
-                calc);
-      return comp(x->m_parent, y->m_parent, key);
+      mismatch(begin(xseed), end(xseed), begin(yseed), calc(key, order));
+      return comp(x->m_parent, y->m_parent, key, order);
     }
     bool non_func_case(template_usr* tu, usr* ins, templ_base::KEY& key)
     {
@@ -2938,8 +3062,12 @@ namespace cxx_compiler {
       const type* Ti = ins->m_type;
       Ti = Ti->unqualified();
       if (Tt->m_id == type::TEMPLATE_PARAM) {
-        key.push_back(scope::tps_t::val2_t(Ti, 0));
-        return true;
+	tag* ptr = Tt->get_tag();
+	string name = ptr->m_name;
+	const auto& order = tu->m_tps.m_order;
+	using namespace template_tag_impl;
+	set_key(name, order, key, scope::tps_t::val2_t(Ti, 0));
+	return comp(tu->m_scope, ins->m_scope, key, order);
       }
       tag* x = Tt->get_tag();
       if (!x)
@@ -2947,13 +3075,14 @@ namespace cxx_compiler {
       tag* y = Ti->get_tag();
       if (!y)
         return false;
+      const auto& order = tu->m_tps.m_order;
       tag::flag_t flag = x->m_flag;
       if (flag & tag::TYPENAMED)
-        return comp(x->m_parent, y->m_parent, key);
+        return comp(x->m_parent, y->m_parent, key, order);
       if (flag & tag::INSTANTIATE)
-        return comp(x, y, key);
+        return comp(x, y, key, order);
       if (x == y)
-        return comp(tu->m_scope, ins->m_scope, key);
+        return comp(tu->m_scope, ins->m_scope, key, order);
       return false;
     }
     inline bool helper(template_usr* tu, usr* ins, templ_base::KEY& key)

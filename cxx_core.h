@@ -1877,6 +1877,7 @@ public:
   const type* vla2a() const { return array_type::create(m_T->vla2a(), 0); }
   void decide_dim() const;
   var* vsize() const;
+  var* dim() const { return m_dim; }
   static const varray_type* create(const type*, var*);
   static void destroy_tmp();
   static void collect_tmp(std::vector<const type*>&);
