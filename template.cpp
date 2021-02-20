@@ -1870,20 +1870,26 @@ namespace cxx_compiler {
 	      return cmp_var(dx, dy);
 	    }
           }
-	  if (Tx->m_id == type::VARRAY) {
-	    if (Ty->m_id == type::ARRAY) {
-	      typedef const varray_type VA;
-	      VA* vax = static_cast<VA*>(Tx);
-	      typedef const array_type AT;
-	      AT* aty = static_cast<AT*>(Ty);
-	      Tx = vax->element_type();
-	      Ty = aty->element_type();
-	      if (!cmp_type(Tx, Ty))
-		return false;
-	      var* vx = vax->dim();
-	      using namespace expressions::primary::literal;
-	      var* vy = integer::create(aty->dim());
-	      return cmp_var(vx, vy);
+	  else {
+	    if (Tx->m_id == type::VARRAY) {
+	      if (Ty->m_id == type::ARRAY) {
+		typedef const varray_type VA;
+		VA* vax = static_cast<VA*>(Tx);
+		typedef const array_type AT;
+		AT* aty = static_cast<AT*>(Ty);
+		Tx = vax->element_type();
+		Ty = aty->element_type();
+		if (!cmp_type(Tx, Ty))
+		  return false;
+		var* vx = vax->dim();
+		using namespace expressions::primary::literal;
+		var* vy = integer::create(aty->dim());
+		return cmp_var(vx, vy);
+	      }
+	    }
+	    if (Tx->m_id == type::ELLIPSIS) {
+	      m_key.push_back(scope::tps_t::val2_t(Ty,0));
+	      return true;
 	    }
 	  }
           return compatible(Tx, Ty);
@@ -1954,7 +1960,6 @@ namespace cxx_compiler {
     {
       return m_cmp->cmp_type(Tx, Ty);
     }
-
     typedef map<string, pair<const type*, expressions::base*> > cmpdef_tbl;
     struct cmpdef_a {
       const cmpdef_tbl& m_def;
