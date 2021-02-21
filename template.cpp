@@ -2733,8 +2733,10 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
     map<string, tag*>& tags = scope::current->m_tags;
     typedef map<string, tag*>::const_iterator IT;
     IT p = tags.find(name);
-    if (p != tags.end())
+    if (p != tags.end()) {
+      nest.pop_back();
       return p->second;
+    }
     ret = new instantiated_tag(m_kind, name, parse::position,
                 	       m_bases, this, key);
     tags[name] = ret;
