@@ -50,6 +50,34 @@ void cxx_compiler::type_parameter::action(var* v, const type* T, bool dots)
   }
 }
 
+void cxx_compiler::type_parameter::action(var* v, var* id)
+{
+  string name = param_name(v);
+  auto& tps = scope::current->m_tps;
+  assert(!tps.empty());
+  auto bb = tps.back();
+  tps.pop_back();
+  assert(!tps.empty());
+  auto& b = tps.back();
+  auto& table = b.m_table;
+  auto p = table.find(name);
+  if (p != table.end())
+    error::not_implemented();
+  tag* ptr = new tag(tag::CLASS, name, parse::position, 0);
+  assert(class_or_namespace_name::before.back() == ptr);
+  class_or_namespace_name::before.pop_back();
+  template_tag* tt = new template_tag(*ptr, bb);
+  tt->m_parent = scope::current;
+  vector<scope*>& children = scope::current->m_children;
+  children.push_back(tt);
+  tt->m_types.first = template_param_type::create(tt);
+  table[name].first = tt;
+  vector<string>& order = b.m_order;
+  order.push_back(name);
+  if (id)
+    error::not_implemented();
+}
+
 void cxx_compiler::
 templ_parameter::action(pair<const type*, expressions::base*>* p)
 {
@@ -1238,6 +1266,12 @@ namespace cxx_compiler {
           auto_ptr<pair<usr*, tag*> > sweeper(b ? x : 0);
           if (tag* ptr = x->second) {
             assert(!x->first);
+	    if (const type* T2 = ptr->m_types.second) {
+	      tag* ptr2 = T2->get_tag();
+	      tag::flag_t flag = ptr2->m_flag;
+	      if (flag & tag::TEMPLATE)
+		ptr = ptr2;
+	    }
 	    tag* res = tag_action(ptr, pv, dots);
 	    if (dup) {
 	      if (!template_tag::nest.empty()) {

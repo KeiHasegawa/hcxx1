@@ -2240,16 +2240,33 @@ type_parameter
       --cxx_compiler::parse::identifier::typenaming;
       assert(cxx_compiler::parse::identifier::typenaming >= 0);
     }
-  | TEMPLATE_KW '<' template_parameter_list '>' CLASS_KW IDENTIFIER_LEX
-    { cxx_compiler::error::not_implemented(); }
-  | TEMPLATE_KW '<' template_parameter_list '>' CLASS_KW
-    { cxx_compiler::error::not_implemented(); }
-  | TEMPLATE_KW '<' template_parameter_list '>' CLASS_KW IDENTIFIER_LEX
-    '=' id_expression
-    { cxx_compiler::error::not_implemented(); }
-  | TEMPLATE_KW '<' template_parameter_list '>' CLASS_KW
-    '=' id_expression
-    { cxx_compiler::error::not_implemented(); }
+  | templating CLASS_KW IDENTIFIER_LEX
+    {
+      cxx_compiler::type_parameter::action($3, 0);
+    }
+  | templating CLASS_KW
+    {
+      cxx_compiler::type_parameter::action(0, 0);
+    }
+  | templating CLASS_KW IDENTIFIER_LEX '=' id_expression
+    {
+      cxx_compiler::type_parameter::action($3, $5);
+    }
+  | templating CLASS_KW '=' id_expression
+    {
+      cxx_compiler::type_parameter::action(0, $4);
+    }
+  ;
+
+templating
+  : TEMPLATE_KW
+    {
+      using namespace cxx_compiler;
+      vector<scope::tps_t>& tps = scope::current->m_tps;
+      assert(!tps.empty());
+      tps.resize(tps.size()+1);
+    }
+    '<' template_parameter_list '>'
   ;
 
 template_id

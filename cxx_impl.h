@@ -1757,6 +1757,7 @@ namespace qualified_id {
 
 namespace type_parameter {
   extern void action(var*, const type*, bool);
+  extern void action(var*, var*);
 } // end of namespace type_parameter
 
 namespace templ_parameter {
