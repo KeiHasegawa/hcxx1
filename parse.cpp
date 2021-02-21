@@ -208,8 +208,10 @@ namespace cxx_compiler {
         if (tag* ptr = x.first) {
 	  tag::flag_t flag = ptr->m_flag;
 	  if (flag & tag::TEMPLATE) {
-	    cxx_compiler_lval.m_ut = new pair<usr*, tag*>(0, ptr);
-	    return TEMPLATE_NAME_LEX;
+	    if (peek() == '<') {
+	      cxx_compiler_lval.m_ut = new pair<usr*, tag*>(0, ptr);
+	      return TEMPLATE_NAME_LEX;
+	    }
 	  }
           cxx_compiler_lval.m_tag = ptr;
           return CLASS_NAME_LEX;

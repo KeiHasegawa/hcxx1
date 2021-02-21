@@ -1680,11 +1680,11 @@ namespace cxx_compiler {
     }
     struct cmp_helper {
       template_tag::KEY& m_key;
-      const vector<string>& m_order;
+      const template_tag* m_tt;
       map<tag*, const type*>& m_table;
-      cmp_helper(template_tag::KEY& key, const vector<string>& order,
+      cmp_helper(template_tag::KEY& key, const template_tag* tt,
 		 map<tag*, const type*>& table)
-        : m_key(key), m_order(order), m_table(table) {}
+        : m_key(key), m_tt(tt), m_table(table) {}
       static pair<const type*, const type*>
       update(const type* Tx, const type* Ty)
       {
@@ -1709,12 +1709,59 @@ namespace cxx_compiler {
 	}
 	return make_pair(Tx, Ty);
       }
+      bool template_template_parameter_case(const type* Tx, const type* Ty)
+      {
+	tag* xtag = Tx->get_tag();
+	if (!xtag)
+	  return false;
+	tag::flag_t flagx = xtag->m_flag;
+	if (!(flagx & tag::INSTANTIATE))
+	  return false;
+	auto itx = static_cast<instantiated_tag*>(xtag);
+	auto ttx = itx->m_src;
+	string name = ttx->m_name;
+	const auto& order = m_tt->templ_base::m_tps.m_order;
+	auto p = find(begin(order), end(order), name);
+	if (p == end(order))
+	  return false;
+	const auto& tbl = m_tt->templ_base::m_tps.m_table;
+	auto q = tbl.find(name);
+	assert(q != tbl.end());
+	const auto& val = q->second;
+	tag* ptr = val.first;
+	if (!ptr)
+	  return false;
+	if (ptr != ttx)
+	  return false;
+	tag* ytag = Ty->get_tag();
+	tag::flag_t flagy = ytag->m_flag;
+	assert(flagy & tag::INSTANTIATE);
+	auto ity = static_cast<instantiated_tag*>(ytag);
+	auto tty = ity->m_src;
+	const type* T = tty->m_types.first;
+	set_key(name, order, m_key, scope::tps_t::val2_t(T,0));
+	assert(m_table.find(ttx) == m_table.end());
+	m_table[ttx] = T;
+	const auto& xs = itx->m_seed;
+	const auto& ys = ity->m_seed;
+	if (xs.size() != ys.size())
+	    assert(ttx->templ_base::m_tps.m_dots);
+	int m = min(xs.size(), ys.size());
+	auto ret = mismatch(begin(xs), begin(xs)+m, begin(ys),
+			    cmp_helper(m_key, m_tt, m_table));
+	if (ret != make_pair(begin(xs)+m, begin(ys)+m))
+	  return false;
+	copy(begin(ys)+m,end(ys),back_inserter(m_key));
+	return true;
+      }
       bool operator()(const scope::tps_t::val2_t& x,
                       const scope::tps_t::val2_t& y)
       {
         if (const type* Tx = x.first) {
           const type* Ty = y.first;
           assert(Tx && Ty);
+	  if (template_template_parameter_case(Tx, Ty))
+	    return true;
 	  pair<const type*, const type*> ret = update(Tx, Ty);
 	  Tx = ret.first;
 	  Ty = ret.second;
@@ -1726,7 +1773,10 @@ namespace cxx_compiler {
             return Ty == Tz;
           }
 	  string name = xtag->m_name;
-	  set_key(name, m_order, m_key, y);
+	  const auto& order = m_tt->templ_base::m_tps.m_order;
+	  set_key(name, order, m_key, y);
+	  assert(m_table.find(xtag) == m_table.end());
+	  m_table[xtag] = Ty;
           return true;
         }
         else {
@@ -1740,7 +1790,7 @@ namespace cxx_compiler {
     };
     struct cmp {
       template_tag::KEY& m_key;
-      const vector<string>& m_order;
+      const template_tag* m_tt;
       map<tag*, const type*> m_table;
       bool cmp_type(const type* Tx, tag* xtag, const type* Ty)
       {
@@ -1752,7 +1802,8 @@ namespace cxx_compiler {
           }
           m_table[xtag] = Ty;
 	  string name = xtag->m_name;
-	  set_key(name, m_order, m_key, scope::tps_t::val2_t(Ty, 0));
+	  const auto& order = m_tt->templ_base::m_tps.m_order;
+	  set_key(name, order, m_key, scope::tps_t::val2_t(Ty, 0));
           return true;
         }
 	if (Tx->m_id == Ty->m_id) {
@@ -1796,7 +1847,8 @@ namespace cxx_compiler {
 	tag* xtag = const_cast<tag*>(cx);
 	m_table[xtag] = Ty;
 	string name = xtag->m_name;
-	set_key(name, m_order, m_key, scope::tps_t::val2_t(Ty, 0));
+	const auto& order = m_tt->templ_base::m_tps.m_order;
+	set_key(name, order, m_key, scope::tps_t::val2_t(Ty, 0));
 	return true;
       }
       struct helper {
@@ -1950,7 +2002,7 @@ namespace cxx_compiler {
 	    assert(ttx->templ_base::m_tps.m_dots);
 	int m = min(xs.size(), ys.size());
 	auto ret = mismatch(begin(xs), begin(xs)+m, begin(ys),
-			    cmp_helper(m_key, m_order, m_table));
+			    cmp_helper(m_key, m_tt, m_table));
 	if (ret != make_pair(begin(xs)+m, begin(ys)+m))
 	  return false;
 	copy(begin(ys)+m,end(ys),back_inserter(m_key));
@@ -1967,13 +2019,14 @@ namespace cxx_compiler {
 	usr::flag2_t flag2 = ux->m_flag2;
 	if  (flag2 & usr::TEMPL_PARAM) {
 	  string name = ux->m_name;
-	  set_key(name, m_order, m_key, scope::tps_t::val2_t(0,vy));
+	  const auto& order = m_tt->templ_base::m_tps.m_order;
+	  set_key(name, order, m_key, scope::tps_t::val2_t(0,vy));
 	  return true;
 	}
 	return vx->value() == vy->value();
       }
-      cmp(template_tag::KEY& key, const vector<string>& order)
-	: m_key(key), m_order(order) {}
+      cmp(template_tag::KEY& key, const template_tag* tt)
+	: m_key(key), m_tt(tt) {}
       bool operator()(const scope::tps_t::val2_t& x,
 		      const scope::tps_t::val2_t* y)
       {
@@ -2155,15 +2208,15 @@ namespace cxx_compiler {
 	  m_key.clear();
 	  return false;
 	}
-        const auto& order = ps->templ_base::m_tps.m_order;
 	auto ret = mismatch(begin(key), begin(key)+n, begin(*m_pv),
-			    cmp(m_key, order));
+			    cmp(m_key, ps));
 	if (ret != make_pair(begin(key)+n, begin(*m_pv)+n)) {
 	  m_key.clear();
 	  return false;
 	}
 	if (n <= m)
 	  find_if(begin(*m_pv)+n,begin(*m_pv)+m, tparam_or_cp(m_key));
+	const auto& order = ps->templ_base::m_tps.m_order;
 	int n2 = order.size();
 	if (!match_x(&n2, m_key.size(), dots, false, 0, 0)) {
 	  m_key.clear();

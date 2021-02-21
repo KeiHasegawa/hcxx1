@@ -2374,7 +2374,8 @@ int cxx_compiler::record_impl::layouter::operator()(int offset, usr* member)
         }
       }
       if (!instantiate_with_template_param<template_tag>() &&
-	  !instantiate_with_typename<template_tag>()) {
+	  !instantiate_with_typename<template_tag>() &&
+	  parse::templ::save_t::nest.empty()) {
         using namespace error::classes;
         incomplete_member(member);
       }
