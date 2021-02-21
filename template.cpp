@@ -2728,15 +2728,16 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
   tinfos.pop_back();
   instantiated_tag* ret = nest.back().m_it;
   const type* using_type = nest.back().m_using;
+  struct x {
+    ~x(){ nest.pop_back(); }
+  } x;
   if (!ret) {
     string name = instantiated_name();
     map<string, tag*>& tags = scope::current->m_tags;
     typedef map<string, tag*>::const_iterator IT;
     IT p = tags.find(name);
-    if (p != tags.end()) {
-      nest.pop_back();
+    if (p != tags.end())
       return p->second;
-    }
     ret = new instantiated_tag(m_kind, name, parse::position,
                 	       m_bases, this, key);
     tags[name] = ret;
@@ -2745,7 +2746,6 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
     ret->m_types.first = incomplete_tagged_type::create(ret);
     ret->m_types.second = using_type;
   }
-  nest.pop_back();
   // ret->m_src == this is almost all true except for bellow situation:
   // template<class C> using X = S<C>;
   m_table[key] = ret;
