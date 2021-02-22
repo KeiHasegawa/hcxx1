@@ -2985,6 +2985,8 @@ instantiate_common(vector<scope::tps_t::val2_t*>* pv, info_t::mode_t mode)
       return this;
     if (instantiate_with_template_param<template_usr>())
       return this;
+    if (instantiate_with_template_param<template_tag>())
+      return this;
     var* v = q->second;
     const type* T = v->m_type;
     if (T->m_id == type::BACKPATCH)
