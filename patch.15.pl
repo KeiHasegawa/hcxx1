@@ -46,8 +46,11 @@ print<<EOF
       usr::flag_t flag = u->m_flag;
       usr::flag2_t flag2 = u->m_flag2;
       if (!(flag & usr::TYPEDEF) && !(flag2 & usr::ALIAS)) {
-        YYDPRINTF((stderr, "patch.15 is applied\\n"));
-        yyn = $bbb + 1;
+	if (!(flag2 & usr::TEMPLATE) ||
+	    !static_cast<template_usr*>(u)->m_express_type) {
+          YYDPRINTF((stderr, "patch.15 is applied\\n"));
+          yyn = $bbb + 1;
+	}
       }
     }
   }
@@ -64,8 +67,11 @@ print <<EOF2
     if (usr* u = p->first) {
       usr::flag_t flag = u->m_flag;
       usr::flag2_t flag2 = u->m_flag2;
-      if ((flag & usr::TYPEDEF) || (flag2 & usr::ALIAS))
-        parse::identifier::mode = parse::identifier::new_obj;
+      if ((flag & usr::TYPEDEF) || (flag2 & usr::ALIAS) ||
+	  (flag2 & usr::TEMPLATE) &&
+	  (static_cast<template_usr*>(u)->m_express_type)) {
+	  parse::identifier::mode = parse::identifier::new_obj;
+      }
     }
   }
 EOF2

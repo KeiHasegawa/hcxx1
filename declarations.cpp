@@ -1763,8 +1763,10 @@ cxx_compiler::declarations::exchange(bool installed, usr* new_one, usr* org)
   using namespace std;
   if (installed) {
     string name = org->m_name;
-    map<string, vector<usr*> >& usrs = org->m_scope->m_usrs;
-    vector<usr*>& v = usrs[name];
+    auto& usrs = org->m_scope->m_usrs;
+    auto p = usrs.find(name);
+    assert(p != usrs.end());
+    auto& v = p->second;
     assert(v.back() == org);
     v.back() = new_one;
   }
@@ -2441,6 +2443,7 @@ namespace cxx_compiler {
 	assert(!tps.empty());
 	const scope::tps_t& b = tps.back();
 	template_usr* tu = new template_usr(*al, b, false);
+	tu->m_express_type = true;
 	p->m_usr = tu;
 	usrs[name].push_back(tu);
       }
@@ -2488,6 +2491,7 @@ namespace cxx_compiler {
 	    save_t* p = save_t::nest.back();
 	    assert(!p->m_usr);
 	    template_usr* tu = new template_usr(*tdef, b, false);
+	    tu->m_express_type = true;
 	    tu->m_flag = usr::flag_t(tu->m_flag & ~usr::TYPEDEF);
 	    tu->m_scope = scope::current;
 	    p->m_usr = tu;
@@ -2498,6 +2502,6 @@ namespace cxx_compiler {
         alias_usr* al = new alias_usr(tdef);
         usrs[name].push_back(al);
       }
-    } // end of namespace declarations
+    } // end of namespace use
   } // end of namespace declarations
 } // end of namespace cxx_compiler

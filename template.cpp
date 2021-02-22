@@ -781,9 +781,10 @@ namespace cxx_compiler {
 
 namespace cxx_compiler {
   vector<template_usr::info_t> template_usr::nest;
-  template_usr::template_usr(usr& u, const scope::tps_t& tps, bool patch_13_2)
+  template_usr::template_usr(usr& u, const scope::tps_t& tps,
+			     bool patch_13_2)
     : usr(u), templ_base(tps), m_patch_13_2(patch_13_2), m_decled(0),
-      m_prev(0), m_next(0), m_outer(0)
+      m_prev(0), m_next(0), m_outer(0), m_express_type(false)
   {
     m_flag2 = usr::flag2_t(m_flag2 | usr::TEMPLATE);
     if (m_flag2 & usr::HAS_DEFAULT_ARG) {

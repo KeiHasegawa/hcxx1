@@ -1832,6 +1832,7 @@ struct template_usr : usr, templ_base {
   usr* m_prev;
   template_usr* m_next;
   template_usr* m_outer;
+  bool m_express_type;
   template_usr(usr& u, const scope::tps_t& tps, bool patch_13_2);
   virtual usr* instantiate(vector<var*>* arg, KEY* trial);
   usr* instantiate(const KEY& key, usr::flag2_t);
