@@ -2293,6 +2293,23 @@ namespace cxx_compiler {
 	tag* tmp = info.m_it;
 	tmp->m_types = make_pair(incomplete_tagged_type::create(tmp), T);
       }
+      inline template_tag*
+      create(const type* T, string name, const scope::tps_t& b)
+      {
+	tag* ptr = T->get_tag();
+	if (T->m_id == type::TEMPLATE_PARAM) {
+	  tag::kind_t kind = ptr->m_kind;
+	  ptr = new tag(kind, name, parse::position, 0);
+	  assert(!class_or_namespace_name::before.empty());
+	  assert(class_or_namespace_name::before.back() == ptr);
+	  class_or_namespace_name::before.pop_back();
+	  ptr->m_types.first = incomplete_tagged_type::create(ptr);
+	  ptr->m_parent = scope::current;
+	  auto& children = scope::current->m_children;
+	  children.push_back(ptr);
+	}
+	return new template_tag(*ptr, b);
+      }
       void common_b(string name, const type* T)
       {
 	map<string, tag*>& tags = scope::current->m_tags;
@@ -2316,7 +2333,7 @@ namespace cxx_compiler {
 	    assert(!save_t::nest.empty());
 	    save_t* p = save_t::nest.back();
 	    assert(!p->m_tag);
-	    template_tag* tt = new template_tag(*ptr, b);
+	    template_tag* tt = create(T, name, b);
 	    p->m_tag = tt;
 	    tags[name] = tt;
 	    return;
