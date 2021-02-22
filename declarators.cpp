@@ -141,8 +141,14 @@ function::action(const type* T,
       param.push_back(void_type::create());
       return T->patch(func_type::create(backpatch_type::create(),param),u);
     }
-    if (spec_ret)
-      error::not_implemented();
+    if (spec_ret) {
+      assert(T->m_id == type::FUNC);
+      typedef const func_type FT;
+      FT* ft = static_cast<FT*>(T);
+      const type* R = ft->return_type();
+      if (!compatible(spec_ret, R))
+	error::not_implemented();
+    }
     return T;
   }
 }
@@ -598,6 +604,12 @@ function::definition::begin(declarations::specifier_seq::info_t* p, var* v)
       return;
     if (!partial_ordering::info.empty())
       return;
+    if (flag2 & usr::EXPLICIT_INSTANTIATE) {
+      if (!templ::specialization::nest.empty()) {
+	if (!template_usr::nest.empty())
+	  return;
+      }
+    }
     const vector<const type*>& param = ft->param();
     scope* ptr = u->m_scope;
     if (ptr->m_id == scope::BLOCK)
@@ -900,6 +912,13 @@ action(statements::base* stmt)
   using namespace std;
   auto_ptr<statements::base> sweeper(stmt);
   usr* u = fundef::current->m_usr;
+  usr::flag2_t flag2 = u->m_flag2;
+  if (flag2 & usr::EXPLICIT_INSTANTIATE) {
+    if (!templ::specialization::nest.empty()) {
+      if (!template_usr::nest.empty())
+	return;
+    }
+  }
   using namespace parse::member_function_body;
   if (save_t* save = parse::member_function_body::already_saved(u)) {
     scope* param = save->m_param;

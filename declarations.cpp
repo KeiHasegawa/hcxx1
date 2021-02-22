@@ -1748,6 +1748,9 @@ check_installed(usr* u, specifier_seq::info_t* p, bool* installed)
     if (!(p->m_flag & usr::FRIEND))
       return u;
   }
+  usr::flag2_t flag2 = u->m_flag2;
+  if (flag2 & usr::EXPLICIT_INSTANTIATE)
+    return u;
   usr* ret = new usr(*u);
   ret->m_file = parse::position;
   *installed = false;
