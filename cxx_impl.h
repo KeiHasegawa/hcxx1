@@ -1988,6 +1988,7 @@ struct alias_usr : usr {
   }
   alias_usr(string name, const type* T)
     : usr(name, T, flag_t::NONE, parse::position, flag2_t::ALIAS), m_org(0) {}
+  var* call(std::vector<var*>*);
 };
 
 struct alias_tag : tag {

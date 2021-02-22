@@ -856,6 +856,14 @@ cxx_compiler::partial_ordering::call(std::vector<var*>* arg)
   return call_impl::wrapper(ins, arg, 0);
 }
 
+cxx_compiler::var*
+cxx_compiler::alias_usr::call(std::vector<var*>* arg)
+{
+  if (m_org)
+    return m_org->call(arg);
+  return usr::call(arg);
+}
+
 namespace cxx_compiler {
   namespace call_impl {
     using namespace std;
