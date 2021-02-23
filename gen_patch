@@ -12,3 +12,4 @@ perl patch.04.pl -2 cxx_y.output > patch.04.p2
 perl patch.10.pl -2 cxx_y.output > patch.10.p2
 perl patch.11.pl -2 cxx_y.output > patch.11.p2
 perl patch.15.pl -2 cxx_y.output > patch.15.p2
+perl patch.29.pl -2 cxx_y.output > patch.29.p2

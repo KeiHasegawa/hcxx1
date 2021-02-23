@@ -1509,7 +1509,7 @@ class brace_type : public type {
 public:
   void decl(ostream&, string) const { assert(0); }
   void encode(ostream&) const { assert(0); }
-  int size() const { assert(0); }
+  int size() const { assert(0); return 0; }
   bool scalar() const { return false; }
   const vector<const type*>& types() const { return m_types; }
   static const brace_type* create(const vector<const type*>&);
