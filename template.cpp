@@ -321,8 +321,13 @@ namespace cxx_compiler {
         tag* ptr = tp->get_tag();
 	if (unq)
 	  Ty = Ty->unqualified();
-        if (ptr->m_types.second)
-          return ptr->m_types.second == Ty;
+        if (const type* T2 = ptr->m_types.second) {
+          if (T2 == Ty)
+	    return true;
+	  type::id_t idx = T2->m_id;
+	  type::id_t idy = Ty->m_id;
+	  return idx == idy && idx == type::TEMPLATE_PARAM;
+	}
         ptr->m_types.second = Ty;
         return true;
       }
@@ -474,6 +479,25 @@ namespace cxx_compiler {
         calc tmp(table, true);
         return tmp(Tx, Ty);
       }
+      bool array_case(const type* Tx, const type* Ty,
+		      const map<string, scope::tps_t::value_t>& table,
+		      bool)
+      {
+        assert(Tx->m_id == type::ARRAY);
+        typedef const array_type AT;
+        AT* xat = static_cast<AT*>(Tx);
+        if (Ty->m_id != type::ARRAY)
+	  return false;
+        AT* yat = static_cast<AT*>(Ty);
+	int dx = xat->dim();
+	int dy = yat->dim();
+	if (dx != dy)
+	  return false;
+	Tx = xat->element_type();
+	Ty = yat->element_type();
+        calc tmp(table, true);
+        return tmp(Tx, Ty);
+      }
       bool qualifier_case(const type* Tx, const type* Ty,
                 	  const map<string, scope::tps_t::value_t>& table,
 			  bool)
@@ -492,6 +516,7 @@ namespace cxx_compiler {
           (*this)[type::POINTER] = pointer_case;
           (*this)[type::REFERENCE] = reference_case;
 	  (*this)[type::FUNC] = func_case;
+	  (*this)[type::ARRAY] = array_case;
           (*this)[type::CONST] =
           (*this)[type::VOLATILE] =
           (*this)[type::RESTRICT] = qualifier_case;

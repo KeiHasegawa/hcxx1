@@ -241,7 +241,10 @@ namespace cxx_compiler {
         {
           using namespace expressions::primary::literal;
           addrof* addr = v->addrof_cast();
-          assert(addr);
+	  if (!addr) {
+	    code.push_back(new assign3ac(u, v));
+	    return;
+	  }
           var* ref = addr->m_ref;
           if (int offset = addr->m_offset) {
             var* off = integer::create(offset);
@@ -523,6 +526,7 @@ assign(var* y, argument* arg)
   bool discard = false;
   bool ctor_conv = false;
   usr* exp_ctor = 0;
+  const type* org = T;
   T = expressions::assignment::valid(T, y, &discard, &ctor_conv, &exp_ctor);
   if (!T) {
     using namespace error::declarations::initializers;
@@ -530,7 +534,11 @@ assign(var* y, argument* arg)
       invalid_assign(parse::position,argument::dst,discard);
     return arg->off;
   }
-
+  if (org->m_id == type::REFERENCE) {
+    const type* Ty = y->m_type;
+    if (Ty->m_id == type::REFERENCE)
+      T = org;
+  }
   if (exp_ctor) {
     using namespace error::declarations::initializers;
     implicit(parse::position, exp_ctor);

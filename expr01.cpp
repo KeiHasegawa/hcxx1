@@ -716,6 +716,73 @@ namespace cxx_compiler {
 	  Ty = pty->referenced_type();
 	  return subr(Tx, Ty);
 	}
+	if (idx == type::REFERENCE && idy != type::REFERENCE) {
+	  *m_res = 1;
+	  return false;
+	}
+	if (idx != type::REFERENCE && idy == type::REFERENCE) {
+	  *m_res = -1;
+	  return false;
+	}
+	if (idx == type::REFERENCE && idy == type::REFERENCE) {
+	  typedef const reference_type RT;
+	  RT* rtx = static_cast<RT*>(Tx);
+	  RT* rty = static_cast<RT*>(Ty);
+	  Tx = rtx->referenced_type();
+	  Ty = rty->referenced_type();
+	  return subr(Tx, Ty);
+	}
+	if (idx == type::CONST && idy != type::CONST) {
+	  *m_res = 1;
+	  return false;
+	}
+	if (idx != type::CONST && idy == type::CONST) {
+	  *m_res = -1;
+	  return false;
+	}
+	if (idx == type::CONST && idy == type::CONST) {
+	  typedef const const_type CT;
+	  CT* ctx = static_cast<CT*>(Tx);
+	  CT* cty = static_cast<CT*>(Ty);
+	  Tx = ctx->referenced_type();
+	  Ty = cty->referenced_type();
+	  return subr(Tx, Ty);
+	}
+	if (idx == type::VOLATILE && idy != type::VOLATILE) {
+	  *m_res = 1;
+	  return false;
+	}
+	if (idx != type::VOLATILE && idy == type::VOLATILE) {
+	  *m_res = -1;
+	  return false;
+	}
+	if (idx == type::VOLATILE && idy == type::VOLATILE) {
+	  typedef const volatile_type VT;
+	  VT* vtx = static_cast<VT*>(Tx);
+	  VT* vty = static_cast<VT*>(Ty);
+	  Tx = vtx->referenced_type();
+	  Ty = vty->referenced_type();
+	  return subr(Tx, Ty);
+	}
+	if (idx == type::ARRAY && idy != type::ARRAY) {
+	  *m_res = 1;
+	  return false;
+	}
+	if (idx != type::ARRAY && idy == type::ARRAY) {
+	  *m_res = -1;
+	  return false;
+	}
+	if (idx == type::ARRAY && idy == type::ARRAY) {
+	  typedef const array_type AT;
+	  AT* atx = static_cast<AT*>(Tx);
+	  AT* aty = static_cast<AT*>(Ty);
+	  int dx = atx->dim();
+	  int dy = aty->dim();
+	  assert(dx == dy);
+	  Tx = atx->element_type();
+	  Ty = aty->element_type();
+	  return subr(Tx, Ty);
+	}
 	error::not_implemented();
 	return true;
       }
@@ -2551,6 +2618,10 @@ assignment::valid(const type* T, var* src, bool* discard, bool* ctor_conv,
         return 0;
       }
     }
+    type::id_t idx = X->m_id;
+    type::id_t idy = T->m_id;
+    if (idx == idy && idx == type::TEMPLATE_PARAM)
+      return xx;
   }
 
   if (yy->m_id == type::REFERENCE) {
