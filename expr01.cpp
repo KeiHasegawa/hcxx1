@@ -302,6 +302,8 @@ cxx_compiler::genaddr::call(std::vector<var*>* arg)
     u = tu->instantiate(arg, 0);
     (void)instantiate_if(u);
   }
+  else
+    (void)instantiate_if(u);
   const type* T = u->m_type;
   if (T->m_id != type::FUNC) {
     using namespace error::expressions::postfix::call;
@@ -524,18 +526,30 @@ namespace cxx_compiler {
       }
       return 0;
     }
-    instantiated_tag* get_it(tag* ptr)
-    {
-      if (ptr->m_flag & tag::INSTANTIATE)
-        return static_cast<instantiated_tag*>(ptr);
-      scope* parent = ptr->m_parent;
-      if (!(parent->m_id & scope::TAG))
-        return 0;
-      ptr = static_cast<tag*>(parent);
-      return get_it(ptr);
-    }
   } // end of namespace member_function_impl
+  instantiated_tag* get_it(tag* ptr)
+  {
+    if (ptr->m_flag & tag::INSTANTIATE)
+      return static_cast<instantiated_tag*>(ptr);
+    scope* parent = ptr->m_parent;
+    if (!(parent->m_id & scope::TAG))
+      return 0;
+    ptr = static_cast<tag*>(parent);
+    return get_it(ptr);
+  }
 } // end of namespace cxx_compiler
+
+cxx_compiler::var*
+cxx_compiler::instantiated_usr::call(std::vector<var*>* arg)
+{
+  assert(!declarations::templ::nested_gened);
+  (void)instantiate_if(this);
+  if (auto tu = declarations::templ::nested_gened) {
+    tu->instantiate(m_seed, usr::EXPLICIT_INSTANTIATE);
+    declarations::templ::nested_gened = 0;
+  }
+  return usr::call(arg);
+}
 
 cxx_compiler::usr* cxx_compiler::instantiate_if(usr* fun)
 {
@@ -544,7 +558,7 @@ cxx_compiler::usr* cxx_compiler::instantiate_if(usr* fun)
   if (ps->m_id != scope::TAG)
     return fun;
   tag* ptr = static_cast<tag*>(ps);
-  instantiated_tag* it = member_function_impl::get_it(ptr);
+  auto it = get_it(ptr);
   if (!it)
     return fun;
   template_tag* tt = it->m_src;
@@ -1250,6 +1264,8 @@ cxx_compiler::var* cxx_compiler::call_impl::convert::operator()(var* arg)
     mismatch_argument(parse::position,m_counter,discard,m_func);
     return arg;
   }
+  if (T->m_id == type::TEMPLATE_PARAM)
+    return arg;
   if (T->scalar()) {
     const type* Ty = arg->m_type;
     Ty = Ty->unqualified();
@@ -1991,8 +2007,10 @@ cxx_compiler::var::member(var* expr, bool dot,
   if (!member)
     return expr;
   usr::flag_t flag = member->m_flag;
-  if (flag & usr::STATIC)
+  if (flag & usr::STATIC) {
+    instantiate_static_def(member);
     return member;
+  }
   if (flag & usr::ENUM_MEMBER) {
     enum_member* p = static_cast<enum_member*>(member);
     return p->m_value;
@@ -2485,6 +2503,14 @@ assignment::valid(const type* T, var* src, bool* discard, bool* ctor_conv,
         return T;
     }
   }
+  if (xx->m_id == type::TEMPLATE_PARAM) {
+    if (yy->m_id == type::INCOMPLETE_TAGGED) {
+      if (tag* ptr = yy->get_tag()) {
+	tag::kind_t kind = ptr->m_kind;
+	return kind == tag::TYPENAME ? xx : 0;
+      }
+    }
+  }
 
   if ( xx->arithmetic() && yy->arithmetic() )
     return xx;
@@ -2686,7 +2712,6 @@ assignment::valid(const type* T, var* src, bool* discard, bool* ctor_conv,
     }
     error::not_implemented();
   }
-
   return 0;
 }
 

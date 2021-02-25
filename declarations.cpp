@@ -1005,12 +1005,23 @@ namespace cxx_compiler { namespace declarations {
     assert(ps->m_id == scope::TAG);
     return static_cast<tag*>(ps);
   }
+    inline bool should_update_scope(usr* u)
+    {
+      usr::flag2_t flag2 = u->m_flag2;
+      if (flag2 & usr::NESTED_MEMBER)
+	return false;
+      if (flag2 & usr::TEMPLATE) {
+	if (!parse::templ::save_t::nest.empty())
+	  return false;
+      }
+      return true;
+    }
 } } // end of namespace declarations and cxx_compiler
 
 cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr)
 {
   using namespace std;
-  if (!(curr->m_flag2 & usr::NESTED_MEMBER))
+  if (should_update_scope(curr))
     curr->m_scope = scope::current;
   string name = curr->m_name;
   if ( name == "__func__" ){
@@ -1168,7 +1179,7 @@ cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr)
 
 namespace cxx_compiler {
   namespace declarations {
-    bool conflict(usr::flag_t, usr::flag_t);
+    bool conflict(usr::flag_t, usr::flag_t, scope::id_t id);
     bool conflict(const type*, const type*);
     bool conflict_tu(template_usr*, template_usr*);
   } // end of namespace declarations
@@ -1176,15 +1187,23 @@ namespace cxx_compiler {
 
 bool cxx_compiler::declarations::conflict(usr* x, usr* y)
 {
-  if (conflict(x->m_flag,y->m_flag)) {
+  scope::id_t id = x->m_scope->m_id;
+  if (conflict(x->m_flag,y->m_flag,id)) {
     if (!x->m_type) {
       usr::flag_t flag = x->m_flag;
       usr::flag2_t flag2 = x->m_flag2;
       assert((flag & usr::OVERLOAD) || (flag2 & usr::PARTIAL_ORDERING));
       return false;
     }
-    if (x->m_type->m_id != type::FUNC)
+    const type* Tx = x->m_type;
+    type::id_t idx = Tx->m_id;
+    switch (idx) {
+    case type::FUNC:
+    case type::TEMPLATE_PARAM:
+      break;
+    default:
       return true;
+    }
   }
   if (scope::current == &scope::root) {
     if ((x->m_flag & usr::WITH_INI) && (y->m_flag & usr::WITH_INI))
@@ -1222,7 +1241,8 @@ namespace cxx_compiler {
   } // end of namespace declarations
 } // end of namespace cxx_compiler
 
-bool cxx_compiler::declarations::conflict(usr::flag_t x, usr::flag_t y)
+bool cxx_compiler::declarations::
+conflict(usr::flag_t x, usr::flag_t y, scope::id_t id)
 {
   using namespace std;
   if ((x & usr::ENUM_MEMBER) || (y & usr::ENUM_MEMBER))
@@ -1232,7 +1252,6 @@ bool cxx_compiler::declarations::conflict(usr::flag_t x, usr::flag_t y)
   x = usr::flag_t(x & mask);
   y = usr::flag_t(y & mask);
   pair<usr::flag_t, usr::flag_t> key(x,y);
-  scope::id_t id = scope::current->m_id;
   switch (id) {
   case scope::NONE: case scope::NAMESPACE: return ctbl.m_root[key];
   case scope::TAG: return ctbl.m_tag[key];

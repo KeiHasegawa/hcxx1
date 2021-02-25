@@ -5,6 +5,57 @@
 #include "cxx_y.h"
 
 namespace cxx_compiler {
+  bool typenamed_or_templ_param(const scope::tps_t::val2_t& v)
+  {
+    const type* T = v.first;
+    if (!T) {
+      var* v2 = v.second;
+      if (addrof* a = v2->addrof_cast())
+	v2 = a->m_ref;
+      assert(v2->usr_cast());
+      usr* u = static_cast<usr*>(v2);
+      usr::flag2_t flag2 = u->m_flag2;
+      return flag2 & usr::TEMPL_PARAM;
+    }
+    tag* ptr = T->get_tag();
+    if (!ptr)
+      return false;
+    tag::flag_t flag = ptr->m_flag;
+    return flag & tag::TYPENAMED;
+  }
+  bool instantiate_static_def(usr* u)
+  {
+    usr::flag_t uf = u->m_flag;
+    if (!(uf & usr::STATIC))
+      return false;
+    scope* ps = u->m_scope;
+    if (ps->m_id != scope::TAG)
+      return false;
+    tag* ptr = static_cast<tag*>(ps);
+    auto it = get_it(ptr);
+    if (!it)
+      return false;
+    auto tt = it->m_src;
+    const auto& key = it->m_seed;
+    auto r = find_if(begin(key), end(key), typenamed_or_templ_param);
+    if (r != end(key))
+      return false;
+    string name = u->m_name;
+    const auto& def = tt->m_static_def;
+    auto p = find_if(begin(def), end(def), 
+		     [name](template_usr* tu){ return tu->m_name == name; });
+    if (p == end(def)) {
+      tt->m_static_refed.insert(u);
+      return false;
+    }
+    template_usr* tu = *p;
+    auto pv = new vector<scope::tps_t::val2_t*>;
+    transform(begin(key), end(key), back_inserter(*pv),
+	      declarations::templ::create);
+    tu->instantiate_static_def(pv);
+    return true;
+  }
+
   namespace expressions {
     namespace primary {
       using namespace std;
@@ -12,9 +63,17 @@ namespace cxx_compiler {
       var* action(var* v, const vector<route_t>& route)
       {
         using namespace std;
+	if (genaddr* ga = v->genaddr_cast()) {
+	  var* ref = ga->m_ref;
+	  assert(ref->usr_cast());
+	  usr* u = static_cast<usr*>(ref);
+	  instantiate_static_def(u);
+	  return v;
+	}
         usr* u = v->usr_cast();
         if (!u)
           return v;
+	instantiate_static_def(u);
 	if (var* ret = templ_parameter::resolve(u))
 	  return ret;
         if (!fundef::current)

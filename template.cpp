@@ -191,13 +191,16 @@ namespace cxx_compiler {
           scope* p = u->m_scope;
           template_tag* tt = get_tt(p);
           tt->m_static_def.push_back(tu);
+	  auto& refed = tt->m_static_refed;
+	  for (auto p = begin(refed) ; p != end(refed) ; ) {
+	    if (instantiate_static_def(*p))
+	      p = refed.erase(p);
+	    else
+	      ++p;
+	  }
         }
         else
           after_instantiate(tu);
-      }
-      inline scope::tps_t::val2_t* create(const scope::tps_t::val2_t& x)
-      {
-        return new scope::tps_t::val2_t(x);
       }
       inline void dispatch(pair<template_tag::KEY, tag*> x, template_tag* tt)
       {
@@ -2336,35 +2339,6 @@ namespace cxx_compiler {
 	return get_ps(prev, pv, pv_dots, special_ver, res);
       return 0;
     }
-    bool typenamed_or_templ_param(const scope::tps_t::val2_t& v)
-    {
-      const type* T = v.first;
-      if (!T) {
-	var* v2 = v.second;
-	if (addrof* a = v2->addrof_cast())
-	  v2 = a->m_ref;
-	assert(v2->usr_cast());
-	usr* u = static_cast<usr*>(v2);
-	usr::flag2_t flag2 = u->m_flag2;
-	return flag2 & usr::TEMPL_PARAM;
-      }
-      tag* ptr = T->get_tag();
-      if (!ptr)
-	return false;
-      tag::flag_t flag = ptr->m_flag;
-      return flag & tag::TYPENAMED;
-    }
-    struct instantiate {
-      const template_tag::KEY& m_key;
-      instantiate(const template_tag::KEY& key) : m_key(key) {}
-      void operator()(template_usr* tu)
-      {
-        vector<scope::tps_t::val2_t*>* pv = new vector<scope::tps_t::val2_t*>;
-        transform(begin(m_key), end(m_key), back_inserter(*pv),
-                  declarations::templ::create);
-        tu->instantiate_static_def(pv);
-      }
-    };
     inline void modify(template_tag* tt, scope::tps_t::val2_t* p)
     {
       string pn = new_name(".pn");
@@ -2775,12 +2749,6 @@ template_tag::common(std::vector<scope::tps_t::val2_t*>* pv,
   // ret->m_src == this is almost all true except for bellow situation:
   // template<class C> using X = S<C>;
   m_table[key] = ret;
-  auto r = find_if(begin(key), end(key),
-		   template_tag_impl::typenamed_or_templ_param);
-  if (r == end(key)) {
-    for_each(begin(m_static_def), end(m_static_def),
-	     template_tag_impl::instantiate(key));
-  }
   return ret;
 }
 
@@ -3156,7 +3124,8 @@ namespace cxx_compiler {
       mismatch(begin(xseed), end(xseed), begin(yseed), calc(key, order));
       return comp(x->m_parent, y->m_parent, key, order);
     }
-    bool non_func_case(template_usr* tu, usr* ins, templ_base::KEY& key)
+    bool non_func_static_def(template_usr* tu, usr* ins,
+			     templ_base::KEY& key)
     {
       usr::flag_t xf = tu->m_flag;
       assert(xf & usr::STATIC_DEF);
@@ -3206,6 +3175,60 @@ namespace cxx_compiler {
       if (x == y)
         return comp(tu->m_scope, ins->m_scope, key, order);
       return false;
+    }
+    bool non_func_static(template_usr* tu, usr* ins, templ_base::KEY& key)
+    {
+      usr::flag_t xf = tu->m_flag;
+      assert(xf & usr::STATIC);
+      usr::flag_t yf = ins->m_flag;
+      assert(yf & usr::STATIC);
+      scope* xs = tu->m_scope;
+      assert(xs->m_id == scope::TAG);
+      scope* ys = ins->m_scope;
+      assert(ys->m_id == scope::TAG);
+      tag* px = static_cast<tag*>(xs);
+      tag* py = static_cast<tag*>(ys);
+      assert(px == py);
+      const type* Tt = tu->m_type;
+      Tt = Tt->unqualified();
+      const type* Ti = ins->m_type;
+      Ti = Ti->unqualified();
+      assert(Tt->m_id == type::TEMPLATE_PARAM);
+      tag* ptr = Tt->get_tag();
+      string name = ptr->m_name;
+      const auto& order = tu->m_tps.m_order;
+      using namespace template_tag_impl;
+      set_key(name, order, key, scope::tps_t::val2_t(Ti, 0));
+      return true;
+    }
+    bool non_func_case(template_usr* tu, usr* ins, templ_base::KEY& key)
+    {
+      usr::flag_t xf = tu->m_flag;
+      if (xf & usr::STATIC_DEF)
+	return non_func_static_def(tu, ins, key);
+      if (xf & usr::STATIC)
+	return non_func_static(tu, ins, key);
+      assert(xf == usr::NONE);
+      usr::flag_t yf = ins->m_flag;
+      assert(yf == usr::NONE);
+      scope* xs = tu->m_scope;
+      assert(xs->m_id == scope::TAG);
+      scope* ys = ins->m_scope;
+      assert(ys->m_id == scope::TAG);
+      tag* px = static_cast<tag*>(xs);
+      tag* py = static_cast<tag*>(ys);
+      assert(px == py);
+      const type* Tt = tu->m_type;
+      Tt = Tt->unqualified();
+      const type* Ti = ins->m_type;
+      Ti = Ti->unqualified();
+      assert(Tt->m_id == type::TEMPLATE_PARAM);
+      tag* ptr = Tt->get_tag();
+      string name = ptr->m_name;
+      const auto& order = tu->m_tps.m_order;
+      using namespace template_tag_impl;
+      set_key(name, order, key, scope::tps_t::val2_t(Ti, 0));
+      return true;
     }
     inline bool helper(template_usr* tu, usr* ins, templ_base::KEY& key)
     {

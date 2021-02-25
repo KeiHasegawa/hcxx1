@@ -1163,6 +1163,7 @@ struct instantiated_usr : usr {
   var* minus();
   var* _not();
   var* tilde();
+  var* call(std::vector<var*>*);
 };
 
 struct base {

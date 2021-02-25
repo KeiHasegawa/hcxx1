@@ -870,6 +870,7 @@ namespace declarations {
   namespace templ {
     extern void decl_begin();
     extern void decl_end();
+    extern template_usr* nested_gened;
     namespace id {
       extern pair<usr*, tag*>*
       action(pair<usr*, tag*>*, vector<scope::tps_t::val2_t*>*, bool, bool);
@@ -877,6 +878,10 @@ namespace declarations {
     namespace specialization {
       extern stack<scope*> nest;
     } // end of namespace specialization
+    inline scope::tps_t::val2_t* create(const scope::tps_t::val2_t& x)
+    {
+      return new scope::tps_t::val2_t(x);
+    }
   } // end of namespace templ
   type_specifier* decl_type(expressions::base*);
   type_specifier* under_type(const type*);
@@ -1711,6 +1716,7 @@ struct member_function : var {
 };
 
 usr* instantiate_if(usr*);
+bool instantiate_static_def(usr*);
 
 var* fun_ptr_mem(tag* ptr, usr* fun);
 
@@ -1881,6 +1887,7 @@ struct template_tag : templ_base, tag {
   template_tag* m_prev;
   vector<partial_special_tag*> m_partial_special;
   vector<template_usr*> m_static_def;
+  set<usr*> m_static_refed;
   bool m_created;
   template_tag(tag& t, const scope::tps_t& tps)
     : tag(t), templ_base(tps), m_prev(0), m_created(false)
@@ -2026,6 +2033,8 @@ struct const_usr : usr {
 };
 
 extern std::map<scope*, scope*> copied_tps;
+
+instantiated_tag* get_it(tag* ptr);
 
 } // end of namespace cxx_compiler
 

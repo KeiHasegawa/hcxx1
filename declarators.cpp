@@ -967,6 +967,10 @@ action(statements::base* stmt)
   fundef::current = 0;
 }
 
+namespace cxx_compiler {
+  template_usr* declarations::templ::nested_gened;
+} // end of namepsace cxx_compiler
+
 void cxx_compiler::declarations::declarators::
 function::definition::action(fundef* fdef, std::vector<tac*>& vc)
 {
@@ -979,7 +983,17 @@ function::definition::action(fundef* fdef, std::vector<tac*>& vc)
     using namespace parse::templ;
     if (!save_t::nest.empty()) {
       save_t* p = save_t::nest.back();
-      assert(p->m_usr == u);
+      // p->m_usr == u is almost true.
+      // But case of nested template like:
+      // template<class C1> template<class C2> void f(...) { /* ... */ }
+      // p->m_usr == u is not true
+      if (template_usr::nest.empty())
+	assert(p->m_usr == u);
+      else {
+	assert(p->m_usr->m_flag2 & usr::TEMPLATE);
+	declarations::templ::nested_gened
+	  = static_cast<template_usr*>(p->m_usr);
+      }
     }
     else
       assert(parse::templ::ptr);
