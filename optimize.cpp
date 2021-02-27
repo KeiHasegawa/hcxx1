@@ -5,15 +5,18 @@
 namespace cxx_compiler { namespace optimize {
   void goto_to(vector<tac*>&);
   void empty_to3ac(vector<tac*>&);
-  namespace basic_block { extern void action(fundef*, std::vector<tac*>&); }
+  namespace basic_block {
+    extern void action(fundef*, std::vector<tac*>&, bool for_constexpr);
+  }
 } } // end of namespace optimize and cxx_compiler
 
-void cxx_compiler::optimize::action(fundef* fdef, std::vector<tac*>& v)
+void cxx_compiler::optimize::action(fundef* fdef, std::vector<tac*>& v,
+				    bool for_constexpr)
 {
   goto_to(v);
   empty_to3ac(v);
   if (cmdline::bb_optimize)
-    basic_block::action(fdef, v);
+    basic_block::action(fdef, v, for_constexpr);
 }
 
 void cxx_compiler::optimize::goto_to(std::vector<tac*>& vt)
@@ -82,9 +85,13 @@ namespace cxx_compiler { namespace optimize { namespace basic_block {
 } } } // end of namespace basic_block, optimize and cxx_compiler
 
 
-namespace cxx_compiler { namespace optimize { namespace live_var {
-  extern void analize(const std::vector<basic_block::info_t*>&);
-} } } // end of namespace live_var, optimize and cxx_compiler
+namespace cxx_compiler {
+  namespace optimize {
+    namespace live_var {
+      extern void analize(const std::vector<basic_block::info_t*>&);
+    } // end of namespace live_var
+  } // end of namespace optimize
+} // end of namespace cxx_compiler
 
 namespace cxx_compiler { namespace optimize { namespace symtab {
   extern int simplify(scope*, std::vector<tac*>*);
@@ -94,32 +101,42 @@ namespace cxx_compiler { namespace optimize { namespace symtab {
   } // end of namespace literal
 } } } // end of namespace symtab, optimize and cxx_compiler
 
-void
-cxx_compiler::optimize::basic_block::action(fundef* fdef, std::vector<tac*>& v)
+void cxx_compiler::optimize::basic_block::
+action(fundef* fdef, std::vector<tac*>& v, bool for_constexpr)
 {
   using namespace std;
-  usr* u = fdef->m_usr;
+  usr* u = fdef ? fdef->m_usr : 0;
   if ( cmdline::output_medium && cmdline::output_optinfo ){
     cout << "Before optimization\n";
     scope* org = scope::current;
     scope::current = &scope::root;
-    cout << dump::names::ref(u) << ":\n";
+    if (u)
+      cout << dump::names::ref(u);
+    else
+      cout << "(no function)";
+    cout << ":\n";
     scope::current = org;
     for (auto p : v)
       cout << '\t', dump::tacx(cout, p), cout << '\n';
     cout << '\n';
     dump::scopex();
   }
-  vector<info_t*> bbs;
-  create(v,bbs);
-  live_var::analize(bbs);
-  if (cmdline::dag_optimize) {
-    dag::action_t seed;
-    for_each(bbs.begin(),bbs.end(),bind2nd(ptr_fun(dag::action),&seed));
-    v = seed.conv;
+  int N = cmdline::optimize_level;
+  for (int i = 0 ; i != N ; ++i) {
+    misc::pvector<info_t> bbs;
+    create(v,bbs);
+    live_var::analize(bbs);
+    if (cmdline::dag_optimize) {
+      dag::action_t seed;
+      for_each(bbs.begin(),bbs.end(),bind2nd(ptr_fun(dag::action),&seed));
+      int n = v.size();
+      v = seed.conv;
+      if (n == v.size())
+	break;
+    }
   }
-  for (auto p : bbs)
-    delete p;
+  if (for_constexpr)
+    return;
   {
     scope* p = fdef->m_param;
     vector<scope*>& children = p->m_children;
@@ -531,7 +548,8 @@ namespace cxx_compiler { namespace optimize { namespace basic_block {
   std::map<var*, std::vector<std::pair<tac**,bool> > > live;
 } } } // end of namespace basic_block, optimize and cxx_compiler
 
-void cxx_compiler::optimize::live_var::analize(const std::vector<basic_block::info_t*>& bbs)
+void cxx_compiler::optimize::live_var::
+analize(const std::vector<basic_block::info_t*>& bbs)
 {
   using namespace std;
   in.clear(); out.clear(); def.clear(); use.clear();
@@ -703,15 +721,96 @@ cxx_compiler::optimize::basic_block::dag::generate::action(action_t* act)
   v.clear();
 }
 
-namespace cxx_compiler { namespace optimize { namespace basic_block { namespace dag { namespace generate {
-  var* assigns(dag::info_t*, action_t*);
-  bool liveout(var*, basic_block::info_t*);
-  bool use_after(var*, action_t*);
-  bool resident(var*, std::pair<dag::info_t*, std::map<var*, dag::info_t*>*>);
-} } } } } // end of namespace generate, dag, basic_block, optimize and cxx_compiler
+namespace cxx_compiler {
+  namespace optimize {
+    namespace basic_block {
+      namespace dag {
+	namespace generate {
+	  using namespace std;
+	  var* assigns(dag::info_t*, action_t*);
+	  bool liveout(var*, basic_block::info_t*);
+	  bool use_after(var*, action_t*);
+	  bool resident(var*, pair<dag::info_t*, map<var*, dag::info_t*>*>);
+	} // end of namespace generate
+      } // end of namespace dag
+    } // end of namespace basic_block
+    namespace constant_conv {
+      typedef var* (var::*BIN)(var*);
+      struct bin_tbl_t : map<tac::id_t, BIN> {
+	bin_tbl_t()
+	{
+	  (*this)[tac::ADD] = &var::add;
+	  (*this)[tac::SUB] = &var::sub;
+	  (*this)[tac::MUL] = &var::mul;
+	  (*this)[tac::DIV] = &var::div;
+	  (*this)[tac::MOD] = &var::mod;
+	  (*this)[tac::LSH] = &var::lsh;
+	  (*this)[tac::RSH] = &var::rsh;
+	  (*this)[tac::AND] = &var::bit_and;
+	  (*this)[tac:: OR] = &var::bit_or;
+	  (*this)[tac::XOR] = &var::bit_xor;
+	}
+      } bin_tbl;
+      typedef var* (var::*UNA)();
+      struct una_tbl_t : map<tac::id_t, UNA> {
+	una_tbl_t()
+	{
+	  (*this)[tac::UMINUS] = &var::minus;
+	  (*this)[tac::TILDE]  = &var::tilde;
+	}
+      } una_tbl;
+      inline var* op(tac* ptr, var* y, var* z)
+      {
+	tac::id_t id = ptr->m_id;
+	auto p = bin_tbl.find(id);
+	if (p != bin_tbl.end()) {
+	  auto v = p->second;
+	  return (y->*v)(z);
+	}
+	auto q = una_tbl.find(id);
+	if (q != una_tbl.end()) {
+	  auto v = q->second;
+	  return (y->*v)();
+	}
+	if (id != tac::CAST)
+	  return 0;
+	cast3ac* cast = static_cast<cast3ac*>(ptr);
+	const type* T = cast->m_type;
+	return y->cast(T);
+      }
+      tac* action(tac* ptr)
+      {
+	var* y = ptr->y;
+	if (y) {
+	  if (!y->isconstant())
+	    return ptr;
+	}
+	var* z = ptr->z;
+	if (z) {
+	  if (!z->isconstant())
+	    return ptr;
+	  const type* T = y->m_type;
+	  z = z->cast(T);
+	}
+	var* x = op(ptr, y, z);
+	if (!x)
+	  return ptr;
+	if (!x->isconstant()) {
+	  tac::id_t id = ptr->m_id;
+	  assert(id == tac::DIV || id == tac::MOD);
+	  assert(z->zero());
+	  return ptr;
+	}
+	delete ptr;
+	return new assign3ac(ptr->x, x);
+      }
+    } // end of namespace constant_conv
+  } // end of namespace optimize
+} // end of namespace cxx_compiler
 
 cxx_compiler::var*
-cxx_compiler::optimize::basic_block::dag::generate::inorder(dag::info_t* d, action_t* act)
+cxx_compiler::optimize::basic_block::
+dag::generate::inorder(dag::info_t* d, action_t* act)
 {
   using namespace std;
   map<dag::info_t*, var*>& result = *act->mt->result;
@@ -730,6 +829,7 @@ cxx_compiler::optimize::basic_block::dag::generate::inorder(dag::info_t* d, acti
     assert(p != result.end());
     ptr->z = p->second;
   }
+  ptr = constant_conv::action(ptr);
   int n = conv.size();
   conv.push_back(ptr);
   tac::id_t id = ptr->m_id;

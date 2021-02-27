@@ -84,6 +84,8 @@ std::string cxx_compiler::usr::keyword(flag_t flag)
     os << "auto";
   if (flag & REGISTER)
     os << "register";
+  if (flag & CONSTEXPR)
+    os << "constexpr";
   if (flag & INLINE) {
     string s = os.str();
     if (!s.empty())

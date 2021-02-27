@@ -717,6 +717,10 @@ cxx_compiler::declarations::action1(var* v, bool ini)
       u->m_flag = flag = usr::flag_t(flag | p->m_flag);
       u->m_type = T = T->patch(p->m_type,u);
       flag = u->m_flag;
+      if (flag & usr::FUNCTION) {
+	if (flag & usr::CONSTEXPR)
+	  flag = u->m_flag = usr::flag_t(flag | usr::INLINE);
+      }
     }
   }
   else {

@@ -1013,7 +1013,7 @@ function::definition::action(fundef* fdef, std::vector<tac*>& vc)
       return;
   }
   if (!error::counter && cmdline::optimize_level >= 1)
-    optimize::action(fdef, vc);
+    optimize::action(fdef, vc, false);
   usr::flag_t flag = u->m_flag;
   usr::flag_t mask = usr::flag_t(usr::VIRTUAL | usr::OVERRIDE);
   if ((flag & usr::INLINE) && !(flag & mask))
@@ -1251,7 +1251,7 @@ namespace cxx_compiler { namespace declarations { namespace declarators { namesp
         if (vi.empty()) {
           positions.erase(p);
           if (cmdline::optimize_level >= 1)
-            optimize::action(caller->m_fundef, caller->m_code);
+            optimize::action(caller->m_fundef, caller->m_code, false);
           usr::flag_t flag = ucaller->m_flag;
           if (!(flag & (usr::STATIC|usr::INLINE))) {
             stbl.erase(q);

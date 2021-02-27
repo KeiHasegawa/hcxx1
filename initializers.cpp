@@ -1249,6 +1249,11 @@ namespace cxx_compiler {
   namespace declarations {
     namespace initializers {
       void change_scope1(tac*, block*);
+      void change_scope(const vector<tac*>& v, block* bp)
+      {
+	for_each(begin(v), end(v),
+		 bind2nd(ptr_fun(change_scope1),bp));
+      }
       void scalar(std::map<int, var*>::iterator, var*, block*);
       void aggregate(std::map<int, var*>::iterator, var*, block*);
       inline void for_with_initial(with_initial* x, block* body)
@@ -1341,6 +1346,13 @@ void cxx_compiler::declarations::initializers::common(usr* u, bool ini)
   param->m_parent = &scope::root;
   scope::root.m_children.push_back(param);
   block* body = new block;
+  using namespace declarations::declarators::function::definition;
+  auto& orphan = static_inline::orphan;
+  auto& children = body->m_children;
+  copy(begin(orphan), end(orphan), back_inserter(children));
+  for_each(begin(orphan), end(orphan),
+	   [body](scope* p){ p->m_parent = body; });
+  orphan.clear();
   assert(!class_or_namespace_name::before.empty());
   assert(class_or_namespace_name::before.back() == body);
   class_or_namespace_name::before.pop_back();
@@ -1349,7 +1361,7 @@ void cxx_compiler::declarations::initializers::common(usr* u, bool ini)
   fundef::current = new fundef(func,param);
 
   if (u->m_flag & usr::WITH_INI) {
-    for_each(code.begin(),code.end(),bind2nd(ptr_fun(change_scope1),body));
+    change_scope(code, body);
     with_initial* p = static_cast<with_initial*>(u);
     scope* org = scope::current;
     scope::current = body;

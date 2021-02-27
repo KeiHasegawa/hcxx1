@@ -931,7 +931,7 @@ template<> struct constant<float> : usr {
   var* logic2(bool, const type*);
   var* cond(int, int, var*, var*);
 
-  bool zero(){ return m_value == 0.0F; }
+  bool zero() const { return m_value == 0.0F; }
   var* _not();
   bool isconstant(bool = false) const { return true; }
   void if_code(statements::if_stmt::info_t*);
@@ -973,7 +973,7 @@ template<> struct constant<double> : usr {
   var* logic2(bool, const type*);
   var* cond(int, int, var*, var*);
 
-  bool zero(){ return m_value == 0.0; }
+  bool zero() const { return m_value == 0.0; }
   var* _not();
   bool isconstant(bool = false) const { return true; }
   void if_code(statements::if_stmt::info_t*);
@@ -1016,7 +1016,7 @@ template<> struct constant<long double> : usr {
   var* logic2(bool, const type*);
   var* cond(int, int, var*, var*);
 
-  bool zero();
+  bool zero() const;
   var* _not();
   bool isconstant(bool = false) const { return true; }
   void if_code(statements::if_stmt::info_t*);

@@ -334,20 +334,7 @@ cxx_compiler::genaddr::call(std::vector<var*>* arg)
       }
     }
   }
-  var* ret = call_impl::common(ft, u, arg, 0, this_ptr,
-                               m_qualified_func, 0);
-  if (!error::counter && !cmdline::no_inline_sub) {
-    if (flag & usr::INLINE) {
-      using namespace declarations::declarators::function;
-      using namespace definition::static_inline;
-      skip::table_t::const_iterator p = skip::stbl.find(u);
-      if (p != skip::stbl.end()) {
-        if (info_t* info = p->second)
-          substitute(code, code.size()-1, info);
-      }
-    }
-  }
-  return ret;
+  return call_impl::common(ft, u, arg, 0, this_ptr, m_qualified_func, 0);
 }
 
 cxx_compiler::var*
@@ -386,23 +373,8 @@ cxx_compiler::member_function::call(std::vector<var*>* arg)
       }
     }
   }
-  var* ret = call_impl::common(ft, fun, arg, 0, m_obj,
-                               m_qualified_func, m_vftbl_off);
-  if (usr* u = fun->usr_cast()) {
-    usr::flag_t flag = u->m_flag;
-    if (!error::counter && !cmdline::no_inline_sub) {
-      if (flag & usr::INLINE) {
-        using namespace declarations::declarators::function;
-        using namespace definition::static_inline;
-        skip::table_t::const_iterator p = skip::stbl.find(u);
-        if (p != skip::stbl.end()) {
-          if (info_t* info = p->second)
-            substitute(code, code.size()-1, info);
-        }
-      }
-    }
-  }
-  return ret;
+  return call_impl::common(ft, fun, arg, 0, m_obj,
+			   m_qualified_func, m_vftbl_off);
 }
 
 namespace cxx_compiler {
@@ -999,20 +971,7 @@ namespace cxx_compiler {
       assert(T->m_id == type::FUNC);
       typedef const func_type FT;
       FT* ft = static_cast<FT*>(T);
-      var* ret = call_impl::common(ft, fun, arg, 0, this_ptr, false, 0);
-      usr::flag_t flag = fun->m_flag;
-      if (!error::counter && !cmdline::no_inline_sub) {
-        if (flag & usr::INLINE) {
-          using namespace declarations::declarators::function;
-          using namespace definition::static_inline;
-          skip::table_t::const_iterator p = skip::stbl.find(fun);
-          if (p != skip::stbl.end()) {
-            if (info_t* info = p->second)
-              substitute(code, code.size()-1, info);
-          }
-        }
-      }
-      return ret;
+      return call_impl::common(ft, fun, arg, 0, this_ptr, false, 0);
     }
     inline var* via_obj(var* obj, var* func, bool qualified_func,
                 	var* vftbl_off, const func_type* ft)
@@ -1097,16 +1056,90 @@ namespace cxx_compiler {
       call_impl::wrapper(copy_ctor, &arg, t0);
       return t0;
     }
+    var* except_inline(const func_type* ft,
+		       var* func,
+		       std::vector<var*>* arg,
+		       int* trial_cost,
+		       var* obj,
+		       bool qualified_func,
+		       var* vftbl_off);
+    var* common(const func_type* ft,
+		var* func,
+		std::vector<var*>* arg,
+		int* trial_cost,
+		var* obj,
+		bool qualified_func,
+		var* vftbl_off)
+    {
+      int n = code.size();
+      var* ret = except_inline(ft, func, arg, trial_cost, obj,
+			       qualified_func, vftbl_off);
+      if (error::counter)
+	return ret;
+      if (cmdline::no_inline_sub)
+	return ret;
+      if (trial_cost)
+	return ret;
+      usr* u = func->usr_cast();
+      if (!u)
+	return ret;
+      usr::flag_t flag = u->m_flag;
+      if (!(flag & usr::INLINE))
+	return ret;
+      using namespace declarations::declarators::function;
+      using namespace definition::static_inline;
+      skip::table_t::const_iterator p = skip::stbl.find(u);
+      if (p == skip::stbl.end())
+	return ret;
+      info_t* info = p->second;
+      if (!info)
+	return ret;
+      substitute(code, code.size()-1, info);
+      if (!(flag & usr::CONSTEXPR))
+	return ret;
+      vector<tac*> tmp;
+      copy(begin(code)+n, end(code), back_inserter(tmp));
+      code.resize(n);
+      if (scope::current->m_id != scope::BLOCK) {
+	assert(!orphan.empty());
+	block* pb = orphan.back();
+	using namespace declarations::initializers;
+	change_scope(tmp, pb);
+	pb->m_parent = scope::current;
+      }
+      scope* org = ret->m_scope;
+      ret->m_scope = &scope::root;  // make `ret' live variable
+      fundef* fdef = fundef::current;
+      optimize::action(fdef, tmp, true);
+      ret->m_scope = org;
+      if (tmp.size() != 1)
+	error::not_implemented();
+      tac* ptr = tmp.back();
+      assert(ptr->m_id == tac::ASSIGN);
+      assert(ptr->x == ret);
+      if (scope::current->m_id ==scope::BLOCK) {
+	block* b = static_cast<block*>(scope::current);
+	auto& vars = b->m_vars;
+	auto p = find(begin(vars), end(vars), ret);
+	assert(p != end(vars));
+	vars.erase(p);
+      }
+      ret = ptr->y;
+      delete ptr;
+      if (!ret->isconstant())
+	error::not_implemented();
+      return ret;
+    }
   } // end of namespace call_impl
 } // end of namespace cxx_compiler
 
 cxx_compiler::var*
-cxx_compiler::call_impl::common(const func_type* ft,
-                                var* func,
-                                std::vector<var*>* arg,
-                                int* trial_cost,
-                                var* obj,
-                                bool qualified_func,
+cxx_compiler::call_impl::except_inline(const func_type* ft,
+				       var* func,
+				       std::vector<var*>* arg,
+				       int* trial_cost,
+				       var* obj,
+				       bool qualified_func,
                                 var* vftbl_off)
 {
   using namespace std;
@@ -1624,9 +1657,12 @@ namespace cxx_compiler {
                   assert(class_or_namespace_name::before.back() == ret);
 		  class_or_namespace_name::before.pop_back();
                 }
-                assert(scope::current->m_id == scope::BLOCK);
-                ret->m_parent = scope::current;
-                scope::current->m_children.push_back(ret);
+		if (scope::current->m_id == scope::BLOCK) {
+		  ret->m_parent = scope::current;
+		  scope::current->m_children.push_back(ret);
+		}
+		else
+		  orphan.push_back(ret);
                 const vector<usr*>& o = param->m_order;
                 vector<var*>& v = ret->m_vars;
                 transform(o.begin(),o.end(),back_inserter(v),
@@ -1730,7 +1766,7 @@ namespace cxx_compiler {
                   pa->m_result->push_back(dup::filter(ptac,pa->m_patch));
               }
             }  // end of namespace substitute_impl
-
+	    vector<block*> orphan;
             void substitute(vector<tac*>& vt, int pos, info_t* info)
             {
               using namespace call_impl;
@@ -2465,19 +2501,6 @@ namespace cxx_compiler {
           for_each(begin(code)+n, end(code), [](tac* p){ delete p; });
           code.resize(n);
         }
-        else {
-          if (!error::counter && !cmdline::no_inline_sub) {
-            if (flag & usr::INLINE) {
-              using namespace declarations::declarators::function;
-              using namespace definition::static_inline;
-              skip::table_t::const_iterator p = skip::stbl.find(ctor);
-              if (p != skip::stbl.end()) {
-                if (info_t* info = p->second)
-                  substitute(code, code.size()-1, info);
-              }
-            }
-          }
-        }
         assert(trial || ret);
         return ret ? obj : 0;
       }
@@ -2955,23 +2978,7 @@ namespace cxx_compiler {
           FT* ft = static_cast<FT*>(T);
           int trial_cost = 0;
           int* pi = (arg->size() == 1) ? &trial_cost : 0;
-          var* ret = call_impl::common(ft, fun, arg, pi, this_ptr,
-                		       false, 0);
-          if (!ret)
-            return 0;
-          usr::flag_t flag = fun->m_flag;
-          if (!error::counter && !cmdline::no_inline_sub) {
-            if (flag & usr::INLINE) {
-              using namespace declarations::declarators::function;
-              using namespace definition::static_inline;
-              skip::table_t::const_iterator p = skip::stbl.find(fun);
-              if (p != skip::stbl.end()) {
-                if (info_t* info = p->second)
-                  substitute(code, code.size()-1, info);
-              }
-            }
-          }
-          return ret;
+          return call_impl::common(ft, fun, arg, pi, this_ptr, false, 0);
         }
         bool copy_code(var* x, var* y)
         {
@@ -3103,6 +3110,9 @@ cxx_compiler::var* cxx_compiler::expressions::postfix::fcast::gen()
   }
   else
     garbage.push_back(ret);
+
+  if (m_type->m_id == type::BACKPATCH)
+    return ret;
 
   tag* ptr = m_type->get_tag();
   if (ptr->m_flag & tag::TYPENAMED) {

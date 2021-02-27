@@ -1637,10 +1637,8 @@ cxx_compiler::unqualified_id::conversion_function_id(const type* X)
   if (specifier_seq::info_t::s_stack.empty())
     new specifier_seq::info_t(0, spec);
   else {
-    assert(specifier_seq::info_t::s_stack.size() == 1);
     specifier_seq::info_t* prev = specifier_seq::info_t::s_stack.top();
     new specifier_seq::info_t(prev, spec);
-    assert(specifier_seq::info_t::s_stack.size() == 1);
   }
   const type* T = backpatch_type::create();
   string name = conversion_name(X);

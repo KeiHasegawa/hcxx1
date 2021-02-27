@@ -1101,7 +1101,7 @@ cxx_compiler::var* cxx_compiler::constant<long double>::_not()
 cxx_compiler::var* cxx_compiler::constant<void*>::_not()
 { return zero() ? expressions::primary::literal::integer::create(1) : expressions::primary::literal::integer::create(0); }
 
-bool cxx_compiler::constant<long double>::zero()
+bool cxx_compiler::constant<long double>::zero() const
 {
   return generator::long_double ?
     (*generator::long_double->zero)(b) : m_value == 0.0L;

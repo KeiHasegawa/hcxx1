@@ -633,6 +633,7 @@ namespace cxx_compiler {
       bool m_constant_flag;
       vector<scope*> m_base_clause;
       int m_typenaming;
+      vector<block*> m_orphan;
       static bool block_or_param(scope* p)
       {
         scope::id_t id = p->m_id;
@@ -692,7 +693,9 @@ namespace cxx_compiler {
 	  m_param(parse::templ::param), m_templ_arg(parse::templ::arg),
 	  m_constant_flag(expressions::constant_flag),
 	  m_base_clause(parse::base_clause),
-	  m_typenaming(parse::identifier::typenaming)
+	  m_typenaming(parse::identifier::typenaming),
+	  m_orphan(declarations::declarators::function::definition::
+		   static_inline::orphan)
       {
         vector<scope::tps_t>& tps = scope::current->m_tps;
         tps.clear();
@@ -725,9 +728,13 @@ namespace cxx_compiler {
 	expressions::constant_flag = false;
 	parse::base_clause.clear();
 	parse::identifier::typenaming = 0;
+	using namespace declarations::declarators::function::definition;
+	static_inline::orphan.clear();
       } 
       ~sweeper_b()
       {
+	using namespace declarations::declarators::function::definition;
+	static_inline::orphan = m_orphan;
 	parse::identifier::typenaming = m_typenaming;
 	parse::base_clause = m_base_clause;
 	expressions::constant_flag = m_constant_flag;

@@ -299,7 +299,7 @@ int cxx_compiler::cmdline::version_option(char** argv)
   return 0;
 }
 
-int cxx_compiler::cmdline::optimize_level = 1;
+int cxx_compiler::cmdline::optimize_level = 2;
 
 int cxx_compiler::cmdline::optimize_option(char** argv)
 {
@@ -309,7 +309,7 @@ int cxx_compiler::cmdline::optimize_option(char** argv)
     return 0;
   }
 
-  if ( *++argv && '0' <= **argv && **argv <= '1' ){
+  if ( *++argv && '0' <= **argv && **argv <= '9' ){
     optimize_level = **argv - '0';
     return 1;
   }

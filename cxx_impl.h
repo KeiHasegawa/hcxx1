@@ -704,6 +704,7 @@ namespace declarations {
             ~info_t();
           };
           void substitute(vector<tac*>& vt, int pos, info_t* info);
+	  extern vector<block*> orphan;
           namespace skip {
             struct table_t : map<usr*, info_t*> {
 #ifdef _DEBUG
@@ -844,6 +845,7 @@ namespace declarations {
     extern int fill_zero(argument*);
     extern void gen_loff(usr*, pair<int,var*>);
     extern void initialize_code(with_initial*);
+    extern void change_scope(const vector<tac*>&, block*);
   } // end of namespace initializers
   namespace enumeration {
     extern tag* begin(var*);
@@ -1727,7 +1729,7 @@ struct opposite_t : map<goto3ac::op,goto3ac::op> {
 extern opposite_t opposite;
 
 namespace optimize {
-  void action(fundef*, vector<tac*>&);
+  void action(fundef*, vector<tac*>&, bool);
   void mark(usr*);
   namespace basic_block {
     void create(std::vector<tac*>&, std::vector<info_t*>&);
