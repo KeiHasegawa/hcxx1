@@ -147,6 +147,15 @@ int cxx_compiler::statements::_case::info_t::gen()
     u->m_type = int_type::create();
     return 0;
   }
+  if (T->m_id == type::RECORD) {
+    typedef const record_type REC;
+    REC* rec = static_cast<REC*>(T);
+    usr* fun = cast_impl::conversion_function(rec, int_type::create(), true);
+    if (fun) {
+      expr = call_impl::wrapper(fun, 0, expr);
+      T = expr->m_type;
+    }
+  }
   if ( !expr->isconstant() ){
     using namespace error::statements::_case;
     not_constant(m_expr->file(),expr);
