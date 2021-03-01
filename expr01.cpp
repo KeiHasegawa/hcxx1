@@ -1278,7 +1278,11 @@ cxx_compiler::var* cxx_compiler::call_impl::convert::operator()(var* arg)
   }
   const type* Ta = arg->m_type;
   if (Ta->m_id == type::BACKPATCH) {
-    assert(!parse::templ::save_t::nest.empty());
+    if (!parse::templ::save_t::nest.empty())
+      return arg;
+    if (instantiate_with_template_param<template_usr>())
+      return arg;
+    assert(instantiate_with_template_param<template_tag>());
     return arg;
   }
   T = T->unqualified();
