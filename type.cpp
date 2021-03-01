@@ -1293,6 +1293,8 @@ bool cxx_compiler::reference_type::compatible(const type* T) const
     return false;
   typedef const reference_type REF;
   REF* that = static_cast<REF*>(T);
+  if (this->m_twice != that->m_twice)
+    return false;
   return this->m_T->compatible(that->m_T);
 }
 

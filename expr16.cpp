@@ -156,7 +156,46 @@ namespace cxx_compiler {
     return call_impl::wrapper(fun, 0, y);
   }
   namespace operator_assign {
-    inline bool require(const type* T, var* y)
+    inline bool common(usr* u, bool move)
+    {
+      string name = u->m_name;
+      assert(name == operator_name('='));
+      const type* T = u->m_type;
+      assert(T);
+      assert(T->m_id == type::FUNC);
+      typedef const func_type FT;
+      FT* ft = static_cast<FT*>(T);
+      const auto& param = ft->param();
+      assert(!param.empty());
+      T = param[0];
+      assert(T->m_id == type::REFERENCE);
+      typedef const reference_type RT;
+      RT* rt = static_cast<RT*>(T);
+      bool twice = rt->twice();
+      return move ? twice : !twice;
+    }
+    inline bool copy_assign(usr* u)
+    {
+      return common(u, false);
+    }
+    inline bool move_assign(usr* u)
+    {
+      return common(u, true);
+    }
+    inline usr* get_assign(const vector<usr*>& candidacy, bool lvalue)
+    {
+      const auto& c = candidacy;
+      if (!lvalue) {
+	auto p = find_if(begin(c), end(c), move_assign);
+	if (p != end(c))
+	  return *p;
+      }
+      auto p = find_if(begin(c), end(c), copy_assign);
+      if (p != end(c))
+	return *p;
+      return 0;
+    }
+    inline bool require(const type* T, var* y, bool lvalue)
     {
       T = T->unqualified();
       if (usr* op_fun = operator_function(T, '=')) {
@@ -164,6 +203,14 @@ namespace cxx_compiler {
 	if (flag2 & usr::DEFAULT)
 	  return false;
         if (y) {
+	  usr::flag_t flag = op_fun->m_flag;
+	  if (flag & usr::OVERLOAD) {
+	    overload* ovl = static_cast<overload*>(op_fun);
+	    const auto& c = ovl->m_candidacy;
+	    op_fun = get_assign(c, lvalue);
+	    if (!op_fun)
+	      return false;
+	  }
           const type* T2 = op_fun->m_type;
           assert(T2->m_id == type::FUNC);
           typedef const func_type FT;
@@ -186,9 +233,8 @@ namespace cxx_compiler {
       typedef const record_type REC;
       REC* rec = static_cast<REC*>(T);
       const vector<usr*>& member = rec->member();
-      typedef vector<usr*>::const_iterator IT;
-      IT p = find_if(begin(member), end(member),
-                     [](usr* u){ return require(u->m_type, 0); });
+      auto p = find_if(begin(member), end(member),
+       [lvalue](usr* u){ return require(u->m_type, 0, lvalue); });
       return p != end(member);
     }
     void gen(var* px, var* y, const record_type* rec);
@@ -246,7 +292,7 @@ namespace cxx_compiler {
         }
         else
           garbage.push_back(tmp);
-        if (require(T, src)) {
+        if (require(T, src, src->lvalue())) {
           assert(T->m_id == type::RECORD);
           typedef const record_type REC;
           REC* rec = static_cast<REC*>(T);
@@ -261,6 +307,13 @@ namespace cxx_compiler {
     void gen(var* px, var* y, const record_type* rec)
     {
       if (usr* op_fun = operator_function(rec, '=')) {
+	usr::flag_t flag = op_fun->m_flag;
+	if (flag & usr::OVERLOAD) {
+	  overload* ovl = static_cast<overload*>(op_fun);
+	  const auto& c = ovl->m_candidacy;
+	  op_fun = get_assign(c, y->lvalue());
+	  assert(op_fun);
+	}
         vector<var*> arg;
         arg.push_back(y);
         call_impl::wrapper(op_fun, &arg, px);
@@ -318,7 +371,7 @@ cxx_compiler::var* cxx_compiler::usr::assign(var* op)
     const type* Ty = y->m_type;
     Ty = Ty->unqualified();
     var tmp(Ty);
-    if (operator_assign::require(T, &tmp)) {
+    if (operator_assign::require(T, &tmp, y->lvalue())) {
       const type* pt = pointer_type::create(T);
       var* px = new var(pt);
       if (scope::current->m_id == scope::BLOCK) {

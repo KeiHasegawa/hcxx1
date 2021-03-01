@@ -1671,6 +1671,18 @@ namespace cxx_compiler {
       tmp.push_back(T);
       return func_type::create(0, tmp);
     }
+    inline const reference_type* move_ctor_arg_type(tag* ptr)
+    {
+      const type* T = ptr->m_types.first;
+      return reference_type::create(T, true);
+    }
+    inline const func_type* move_ctor_type(tag* ptr, bool)
+    {
+      vector<const type*> tmp;
+      const type* T = move_ctor_arg_type(ptr);
+      tmp.push_back(T);
+      return func_type::create(0, tmp);
+    }
     inline usr* has_copy_ctor(tag* ptr)
     {
       usr* ctor = has_ctor_dtor(ptr, false);
@@ -2981,115 +2993,143 @@ void cxx_compiler::handle_vdel(tag* ptr)
   for_each(begin(order), end(order), bind2nd(ptr_fun(handle_vdel1), ptr));
 }
 
+namespace cxx_compiler {
+  namespace canbe_impl {
+    bool common(usr* u, tag* ptr, const func_type* (*pf)(tag*, bool))
+    {
+      using namespace record_impl;
+      using namespace declarations::declarators::function;
+      const type* T = u->m_type;
+      if (!T)
+	return false;
+      const type* cct = pf(ptr, true);
+      if (compatible(T, cct))
+	return true;
+      cct = pf(ptr, false);
+      if (compatible(T, cct))
+	return true;
+      usr::flag2_t flag2 = u->m_flag2;
+      if (flag2 & usr::HAS_DEFAULT_ARG) {
+	typedef map<usr*, vector<var*> >::const_iterator ITx;
+	ITx p = default_arg_table.find(u);
+	assert(p != default_arg_table.end());
+	const vector<var*>& v = p->second;
+	assert(!v.empty());
+	typedef vector<var*>::const_iterator ITy;
+	ITy beg = begin(v) + 1;
+	ITy q = find(beg, end(v), (var*)0);
+	if (q != end(v))
+	  return false;
+	assert(T->m_id == type::FUNC);
+	typedef const func_type FT;
+	FT* ft = static_cast<FT*>(T);
+	const vector<const type*>& param = ft->param();
+	assert(!param.empty());
+	T = param[0];
+	if (T->m_id != type::REFERENCE)
+	  return false;
+	typedef const reference_type RT;
+	RT* rt = static_cast<RT*>(T);
+	T = rt->referenced_type();
+	return T->get_tag() == ptr;
+      }
+      return false;
+    }
+  } // end of namespace canbe_impl
+} // end of namespace cxx_compiler
+
 bool cxx_compiler::canbe_copy_ctor(usr* u, tag* ptr)
 {
-  using namespace record_impl;
-  using namespace declarations::declarators::function;
-  const type* T = u->m_type;
-  if (!T)
-    return false;
-  const type* cct = copy_ctor_type(ptr, true);
-  if (compatible(T, cct))
-    return true;
-  cct = copy_ctor_type(ptr, false);
-  if (compatible(T, cct))
-    return true;
-  usr::flag2_t flag2 = u->m_flag2;
-  if (flag2 & usr::HAS_DEFAULT_ARG) {
-    typedef map<usr*, vector<var*> >::const_iterator ITx;
-    ITx p = default_arg_table.find(u);
-    assert(p != default_arg_table.end());
-    const vector<var*>& v = p->second;
-    assert(!v.empty());
-    typedef vector<var*>::const_iterator ITy;
-    ITy beg = begin(v) + 1;
-    ITy q = find(beg, end(v), (var*)0);
-    if (q != end(v))
-      return false;
-    assert(T->m_id == type::FUNC);
-    typedef const func_type FT;
-    FT* ft = static_cast<FT*>(T);
-    const vector<const type*>& param = ft->param();
-    assert(!param.empty());
-    T = param[0];
-    if (T->m_id != type::REFERENCE)
-      return false;
-    typedef const reference_type RT;
-    RT* rt = static_cast<RT*>(T);
-    T = rt->referenced_type();
-    return T->get_tag() == ptr;
-  }
-  return false;
+  return canbe_impl::common(u, ptr, record_impl::copy_ctor_type);
 }
+
+bool cxx_compiler::canbe_move_ctor(usr* u, tag* ptr)
+{
+  return canbe_impl::common(u, ptr, record_impl::move_ctor_type);
+}
+
+namespace cxx_compiler {
+  namespace get_ctor_impl {
+    usr* common(const type* T, bool (*pf)(usr*, tag*))
+    {
+      if (!T)
+	return 0;
+      int cvr = 0;
+      T = T->unqualified(&cvr);
+      if (T->m_id != type::RECORD)
+	return 0;
+      typedef const record_type REC;
+      REC* rec = static_cast<REC*>(T);
+      tag* ptr = rec->get_tag();
+      string name = tor_name(ptr);
+      const map<string, vector<usr*> >& usrs = ptr->m_usrs;
+      typedef map<string, vector<usr*> >::const_iterator ITx;
+      ITx p = usrs.find(name);
+      if (p == usrs.end())
+	return 0;
+      const vector<usr*>& v = p->second;
+      typedef vector<usr*>::const_reverse_iterator ITy;
+      ITy q = find_if(rbegin(v), rend(v),
+		      bind2nd(ptr_fun(pf), ptr));
+      if (q == rend(v))
+	return 0;
+      usr* u1 = *q;
+      ITy r = find_if(q+1, rend(v), [ptr, u1, pf](usr* u) {
+	  return pf(u, ptr) && !compatible(u->m_type, u1->m_type);
+	});
+      if (r == rend(v))
+	return u1;
+      usr* u2 = *r;
+      for_each(r+1, rend(v), [ptr, u1, u2, pf](usr* u)
+	       {
+		 if (pf(u, ptr)) {
+		   assert(!compatible(u->m_type, u1->m_type));
+		   assert(!compatible(u->m_type, u2->m_type));
+		 }
+	       });
+      const type* T1 = u1->m_type;
+      const type* T2 = u2->m_type;
+      assert(T1->m_id == type::FUNC);
+      assert(T2->m_id == type::FUNC);
+      typedef const func_type FT;
+      FT* ft1 = static_cast<FT*>(T1);
+      FT* ft2 = static_cast<FT*>(T2);
+      const vector<const type*>& param1 = ft1->param();
+      const vector<const type*>& param2 = ft2->param();
+      assert(!param1.empty());
+      assert(!param2.empty());
+      const type* Tp1 = param1[0];
+      const type* Tp2 = param2[0];
+      assert(Tp1->m_id == type::REFERENCE);
+      assert(Tp2->m_id == type::REFERENCE);
+      typedef const reference_type RT;
+      RT* rt1 = static_cast<RT*>(Tp1);
+      RT* rt2 = static_cast<RT*>(Tp2);
+      const type* R1 = rt1->referenced_type();
+      const type* R2 = rt2->referenced_type();
+      int cvr1 = 0, cvr2 = 0;
+      R1->unqualified(&cvr1);
+      R2->unqualified(&cvr2);
+      if (cvr == cvr1)
+	return u1;
+      if (cvr == cvr2)
+	return u2;
+      overload ovl(u1, u2);
+      using namespace error::expressions::postfix::call;
+      overload_not_match(&ovl);
+      return 0;
+    }
+  } // end of namepace get_ctor_impl
+} // end of namepace cxx_compiler
 
 cxx_compiler::usr* cxx_compiler::get_copy_ctor(const type* T)
 {
-  if (!T)
-    return 0;
-  int cvr = 0;
-  T = T->unqualified(&cvr);
-  if (T->m_id != type::RECORD)
-    return 0;
-  typedef const record_type REC;
-  REC* rec = static_cast<REC*>(T);
-  tag* ptr = rec->get_tag();
-  string name = tor_name(ptr);
-  const map<string, vector<usr*> >& usrs = ptr->m_usrs;
-  typedef map<string, vector<usr*> >::const_iterator ITx;
-  ITx p = usrs.find(name);
-  if (p == usrs.end())
-    return 0;
-  const vector<usr*>& v = p->second;
-  typedef vector<usr*>::const_reverse_iterator ITy;
-  ITy q = find_if(rbegin(v), rend(v),
-                  bind2nd(ptr_fun(canbe_copy_ctor), ptr));
-  if (q == rend(v))
-    return 0;
-  usr* u1 = *q;
-  ITy r = find_if(q+1, rend(v), [ptr, u1](usr* u) {
-      return canbe_copy_ctor(u, ptr) && !compatible(u->m_type, u1->m_type);
-    });
-  if (r == rend(v))
-    return u1;
-  usr* u2 = *r;
-  for_each(r+1, rend(v), [ptr, u1, u2](usr* u)
-           {
-             if (canbe_copy_ctor(u, ptr)) {
-               assert(!compatible(u->m_type, u1->m_type));
-               assert(!compatible(u->m_type, u2->m_type));
-             }
-           });
-  const type* T1 = u1->m_type;
-  const type* T2 = u2->m_type;
-  assert(T1->m_id == type::FUNC);
-  assert(T2->m_id == type::FUNC);
-  typedef const func_type FT;
-  FT* ft1 = static_cast<FT*>(T1);
-  FT* ft2 = static_cast<FT*>(T2);
-  const vector<const type*>& param1 = ft1->param();
-  const vector<const type*>& param2 = ft2->param();
-  assert(!param1.empty());
-  assert(!param2.empty());
-  const type* Tp1 = param1[0];
-  const type* Tp2 = param2[0];
-  assert(Tp1->m_id == type::REFERENCE);
-  assert(Tp2->m_id == type::REFERENCE);
-  typedef const reference_type RT;
-  RT* rt1 = static_cast<RT*>(Tp1);
-  RT* rt2 = static_cast<RT*>(Tp2);
-  const type* R1 = rt1->referenced_type();
-  const type* R2 = rt2->referenced_type();
-  int cvr1 = 0, cvr2 = 0;
-  R1->unqualified(&cvr1);
-  R2->unqualified(&cvr2);
-  if (cvr == cvr1)
-    return u1;
-  if (cvr == cvr2)
-    return u2;
-  overload ovl(u1, u2);
-  using namespace error::expressions::postfix::call;
-  overload_not_match(&ovl);
-  return 0;
+  return get_ctor_impl::common(T, canbe_copy_ctor);
+}
+
+cxx_compiler::usr* cxx_compiler::get_move_ctor(const type* T)
+{
+  return get_ctor_impl::common(T, canbe_move_ctor);
 }
 
 cxx_compiler::usr* cxx_compiler::has_ctor_dtor(tag* ptr, bool is_dtor)

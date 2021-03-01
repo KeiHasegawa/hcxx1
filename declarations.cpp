@@ -1085,6 +1085,8 @@ cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr)
       curr = combine(prev, curr);
       usr::flag_t flag = curr->m_flag;
       if (flag & usr::OVERLOAD) {
+	if (curr == prev)
+	  return curr;
         overload* ovl = static_cast<overload*>(curr);
         usr* tmp = ovl->m_candidacy.back();
         flag = tmp->m_flag;
@@ -1496,6 +1498,9 @@ namespace cxx_compiler {
       }
     }
   } // end of namespace declarations
+  namespace overload_impl {
+    bool match(usr* prev, usr* curr);
+  } // end of namespace overload_impl
 } // end of namespace cxx_compiler
 
 cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
@@ -1534,6 +1539,15 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
                        [](usr* u){ return u->m_flag2 & usr::TEMPLATE; });
         if (p != end(cand))
           prev = *p;
+      }
+      else {
+	usr::flag2_t flag2 = curr->m_flag2;
+	if (!(flag2 & usr::HAS_DEFAULT_ARG)) {
+	  auto p = find_if(begin(cand), end(cand),
+			   bind2nd(ptr_fun(overload_impl::match), curr));
+	  if (p != end(cand))
+	    return prev;
+	}
       }
     }
   }

@@ -1136,9 +1136,11 @@ namespace cxx_compiler {
   namespace statements {
     namespace return_stmt {
       extern void gather(scope*, std::vector<var*>&);
-      inline var* copy_ctor(const type* T, var* expr)
+      inline var* move_or_copy_ctor(const type* T, var* expr)
       {
-        usr* ctor = get_copy_ctor(T);
+        usr* ctor = get_move_ctor(T);
+	if (!ctor)
+	  ctor = get_copy_ctor(T);
         if (!ctor)
           return expr;
         usr::flag2_t flag2 = ctor->m_flag2;
@@ -1262,7 +1264,7 @@ int cxx_compiler::statements::return_stmt::info_t::gen()
       else
 	expr = expr->address();
     }
-    expr = copy_ctor(T, expr);
+    expr = move_or_copy_ctor(T, expr);
   }
   else {
     if (T->m_id != type::VOID) {

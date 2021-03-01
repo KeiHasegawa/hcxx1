@@ -413,8 +413,12 @@ namespace cxx_compiler { namespace expressions { namespace primary { namespace l
     using namespace std;
     static map<T, usr*> table;
     typename map<T, usr*>::const_iterator p = table.find(v);
-    if (p != table.end())
-      return p->second;
+    if (p != table.end()) {
+      usr* ret = p->second;
+      usr::flag_t flag = ret->m_flag;
+      if (!(flag & usr::SUB_CONST_LONG))
+	return ret;
+    }
     return table[v] = common<T>(v,pf);
   }
 } } } } } // end of namespace integer, literal, primary, expressions and cxx_compiler
@@ -1548,8 +1552,16 @@ cxx_compiler::unqualified_id::operator_function_id(int op)
   parse::identifier::mode = parse::identifier::no_err;
   int r = parse::identifier::lookup(opn, scope::current);
   parse::identifier::mode = morg;
-  if (r)
-    return cxx_compiler_lval.m_var;
+  if (r) {
+    var* v = cxx_compiler_lval.m_var;
+    usr* u = v->usr_cast();
+    if (!u) {
+      assert(v->genaddr_cast());
+      return v;
+    }
+    u->m_flag2 = usr::OPERATOR;
+    return u;
+  }
   if (op != '=')
     error::not_implemented();
 
