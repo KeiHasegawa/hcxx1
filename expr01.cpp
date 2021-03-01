@@ -594,8 +594,10 @@ namespace cxx_compiler {
       int min_cost = *r;
       int n = count_if(begin(cost), end(cost),
                        [min_cost](int c){ return c == min_cost; });
-      if (n != 1)
-        error::not_implemented();
+      if (n != 1) {
+	if (parse::templ::save_t::nest.empty())
+	  error::not_implemented();
+      }
       return r - begin(cost);
     }
   } // end of namespace overload_impl
@@ -661,17 +663,6 @@ cxx_compiler::var* cxx_compiler::overload::call(std::vector<var*>* arg,
   }
   copy(begin(v), end(v), back_inserter(code));
   v.clear();
-  if (!error::counter && !cmdline::no_inline_sub) {
-    if (flag & usr::INLINE) {
-      using namespace declarations::declarators::function;
-      using namespace definition::static_inline;
-      skip::table_t::const_iterator p = skip::stbl.find(u);
-      if (p != skip::stbl.end()) {
-        if (info_t* info = p->second)
-          substitute(code, code.size()-1, info);
-      }
-    }
-  }
   return ret;
 }
 
@@ -1078,8 +1069,10 @@ namespace cxx_compiler {
 	return ret;
       if (cmdline::no_inline_sub)
 	return ret;
-      if (trial_cost)
-	return ret;
+      if (trial_cost) {
+	if (*trial_cost == numeric_limits<int>::max())
+	  return ret;
+      }
       usr* u = func->usr_cast();
       if (!u)
 	return ret;
