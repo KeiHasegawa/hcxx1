@@ -1283,6 +1283,11 @@ cxx_compiler::var* cxx_compiler::call_impl::convert::operator()(var* arg)
       return arg;
     T = Tav;
   }
+  const type* Ta = arg->m_type;
+  if (Ta->m_id == type::BACKPATCH) {
+    assert(!parse::templ::save_t::nest.empty());
+    return arg;
+  }
   T = T->unqualified();
   bool discard = false;
   bool ctor_conv = false;

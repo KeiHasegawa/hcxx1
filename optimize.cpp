@@ -122,6 +122,8 @@ action(fundef* fdef, std::vector<tac*>& v, bool for_constexpr)
     dump::scopex();
   }
   int N = cmdline::optimize_level;
+  if (for_constexpr)
+    N = max(N, 5);
   for (int i = 0 ; i != N ; ++i) {
     misc::pvector<info_t> bbs;
     create(v,bbs);
