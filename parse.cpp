@@ -597,6 +597,9 @@ namespace cxx_compiler {
 	  return true;
 	if (flag & tag::INSTANTIATE)
 	  return record_impl::should_skip(ptr);
+	const type* T = ptr->m_types.first;
+	if (T->m_id == type::TEMPLATE_PARAM)
+	  return true;
 	return false;
       }
       inline usr* rollback(usr* u)

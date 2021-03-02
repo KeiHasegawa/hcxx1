@@ -595,7 +595,10 @@ namespace cxx_compiler {
       int n = count_if(begin(cost), end(cost),
                        [min_cost](int c){ return c == min_cost; });
       if (n != 1) {
-	if (parse::templ::save_t::nest.empty())
+	bool b1 = !parse::templ::save_t::nest.empty();
+	bool b2 = instantiate_with_template_param<template_usr>();
+	bool b3 = instantiate_with_template_param<template_tag>();
+	if (!b1 && !b2 && !b3)
 	  error::not_implemented();
       }
       return r - begin(cost);

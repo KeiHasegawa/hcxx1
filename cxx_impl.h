@@ -1547,7 +1547,7 @@ namespace classes {
   } // end of namespace specifier
   namespace members {
     extern void action(var*);
-    extern void action2(var*, expressions::base*);
+    extern void action2(var*, pair<expressions::base*, bool>*);
     extern void bit_field(var*, expressions::base*);
   } // end of namespace members
 } // end of namespace classes

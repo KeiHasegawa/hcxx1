@@ -392,6 +392,7 @@ struct usr : var {
     DEFAULT              = 1 << 23,
     NESTED_MEMBER        = 1 << 24,
     HAS_DEFAULT_ARG      = 1 << 25,
+    DELETE               = 1 << 26,
   };
   flag2_t m_flag2;
   file_t m_file;

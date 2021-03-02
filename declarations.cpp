@@ -1825,14 +1825,18 @@ cxx_compiler::declarations::exchange(bool installed, usr* new_one, usr* org)
 }
 
 namespace cxx_compiler {
-  inline bool del()
+  inline bool del(scope* p)
   {
-    const vector<scope::tps_t>& tps = scope::current->m_tps;
-    if (tps.empty())
+    if (!p)
       return true;
+    const vector<scope::tps_t>& tps = p->m_tps;
+    if (tps.empty())
+      return del(p->m_parent);
     const scope::tps_t& b = tps.back();
     const map<string, scope::tps_t::value_t>& table = b.m_table;
-    return table.empty();
+    if (table.empty())
+      return del(p->m_parent);
+    return false;
   }
 } // end of namespace cxx_compiler
 
@@ -1842,7 +1846,7 @@ cxx_compiler::declarations::elaborated::action(int keyword, var* v)
   using namespace std;
   assert(v->usr_cast());
   usr* u = static_cast<usr*>(v);
-  auto_ptr<usr> sweeper(del() ? u : 0);
+  auto_ptr<usr> sweeper(del(scope::current) ? u : 0);
   string name = u->m_name;
   tag* T = lookup(name, scope::current);
   if (T) {

@@ -464,17 +464,23 @@ void cxx_compiler::classes::members::action(var* v)
 namespace cxx_compiler {
   namespace classes {
     namespace members {
-      void action_default(var* v);
+      void common(var* v, usr::flag2_t);
     } // end of namespace members
   } // end of namespace classes
 } // end of namespace cxx_compiler
 
 
-void cxx_compiler::classes::members::action2(var* v, expressions::base* expr)
+void cxx_compiler::classes::members::
+action2(var* v,  pair<expressions::base*, bool>* p)
 {
   using namespace std;
-  if (!expr)
-    return action_default(v);
+  auto_ptr<pair<expressions::base*, bool> > sweper(p);
+  expressions::base* expr = p->first;
+  if (!expr) {
+    bool del = p->second;
+    usr::flag2_t flag2 = del ? usr::DELETE : usr::DEFAULT;
+    return common(v, flag2);
+  }
   var* cexpr = expr->gen();
   cexpr = cexpr->rvalue();
   const type* T = cexpr->m_type;
@@ -539,7 +545,7 @@ void cxx_compiler::classes::members::action2(var* v, expressions::base* expr)
   }
 }
 
-void cxx_compiler::classes::members::action_default(var* v)
+void cxx_compiler::classes::members::common(var* v, usr::flag2_t f2)
 {
   assert(v->usr_cast());
   usr* u = static_cast<usr*>(v);
@@ -549,7 +555,7 @@ void cxx_compiler::classes::members::action_default(var* v)
   usr::flag_t mask = usr::flag_t(usr::CTOR | usr::DTOR);
   if (flag & mask) {
     // default constructor or default copy constructor
-    u->m_flag2 = usr::flag2_t(u->m_flag2 | usr::DEFAULT);
+    u->m_flag2 = usr::flag2_t(u->m_flag2 | f2);
     return;
   }
   usr::flag2_t flag2 = u->m_flag2;
@@ -557,7 +563,7 @@ void cxx_compiler::classes::members::action_default(var* v)
     string name = u->m_name;
     if (name == "=") {
       // default operator=
-      u->m_flag2 = usr::flag2_t(u->m_flag2 | usr::DEFAULT);
+      u->m_flag2 = usr::flag2_t(u->m_flag2 | f2);
       return;
     }
   }

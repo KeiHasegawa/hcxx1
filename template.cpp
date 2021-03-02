@@ -1475,6 +1475,9 @@ namespace cxx_compiler {
 	if (ps->m_id != scope::TAG)
 	  return v;
 	tag* ptr = static_cast<tag*>(ps);
+	const type* T1 = ptr->m_types.first;
+	if (T1->m_id == type::TEMPLATE_PARAM)
+	  return v;
 	tag::flag_t flag = ptr->m_flag;
 	tag::flag_t mask = tag::flag_t(tag::TEMPLATE | tag::DEFERED);
 	if (flag & mask)
@@ -3333,6 +3336,18 @@ cxx_compiler::instance_of(template_usr* tu, usr* ins, templ_base::KEY& key)
   return true;
 }
 
+namespace cxx_compiler {
+  namespace typenamed {
+    inline bool should_install(scope* p)
+    {
+      assert(p->m_id == scope::TAG);
+      tag* ptr = static_cast<tag*>(p);
+      const type* T = ptr->m_types.first;
+      return T->m_id != type::TEMPLATE_PARAM;
+    }
+  }  // end of namespace typenamed
+} // end of namespace cxx_compiler
+
 const cxx_compiler::type* cxx_compiler::typenamed::action(var* v)
 {
   assert(v->usr_cast());
@@ -3364,9 +3379,11 @@ const cxx_compiler::type* cxx_compiler::typenamed::action(var* v)
   assert(class_or_namespace_name::before.back() == ptr);
   class_or_namespace_name::before.pop_back();
   ptr->m_types.first = incomplete_tagged_type::create(ptr);
-  tags[name] = ptr;
-  scope::current->m_children.push_back(ptr);
-  ptr->m_parent = scope::current;
+  if (should_install(scope::current)) {
+    tags[name] = ptr;
+    scope::current->m_children.push_back(ptr);
+    ptr->m_parent = scope::current;
+  }
   return action(ptr);
 }
 

@@ -146,6 +146,7 @@ namespace cxx_compiler {
   cxx_compiler::statements::try_block::HANDLER* m_handler;
   cxx_compiler::statements::try_block::HANDLERS* m_handlers;
   bool m_bool;
+  std::pair<expr*, bool>* m_expr_bool;
 }
 
 %type<m_var> IDENTIFIER_LEX unqualified_id id_expression declarator_id
@@ -169,7 +170,7 @@ namespace cxx_compiler {
 %type<m_expression> inclusive_or_expression logical_and_expression
 %type<m_expression> logical_or_expression conditional_expression
 %type<m_expression> assignment_expression expression constant_expression
-%type<m_expression> constant_initializer condition
+%type<m_expression> condition
 %type<m_expression> new_expression delete_expression throw_expression
 %type<m_member> member_access_begin
 %type<m_statement> labeled_statement expression_statement compound_statement
@@ -211,6 +212,7 @@ namespace cxx_compiler {
 %type<m_type> specified_return_type
 %type<m_types> type_id_list
 %type<m_bool> class_specifier_begin
+%type<m_expr_bool> constant_initializer
 
 %%
 
@@ -1653,8 +1655,24 @@ member_declarator
   ;
 
 constant_initializer
-  : '=' constant_expression { $$ = $2; }
-  | '=' DEFAULT_KW { $$ = 0; }
+  : '=' constant_expression
+    {
+      using namespace std;
+      using namespace cxx_compiler;
+      $$ = new pair<expressions::base*, bool>($2,false);
+    }
+  | '=' DEFAULT_KW
+    {
+      using namespace std;
+      using namespace cxx_compiler;
+      $$ = new pair<expressions::base*, bool>(0, false);
+    }
+  | '=' DELETE_KW
+    {
+      using namespace std;
+      using namespace cxx_compiler;
+      $$ = new pair<expressions::base*, bool>(0, true);
+    }
   ;
 
 base_clause
@@ -3756,7 +3774,7 @@ leave_block
   ;
 
 static_assert_declaration
-  : STATIC_ASSERT_KW '(' constant_expression ',' STRING_LITERAL_LEX ')' ';'
+  : STATIC_ASSERT_KW '(' constant_expression ',' string_literal ')' ';'
   | STATIC_ASSERT_KW '(' constant_expression ')' ';'
   ;
 
