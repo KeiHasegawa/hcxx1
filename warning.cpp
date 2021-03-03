@@ -277,3 +277,22 @@ void cxx_compiler::warning::undefined_reference(const usr* u)
   }
   ++counter;
 }
+
+void cxx_compiler::warning::statements::
+return_stmt::lvalue_refered_rvalue(const file_t& file)
+{
+  using namespace std;
+  using namespace error;
+  switch ( lang ){
+  case jpn:
+    header(file,"警告");
+    cerr << "右辺値参照されるべきところで左辺値が指定されています.\n";
+    break;
+  default:
+    header(file,"warning");
+    cerr << "Lvaue is specified where rvalue is expected.\n";
+    break;
+  }
+  ++counter;
+}
+

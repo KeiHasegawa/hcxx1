@@ -708,9 +708,11 @@ namespace cxx_compiler {
 	      if (!specifier_seq::info_t::s_stack.empty()) {
 		specifier_seq::info_t* p =
 		  specifier_seq::info_t::s_stack.top();
-		usr::flag_t flag = p->m_flag;
-		if (flag & usr::FRIEND)
-		  return IDENTIFIER_LEX;
+		if (p) {
+		  usr::flag_t flag = p->m_flag;
+		  if (flag & usr::FRIEND)
+		    return IDENTIFIER_LEX;
+		}
 	      }
 	    }
             if (mode == new_obj)
@@ -1800,7 +1802,7 @@ int cxx_compiler::parse::get_token()
 
   if (templ::ptr) {
     last_token = templ::get_token();
-    if (last_token == COLONCOLON_MK)
+    if (last_token == COLONCOLON_MK && peek() != '*')
       identifier::mode = identifier::look;
     return save_for_retry();
   }

@@ -479,6 +479,13 @@ int cxx_compiler::declarations::initializers::clause::
 assign(var* y, argument* arg)
 {
   using namespace std;
+  usr* u = arg->dst;
+  usr::flag_t flag = u->m_flag;
+  if (flag & usr::AUTO) {
+    const type* T = u->m_type;
+    if (T->m_id == type::BACKPATCH)
+      arg->T = u->m_type = y->m_type;
+  }
   const type* T = arg->T;
   const type* U = T->unqualified();
   if (U->m_id != type::REFERENCE) {

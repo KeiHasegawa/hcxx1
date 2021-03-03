@@ -643,6 +643,25 @@ namespace cxx_compiler {
         return false;
       return !(flag & usr::STATIC_DEF);
     }
+    inline bool should_checkobj(usr* u, bool ini)
+    {
+      const type* T = u->m_type;
+      if (T->m_id == type::ARRAY) {
+	typedef const array_type AT;
+	AT* at = static_cast<AT*>(T);
+	int dim = at->dim();
+	if (dim)
+	  return true;
+	return !ini;
+      }
+      usr::flag_t flag = u->m_flag;
+      if (!(flag & usr::AUTO))
+	return true;
+      if (T->m_id != type::BACKPATCH)
+	return true;
+      assert(ini);
+      return false;
+    }
   } // end of namespace declarations
 } // end of namespace cxx_compiler
 
@@ -707,8 +726,12 @@ cxx_compiler::declarations::action1(var* v, bool ini)
 	p->m_flag = usr::flag_t(p->m_flag & ~usr::AUTO);
       }
       else {
-	implicit_int(u);
-	p->m_type = int_type::create();
+	if ((p->m_flag & usr::AUTO) && ini)
+	  p->m_type = backpatch_type::create();
+	else {
+	  implicit_int(u);
+	  p->m_type = int_type::create();
+	}
       }
     }
     if (installed)
@@ -773,11 +796,9 @@ cxx_compiler::declarations::action1(var* v, bool ini)
     usr::flag_t(usr::TYPEDEF | usr::EXTERN | usr::FUNCTION | usr::VL);
   if (!(flag & mask)) {
     if (b || scope::current == &scope::root) {
-      typedef const array_type ARRAY;
-      ARRAY* array = T->m_id == type::ARRAY ? static_cast<ARRAY*>(T) : 0;
-      if ( !array || array->dim() || !ini ) {
-        check_object(u);
-        T = u->m_type;
+      if (should_checkobj(u, ini)) {
+	check_object(u);
+	T = u->m_type;
       }
     }
   }

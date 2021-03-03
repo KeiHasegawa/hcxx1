@@ -1248,8 +1248,11 @@ int cxx_compiler::statements::return_stmt::info_t::gen()
       typedef const reference_type RT;
       RT* rt = static_cast<RT*>(T);
       if (rt->twice()) {
-	if (expr->lvalue())
-	  error::not_implemented();
+	if (expr->lvalue()) {
+	  // lvalue is referenced as rvalue.
+	  using namespace warning::statements::return_stmt;
+	  lvalue_refered_rvalue(m_file);
+	}
 	expr = expr->rvalue();
 	var* ret = new var(rt);
 	if (scope::current->m_id == scope::BLOCK) {

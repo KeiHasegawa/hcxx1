@@ -432,6 +432,11 @@ namespace warning {
   } // end of namespace declarations
   extern void undefined_reference(const usr*);
   extern void zero_division(const file_t&);
+  namespace statements {
+    namespace return_stmt {
+      void lvalue_refered_rvalue(const file_t&);
+    } // end of return_stmt
+  } // end of namespace statements
 }  // end of namespace warning
 
 namespace cmdline {

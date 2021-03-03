@@ -3024,10 +3024,12 @@ instantiate_common(vector<scope::tps_t::val2_t*>* pv, info_t::mode_t mode)
   instantiated_usr* ret = nest.back().m_iu;
   nest.pop_back();
   assert(ret);
-  assert(ret->m_src == this);
+  assert(ret->m_src == this || ret->m_src == m_next ||
+	 (m_flag2 & usr::PARTIAL_INSTANTIATED));
   assert(ret->m_seed == key);
   if (mode == info_t::EXPLICIT) {
-    // ret->m_flag2 & usr::EXPLICIT_INSTANTIATE is not absolutelly true
+    if (ret->m_src == m_next)
+      m_next->instantiate(key, usr::EXPLICIT_INSTANTIATE);
   }
   else {
     assert(mode == info_t::STATIC_DEF);
@@ -3431,6 +3433,15 @@ namespace cxx_compiler {
 	RT* rt = static_cast<RT*>(T);
 	const type* X = rt->referenced_type();
 	return template_param(scope::tps_t::val2_t(X,0));
+      }
+      if (T->m_id == type::POINTER_MEMBER) {
+	typedef const pointer_member_type PM;
+	PM* pm = static_cast<PM*>(T);
+	const type* X = pm->referenced_type();
+	if (template_param(scope::tps_t::val2_t(X,0)))
+	  return true;
+	const tag* ptr = pm->ctag();
+	return record_impl::should_skip(ptr);
       }
       if (T->m_id == type::TEMPLATE_PARAM)
 	return true;
