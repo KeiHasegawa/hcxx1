@@ -1080,11 +1080,19 @@ cxx_compiler::parse::identifier::lookup(std::string name, scope* ptr)
     return create(name);
   if (last_token == NAMESPACE_KW)
     return create(name);
-  if (mode == new_obj)
-    return create(name);
-  if (last_token == COLONCOLON_MK) {
-    if (typenaming)
+  if (mode == new_obj) {
+    if (last_token != COLONCOLON_MK)
       return create(name);
+    if (peek() != COLONCOLON_MK)
+      return create(name);
+  }
+  if (last_token == COLONCOLON_MK) {
+    if (typenaming) {
+      if (peek() != COLONCOLON_MK)
+	return create(name);
+      else
+	return create_guess(name);
+    }
     if (!parse::templ::save_t::nest.empty()) {
       if (should_return_guess())
 	return create_guess(name);
