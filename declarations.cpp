@@ -2260,14 +2260,16 @@ namespace cxx_compiler {
       var* v = expr->gen();
       for_each(begin(code) + n, end(code), [](tac* ptr){ delete ptr; });
       code.resize(n);
-      const type* T = v->m_type;
-      if (T->m_id == type::REFERENCE) {
+      const type* Tn = v->m_type;
+      if (Tn->m_id == type::REFERENCE) {
 	typedef const reference_type RT;
-	RT* rt = static_cast<RT*>(T);
+	RT* rt = static_cast<RT*>(Tn);
 	if (rt->twice())
-	  T = rt->referenced_type();
+	  Tn = rt->referenced_type();
+	return new type_specifier(Tn);
       }
-      return new type_specifier(T);
+      const type* Tm = v->result_type();
+      return new type_specifier(Tm);
     }
     type_specifier* under_type(const type* T)
     {

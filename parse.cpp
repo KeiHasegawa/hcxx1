@@ -301,7 +301,9 @@ namespace cxx_compiler {
               return true;
             }
 	    usr::flag2_t flag2 = u->m_flag2;
-	    if (flag2 & usr::PARTIAL_ORDERING) {
+	    usr::flag2_t mask2 =
+	      usr::flag2_t(usr::TEMPLATE | usr::PARTIAL_ORDERING);
+	    if (flag2 & mask2) {
 	      tmp.m_kind = TEMPLATE_NAME_LEX;
 	      auto p = new pair<usr*, tag*>(u, 0);
 	      tmp.m_lval = (var*)p;
