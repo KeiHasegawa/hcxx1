@@ -878,9 +878,8 @@ cxx_compiler::partial_ordering::info;
 cxx_compiler::var*
 cxx_compiler::partial_ordering::call(std::vector<var*>* arg)
 {
-  typedef vector<template_usr*>::const_iterator IT;
-  IT p = min_element(begin(m_candidacy), end(m_candidacy),
-                     partial_ordering_impl::comp(arg));
+  auto p = min_element(begin(m_candidacy), end(m_candidacy),
+		       partial_ordering_impl::comp(arg));
   assert(p != end(m_candidacy));
   template_usr* tu = *p;
   usr* ins = tu->instantiate(arg, 0);
@@ -1257,6 +1256,20 @@ namespace cxx_compiler {
         error::not_implemented();
       return offset >= 0 ? make_pair(R,offset) : zero;
     }
+    bool ref_genaddr(const type* T, var* arg)
+    {
+      if (T->m_id != type::REFERENCE)
+	return false;
+      typedef const reference_type RT;
+      RT* rt = static_cast<RT*>(T);
+      const type* Tx = rt->referenced_type();
+      genaddr* ga = arg->genaddr_cast();
+      if (!ga)
+	return false;
+      var* ref = ga->m_ref;
+      const type* Ty = ref->m_type;
+      return compatible(Tx, Ty);
+    }
   } // end of namepsace call_impl
 } // end of namespace cxx_compiler
 
@@ -1320,6 +1333,9 @@ cxx_compiler::var* cxx_compiler::call_impl::convert::operator()(var* arg)
         if (m_trial_cost)
           ++*m_trial_cost;
         arg = tmp;
+      }
+      else if (call_impl::ref_genaddr(T,arg)) {
+	arg = arg->rvalue();
       }
       else {
         var* org = arg;
@@ -2636,6 +2652,12 @@ assignment::valid(const type* T, var* src, bool* discard, bool* ctor_conv,
     typedef const reference_type REF;
     REF* ref = static_cast<REF*>(xx);
     const type* T = ref->referenced_type();
+    if (genaddr* ga = src->genaddr_cast()) {
+      var* ref = ga->m_ref;
+      const type* Ty = ref->m_type;
+      if (compatible(T, Ty))
+	return xx;
+    }
     const type* X = src->result_type();
     if (compatible(T, X))
       return T;

@@ -804,6 +804,7 @@ namespace declarations {
       expr_list* m_exprs;
       info_t(clause::info_t* c) : m_clause(c), m_exprs(0) {}
       info_t(expr_list* exprs) : m_clause(0), m_exprs(exprs) {}
+      info_t() : m_clause(0), m_exprs(0) {}
       ~info_t();
     };
     struct element;

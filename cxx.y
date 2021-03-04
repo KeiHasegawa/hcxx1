@@ -1321,13 +1321,29 @@ initializer
     { $$ = new cxx_compiler::declarations::initializers::info_t($2); }
   | '{' expression_list '}'
     { $$ = new cxx_compiler::declarations::initializers::info_t($2); }
+  | '=' DELETE_KW
+    { $$ = new cxx_compiler::declarations::initializers::info_t(); }
   ;
 
 initializer_clause
-  : assignment_expression         { $$ = new cxx_compiler::declarations::initializers::clause::info_t($1); }
-  | '{' initializer_list ',' '}'  { $$ = new cxx_compiler::declarations::initializers::clause::info_t($2); }
-  | '{' initializer_list     '}'  { $$ = new cxx_compiler::declarations::initializers::clause::info_t($2); }
-  | '{'                      '}'  { $$ = new cxx_compiler::declarations::initializers::clause::info_t((std::vector<cxx_compiler::declarations::initializers::element*>*)0); }
+  : assignment_expression
+    {
+      $$ = new cxx_compiler::declarations::initializers::clause::info_t($1);
+    }
+  | '{' initializer_list ',' '}'
+    {
+      $$ = new cxx_compiler::declarations::initializers::clause::info_t($2);
+    }
+  | '{' initializer_list '}'
+    {
+      $$ = new cxx_compiler::declarations::initializers::clause::info_t($2);
+    }
+  | '{' '}'
+    {
+      using namespace std;
+      using namespace cxx_compiler::declarations::initializers;
+      $$ = new clause::info_t((vector<element*>*)0);
+    }
   ;
 
 initializer_list

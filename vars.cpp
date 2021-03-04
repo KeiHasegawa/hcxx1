@@ -59,6 +59,9 @@ cxx_compiler::var* cxx_compiler::usr::rvalue()
   typedef const reference_type RT;
   RT* rt = static_cast<RT*>(T);
   T = rt->referenced_type();
+  const pointer_type* G = T->ptr_gen();
+  if (G)
+    T = G;
   var* ret = new var(T);
   if (scope::current->m_id == scope::BLOCK) {
     block* b = static_cast<block*>(scope::current);
@@ -66,7 +69,10 @@ cxx_compiler::var* cxx_compiler::usr::rvalue()
   }
   else
     garbage.push_back(ret);
-  code.push_back(new invraddr3ac(ret,this));
+  if (G)
+    code.push_back(new assign3ac(ret,this));
+  else
+    code.push_back(new invraddr3ac(ret,this));
   return ret;
 }
 

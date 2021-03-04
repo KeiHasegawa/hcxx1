@@ -84,7 +84,14 @@ void cxx_compiler::declarations::initializers::action(var* v, info_t* i)
     p = static_cast<with_initial*>(u);
   argument arg(u->m_type,p ? p->m_value : table[u].m_value,0,0,-1,-1,-1,-1);
   int n = code.size();
-  i->m_clause ? clause::gencode(i->m_clause,&arg) : expr_list(i->m_exprs,&arg);
+  if (i->m_clause)
+    clause::gencode(i->m_clause,&arg);
+  else if (i->m_exprs)
+    expr_list(i->m_exprs,&arg);
+  else {
+    usr* u = arg.dst;
+    u->m_flag2 = usr::flag2_t(u->m_flag2 | usr::DELETE);
+  }
   if (p) {
 #ifdef _DEBUG
     map<int,var*>& m = p->m_value;
@@ -119,6 +126,13 @@ void cxx_compiler::declarations::initializers::action(var* v, info_t* i)
     }
   }
   const type* T = u->m_type;
+  if (!T) {
+    usr::flag2_t flag2 = u->m_flag2;
+    usr::flag2_t mask2 = usr::flag2_t(usr::PARTIAL_ORDERING | usr::TEMPLATE);
+    assert(flag2 & mask2);
+    assert(flag2 & usr::DELETE);
+    return;
+  }
   if (T->m_id == type::ARRAY) {
     typedef const array_type ARRAY;
     ARRAY* array = static_cast<ARRAY*>(T);
