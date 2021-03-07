@@ -1162,13 +1162,10 @@ cxx_compiler::usr* cxx_compiler::declarations::action2(usr* curr)
     else if (prev->m_flag & usr::OVERLOAD) {
       overload* ovl = static_cast<overload*>(prev);
       const vector<usr*>& cand = ovl->m_candidacy;
-      typedef vector<usr*>::const_iterator IT;
-      IT p = find_if(begin(cand), end(cand),
-                  [](usr* u){ return u->m_flag2 & usr::TEMPLATE; });
+      auto p = find_if(begin(cand), end(cand), [](usr* u){
+	  return u->m_flag2 &
+	  usr::flag2_t(usr::TEMPLATE | usr::PARTIAL_ORDERING); });
       if (p != end(cand)) {
-        usr* templ = *p;
-        instantiated_usr* iu = static_cast<instantiated_usr*>(curr);
-        assert(iu->m_src == templ);
         v.pop_back();
         v.push_back(ins);
         v.push_back(prev);
@@ -1656,14 +1653,35 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
   if (flag2 & usr::PARTIAL_ORDERING) {
     partial_ordering* po = static_cast<partial_ordering*>(prev);
     if (!(curr->m_flag2 & usr::TEMPLATE)) {
-      assert(parse::templ::ptr);
+      if (!templ::specialization::nest.empty()) {
+	const auto& c = po->m_candidacy;
+	assert(!c.empty());
+	auto tu = c.back();
+	templ_base::KEY key;
+	bool b = instance_of(tu, curr, key);
+	assert(b);
+	instantiated_usr* ret = new instantiated_usr(*curr, tu, key);
+	if (template_usr::nest.empty()) {
+	  auto& table = tu->m_table;
+	  assert(table.find(key) == table.end());
+	  table[key] = ret;
+	  return ret;
+	}
+	auto& info = template_usr::nest.back();
+	assert(info.m_key == key);
+	assert(info.m_mode == template_usr::info_t::EXPLICIT);
+	ret->m_flag2 =
+	  usr::flag2_t(ret->m_flag2 | usr::EXPLICIT_INSTANTIATE);
+	return 	info.m_iu = ret;
+      }
+      if (!parse::templ::ptr) {
+	string name = curr->m_name;
+	scope::current->m_usrs[name].push_back(curr);
+	return new overload(prev, curr);
+      }
       assert(!template_usr::nest.empty());
       template_usr::info_t& info = template_usr::nest.back();
       template_usr* tu = info.m_tu;
-      const vector<template_usr*>& c = po->m_candidacy;
-      assert((find(begin(c), end(c), tu) != end(c)) ||
-             (find_if(begin(c), end(c), [tu](template_usr* ptu)
-                      { return composite_tu(ptu, tu); }) != end(c)));
       templ_base::KEY key;
       bool b = instance_of(tu, curr, key);
       assert(b);

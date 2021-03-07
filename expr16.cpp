@@ -221,7 +221,7 @@ namespace cxx_compiler {
           var tmp(T);
           int n = code.size();
           var* ret = call_impl::common(ft, op_fun, &arg, &trial_cost, &tmp,
-                		       false, 0);
+                		       false, 0, false);
           for_each(begin(code)+n, end(code), [](tac* p){ delete p; });
           code.resize(n);
           return ret;

@@ -57,6 +57,23 @@ const cxx_compiler::type* cxx_compiler::type::composite(const type* that) const
   return this == that ? this : 0;
 }
 
+bool cxx_compiler::type::template_match(const type* that, bool) const
+{
+  that = that->unqualified();
+  return this == that;
+}
+
+bool cxx_compiler::type::comp(const type* that, int* res) const
+{
+  if (this == that)
+    return true;
+  bool b = that->comp(this, res);
+  assert(!b);
+  assert(*res == 1);
+  *res = -1;
+  return b;
+}
+
 int cxx_compiler::type::align() const
 {
   switch (size()) {
@@ -514,6 +531,25 @@ const cxx_compiler::type* cxx_compiler::const_type::qualified(int cvr) const
   return m_T->qualified(cvr);
 }
 
+bool cxx_compiler::const_type::template_match(const type* Ty, bool) const
+{
+  Ty = Ty->unqualified();
+  return m_T->template_match(Ty, true);
+}
+
+bool cxx_compiler::const_type::comp(const type* Ty, int* res) const
+{
+  if (Ty->m_id != type::CONST) {
+    *res = 1;
+    return false;
+  }
+
+  typedef const const_type CT;
+  CT* ct = static_cast<CT*>(Ty);
+  Ty = ct->m_T;
+  return m_T->comp(Ty, res);
+}
+
 const cxx_compiler::type* cxx_compiler::const_type::create(const type* T)
 {
   if (T->m_id == CONST)
@@ -597,6 +633,25 @@ const cxx_compiler::type* cxx_compiler::volatile_type::qualified(int cvr) const
 {
   cvr |= 2;
   return m_T->qualified(cvr);
+}
+
+bool cxx_compiler::volatile_type::template_match(const type* Ty, bool) const
+{
+  Ty = Ty->unqualified();
+  return m_T->template_match(Ty, true);
+}
+
+bool cxx_compiler::volatile_type::comp(const type* Ty, int* res) const
+{
+  if (Ty->m_id != type::VOLATILE) {
+    *res = 1;
+    return false;
+  }
+
+  typedef const volatile_type VT;
+  VT* vt = static_cast<VT*>(Ty);
+  Ty = vt->m_T;
+  return m_T->comp(Ty, res);
 }
 
 const cxx_compiler::type* cxx_compiler::volatile_type::create(const type* T)
@@ -692,6 +747,25 @@ const cxx_compiler::type* cxx_compiler::restrict_type::qualified(int cvr) const
 {
   cvr |= 4;
   return m_T->qualified(cvr);
+}
+
+bool cxx_compiler::restrict_type::template_match(const type* Ty, bool) const
+{
+  Ty = Ty->unqualified();
+  return m_T->template_match(Ty, true);
+}
+
+bool cxx_compiler::restrict_type::comp(const type* Ty, int* res) const
+{
+  if (Ty->m_id != type::RESTRICT) {
+    *res = 1;
+    return false;
+  }
+
+  typedef const restrict_type RT;
+  RT* rt = static_cast<RT*>(Ty);
+  Ty = rt->m_T;
+  return m_T->comp(Ty, res);
 }
 
 const cxx_compiler::type* cxx_compiler::restrict_type::create(const type* T)
@@ -950,6 +1024,40 @@ bool cxx_compiler::func_type::overloadable(const func_type* that) const
     != make_pair(u.end(),v.end());
 }
 
+const cxx_compiler::type*
+cxx_compiler::func_type::instantiate() const
+{
+  const type* T = m_T->instantiate();
+  vector<const type*> param;
+  transform(begin(m_param), end(m_param), back_inserter(param),
+	    mem_fun(&type::instantiate));
+  return create(T, param);
+}
+
+bool
+cxx_compiler::func_type::template_match(const type* Ty, bool) const
+{
+  if (Ty->m_id != type::FUNC)
+    return false;
+  typedef const func_type FT;
+  FT* yft = static_cast<FT*>(Ty);
+  const vector<const type*>& yparam = yft->m_param;
+  if (m_param.size() != yparam.size())
+    return false;
+  auto ret = mismatch(begin(m_param), end(m_param),
+		      begin(yparam), cxx_compiler::template_match);
+  if (ret.first != end(m_param))
+    return false;
+  Ty = yft->m_T;
+  return m_T->template_match(Ty, true);
+}
+
+bool cxx_compiler::func_type::comp(const type* Ty, int* res) const
+{
+  error::not_implemented();
+  return false;
+}
+
 const cxx_compiler::func_type*
 cxx_compiler::func_type::create(const type* T,
                                 const std::vector<const type*>& param)
@@ -1124,6 +1232,34 @@ cxx_compiler::var* cxx_compiler::array_type::vsize() const
   return size->mul(dim);
 }
 
+bool
+cxx_compiler::array_type::template_match(const type* Ty, bool) const
+{
+  if (Ty->m_id != type::ARRAY)
+    return false;
+  typedef const array_type AT;
+  AT* yat = static_cast<AT*>(Ty);
+  int dy = yat->m_dim;
+  if (m_dim != dy)
+    return false;
+  Ty = yat->m_T;
+  return m_T->template_match(Ty, true);
+}
+
+bool cxx_compiler::array_type::comp(const type* Ty, int* res) const
+{
+  if (Ty->m_id != type::ARRAY) {
+    *res = 1;
+    return false;
+  }
+  typedef const array_type AT;
+  AT* yat = static_cast<AT*>(Ty);
+  int dy = yat->m_dim;
+  assert(m_dim == dy);
+  Ty = yat->m_T;
+  return m_T->comp(Ty, res);
+}
+
 const cxx_compiler::array_type*
 cxx_compiler::array_type::create(const type* T, int dim)
 {
@@ -1214,6 +1350,29 @@ const cxx_compiler::type* cxx_compiler::pointer_type::composite(const type* T) c
 const cxx_compiler::type* cxx_compiler::pointer_type::complete_type() const
 {
   return create(m_T->complete_type());
+}
+
+bool
+cxx_compiler::pointer_type::template_match(const type* Ty, bool) const
+{
+  typedef const pointer_type PT;
+  if (Ty->m_id != type::POINTER)
+    return false;
+  PT* ypt = static_cast<PT*>(Ty);
+  Ty = ypt->m_T;
+  return m_T->template_match(Ty, false);
+}
+
+bool cxx_compiler::pointer_type::comp(const type* Ty, int* res) const
+{
+  typedef const pointer_type PT;
+  if (Ty->m_id != type::POINTER) {
+    *res = 1;
+    return false;
+  }
+  PT* ypt = static_cast<PT*>(Ty);
+  Ty = ypt->m_T;
+  return m_T->comp(Ty, res);
 }
 
 const cxx_compiler::pointer_type* cxx_compiler::pointer_type::create(const type* T)
@@ -1314,6 +1473,29 @@ cxx_compiler::reference_type::composite(const type* T) const
 const cxx_compiler::type* cxx_compiler::reference_type::complete_type() const
 {
   return create(m_T->complete_type(), m_twice);
+}
+
+bool
+cxx_compiler::reference_type::template_match(const type* Ty, bool) const
+{
+  typedef const reference_type RT;
+  if (Ty->m_id == type::REFERENCE) {
+    RT* rt = static_cast<RT*>(Ty);
+    Ty = rt->m_T;
+  }
+  return m_T->template_match(Ty, false);
+}
+
+bool cxx_compiler::reference_type::comp(const type* Ty, int* res) const
+{
+  if (Ty->m_id != type::REFERENCE) {
+    *res = 1;
+    return false;
+  }
+  typedef const reference_type RT;
+  RT* rt = static_cast<RT*>(Ty);
+  Ty = rt->m_T;
+  return m_T->comp(Ty, res);
 }
 
 const cxx_compiler::reference_type*
@@ -1429,6 +1611,51 @@ bool cxx_compiler::incomplete_tagged_type::tmp() const
   return tmp_tbl.find(this) != tmp_tbl.end();
 }
 
+int cxx_compiler::incomplete_tagged_type::complex() const
+{
+  return record_impl::complex(m_tag);
+}
+
+const cxx_compiler::type*
+cxx_compiler::incomplete_tagged_type::instantiate() const
+{
+  const tag* res = record_impl::instantiate(m_tag);
+  const type* T = res->m_types.second;
+  if (T)
+    return T;
+  return res->m_types.first;
+}
+
+bool cxx_compiler::
+incomplete_tagged_type::template_match(const type* Ty, bool) const
+{
+  if (Ty->m_id == type::REFERENCE) {
+    typedef const reference_type RT;
+    RT* rt = static_cast<RT*>(Ty);
+    Ty = rt->referenced_type();
+  }
+  Ty = Ty->unqualified();
+  type::id_t id = Ty->m_id;
+  if (id != type::RECORD && id != type::INCOMPLETE_TAGGED) {
+    tag::kind_t kind = m_tag->m_kind;
+    if (kind == tag::TYPENAME)
+      return true;
+    return false;
+  }
+  tag* ytag = Ty->get_tag();
+  return record_impl::template_match_impl::common(m_tag, ytag);
+}
+
+bool
+cxx_compiler::incomplete_tagged_type::comp(const type* Ty, int* res) const
+{
+  tag* py = Ty->get_tag();
+  if (!py) {
+    *res = 1;
+    return false;
+  }
+  return record_impl::comp_impl::common(m_tag, py, res);
+}
 
 void cxx_compiler::incomplete_tagged_type::destroy_tmp()
 {
@@ -1518,6 +1745,38 @@ const cxx_compiler::enum_type* cxx_compiler::enum_type::create(tag* ptr, const t
 bool cxx_compiler::enum_type::tmp() const
 {
   return tmp_tbl.find(this) != tmp_tbl.end();
+}
+
+int cxx_compiler::enum_type::complex() const
+{
+  return record_impl::complex(m_tag);
+}
+
+const cxx_compiler::type*
+cxx_compiler::enum_type::instantiate() const
+{
+  const tag* res = record_impl::instantiate(m_tag);
+  const type* T = res->m_types.second;
+  assert(T);
+  return T;
+}
+
+bool 
+cxx_compiler::enum_type::template_match(const type*, bool) const
+{
+  error::not_implemented();
+  return false;
+}
+
+bool
+cxx_compiler::enum_type::comp(const type* Ty, int* res) const
+{
+  tag* py = Ty->get_tag();
+  if (!py) {
+    *res = 1;
+    return false;
+  }
+  return record_impl::comp_impl::common(m_tag, py, res);
 }
 
 void cxx_compiler::enum_type::destroy_tmp()
@@ -1698,6 +1957,14 @@ const cxx_compiler::pointer_type* cxx_compiler::varray_type::ptr_gen() const
   return pointer_type::create(m_T);
 }
 
+bool cxx_compiler::varray_type::tmp() const
+{
+  using namespace std;
+  pair<const type*, var*> key(m_T,m_dim);
+  auto p = table.find(key);
+  return p != table.end();
+}
+
 cxx_compiler::var* cxx_compiler::varray_type::vsize() const
 {
   using namespace std;
@@ -1714,6 +1981,14 @@ cxx_compiler::var* cxx_compiler::varray_type::vsize() const
   return dim->mul(size);
 }
 
+const cxx_compiler::type*
+cxx_compiler::varray_type::vla2a() const
+{
+  if (!tmp())
+    return this;
+  return array_type::create(m_T->vla2a(), 0);
+}
+
 void cxx_compiler::varray_type::decide_dim() const
 {
   using namespace std;
@@ -1726,6 +2001,101 @@ void cxx_compiler::varray_type::decide_dim() const
     variable_length::dim_code.erase(p);
   }
   m_T->decide_dim();
+}
+
+const cxx_compiler::type*
+cxx_compiler::varray_type::instantiate() const
+{
+  const type* T = m_T->instantiate();
+  assert(m_dim->usr_cast());
+  usr* u = static_cast<usr*>(m_dim);
+  string name = u->m_name;
+  assert(!sweeper_f_impl::tables.empty());
+  auto bk = sweeper_f_impl::tables.back();
+  auto p = bk->find(name);
+  assert(p != bk->end());
+  auto& v = p->second;
+  auto y = v.second;
+  assert(y);
+  var* dim = y->second;
+  assert(dim);
+  assert(dim->usr_cast());
+  usr* u2 = static_cast<usr*>(dim);
+  assert(u2->isconstant());
+  int n = u2->value();
+  return array_type::create(T, n);
+}
+
+namespace cxx_compiler {
+  namespace varray_type_impl {
+    bool array_case(const varray_type* xvat, const array_type* yat)
+    {
+      using namespace expressions::primary::literal;
+      var* dx = xvat->dim();
+      assert(dx->usr_cast());
+      usr* u = static_cast<usr*>(dx);
+      assert(u->m_flag2 & usr::TEMPL_PARAM);
+      string name = u->m_name;
+      assert(!sweeper_f_impl::tables.empty());
+      auto bk = sweeper_f_impl::tables.back();
+      auto p = bk->find(name);
+      assert(p != bk->end());
+      auto& v = p->second;
+      int dy = yat->dim();
+      if (v.second->second) {
+	if (v.second->second != integer::create(dy))
+	  return false;
+      }
+      else
+	v.second->second = integer::create(dy);
+      const type* Tx = xvat->element_type();
+      const type* Ty = yat->element_type();
+      return Tx->template_match(Ty, true);
+    }
+  } // /end of namesapce varray_type_impl
+} // end of namespace cxx_compiler
+
+bool
+cxx_compiler::varray_type::template_match(const type* Ty, bool) const
+{
+  if (Ty->m_id == type::ARRAY) {
+    typedef const array_type AT;
+    AT* yat = static_cast<AT*>(Ty);
+    return varray_type_impl::array_case(this, yat);
+  }
+  if (Ty->m_id != type::VARRAY)
+    return false;
+  typedef const varray_type VAT;
+  VAT* yvat = static_cast<VAT*>(Ty);
+  assert(m_dim->usr_cast());
+  usr* ux = static_cast<usr*>(m_dim);
+  assert(ux->m_flag2 & usr::TEMPL_PARAM);
+  var* dy = yvat->m_dim;
+  assert(dy->usr_cast());
+  usr* uy = static_cast<usr*>(dy);
+  assert(uy->m_flag2 & usr::TEMPL_PARAM);
+
+  string nx = ux->m_name;
+  assert(!sweeper_f_impl::tables.empty());
+  auto bk = sweeper_f_impl::tables.back();
+  auto p = bk->find(nx);
+  assert(p != bk->end());
+  auto& v = p->second;
+  if (v.second->second) {
+    if (v.second->second != uy)
+      return false;
+  }
+  else
+    v.second->second = uy;
+
+  Ty = yvat->m_T;
+  return m_T->template_match(Ty, true);
+}
+
+bool
+cxx_compiler::varray_type::comp(const type* Ty, int* res) const
+{
+  error::not_implemented();
 }
 
 const cxx_compiler::varray_type*
@@ -1757,6 +2127,60 @@ void cxx_compiler::varray_type::collect_tmp(std::vector<const type*>& vt)
   for (auto p : table)
     vt.push_back(p.second);
   table.clear();
+}
+
+int cxx_compiler::pointer_member_type::complex() const
+{
+  int n = m_T->complex();
+  if (n)
+    return n + 1;
+  const type* T = m_tag->m_types.first;
+  int m = T->complex();
+  return m ? m + 1 : 0;
+}
+
+const cxx_compiler::type*
+cxx_compiler::pointer_member_type::instantiate() const
+{
+  const type* T = m_tag->m_types.second;
+  assert(T);
+  tag* ptr = T->get_tag();
+  assert(ptr);
+  return create(ptr, m_T->instantiate());
+}
+
+bool
+cxx_compiler::pointer_member_type::template_match(const type* Ty, bool) const
+{
+  Ty = Ty->unqualified();
+  if (Ty->m_id != type::POINTER_MEMBER)
+    return false;
+  typedef const pointer_member_type PM;
+  PM* pmy = static_cast<PM*>(Ty);
+  Ty = pmy->m_T;
+  if (!m_T->template_match(Ty, true))
+    return false;
+  const type* T = m_tag->m_types.first;
+  const tag* ytag = pmy->m_tag;
+  Ty = ytag->m_types.second;
+  if (!Ty)
+    Ty = ytag->m_types.first;
+  return T->template_match(Ty, true);
+}
+
+bool
+cxx_compiler::pointer_member_type::comp(const type* Ty, int* res) const
+{
+  if (Ty->m_id != type::POINTER_MEMBER) {
+    *res = 1;
+    return false;
+  }
+  typedef const pointer_member_type PM;
+  PM* pmy = static_cast<PM*>(Ty);
+  Ty = pmy->m_T;
+  if (!m_T->comp(Ty, res))
+    return false;
+  return record_impl::comp_impl::common(m_tag, pmy->m_tag, res);
 }
 
 namespace cxx_compiler {
@@ -1893,6 +2317,30 @@ cxx_compiler::template_param_type::complete_type() const
   assert(this == m_tag->m_types.first);
   const type* T = m_tag->m_types.second;
   return T ? T : this;
+}
+
+const cxx_compiler::type*
+cxx_compiler::template_param_type::instantiate() const
+{
+  const type* T = m_tag->m_types.second;
+  assert(T);
+  return T;
+}
+
+bool cxx_compiler::
+template_param_type::template_match(const type* Ty, bool unq) const
+{
+  if (unq)
+    Ty = Ty->unqualified();
+  if (const type* T2 = m_tag->m_types.second) {
+    if (T2 == Ty)
+      return true;
+    type::id_t idx = T2->m_id;
+    type::id_t idy = Ty->m_id;
+    return idx == idy && idx == type::TEMPLATE_PARAM;
+  }
+  m_tag->m_types.second = Ty;
+  return true;
 }
 
 namespace cxx_compiler {

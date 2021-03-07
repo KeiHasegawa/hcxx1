@@ -309,9 +309,9 @@ namespace cxx_compiler {
             return false;
         }
 	const type*
-	templ_arg_array(const type* T, usr* u, var* v, bool asterisc)
+	templ_arg_array(const type* T, var* v, bool asterisc)
 	{
-	  if (u)
+	  if (scope::current->m_id == scope::TAG)
 	    return 0;
 	  if (asterisc)
 	    return 0;
@@ -323,8 +323,6 @@ namespace cxx_compiler {
 	  usr::flag2_t flag2 = dim->m_flag2;
 	  if (!(flag2 & usr::TEMPL_PARAM))
 	    return 0;
-	  if (!parse::templ::arg)
-	    return  0;
 	  const type* bt = backpatch_type::create();
 	  return T->patch(varray_type::create(bt, v), 0);
 	}
@@ -355,7 +353,7 @@ declarators::array::action(const type* T,
   if ( expr )
     v = expr->gen();
 
-  if (const type* ret = array_impl::templ_arg_array(T, u, v, asterisc))
+  if (const type* ret = array_impl::templ_arg_array(T, v, asterisc))
     return ret;
 
   int dim = 0;
@@ -456,6 +454,8 @@ namespace cxx_compiler {
           }
           bool match(const usr* u, const vector<usr*>& order)
           {
+	    if (u->m_flag2 & usr::PARTIAL_ORDERING)
+	      return false;
             const type* T = u->m_type;
             assert(T->m_id == type::FUNC);
             typedef const func_type FT;

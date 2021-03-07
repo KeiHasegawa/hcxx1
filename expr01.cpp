@@ -283,7 +283,7 @@ cxx_compiler::var* cxx_compiler::var::call(std::vector<var*>* arg)
   if (T->m_id == type::FUNC) {
     typedef const func_type FT;
     FT* ft = static_cast<FT*>(T);
-    return call_impl::common(ft, func, arg, 0, 0, false, 0);
+    return call_impl::common(ft, func, arg, 0, 0, false, 0, false);
   }
   using namespace error::expressions::postfix::call;
   not_function(parse::position,func);
@@ -334,7 +334,8 @@ cxx_compiler::genaddr::call(std::vector<var*>* arg)
       }
     }
   }
-  return call_impl::common(ft, u, arg, 0, this_ptr, m_qualified_func, 0);
+  return call_impl::common(ft, u, arg, 0, this_ptr, m_qualified_func,
+			   0, false);
 }
 
 cxx_compiler::var*
@@ -374,7 +375,7 @@ cxx_compiler::member_function::call(std::vector<var*>* arg)
     }
   }
   return call_impl::common(ft, fun, arg, 0, m_obj,
-			   m_qualified_func, m_vftbl_off);
+			   m_qualified_func, m_vftbl_off, false);
 }
 
 namespace cxx_compiler {
@@ -564,13 +565,22 @@ namespace cxx_compiler {
         if (tu->instantiate(arg, &key))
   	  u = tu->instantiate(key, usr::NONE2);
       }
+      if (flag2 & usr::PARTIAL_ORDERING) {
+	auto po = static_cast<partial_ordering*>(u);
+	template_usr* tu = po->chose(arg);
+	u = tu->instantiate(arg, 0);
+	if (!u) {
+	  tmp.resize(tmp.size()+1);
+	  return 0;
+	}
+      }
       const type* T = u->m_type;
       assert(T->m_id == type::FUNC);
       typedef const func_type FT;
       FT* ft = static_cast<FT*>(T);
       int n = code.size();
       int m = 0;
-      var* ret = call_impl::common(ft, u, arg, &m, obj, false, 0);
+      var* ret = call_impl::common(ft, u, arg, &m, obj, false, 0, false);
       cost.push_back(m);
       tmp.resize(tmp.size()+1);
       copy(begin(code)+n, end(code), back_inserter(tmp.back()));
@@ -674,134 +684,6 @@ namespace cxx_compiler {
     struct help {
       int* m_res;
       help(int* res) : m_res(res) {}
-      bool none_tag(const type* Tx, const type* Ty)
-      {
-	if (Tx == Ty)
-	  return true;
-	type::id_t idx = Tx->m_id;
-	type::id_t idy = Ty->m_id;
-	if (idx == type::POINTER && idy != type::POINTER) {
-	  *m_res = 1;
-	  return false;
-	}
-	if (idx != type::POINTER && idy == type::POINTER) {
-	  *m_res = -1;
-	  return false;
-	}
-	if (idx == type::POINTER && idy == type::POINTER) {
-	  typedef const pointer_type PT;
-	  PT* ptx = static_cast<PT*>(Tx);
-	  PT* pty = static_cast<PT*>(Ty);
-	  Tx = ptx->referenced_type();
-	  Ty = pty->referenced_type();
-	  return subr(Tx, Ty);
-	}
-	if (idx == type::REFERENCE && idy != type::REFERENCE) {
-	  *m_res = 1;
-	  return false;
-	}
-	if (idx != type::REFERENCE && idy == type::REFERENCE) {
-	  *m_res = -1;
-	  return false;
-	}
-	if (idx == type::REFERENCE && idy == type::REFERENCE) {
-	  typedef const reference_type RT;
-	  RT* rtx = static_cast<RT*>(Tx);
-	  RT* rty = static_cast<RT*>(Ty);
-	  Tx = rtx->referenced_type();
-	  Ty = rty->referenced_type();
-	  return subr(Tx, Ty);
-	}
-	if (idx == type::CONST && idy != type::CONST) {
-	  *m_res = 1;
-	  return false;
-	}
-	if (idx != type::CONST && idy == type::CONST) {
-	  *m_res = -1;
-	  return false;
-	}
-	if (idx == type::CONST && idy == type::CONST) {
-	  typedef const const_type CT;
-	  CT* ctx = static_cast<CT*>(Tx);
-	  CT* cty = static_cast<CT*>(Ty);
-	  Tx = ctx->referenced_type();
-	  Ty = cty->referenced_type();
-	  return subr(Tx, Ty);
-	}
-	if (idx == type::VOLATILE && idy != type::VOLATILE) {
-	  *m_res = 1;
-	  return false;
-	}
-	if (idx != type::VOLATILE && idy == type::VOLATILE) {
-	  *m_res = -1;
-	  return false;
-	}
-	if (idx == type::VOLATILE && idy == type::VOLATILE) {
-	  typedef const volatile_type VT;
-	  VT* vtx = static_cast<VT*>(Tx);
-	  VT* vty = static_cast<VT*>(Ty);
-	  Tx = vtx->referenced_type();
-	  Ty = vty->referenced_type();
-	  return subr(Tx, Ty);
-	}
-	if (idx == type::ARRAY && idy != type::ARRAY) {
-	  *m_res = 1;
-	  return false;
-	}
-	if (idx != type::ARRAY && idy == type::ARRAY) {
-	  *m_res = -1;
-	  return false;
-	}
-	if (idx == type::ARRAY && idy == type::ARRAY) {
-	  typedef const array_type AT;
-	  AT* atx = static_cast<AT*>(Tx);
-	  AT* aty = static_cast<AT*>(Ty);
-	  int dx = atx->dim();
-	  int dy = aty->dim();
-	  assert(dx == dy);
-	  Tx = atx->element_type();
-	  Ty = aty->element_type();
-	  return subr(Tx, Ty);
-	}
-	error::not_implemented();
-	return true;
-      }
-      bool subr(const type* Tx, const type* Ty)
-      {
-	tag* px = Tx->get_tag();
-	tag* py = Ty->get_tag();
-	if (!px) {
-	  if (!py)
-	    return none_tag(Tx, Ty);
-	  tag::flag_t yflag = py->m_flag;
-	  if (yflag & tag::INSTANTIATE) {
-	    *m_res = -1;
-	    return false;
-	  }
-	  return true;
-	}
-	tag::flag_t xflag = px->m_flag;
-	if (!py) {
-	  if (xflag & tag::INSTANTIATE) {
-	    *m_res = 1;
-	    return false;
-	  }
-	  return true;
-	}
-	tag::flag_t yflag = py->m_flag;
-	if (xflag & tag::INSTANTIATE) {
-	  if (!(yflag & tag::INSTANTIATE)) {
-	    *m_res = 1;
-	    return false;
-	  }
-	  return true;
-	}
-	if (yflag & tag::INSTANTIATE) {
-	  *m_res = -1;
-	  return false;
-	}
-	return true;
-      }
       bool subr(var*, var*)
       {
 	error::not_implemented();
@@ -813,7 +695,7 @@ namespace cxx_compiler {
 	if (const type* Tx = x.first) {
 	  const type* Ty = y.first;
 	  assert(Ty);
-	  return subr(Tx, Ty);
+	  return Tx->comp(Ty, m_res);
 	}
 	else {
 	  var* vx = x.second;
@@ -822,7 +704,11 @@ namespace cxx_compiler {
 	  return subr(vx, vy);
 	}
       }
-    };
+    };  // end of struct help
+    bool help2(const type* Tx, const type* Ty)
+    {
+      return Tx->complex() == Ty->complex();
+    }
     struct comp {
       vector<var*>* m_arg;
       comp(vector<var*>* arg) : m_arg(arg) {}
@@ -836,15 +722,37 @@ namespace cxx_compiler {
         usr* uy = y->instantiate(m_arg, &ykey);
         if (!uy)
           return true;
+
+	if (int n = less_than(x, xkey, y, ykey, m_arg))
+	  return n < 0;
+
+	const type* Tx = x->m_type;
+	assert(Tx->m_id == type::FUNC);
+	typedef const func_type FT;
+	auto fx = static_cast<FT*>(Tx);
+	const type* Ty = y->m_type;
+	auto fy = static_cast<FT*>(Ty);
+	const auto& xp = fx->param();
+	const auto& yp = fy->param();
+	assert(xp.size() == yp.size());
+	auto it = mismatch(begin(xp), end(xp), begin(yp), help2);
+	if (it.first != end(xp)) {
+	  Tx = *it.first;
+	  Ty = *it.second;
+	  int xc = Tx->complex();
+	  int yc = Ty->complex();
+	  assert(xc != yc);
+	  return xc > yc;
+	}
+
         if (xkey.size() < ykey.size())
           return true;
         if (xkey.size() > ykey.size())
           return false;
-	typedef template_usr::KEY::iterator IT;
+
 	int n = 0;
-	pair<IT, IT> p = mismatch(begin(xkey), end(xkey), begin(ykey),
-				  help(&n));
-	if (p != make_pair(end(xkey), end(ykey))) {
+	auto p = mismatch(begin(xkey), end(xkey), begin(ykey), help(&n));
+	if (p.first != end(xkey)) {
 	  assert(n == -1 || n == 1);
 	  return n < 0;
 	}
@@ -878,10 +786,7 @@ cxx_compiler::partial_ordering::info;
 cxx_compiler::var*
 cxx_compiler::partial_ordering::call(std::vector<var*>* arg)
 {
-  auto p = min_element(begin(m_candidacy), end(m_candidacy),
-		       partial_ordering_impl::comp(arg));
-  assert(p != end(m_candidacy));
-  template_usr* tu = *p;
+  template_usr* tu = chose(arg);
   usr* ins = tu->instantiate(arg, 0);
 
   if (template_usr* next = tu->m_next) {
@@ -902,6 +807,16 @@ cxx_compiler::partial_ordering::call(std::vector<var*>* arg)
   return call_impl::wrapper(ins, arg, 0);
 }
 
+cxx_compiler::template_usr*
+cxx_compiler::partial_ordering::chose(vector<var*>* arg)
+{
+  auto p = min_element(begin(m_candidacy), end(m_candidacy),
+		       partial_ordering_impl::comp(arg));
+  assert(p != end(m_candidacy));
+  template_usr* tu = *p;
+  return tu;
+}
+
 cxx_compiler::var*
 cxx_compiler::alias_usr::call(std::vector<var*>* arg)
 {
@@ -918,9 +833,12 @@ namespace cxx_compiler {
       const vector<const type*>& m_param;
       var* m_func;
       int* m_trial_cost;
+      bool m_for_template_cost;
       int m_counter;
-      convert(const vector<const type*>& param, var* func, int* tc)
-        : m_param(param), m_func(func), m_counter(-1), m_trial_cost(tc) {}
+      convert(const vector<const type*>& param, var* func, int* tc,
+	      bool for_tc)
+        : m_param(param), m_func(func), m_counter(-1), m_trial_cost(tc),
+	  m_for_template_cost(for_tc) {}
       var* operator()(var*);
     };
     tac* gen_param(var*);
@@ -964,7 +882,7 @@ namespace cxx_compiler {
       assert(T->m_id == type::FUNC);
       typedef const func_type FT;
       FT* ft = static_cast<FT*>(T);
-      return call_impl::common(ft, fun, arg, 0, this_ptr, false, 0);
+      return call_impl::common(ft, fun, arg, 0, this_ptr, false, 0, false);
     }
     inline var* via_obj(var* obj, var* func, bool qualified_func,
                 	var* vftbl_off, const func_type* ft)
@@ -1055,18 +973,21 @@ namespace cxx_compiler {
 		       int* trial_cost,
 		       var* obj,
 		       bool qualified_func,
-		       var* vftbl_off);
+		       var* vftbl_off,
+		       bool for_template_cost);
     var* common(const func_type* ft,
 		var* func,
 		std::vector<var*>* arg,
 		int* trial_cost,
 		var* obj,
 		bool qualified_func,
-		var* vftbl_off)
+		var* vftbl_off,
+		bool for_template_cost)
     {
       int n = code.size();
       var* ret = except_inline(ft, func, arg, trial_cost, obj,
-			       qualified_func, vftbl_off);
+			       qualified_func, vftbl_off,
+			       for_template_cost);
       if (error::counter)
 	return ret;
       if (cmdline::no_inline_sub)
@@ -1135,7 +1056,8 @@ cxx_compiler::call_impl::except_inline(const func_type* ft,
 				       int* trial_cost,
 				       var* obj,
 				       bool qualified_func,
-                                var* vftbl_off)
+				       var* vftbl_off,
+				       bool for_template_cost)
 {
   using namespace std;
   const vector<const type*>& param = ft->param();
@@ -1164,7 +1086,7 @@ cxx_compiler::call_impl::except_inline(const func_type* ft,
   if (arg) {
     const vector<var*>& v = *arg;
     transform(v.begin(),v.begin()+n,back_inserter(conved),
-              call_impl::convert(param,func,trial_cost));
+              call_impl::convert(param,func,trial_cost,for_template_cost));
     if (trial_cost
         && find(begin(conved),end(conved),(var*)0) != end(conved)) {
       *trial_cost = numeric_limits<int>::max();
@@ -1270,6 +1192,33 @@ namespace cxx_compiler {
       const type* Ty = ref->m_type;
       return compatible(Tx, Ty);
     }
+    var* rvalue(bool for_template_cost, var* arg)
+    {
+      if (!for_template_cost)
+	return arg->rvalue();
+      genaddr* ga = arg->genaddr_cast();
+      if (!ga)
+	return arg->rvalue();
+      return ga;
+    }
+    var* cast(bool for_template_cost, var* arg, const type* T)
+    {
+      if (!for_template_cost)
+	return arg->cast(T);
+      genaddr* ga = arg->genaddr_cast();
+      if (!ga)
+	return arg->cast(T);
+      if (compatible(ga->m_type,T))
+	return ga;
+      var* ret = new var(T);
+      if (scope::current->m_id == scope::BLOCK) {
+	block* b = static_cast<block*>(scope::current);
+	b->m_vars.push_back(ret);
+      }
+      else
+	garbage.push_back(ret);
+      return ret;
+    }
   } // end of namepsace call_impl
 } // end of namespace cxx_compiler
 
@@ -1282,7 +1231,7 @@ cxx_compiler::var* cxx_compiler::call_impl::convert::operator()(var* arg)
   T = T->complete_type();
   const type* U = T->unqualified();
   if (U->m_id != type::REFERENCE)
-    arg = arg->rvalue();
+    arg = call_impl::rvalue(m_for_template_cost, arg);
   if (T->m_id == type::ELLIPSIS) {
     if (m_trial_cost)
       *m_trial_cost += 2;
@@ -1334,12 +1283,11 @@ cxx_compiler::var* cxx_compiler::call_impl::convert::operator()(var* arg)
           ++*m_trial_cost;
         arg = tmp;
       }
-      else if (call_impl::ref_genaddr(T,arg)) {
-	arg = arg->rvalue();
-      }
+      else if (call_impl::ref_genaddr(T,arg))
+	arg = call_impl::rvalue(m_for_template_cost, arg);
       else {
         var* org = arg;
-        arg = arg->cast(T);
+	arg = call_impl::cast(m_for_template_cost, arg, T);
         if (org == arg && U->m_id == type::REFERENCE && 
 	    (!arg->lvalue() || arg->genaddr_cast())) {
 	  var* tmp = new var(T);
@@ -2517,7 +2465,8 @@ namespace cxx_compiler {
         int n = code.size();
         if (scope::current->m_id != scope::BLOCK)
           flag = usr::flag_t(flag & ~usr::INLINE);
-        var* ret = call_impl::common(ft, ctor, &arg, pi, obj, false, 0);
+        var* ret = call_impl::common(ft, ctor, &arg, pi, obj,
+				     false, 0, false);
         if (trial) {
           for_each(begin(code)+n, end(code), [](tac* p){ delete p; });
           code.resize(n);
@@ -3005,7 +2954,8 @@ namespace cxx_compiler {
           FT* ft = static_cast<FT*>(T);
           int trial_cost = 0;
           int* pi = (arg->size() == 1) ? &trial_cost : 0;
-          return call_impl::common(ft, fun, arg, pi, this_ptr, false, 0);
+          return call_impl::common(ft, fun, arg, pi, this_ptr,
+				   false, 0, false);
         }
         bool copy_code(var* x, var* y)
         {

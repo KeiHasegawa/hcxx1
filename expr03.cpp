@@ -333,7 +333,7 @@ namespace cxx_compiler {
         assert(T->m_id == type::FUNC);
         typedef const func_type FT;
         FT* ft = static_cast<FT*>(T);
-        return call_impl::common(ft, func, 0, 0, src, false, 0);
+        return call_impl::common(ft, func, 0, 0, src, false, 0, false);
       }
       var* ret = call_impl::wrapper(op, 0, src);
       return ret->cast(T);
@@ -469,7 +469,9 @@ namespace cxx_compiler { namespace constant_impl {
     case type::UCHAR: return integer::create((unsigned char)(y->m_value));
     case type::WCHAR: return integer::create((wchar_t)(y->m_value));
     case type::SHORT: return integer::create((short int)(y->m_value));
-    case type::USHORT: return integer::create((unsigned short int)(y->m_value));
+    case type::USHORT:
+      return integer::create((unsigned short int)(y->m_value));
+    case type::POINTER_MEMBER:
     case type::INT: return integer::create((int)(y->m_value));
     case type::UINT: return integer::create((unsigned int)(y->m_value));
     case type::LONG:

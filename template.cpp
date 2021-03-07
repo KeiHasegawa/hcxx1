@@ -186,6 +186,19 @@ namespace cxx_compiler {
         template_usr* tu = static_cast<template_usr*>(u);
         assert(!tu->m_decled);
         tu->m_decled = scope::current;
+	usr::flag_t flag = u->m_flag;
+	if (flag & usr::FUNCTION) {
+	  usr::flag2_t flag2 = u->m_flag2;
+	  if (!(flag2 & usr::FUNCTION_DEFINITION)) {
+	    auto& children = scope::current->m_children;
+	    assert(!children.empty());
+	    auto p = children.back();
+	    if (p->m_id == scope::PARAM) {
+	      p->m_parent = 0;
+	      children.pop_back();
+	    }
+	  }
+	}
         tu->m_read = r;
         if (u->m_flag & usr::STATIC_DEF) {
           scope* p = u->m_scope;
@@ -303,238 +316,6 @@ void cxx_compiler::declarations::templ::decl_end()
 
 namespace cxx_compiler {
   namespace template_usr_impl {
-    struct calc {
-      const map<string, scope::tps_t::value_t>& m_table;
-      bool m_unq;
-      calc(const map<string, scope::tps_t::value_t>& table, bool unq)
-	: m_table(table), m_unq(unq) {}
-      bool operator()(const type* Tx, const type* Ty);
-    };
-    namespace calc_impl {
-      typedef bool FUNC(const type*, const type*,
-                	const map<string, scope::tps_t::value_t>&, bool);
-      bool
-      template_param_case(const type* Tx, const type* Ty,
-			  const map<string, scope::tps_t::value_t>& table,
-			  bool unq)
-      {
-        assert(Tx->m_id == type::TEMPLATE_PARAM);
-        typedef const template_param_type TP;
-        TP* tp = static_cast<TP*>(Tx);
-        tag* ptr = tp->get_tag();
-	if (unq)
-	  Ty = Ty->unqualified();
-        if (const type* T2 = ptr->m_types.second) {
-          if (T2 == Ty)
-	    return true;
-	  type::id_t idx = T2->m_id;
-	  type::id_t idy = Ty->m_id;
-	  return idx == idy && idx == type::TEMPLATE_PARAM;
-	}
-        ptr->m_types.second = Ty;
-        return true;
-      }
-      struct helper {
-        const map<string, scope::tps_t::value_t>& m_table;
-        helper(const map<string, scope::tps_t::value_t>& table)
-          : m_table(table) {}
-        bool
-        operator()(const scope::tps_t::val2_t& x,
-                   const scope::tps_t::val2_t& y)
-        {
-          if (var* v = x.second) {
-            assert(y.second);
-            assert(v->usr_cast());
-            usr* u = static_cast<usr*>(v);
-            string name = u->m_name;
-            typedef map<string, scope::tps_t::value_t>::const_iterator IT;
-            IT p = m_table.find(name);
-            assert(p != m_table.end());
-            const scope::tps_t::value_t& value = p->second;
-            value.second->second = y.second;
-            return true;
-          }
-          const type* Tx = x.first;
-          const type* Ty = y.first;
-          calc tmp(m_table, true);
-          return tmp(Tx, Ty);
-        }
-      };
-      bool common(tag* xtag, tag* ytag,
-                  const map<string, scope::tps_t::value_t>& table, bool)
-      {
-        if (xtag == ytag)
-          return true;
-        if (!(xtag->m_flag & tag::INSTANTIATE))
-          return false;
-        if (!(ytag->m_flag & tag::INSTANTIATE))
-          return false;
-        instantiated_tag* xit = static_cast<instantiated_tag*>(xtag);
-        instantiated_tag* yit = static_cast<instantiated_tag*>(ytag);
-        if (xit->m_src != yit->m_src)
-          return false;
-        typedef instantiated_tag::SEED SEED;
-        const SEED& xseed = xit->m_seed;
-        const SEED& yseed = yit->m_seed;
-        assert(xseed.size() == yseed.size());
-        typedef SEED::const_iterator IT;
-        pair<IT, IT> ret = mismatch(begin(xseed), end(xseed), begin(yseed),
-                		    helper(table));
-        return ret == make_pair(end(xseed), end(yseed));
-      }
-      bool record_case(const type* Tx, const type* Ty,
-                       const map<string, scope::tps_t::value_t>& table,
-		       bool)
-      {
-        assert(Tx->m_id == type::RECORD);
-        if (Ty->m_id == type::REFERENCE) {
-          typedef const reference_type RT;
-          RT* rt = static_cast<RT*>(Ty);
-          Ty = rt->referenced_type();
-        }
-	Ty = Ty->unqualified();
-        type::id_t id = Ty->m_id;
-        if (id != type::RECORD && id != type::INCOMPLETE_TAGGED)
-          return false;
-
-        tag* xtag = Tx->get_tag();
-        tag* ytag = Ty->get_tag();
-        return common(xtag, ytag, table, true);
-      }
-      bool incomplete_case(const type* Tx, const type* Ty,
-			   const map<string, scope::tps_t::value_t>& table,
-			   bool)
-      {
-        assert(Tx->m_id == type::INCOMPLETE_TAGGED);
-        typedef const incomplete_tagged_type ITT;
-        ITT* xitt = static_cast<ITT*>(Tx);
-        if (Ty->m_id == type::REFERENCE) {
-          typedef const reference_type RT;
-          RT* rt = static_cast<RT*>(Ty);
-          Ty = rt->referenced_type();
-        }
-	Ty = Ty->unqualified();
-        type::id_t id = Ty->m_id;
-        if (id != type::RECORD && id != type::INCOMPLETE_TAGGED) {
-	  if (tag* ptr = Tx->get_tag()) {
-	    tag::kind_t kind = ptr->m_kind;
-	    if (kind == tag::TYPENAME) {
-	      return true;
-	    }
-	  }
-          return false;
-	}
-        tag* xtag = Tx->get_tag();
-        tag* ytag = Ty->get_tag();
-        return common(xtag, ytag, table, true);
-      }
-      bool pointer_case(const type* Tx, const type* Ty,
-                	const map<string, scope::tps_t::value_t>& table,
-			bool)
-      {
-        assert(Tx->m_id == type::POINTER);
-        typedef const pointer_type PT;
-        PT* xpt = static_cast<PT*>(Tx);
-        Tx = xpt->referenced_type();
-        if (Ty->m_id != type::POINTER)
-          return false;
-        PT* ypt = static_cast<PT*>(Ty);
-        Ty = ypt->referenced_type();
-        calc tmp(table, false);
-        return tmp(Tx, Ty);
-      }
-      bool reference_case(const type* Tx, const type* Ty,
-                	  const map<string, scope::tps_t::value_t>& table,
-			  bool)
-      {
-        assert(Tx->m_id == type::REFERENCE);
-        typedef const reference_type RT;
-        RT* xrt = static_cast<RT*>(Tx);
-        if (Ty->m_id == type::REFERENCE) {
-          RT* rt = static_cast<RT*>(Ty);
-          Ty = rt->referenced_type();
-        }
-        Tx = xrt->referenced_type();
-        calc tmp(table, false);
-        return tmp(Tx, Ty);
-      }
-      bool func_case(const type* Tx, const type* Ty,
-                	  const map<string, scope::tps_t::value_t>& table,
-			  bool)
-      {
-        assert(Tx->m_id == type::FUNC);
-        typedef const func_type FT;
-        FT* xft = static_cast<FT*>(Tx);
-        if (Ty->m_id != type::FUNC)
-	  return false;
-        FT* yft = static_cast<FT*>(Ty);
-	const vector<const type*>& xparam = xft->param();
-	const vector<const type*>& yparam = yft->param();
-	if (xparam.size() != yparam.size())
-	  return false;
-	typedef vector<const type*>::const_iterator IT;
-	pair<IT, IT> ret = mismatch(begin(xparam), end(xparam),
-				    begin(yparam), calc(table, true));
-	if (ret != make_pair(end(xparam), end(yparam)))
-	  return false;
-	Tx = xft->return_type();
-	Ty = yft->return_type();
-        calc tmp(table, true);
-        return tmp(Tx, Ty);
-      }
-      bool array_case(const type* Tx, const type* Ty,
-		      const map<string, scope::tps_t::value_t>& table,
-		      bool)
-      {
-        assert(Tx->m_id == type::ARRAY);
-        typedef const array_type AT;
-        AT* xat = static_cast<AT*>(Tx);
-        if (Ty->m_id != type::ARRAY)
-	  return false;
-        AT* yat = static_cast<AT*>(Ty);
-	int dx = xat->dim();
-	int dy = yat->dim();
-	if (dx != dy)
-	  return false;
-	Tx = xat->element_type();
-	Ty = yat->element_type();
-        calc tmp(table, true);
-        return tmp(Tx, Ty);
-      }
-      bool qualifier_case(const type* Tx, const type* Ty,
-                	  const map<string, scope::tps_t::value_t>& table,
-			  bool)
-      {
-        Tx = Tx->unqualified();
-        Ty = Ty->unqualified();
-        calc tmp(table, true);
-        return tmp(Tx, Ty);
-      }
-      struct table_t : map<type::id_t, FUNC*> {
-        table_t()
-        {
-          (*this)[type::TEMPLATE_PARAM] = template_param_case;
-          (*this)[type::RECORD] = record_case;
-          (*this)[type::INCOMPLETE_TAGGED] = incomplete_case;
-          (*this)[type::POINTER] = pointer_case;
-          (*this)[type::REFERENCE] = reference_case;
-	  (*this)[type::FUNC] = func_case;
-	  (*this)[type::ARRAY] = array_case;
-          (*this)[type::CONST] =
-          (*this)[type::VOLATILE] =
-          (*this)[type::RESTRICT] = qualifier_case;
-        }
-      } table;
-    } // end of namespace calc_impl
-    bool calc::operator()(const type* Tx, const type* Ty)
-    {
-      calc_impl::table_t::const_iterator p =
-        calc_impl::table.find(Tx->m_id);
-      if (p != calc_impl::table.end())
-        return (p->second)(Tx, Ty, m_table, m_unq);
-      Ty = Ty->unqualified();
-      return Tx == Ty;
-    }
     inline bool
     not_decided(const pair<string, pair<tag*, scope::tps_t::val2_t*> >& p)
     {
@@ -611,7 +392,7 @@ namespace cxx_compiler {
         }
       }
     };
-    struct sweeper_b {
+   struct sweeper_b {
       vector<scope::tps_t> m_tps;
       scope* m_current;
       scope* m_del;
@@ -811,7 +592,20 @@ namespace cxx_compiler {
       pair<IT, IT> ret = mismatch(begin(x), end(x), begin(y), comp);
       return ret == make_pair(end(x), end(y));
     }
+
+    struct sweeper_f : sweeper_a {
+      sweeper_f(const map<string, scope::tps_t::value_t>& table)
+	: sweeper_a(table, false)
+      {
+	sweeper_f_impl::tables.push_back(&table);
+      }
+      ~sweeper_f()
+      {
+	sweeper_f_impl::tables.pop_back();
+      }
+    };
   } // end of namespace template_usr_impl
+  vector<const map<string, scope::tps_t::value_t>*> sweeper_f_impl::tables;
 } // end of namespace cxx_compiler
 
 namespace cxx_compiler {
@@ -861,22 +655,42 @@ namespace cxx_compiler {
       atype.push_back(T);
       return true;
     }
+    const type* ref_genaddr(var* v, const type* T)
+    {
+      if (T->m_id != type::REFERENCE)
+	return v->result_type();
+      typedef const reference_type RT;
+      RT* rt = static_cast<RT*>(T);
+      T = rt->referenced_type();
+      genaddr* ga = v->genaddr_cast();
+      if (!ga)
+	return v->result_type();
+      var* ref = ga->m_ref;
+      const type* Ty = ref->m_type;
+      if (T->m_id == Ty->m_id)
+	return Ty;
+      if (T->m_id == type::VARRAY && Ty->m_id == type::ARRAY)
+	return Ty;
+      return v->result_type();
+    }
   } // end of namespace template_usr_impl
 } // end of namespace cxx_compiler
 
 cxx_compiler::usr*
 cxx_compiler::template_usr::instantiate(std::vector<var*>* arg, KEY* trial)
 {
-  if (!arg)
-    error::not_implemented();
-  vector<const type*> atype;
-  transform(begin(*arg), end(*arg), back_inserter(atype),
-            [](var* v){ return v->result_type(); });
-
   assert(m_type->m_id == type::FUNC);
   typedef const func_type FT;
   FT* ft = static_cast<FT*>(m_type);
   const vector<const type*>& param = ft->param();
+  if (!arg)
+    error::not_implemented();
+  vector<const type*> atype;
+  int n = min(arg->size(), param.size());
+  transform(begin(*arg), begin(*arg)+n, begin(param),
+	    back_inserter(atype), template_usr_impl::ref_genaddr);
+  transform(begin(*arg)+n, end(*arg), back_inserter(atype),
+            [](var* v){ return v->result_type(); });
   if (atype.size() < param.size()) {
     if (m_flag2 & usr::HAS_DEFAULT_ARG) {
       using namespace declarations::declarators::function;
@@ -896,12 +710,10 @@ cxx_compiler::template_usr::instantiate(std::vector<var*>* arg, KEY* trial)
   if (!template_usr_impl::match(atype, param))
     return 0;
 
-  const map<string, scope::tps_t::value_t>& table = m_tps.m_table;
-  template_usr_impl::sweeper_a sweeper_a(table, false);
-
-  typedef vector<const type*>::const_iterator ITx;
-  pair<ITx, ITx> pxx = mismatch(begin(param), end(param), begin(atype),
-                		template_usr_impl::calc(table, true));
+  const auto& table = m_tps.m_table;
+  template_usr_impl::sweeper_f sweeper_f(table);
+  auto pxx = mismatch(begin(param), end(param), begin(atype),
+		      template_match);
   if (pxx.first != end(param)) {
     if (trial)
       return 0;
@@ -1226,6 +1038,11 @@ namespace cxx_compiler {
 	  assert(flag2 & usr::PARTIAL_ORDERING);
 	  partial_ordering* po = static_cast<partial_ordering*>(u);
 	  const vector<template_usr*>& c = po->m_candidacy;
+	  if (!templ::specialization::nest.empty()) {
+	    assert(!c.empty());
+	    auto tu = c.back();
+	    return tu->instantiate_explicit(pv);
+	  }
 	  vector<usr*> ins;
 	  for (auto tu : c) {
 	    const vector<string>& order = tu->m_tps.m_order;
@@ -3284,17 +3101,13 @@ cxx_compiler::instance_of(template_usr* tu, usr* ins, templ_base::KEY& key)
   if (vt.size() != vi.size())
     return false;
 
-  const map<string, scope::tps_t::value_t>& table = tu->m_tps.m_table;
-  template_usr_impl::sweeper_a sweeper_a(table, false);
-
-  typedef vector<const type*>::const_iterator ITx;
-  pair<ITx, ITx> ret = mismatch(begin(vt), end(vt), begin(vi),
-                		template_usr_impl::calc(table, true));
-  if (ret != make_pair(end(vt), end(vi)))
+  const auto& table = tu->m_tps.m_table;
+  template_usr_impl::sweeper_f sweeper_f(table);
+  auto ret = mismatch(begin(vt), end(vt), begin(vi), template_match);
+  if (ret.first != end(vt))
     return false;
 
-  typedef map<string, scope::tps_t::value_t>::const_iterator ITy;
-  ITy py = find_if(begin(table), end(table),
+  auto py = find_if(begin(table), end(table),
                    template_usr_impl::not_decided);
   if (py != end(table)) {
     if (instance_of_impl::helper(tu, ins, key))
@@ -3462,3 +3275,59 @@ namespace cxx_compiler {
   }
 } // end of namespace cxx_compiler
 
+namespace cxx_compiler {
+  namespace less_than_impl {
+    struct set_key {
+      const map<string, scope::tps_t::value_t>& m_table;
+      set_key(const map<string, scope::tps_t::value_t>& table)
+	: m_table(table) {}
+      bool operator()(string name, const scope::tps_t::val2_t& val)
+      {
+	auto p = m_table.find(name);
+	assert(p != m_table.end());
+	auto& v = p->second;
+	if (tag* ptr = v.first) {
+	  assert(!ptr->m_types.second);
+	  ptr->m_types.second = val.first;
+	}
+	else {
+	  auto y = v.second;
+	  assert(!y->second);
+	  y->second = val.second;
+	}
+	return true;
+      }
+    };
+    int calc(template_usr* tu, const template_usr::KEY& key,
+	     vector<var*>* arg)
+    {
+      typedef const func_type FT;
+      const auto& table = tu->m_tps.m_table;
+      template_usr_impl::sweeper_f sweeper_f(table);
+      const auto& order = tu->m_tps.m_order;
+      assert(order.size() == key.size());
+      mismatch(begin(order), end(order), begin(key), set_key(table));
+      const type* T = tu->m_type;
+      T = T->instantiate();
+      assert(T->m_id == type::FUNC);
+      FT* ft = static_cast<FT*>(T);
+      int cost = 0;
+      int n = code.size();
+      var* ret = call_impl::common(ft, tu, arg, &cost, 0, false, 0, true);
+      assert(ret);
+      for_each(begin(code)+n, end(code), [](tac* p){ delete p; });
+      code.resize(n);
+      return cost;
+    }
+  } // end of namespace less_than_impl
+  int less_than(template_usr* x, const template_usr::KEY& xkey,
+		template_usr* y, const template_usr::KEY& ykey,
+		vector<var*>* arg)
+  {
+    int cx = less_than_impl::calc(x, xkey, arg);
+    int cy = less_than_impl::calc(y, ykey, arg);
+    if (cx == cy)
+      return 0;
+    return cx < cy ? -1 : 1;
+  }
+} // end of namespace cxx_compiler

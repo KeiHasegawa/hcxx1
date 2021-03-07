@@ -2888,6 +2888,196 @@ bool cxx_compiler::record_type::tmp() const
   return tmp_tbl.find(this) != tmp_tbl.end();
 }
 
+namespace cxx_compiler {
+  namespace record_impl {
+    namespace complex_impl {
+      struct help {
+	int operator()(int n, const scope::tps_t::val2_t& v)
+	{
+	  if (const type* T = v.first) {
+	    return n + T->complex();
+	  }
+	  return n;
+	}
+      };
+      const instantiated_tag::SEED* get(const tag* ptr)
+      {
+	tag::flag_t flag = ptr->m_flag;
+	if (flag & tag::INSTANTIATE) {
+	  auto it = static_cast<const instantiated_tag*>(ptr);
+	  return &it->m_seed;
+	}
+	if (flag & tag::SPECIAL_VER) {
+	  auto sv = static_cast<const special_ver_tag*>(ptr);
+	  return &sv->m_key;
+	}
+	return 0;
+      }
+    }  // end of namespace complex_impl
+    int complex(const tag* ptr)
+    {
+      auto p = complex_impl::get(ptr);
+      if (!p)
+	return 0;
+      int n = accumulate(begin(*p), end(*p), 0, complex_impl::help());
+      return n ? n + 1 : 0;
+    }
+  } // end of namespace record_impl
+} // end of namespace cxx_compiler
+
+int cxx_compiler::record_type::complex() const
+{
+  return record_impl::complex(m_tag);
+}
+
+namespace cxx_compiler {
+  namespace record_impl {
+    namespace instantiate_impl {
+      template_tag* get_tt(const tag* ptr)
+      {
+	tag::flag_t flag = ptr->m_flag;
+	if (flag & tag::INSTANTIATE) {
+	  auto it = static_cast<const instantiated_tag*>(ptr);
+	  return it->m_src;
+	}
+	if (flag & tag::SPECIAL_VER) {
+	  auto sv = static_cast<const special_ver_tag*>(ptr);
+	  return sv->m_src;
+	}
+	return 0;
+      }
+      inline scope::tps_t::val2_t* create(const scope::tps_t::val2_t& val)
+      {
+	if (const type* T = val.first) {
+	  T = T->instantiate();
+	  return declarations::templ::create(scope::tps_t::val2_t(T,0));
+	}
+	error::not_implemented();
+	return declarations::templ::create(val);
+      }
+    } // end of namespace instantiate_impl
+    const tag* instantiate(const tag* ptr)
+    {
+      auto p = complex_impl::get(ptr);
+      if (!p)
+	return ptr;
+      template_tag* tt = instantiate_impl::get_tt(ptr);
+      assert(tt);
+      vector<scope::tps_t::val2_t*>* pv = new vector<scope::tps_t::val2_t*>;
+      transform(begin(*p), end(*p), back_inserter(*pv),
+		instantiate_impl::create);
+      return tt->instantiate(pv, false);
+    }
+  } // end of namespace record_impl
+} // end of namespace cxx_compiler
+
+const cxx_compiler::type*
+cxx_compiler::record_type::instantiate() const
+{
+  const tag* res = record_impl::instantiate(m_tag);
+  const type* T = res->m_types.second;
+  assert(T);
+  return T;
+}
+
+namespace cxx_compiler {
+  namespace record_impl {
+    namespace template_match_impl {
+      bool helper(const scope::tps_t::val2_t& x,
+		  const scope::tps_t::val2_t& y)
+      {
+	if (var* v = x.second) {
+	  assert(y.second);
+	  assert(v->usr_cast());
+	  usr* u = static_cast<usr*>(v);
+	  string name = u->m_name;
+	  assert(!sweeper_f_impl::tables.empty());
+	  auto bk = sweeper_f_impl::tables.back();
+	  auto p = bk->find(name);
+	  assert(p != bk->end());
+	  const scope::tps_t::value_t& value = p->second;
+	  if (value.second->second)
+	    return value.second->second == y.second;
+	  value.second->second = y.second;
+	  return true;
+	}
+	const type* Tx = x.first;
+	const type* Ty = y.first;
+	return Tx->template_match(Ty, true);
+      }
+      bool common(const tag* xtag, const tag* ytag)
+      {
+        if (xtag == ytag)
+          return true;
+        if (!(xtag->m_flag & tag::INSTANTIATE))
+          return false;
+        if (!(ytag->m_flag & tag::INSTANTIATE))
+          return false;
+        auto xit = static_cast<const instantiated_tag*>(xtag);
+        auto yit = static_cast<const instantiated_tag*>(ytag);
+        if (xit->m_src != yit->m_src)
+          return false;
+        const auto& xseed = xit->m_seed;
+        const auto& yseed = yit->m_seed;
+        assert(xseed.size() == yseed.size());
+        auto ret = mismatch(begin(xseed), end(xseed), begin(yseed),
+			    helper);
+        return ret.first == end(xseed);
+      }
+    } // end of namespace template_match_impl
+  } // end of namespace record_impl
+} // end of namespace cxx_compiler
+
+bool cxx_compiler::record_type::template_match(const type* Ty, bool) const
+{
+  if (Ty->m_id == type::REFERENCE) {
+    typedef const reference_type RT;
+    RT* rt = static_cast<RT*>(Ty);
+    Ty = rt->referenced_type();
+  }
+  Ty = Ty->unqualified();
+  type::id_t id = Ty->m_id;
+  if (id != type::RECORD && id != type::INCOMPLETE_TAGGED)
+    return false;
+
+  tag* ytag = Ty->get_tag();
+  return record_impl::template_match_impl::common(m_tag, ytag);
+}
+
+namespace cxx_compiler {
+  namespace record_impl {
+    namespace comp_impl {
+      bool common(const tag* px, const tag* py, int* res)
+      {
+	tag::flag_t xflag = px->m_flag;
+	tag::flag_t yflag = py->m_flag;
+	if (xflag & tag::INSTANTIATE) {
+	  if (!(yflag & tag::INSTANTIATE)) {
+	    *res = 1;
+	    return false;
+	  }
+	  return true;
+	}
+	if (yflag & tag::INSTANTIATE) {
+	  *res = -1;
+	  return false;
+	}
+	return true;
+      }
+    } // end of namespace comp_impl
+  } // end of namespace record_impl
+} // end of namespace cxx_compiler
+
+bool cxx_compiler::record_type::comp(const type* Ty, int* res) const
+{
+  tag* py = Ty->get_tag();
+  if (!py) {
+    *res = 1;
+    return false;
+  }
+  return record_impl::comp_impl::common(m_tag, py, res);
+}
+
 const cxx_compiler::record_type*
 cxx_compiler::record_type::create(tag* ptr)
 {

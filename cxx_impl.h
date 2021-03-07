@@ -574,6 +574,14 @@ namespace record_impl {
   extern int base_vb(int n, const base* bp);
   void decl(ostream&, string, const tag*, bool);
   void encode(ostream&, const tag*);
+  int complex(const tag*);
+  const tag* instantiate(const tag*);
+  namespace template_match_impl {
+    bool common(const tag*, const tag*);
+  } // end of namespace template_match_impl
+  namespace comp_impl {
+    bool common(const tag*, const tag*, int*);
+  } // end of namespae comp_ompl
   namespace special_ctor_dtor {
     typedef map<vector<const record_type*>, usr*> VALUE_TYPE;
     extern map<usr*, VALUE_TYPE> scd_tbl;  // key is ctor or dtor
@@ -1790,7 +1798,8 @@ namespace call_impl {
               int* trial_cost,
               var* this_ptr,
               bool qualified_func,
-              var* vftbl_off);
+              var* vftbl_off,
+	      bool for_template_cost);
   var* wrapper(usr* func, vector<var*>* arg, var* this_ptr);
   var* ref_vftbl(usr* vf, var* vp);
 } // end of namespace call_impl
@@ -1807,6 +1816,11 @@ inline bool compatible(const type* x, const type* y)
 inline const type* composite(const type* x, const type* y)
 {
   return x->composite(y);
+}
+
+inline bool template_match(const type* x, const type* y)
+{
+  return x->template_match(y, true);
 }
 
 namespace SUB_CONST_LONG_impl {
@@ -1879,6 +1893,7 @@ struct partial_ordering : usr {
   partial_ordering(template_usr* prev, template_usr* curr);
   partial_ordering(partial_ordering* prev, template_usr* curr);
   var* call(vector<var*>*);
+  template_usr* chose(vector<var*>*);
   static vector<pair<template_usr*, bool> > info;
 };
 
@@ -2047,6 +2062,13 @@ struct const_usr : usr {
 extern std::map<scope*, scope*> copied_tps;
 
 instantiated_tag* get_it(tag* ptr);
+
+int less_than(template_usr* x, const template_usr::KEY& xkey,
+	      template_usr* y, const template_usr::KEY& ykey,
+	      vector<var*>* arg);
+namespace sweeper_f_impl {
+  extern vector<const map<string, scope::tps_t::value_t>*> tables;
+} // end of namespace sweeper_f_impl
 
 } // end of namespace cxx_compiler
 

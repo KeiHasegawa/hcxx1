@@ -1218,6 +1218,10 @@ struct type {
   virtual const type* vla2a() const { return this; }
   virtual void decide_dim() const {}
   virtual var* vsize() const { return 0; }
+  virtual int complex() const { return 0; }
+  virtual const type* instantiate() const { return this; }
+  virtual bool template_match(const type*, bool) const;
+  virtual bool comp(const type*, int* res) const;
   virtual ~type(){}
   static void destroy_tmp();
   static void collect_tmp(std::vector<const type*>&);
@@ -1526,6 +1530,10 @@ public:
   const type* vla2a() const { return create(m_T->vla2a()); }
   void decide_dim() const { m_T->decide_dim(); }
   tag* get_tag() const { return m_T->get_tag(); }
+  int complex() const { int n = m_T->complex(); return n ? n + 1 : 0; }
+  const type* instantiate() const { return create(m_T->instantiate()); }
+  bool template_match(const type*, bool) const;
+  bool comp(const type*, int* res) const;
   const type* referenced_type() const { return m_T; }
   static const type* create(const type*);
   static void destroy_tmp();
@@ -1563,6 +1571,10 @@ public:
   void decide_dim() const { m_T->decide_dim(); }  
   const type* qualified(int) const;
   tag* get_tag() const { return m_T->get_tag(); }
+  int complex() const { int n = m_T->complex(); return n ? n + 1 : 0; }
+  const type* instantiate() const { return create(m_T->instantiate()); }
+  bool template_match(const type*, bool) const;
+  bool comp(const type*, int* res) const;
   const type* referenced_type() const { return m_T; }
   static const type* create(const type*);
   static void destroy_tmp();
@@ -1599,6 +1611,10 @@ public:
   void decide_dim() const { m_T->decide_dim(); }  
   const type* qualified(int) const;
   tag* get_tag() const { return m_T->get_tag(); }
+  int complex() const { int n = m_T->complex(); return n ? n + 1 : 0; }
+  const type* instantiate() const { return create(m_T->instantiate()); }
+  bool template_match(const type*, bool) const;
+  bool comp(const type*, int* res) const;
   const type* referenced_type() const { return m_T; }
   static const type* create(const type*);
   static void destroy_tmp();
@@ -1631,8 +1647,13 @@ public:
   bool variably_modified() const;
   const type* vla2a() const;
   void decide_dim() const;
+  int complex() const { int n = m_T->complex(); return n ? n + 1 : 0; }
+  const type* instantiate() const;
+  bool template_match(const type*, bool) const;
+  bool comp(const type*, int* res) const;
   bool overloadable(const func_type*) const;
-  static const func_type* create(const type*, const std::vector<const type*>&);
+  static const func_type*
+    create(const type*, const std::vector<const type*>&);
   static void destroy_tmp();
   static void collect_tmp(std::vector<const type*>&);
 };
@@ -1668,6 +1689,11 @@ public:
   const type* vla2a() const { return create(m_T->vla2a(), m_dim); }
   void decide_dim() const { m_T->decide_dim(); }
   var* vsize() const;
+  int complex() const { int n = m_T->complex(); return n ? n + 1 : 0; }
+  const type* instantiate() const
+  { return create(m_T->instantiate(), m_dim); }
+  bool template_match(const type*, bool) const;
+  bool comp(const type*, int* res) const;
   static const array_type* create(const type*, int);
   static void destroy_tmp();
   static void collect_tmp(std::vector<const type*>&);
@@ -1693,6 +1719,10 @@ public:
   bool variably_modified() const { return m_T->variably_modified(); }
   const type* vla2a() const { return create(m_T->vla2a()); }
   void decide_dim() const { m_T->decide_dim(); }
+  int complex() const { int n = m_T->complex(); return n ? n + 1 : 0; }
+  const type* instantiate() const { return create(m_T->instantiate()); }
+  bool template_match(const type*, bool) const;
+  bool comp(const type*, int* res) const;
   static const pointer_type* create(const type*);
   static void destroy_tmp();
   static void collect_tmp(std::vector<const type*>&);
@@ -1720,6 +1750,13 @@ public:
   const type* complete_type() const;
   bool tmp() const { return m_T->tmp(); }
   const type* varg() const { return m_T->varg(); }
+  int complex() const { return m_T->complex(); }
+  const type* instantiate() const
+  {
+    return create(m_T->instantiate(), m_twice);
+  }
+  bool template_match(const type*, bool) const;
+  bool comp(const type*, int* res) const;
   static const reference_type* create(const type*, bool);
   static void destroy_tmp();
   static void collect_tmp(std::vector<const type*>&);
@@ -1751,6 +1788,10 @@ public:
   tag* get_tag() const { return m_tag; }
   const type* complete_type() const;
   bool tmp() const;
+  int complex() const;
+  const type* instantiate() const;
+  bool template_match(const type*, bool) const;
+  bool comp(const type*, int* res) const;
   ~incomplete_tagged_type(){ delete m_tag; }  
   static const incomplete_tagged_type* create(tag*);
   static void destroy_tmp();
@@ -1800,6 +1841,10 @@ public:
   tag* get_tag() const { return m_tag; }
   bool aggregate() const { return true; }
   bool tmp() const;
+  int complex() const;
+  const type* instantiate() const;
+  bool template_match(const type*, bool) const;
+  bool comp(const type*, int* res) const;
   const std::vector<const record_type*>& virt_ancestor() const
   { return m_virt_ancestor; }
   const std::vector<const record_type*>& common() const { return  m_common; }
@@ -1826,6 +1871,10 @@ public:
   bool _signed() const { return m_integer->_signed(); }
   tag* get_tag() const { return m_tag; }
   bool tmp() const;
+  int complex() const;
+  const type* instantiate() const;
+  bool template_match(const type*, bool) const;
+  bool comp(const type*, int* res) const;
   const type* get_integer() const { return m_integer; }  
   static const enum_type* create(tag*, const type*);
   static void destroy_tmp();
@@ -1874,12 +1923,16 @@ public:
   const pointer_type* ptr_gen() const;
   const type* element_type() const { return m_T; }
   bool aggregate() const { return true; }
-  bool tmp() const { return true; }
+  bool tmp() const;
   bool variably_modified() const { return true; }
-  const type* vla2a() const { return array_type::create(m_T->vla2a(), 0); }
+  const type* vla2a() const;
   void decide_dim() const;
   var* vsize() const;
   var* dim() const { return m_dim; }
+  int complex() const { int n = m_T->complex(); return n ? n + 1 : 0; }
+  const type* instantiate() const;
+  bool template_match(const type*, bool) const;
+  bool comp(const type*, int* res) const;
   static const varray_type* create(const type*, var*);
   static void destroy_tmp();
   static void collect_tmp(std::vector<const type*>&);
@@ -1903,6 +1956,10 @@ public:
   bool backpatch() const { return m_T->backpatch(); }
   bool compatible(const type*) const;
   const type* composite(const type*) const;
+  int complex() const;
+  const type* instantiate() const;
+  bool template_match(const type*, bool) const;
+  bool comp(const type*, int* res) const;
   const tag* ctag() const { return m_tag; }
   const type* referenced_type() const { return m_T; }
   static const pointer_member_type* create(const tag*, const type*);
@@ -1921,6 +1978,9 @@ public:
   int size() const;
   tag* get_tag() const { return m_tag; }
   const type* complete_type() const;
+  int complex() const { return 1; }
+  const type* instantiate() const;
+  bool template_match(const type*, bool) const;
   static const template_param_type* create(tag*);
 };
 

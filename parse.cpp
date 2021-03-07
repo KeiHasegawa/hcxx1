@@ -614,6 +614,14 @@ namespace cxx_compiler {
 	  return rollback(org);
 	return u;
       }
+      inline bool canbe_templ_name(usr::flag2_t flag2)
+      {
+	if (flag2 & usr::TEMPLATE)
+	  return true;
+	if (!(flag2 & usr::PARTIAL_ORDERING))
+	  return false;
+	return !declarations::templ::specialization::nest.empty();
+      }
       int get_here(string name, scope* ptr)
       {
         const map<string, vector<usr*> >& usrs = ptr->m_usrs;
@@ -679,7 +687,7 @@ namespace cxx_compiler {
             if (peek() == '<') {
               typedef vector<usr*>::const_iterator IT;
               IT p = find_if(begin(v), end(v),
-                	     [](usr* u){ return u->m_flag2 & usr::TEMPLATE; });
+               	     [](usr* u){ return u->m_flag2 & usr::TEMPLATE; });
               if (p != end(v)) {
                 cxx_compiler_lval.m_ut = new pair<usr*, tag*>(*p, 0);
                 return TEMPLATE_NAME_LEX;
@@ -698,7 +706,7 @@ namespace cxx_compiler {
             return ORIGINAL_NAMESPACE_NAME_LEX;
           }
           usr::flag2_t flag2 = u->m_flag2;
-          if (flag2 & usr::TEMPLATE) {
+          if (canbe_templ_name(flag2)) {
             if (peek() == '<') {
               cxx_compiler_lval.m_ut = new pair<usr*, tag*>(u, 0);
               return TEMPLATE_NAME_LEX;
