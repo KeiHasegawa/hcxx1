@@ -79,9 +79,60 @@ namespace cxx_compiler { namespace optimize { namespace basic_block {
     struct action_t {
       vector<tac*> conv;
       set<var*> addr;
+      bool m_opt_goto {false};
     };
     extern void action(info_t*, action_t*);
   } // end of namespace dag
+    inline bool not_reach(info_t* info, const vector<tac*>& v)
+    {
+      if (!info->m_preceed.empty())
+	return false;
+      auto leader = info->m_leader;
+      auto b = find(begin(v), end(v), *leader);
+      assert(b != end(v));
+      auto e = b + info->m_size;
+      auto p = find_if(b, e, [](tac* ptr){ return ptr->m_id == tac::HERE; });
+      return p == e;
+    }
+    inline void erase_to(tac* ptr)
+    {
+      tac::id_t id = ptr->m_id;
+      if (id != tac::GOTO)
+	return;
+      auto go = static_cast<goto3ac*>(ptr);
+      auto to = go->m_to;
+      auto& v = to->m_goto;
+      auto p = find(begin(v), end(v), go);
+      v.erase(p);
+    }
+    inline void del_code(info_t* info, vector<tac*>& v)
+    {
+      auto leader = info->m_leader;
+      auto b = find(begin(v), end(v), *leader);
+      assert(b != end(v));
+      auto e = b + info->m_size;
+      for_each(b, e, erase_to);
+      for_each(b, e, [](tac* ptr) { delete ptr; });
+      v.erase(b,e);
+    }
+    inline bool erase_if(vector<info_t*>& bbs, vector<tac*>& v)
+    {
+      if (bbs.empty())
+	return false;
+      bool erased = false;
+      for (auto p = rbegin(bbs) ; p != rend(bbs) - 1 ; ) {
+	if (not_reach(*p, v)) {
+	  del_code(*p, v);
+	  auto q = p.base()-1;
+	  q = bbs.erase(q);
+	  p = make_reverse_iterator(q);
+	  erased = true;
+	}
+	else
+	  ++p;
+      }
+      return erased;
+    }
 } } } // end of namespace basic_block, optimize and cxx_compiler
 
 
@@ -127,6 +178,12 @@ action(fundef* fdef, std::vector<tac*>& v, bool for_constexpr)
   for (int i = 0 ; i != N ; ++i) {
     misc::pvector<info_t> bbs;
     create(v,bbs);
+    if (erase_if(bbs,v)) {
+      --i;
+      goto_to(v);
+      empty_to3ac(v);
+      continue;
+    }
     live_var::analize(bbs);
     if (cmdline::dag_optimize) {
       dag::action_t seed;
@@ -135,6 +192,10 @@ action(fundef* fdef, std::vector<tac*>& v, bool for_constexpr)
       v = seed.conv;
       if (n == v.size())
 	break;
+      if (seed.m_opt_goto) {
+	goto_to(v);
+	empty_to3ac(v);
+      }
     }
   }
   if (for_constexpr)
@@ -780,7 +841,48 @@ namespace cxx_compiler {
 	const type* T = cast->m_type;
 	return y->cast(T);
       }
-      tac* action(tac* ptr)
+      struct go_tbl_t : map<goto3ac::op, BIN> {
+	go_tbl_t()
+	{
+	  (*this)[goto3ac::EQ] = &var::eq;
+	  (*this)[goto3ac::NE] = &var::ne;
+	  (*this)[goto3ac::LE] = &var::le;
+	  (*this)[goto3ac::GE] = &var::ge;
+	  (*this)[goto3ac::LT] = &var::lt;
+	  (*this)[goto3ac::GT] = &var::gt;
+	}
+      } go_tbl;
+      inline tac* ifgoto_opt(tac* ptr, var* y, var* z, bool* opt_goto)
+      {
+	tac::id_t id = ptr->m_id;
+	if (id != tac::GOTO)
+	  return ptr;
+	auto org = static_cast<goto3ac*>(ptr);
+	auto op = org->m_op;
+	if (op == goto3ac::NONE)
+	  return ptr;
+	*opt_goto = true;
+	auto p = go_tbl.find(op);
+	assert(p != go_tbl.end());
+	auto v = p->second;
+	var* res = (y->*v)(z);
+	assert(res->isconstant());
+	int n = res->value();
+	auto to = org->m_to;
+	auto& goes = to->m_goto;
+	auto q = find(begin(goes), end(goes), org);
+	assert(q != end(goes));
+	delete org;
+	if (n) {
+	  auto ret = new goto3ac;
+	  ret->m_to = to;
+	  *q = ret;
+	  return ret;
+	}
+	goes.erase(q);
+	return 0;
+      }
+      tac* action(tac* ptr, bool* opt_goto)
       {
 	var* y = ptr->y;
 	if (y) {
@@ -796,7 +898,7 @@ namespace cxx_compiler {
 	}
 	var* x = op(ptr, y, z);
 	if (!x)
-	  return ptr;
+	  return ifgoto_opt(ptr, y, z, opt_goto);
 	if (!x->isconstant()) {
 	  tac::id_t id = ptr->m_id;
 	  assert(id == tac::DIV || id == tac::MOD);
@@ -831,7 +933,9 @@ dag::generate::inorder(dag::info_t* d, action_t* act)
     assert(p != result.end());
     ptr->z = p->second;
   }
-  ptr = constant_conv::action(ptr);
+  ptr = constant_conv::action(ptr, &pa->m_opt_goto);
+  if (!ptr)
+    return result[d];
   int n = conv.size();
   conv.push_back(ptr);
   tac::id_t id = ptr->m_id;
