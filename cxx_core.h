@@ -393,6 +393,7 @@ struct usr : var {
     NESTED_MEMBER        = 1 << 24,
     HAS_DEFAULT_ARG      = 1 << 25,
     DELETE               = 1 << 26,
+    EXPLICIT_PO          = 1 << 27,
   };
   flag2_t m_flag2;
   file_t m_file;
@@ -1218,7 +1219,7 @@ struct type {
   virtual const type* vla2a() const { return this; }
   virtual void decide_dim() const {}
   virtual var* vsize() const { return 0; }
-  virtual int complex() const { return 0; }
+  virtual int complexity() const { return 0; }
   virtual const type* instantiate() const { return this; }
   virtual bool template_match(const type*, bool) const;
   virtual bool comp(const type*, int* res) const;
@@ -1530,7 +1531,7 @@ public:
   const type* vla2a() const { return create(m_T->vla2a()); }
   void decide_dim() const { m_T->decide_dim(); }
   tag* get_tag() const { return m_T->get_tag(); }
-  int complex() const { int n = m_T->complex(); return n ? n + 1 : 0; }
+  int complexity() const { int n = m_T->complexity(); return n ? n + 1 : 0; }
   const type* instantiate() const { return create(m_T->instantiate()); }
   bool template_match(const type*, bool) const;
   bool comp(const type*, int* res) const;
@@ -1571,7 +1572,7 @@ public:
   void decide_dim() const { m_T->decide_dim(); }  
   const type* qualified(int) const;
   tag* get_tag() const { return m_T->get_tag(); }
-  int complex() const { int n = m_T->complex(); return n ? n + 1 : 0; }
+  int complexity() const { int n = m_T->complexity(); return n ? n + 1 : 0; }
   const type* instantiate() const { return create(m_T->instantiate()); }
   bool template_match(const type*, bool) const;
   bool comp(const type*, int* res) const;
@@ -1611,7 +1612,7 @@ public:
   void decide_dim() const { m_T->decide_dim(); }  
   const type* qualified(int) const;
   tag* get_tag() const { return m_T->get_tag(); }
-  int complex() const { int n = m_T->complex(); return n ? n + 1 : 0; }
+  int complexity() const { int n = m_T->complexity(); return n ? n + 1 : 0; }
   const type* instantiate() const { return create(m_T->instantiate()); }
   bool template_match(const type*, bool) const;
   bool comp(const type*, int* res) const;
@@ -1647,7 +1648,7 @@ public:
   bool variably_modified() const;
   const type* vla2a() const;
   void decide_dim() const;
-  int complex() const { int n = m_T->complex(); return n ? n + 1 : 0; }
+  int complexity() const { int n = m_T->complexity(); return n ? n + 1 : 0; }
   const type* instantiate() const;
   bool template_match(const type*, bool) const;
   bool comp(const type*, int* res) const;
@@ -1689,7 +1690,7 @@ public:
   const type* vla2a() const { return create(m_T->vla2a(), m_dim); }
   void decide_dim() const { m_T->decide_dim(); }
   var* vsize() const;
-  int complex() const { int n = m_T->complex(); return n ? n + 1 : 0; }
+  int complexity() const { int n = m_T->complexity(); return n ? n + 1 : 0; }
   const type* instantiate() const
   { return create(m_T->instantiate(), m_dim); }
   bool template_match(const type*, bool) const;
@@ -1719,7 +1720,7 @@ public:
   bool variably_modified() const { return m_T->variably_modified(); }
   const type* vla2a() const { return create(m_T->vla2a()); }
   void decide_dim() const { m_T->decide_dim(); }
-  int complex() const { int n = m_T->complex(); return n ? n + 1 : 0; }
+  int complexity() const { int n = m_T->complexity(); return n ? n + 1 : 0; }
   const type* instantiate() const { return create(m_T->instantiate()); }
   bool template_match(const type*, bool) const;
   bool comp(const type*, int* res) const;
@@ -1750,7 +1751,7 @@ public:
   const type* complete_type() const;
   bool tmp() const { return m_T->tmp(); }
   const type* varg() const { return m_T->varg(); }
-  int complex() const { return m_T->complex(); }
+  int complexity() const { return m_T->complexity(); }
   const type* instantiate() const
   {
     return create(m_T->instantiate(), m_twice);
@@ -1788,7 +1789,7 @@ public:
   tag* get_tag() const { return m_tag; }
   const type* complete_type() const;
   bool tmp() const;
-  int complex() const;
+  int complexity() const;
   const type* instantiate() const;
   bool template_match(const type*, bool) const;
   bool comp(const type*, int* res) const;
@@ -1841,7 +1842,7 @@ public:
   tag* get_tag() const { return m_tag; }
   bool aggregate() const { return true; }
   bool tmp() const;
-  int complex() const;
+  int complexity() const;
   const type* instantiate() const;
   bool template_match(const type*, bool) const;
   bool comp(const type*, int* res) const;
@@ -1871,7 +1872,7 @@ public:
   bool _signed() const { return m_integer->_signed(); }
   tag* get_tag() const { return m_tag; }
   bool tmp() const;
-  int complex() const;
+  int complexity() const;
   const type* instantiate() const;
   bool template_match(const type*, bool) const;
   bool comp(const type*, int* res) const;
@@ -1929,7 +1930,7 @@ public:
   void decide_dim() const;
   var* vsize() const;
   var* dim() const { return m_dim; }
-  int complex() const { int n = m_T->complex(); return n ? n + 1 : 0; }
+  int complexity() const { int n = m_T->complexity(); return n ? n + 1 : 0; }
   const type* instantiate() const;
   bool template_match(const type*, bool) const;
   bool comp(const type*, int* res) const;
@@ -1956,7 +1957,7 @@ public:
   bool backpatch() const { return m_T->backpatch(); }
   bool compatible(const type*) const;
   const type* composite(const type*) const;
-  int complex() const;
+  int complexity() const;
   const type* instantiate() const;
   bool template_match(const type*, bool) const;
   bool comp(const type*, int* res) const;
@@ -1978,7 +1979,7 @@ public:
   int size() const;
   tag* get_tag() const { return m_tag; }
   const type* complete_type() const;
-  int complex() const { return 1; }
+  int complexity() const { return 1; }
   const type* instantiate() const;
   bool template_match(const type*, bool) const;
   static const template_param_type* create(tag*);

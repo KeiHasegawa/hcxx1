@@ -2890,12 +2890,12 @@ bool cxx_compiler::record_type::tmp() const
 
 namespace cxx_compiler {
   namespace record_impl {
-    namespace complex_impl {
+    namespace complexity_impl {
       struct help {
 	int operator()(int n, const scope::tps_t::val2_t& v)
 	{
 	  if (const type* T = v.first) {
-	    return n + T->complex();
+	    return n + T->complexity();
 	  }
 	  return n;
 	}
@@ -2913,21 +2913,21 @@ namespace cxx_compiler {
 	}
 	return 0;
       }
-    }  // end of namespace complex_impl
-    int complex(const tag* ptr)
+    }  // end of namespace complexity_impl
+    int complexity(const tag* ptr)
     {
-      auto p = complex_impl::get(ptr);
+      auto p = complexity_impl::get(ptr);
       if (!p)
 	return 0;
-      int n = accumulate(begin(*p), end(*p), 0, complex_impl::help());
+      int n = accumulate(begin(*p), end(*p), 0, complexity_impl::help());
       return n ? n + 1 : 0;
     }
   } // end of namespace record_impl
 } // end of namespace cxx_compiler
 
-int cxx_compiler::record_type::complex() const
+int cxx_compiler::record_type::complexity() const
 {
-  return record_impl::complex(m_tag);
+  return record_impl::complexity(m_tag);
 }
 
 namespace cxx_compiler {
@@ -2958,7 +2958,7 @@ namespace cxx_compiler {
     } // end of namespace instantiate_impl
     const tag* instantiate(const tag* ptr)
     {
-      auto p = complex_impl::get(ptr);
+      auto p = complexity_impl::get(ptr);
       if (!p)
 	return ptr;
       template_tag* tt = instantiate_impl::get_tt(ptr);

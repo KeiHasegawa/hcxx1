@@ -705,45 +705,79 @@ namespace cxx_compiler {
 	}
       }
     };  // end of struct help
-    bool help2(const type* Tx, const type* Ty)
+    inline bool
+    no_def(string name,
+	   const map<string, pair<const type*, expressions::base*>>* def)
     {
-      return Tx->complex() == Ty->complex();
+      return def->find(name) == def->end();
+    }
+    partial_instantiated* help3(template_usr* tu,
+				vector<scope::tps_t::val2_t*>* pv)
+    {
+      int n = pv->size();
+      const auto& order = tu->m_tps.m_order;
+      if (order.size() <= n)
+	return 0;
+      const auto& def = tu->m_tps.m_default;
+      auto p = find_if(begin(order)+n, end(order),
+		       bind2nd(ptr_fun(no_def), &def));
+      if (p == end(order))
+	return 0;
+      auto dup = new vector<scope::tps_t::val2_t*>;
+      for (auto p : *pv)
+	dup->push_back(new scope::tps_t::val2_t(*p));
+      usr* ret = tu->instantiate_explicit(dup);
+      usr::flag2_t flag2 = ret->m_flag2;
+      assert(flag2 & usr::PARTIAL_INSTANTIATED);
+      return static_cast<partial_instantiated*>(ret);
     }
     struct comp {
       vector<var*>* m_arg;
-      comp(vector<var*>* arg) : m_arg(arg) {}
+      vector<scope::tps_t::val2_t*>* m_pv;
+      comp(vector<var*>* arg, vector<scope::tps_t::val2_t*>* pv)
+	: m_arg(arg), m_pv(pv) {}
       bool operator()(template_usr* x, template_usr* y)
       {
-        template_usr::KEY xkey;
-        usr* ux = x->instantiate(m_arg, &xkey);
-        if (!ux)
-          return false;
-        template_usr::KEY ykey;
-        usr* uy = y->instantiate(m_arg, &ykey);
-        if (!uy)
-          return true;
-
-	if (int n = less_than(x, xkey, y, ykey, m_arg))
-	  return n < 0;
-
-	const type* Tx = x->m_type;
-	assert(Tx->m_id == type::FUNC);
-	typedef const func_type FT;
-	auto fx = static_cast<FT*>(Tx);
-	const type* Ty = y->m_type;
-	auto fy = static_cast<FT*>(Ty);
-	const auto& xp = fx->param();
-	const auto& yp = fy->param();
-	assert(xp.size() == yp.size());
-	auto it = mismatch(begin(xp), end(xp), begin(yp), help2);
-	if (it.first != end(xp)) {
-	  Tx = *it.first;
-	  Ty = *it.second;
-	  int xc = Tx->complex();
-	  int yc = Ty->complex();
-	  assert(xc != yc);
-	  return xc > yc;
+        template_usr::KEY xkey, ykey;
+	if (m_pv) {
+          if (partial_instantiated* px = help3(x, m_pv)) {
+	    usr* ux = px->instantiate(m_arg, &xkey);
+	    if (!ux)
+	      return false;
+          }
+	  else {
+	    transform(begin(*m_pv), end(*m_pv), back_inserter(xkey),
+		      [](scope::tps_t::val2_t* p){ return *p; });
+	  }
+          if (partial_instantiated* py = help3(y, m_pv)) {
+	    usr* uy = py->instantiate(m_arg, &ykey);
+	    if (!uy)
+	      return true;
+          }
+	  else {
+	    transform(begin(*m_pv), end(*m_pv), back_inserter(ykey),
+		      [](scope::tps_t::val2_t* p){ return *p; });
+	  }
 	}
+	else {
+	  usr* ux = x->instantiate(m_arg, &xkey);
+	  if (!ux)
+	    return false;
+	  usr* uy = y->instantiate(m_arg, &ykey);
+	  if (!uy)
+	    return true;
+	}
+
+	pair<bool, int> ret = less_than(x, xkey, y, ykey, m_arg);
+	if (ret.first) {
+	  if (int n = ret.second)
+	    return n < 0;
+	}
+	else if (!ret.second)
+	  return false;  // both not match
+
+	if (int n = less_than(x, y))
+	  return n < 0;
 
         if (xkey.size() < ykey.size())
           return true;
@@ -778,6 +812,32 @@ namespace cxx_compiler {
       }
     };
   } // end of namespace partial_ordering_impl
+
+  inline bool help2(const type* Tx, const type* Ty)
+  {
+    return Tx->complexity() == Ty->complexity();
+  }
+  int less_than(template_usr* x, template_usr* y)
+  {
+    const type* Tx = x->m_type;
+    assert(Tx->m_id == type::FUNC);
+    typedef const func_type FT;
+    auto fx = static_cast<FT*>(Tx);
+    const type* Ty = y->m_type;
+    auto fy = static_cast<FT*>(Ty);
+    const auto& xp = fx->param();
+    const auto& yp = fy->param();
+    assert(xp.size() == yp.size());
+    auto it = mismatch(begin(xp), end(xp), begin(yp), help2);
+    if (it.first == end(xp))
+      return 0;
+    Tx = *it.first;
+    Ty = *it.second;
+    int xc = Tx->complexity();
+    int yc = Ty->complexity();
+    assert(xc != yc);
+    return xc > yc ? -1 : 1;
+  }
 } // end of namespace cxx_compiler
 
 std::vector<std::pair<cxx_compiler::template_usr*, bool> >
@@ -787,7 +847,7 @@ cxx_compiler::var*
 cxx_compiler::partial_ordering::call(std::vector<var*>* arg)
 {
   template_usr* tu = chose(arg);
-  usr* ins = tu->instantiate(arg, 0);
+  usr* ins = ins_ch(tu, arg);
 
   if (template_usr* next = tu->m_next) {
     assert(ins->m_flag2 & usr::INSTANTIATE);
@@ -811,10 +871,35 @@ cxx_compiler::template_usr*
 cxx_compiler::partial_ordering::chose(vector<var*>* arg)
 {
   auto p = min_element(begin(m_candidacy), end(m_candidacy),
-		       partial_ordering_impl::comp(arg));
+		       partial_ordering_impl::comp(arg, 0));
   assert(p != end(m_candidacy));
   template_usr* tu = *p;
   return tu;
+}
+
+cxx_compiler::template_usr*
+cxx_compiler::explicit_po::chose(vector<var*>* arg)
+{
+  auto p = min_element(begin(m_candidacy), end(m_candidacy),
+		       partial_ordering_impl::comp(arg, m_pv));
+  assert(p != end(m_candidacy));
+  template_usr* tu = *p;
+  partial_instantiated* pi = partial_ordering_impl::help3(tu, m_pv);
+  if (pi) {
+    tu = pi;
+    delete m_pv;
+    m_pv = nullptr;
+  }
+  return tu;
+}
+
+cxx_compiler::usr*
+cxx_compiler::explicit_po::ins_ch(template_usr* tu, vector<var*>* arg)
+{
+  if (m_pv)
+    return tu->instantiate_explicit(m_pv);
+  else
+    return partial_ordering::ins_ch(tu, arg);
 }
 
 cxx_compiler::var*

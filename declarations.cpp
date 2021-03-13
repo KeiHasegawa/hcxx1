@@ -4,6 +4,8 @@
 #include "yy.h"
 #include "cxx_y.h"
 
+void debug_break(){}
+
 void cxx_compiler::declarations::destroy()
 {
   using namespace std;
@@ -1519,6 +1521,88 @@ namespace cxx_compiler {
   namespace overload_impl {
     bool match(usr* prev, usr* curr);
   } // end of namespace overload_impl
+  namespace explicit_po_impl {
+    struct match {
+      explicit_po* m_epo;
+      template_usr::KEY& m_key;
+      match(explicit_po* epo, template_usr::KEY& key)
+	: m_epo(epo), m_key(key) {}
+      static bool comp(scope::tps_t::val2_t* x,
+		       const scope::tps_t::val2_t& y)
+      {
+	if (const type* Tx = x->first) {
+	  const type* Ty = y.first;
+	  return compatible(Tx, Ty);
+	}
+	error::not_implemented();
+	return true;
+      }
+      bool  operator()(template_usr* tu)
+      {
+	m_key.clear();
+	if (!instance_of(tu, m_epo, m_key))
+	  return false;
+	auto pv = m_epo->m_pv;
+	if (pv->size() != m_key.size())
+	  return false;
+	auto ret = mismatch(begin(*pv), end(*pv), begin(m_key), comp);
+	return ret.first == end(*pv);
+      }
+    };
+  } // end of namespace explicit_po_impl
+  namespace partial_ordering_impl {
+    pair<instantiated_usr*, template_usr*>
+    get(explicit_po* epo, const vector<template_usr*>& c,
+	template_usr::KEY& key)
+    {
+      auto p = find_if(begin(c), end(c),
+		       explicit_po_impl::match(epo, key));
+      if (p == end(c))
+	error::not_implemented();
+      auto tu = *p;
+      instantiated_usr* ret = new instantiated_usr(*epo, tu, key);
+      usr::flag2_t mask =
+	usr::flag2_t(~usr::PARTIAL_ORDERING & ~usr::EXPLICIT_PO);
+      ret->m_flag2 = usr::flag2_t(ret->m_flag2 & mask);
+      return make_pair(ret, tu);
+    }
+    struct comp_b {
+      usr* m_curr;
+      comp_b(usr* curr) : m_curr(curr) {}
+      bool operator()(template_usr* x, template_usr* y)
+      {
+	debug_break();
+	template_usr::KEY xkey;
+	bool bx = instance_of(x, m_curr, xkey);
+	if (!bx)
+	  return false;
+	template_usr::KEY ykey;
+	bool by = instance_of(y, m_curr, ykey);
+	if (!by)
+	  return true;
+	int n = less_than(x, y);
+	assert(n);
+	return n < 0;
+      }
+    };
+    pair<instantiated_usr*, template_usr*>
+    get(usr* curr, const vector<template_usr*>& c, template_usr::KEY& key)
+    {
+      usr::flag2_t flag2 = curr->m_flag2;
+      if (flag2 & usr::EXPLICIT_PO) {
+	auto epo = static_cast<explicit_po*>(curr);
+	return get(epo, c, key);
+      }
+      auto p = min_element(begin(c), end(c), comp_b(curr));
+      assert(p != end(c));
+      auto tu = *p;
+      bool b = instance_of(tu, curr, key);
+      if (!b)
+	error::not_implemented();
+      instantiated_usr* ret = new instantiated_usr(*curr, tu, key);
+      return make_pair(ret, tu);
+    }
+  } // end of namespace partial_ordering_impl
 } // end of namespace cxx_compiler
 
 cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
@@ -1655,12 +1739,10 @@ cxx_compiler::usr* cxx_compiler::declarations::combine(usr* prev, usr* curr)
     if (!(curr->m_flag2 & usr::TEMPLATE)) {
       if (!templ::specialization::nest.empty()) {
 	const auto& c = po->m_candidacy;
-	assert(!c.empty());
-	auto tu = c.back();
 	templ_base::KEY key;
-	bool b = instance_of(tu, curr, key);
-	assert(b);
-	instantiated_usr* ret = new instantiated_usr(*curr, tu, key);
+	auto p = partial_ordering_impl::get(curr, c, key);
+	auto ret = p.first;
+	auto tu = p.second;
 	if (template_usr::nest.empty()) {
 	  auto& table = tu->m_table;
 	  assert(table.find(key) == table.end());

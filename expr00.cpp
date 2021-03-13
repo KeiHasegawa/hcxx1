@@ -912,6 +912,34 @@ namespace cxx_compiler { namespace expressions { namespace primary { namespace l
     int m_jis_state;
     int m_euc_state;
     char m_prev;
+    static inline bool shift_jis_first(int c)
+    {
+      return 129 <= c && c <= 159 || 224 <= c && c <= 239;
+    }
+    static inline bool jis_state1(int c)
+    {
+      return c == 0x1b;
+    }
+    static inline bool jis_state2(int c)
+    {
+      return c == 0x24;
+    }
+    static inline bool jis_state3(int c)
+    {
+      return c == 0x42 || c == 0x40;
+    }
+    static inline bool jis_state5(int c)
+    {
+      return c == 0x1b;
+    }
+    static inline bool jis_state6(int c)
+    {
+      return c == 0x28;
+    }
+    static inline bool jis_state0(int c)
+    {
+      return c == 0x42;
+    }
   public:
     struct acc_t {
       unsigned int m_hex;
@@ -968,9 +996,11 @@ cxx_compiler::usr* cxx_compiler::expressions::primary::literal::stringa::new_obj
 int cxx_compiler::expressions::primary::literal::stringa::calc::operator()(int n, int c)
 {
   using namespace std;
-  if ( c == '\\' && !m_escape ){
-    m_escape = true;
-    return n;
+  if (c == '\\') {
+    if (!m_shiftjis_state && !m_jis_state && !m_escape) {
+      m_escape = true;
+      return n;
+    }
   }
   if ( m_escape ){
     if ( c == 'x' && !m_hex_mode && !m_oct_mode ){
@@ -1022,7 +1052,7 @@ int cxx_compiler::expressions::primary::literal::stringa::calc::operator()(int n
   }
   if ( m_wide ){
     c = (unsigned char)c;
-    if ( !m_shiftjis_state && ( 129 <= c && c <= 159 || 224 <= c && c <= 239 ) ){
+    if (!m_shiftjis_state  && shift_jis_first(c)){
       m_shiftjis_state = true;
       m_prev = c;
       return n;
@@ -1034,20 +1064,20 @@ int cxx_compiler::expressions::primary::literal::stringa::calc::operator()(int n
       m_value.insert(make_pair(n * sizeof(wchar_typedef),u));
       return n + 1;
     }
-    if ( m_jis_state == 0 && c == 0x1b ){
+    if (m_jis_state == 0 && jis_state1(c)) {
       m_jis_state = 1;
       return n;
     }
-    if ( m_jis_state == 1 && c == 0x24 ){
+    if (m_jis_state == 1 && jis_state2(c)) {
       m_jis_state = 2;
       return n;
     }
-    if ( m_jis_state == 2 && c == 0x42 ){
+    if (m_jis_state == 2 && jis_state3(c)) {
       m_jis_state = 3;
       return n;
     }
     if ( m_jis_state == 3 ){
-      if ( c == 0x1b ){
+      if (jis_state5(c)) {
         m_jis_state = 5;
         return n;
       }
@@ -1061,11 +1091,11 @@ int cxx_compiler::expressions::primary::literal::stringa::calc::operator()(int n
       m_value.insert(make_pair(n * sizeof(wchar_typedef),u));
       return n + 1;
     }
-    if ( m_jis_state == 5 && c == 0x28 ){
+    if (m_jis_state == 5 && jis_state6(c)) {
       m_jis_state = 6;
       return n;
     }
-    if ( m_jis_state == 6 && c == 0x42 ){
+    if (m_jis_state == 6 && jis_state0(c)) {
       m_jis_state = 0;
       return n;
     }
@@ -1086,6 +1116,33 @@ int cxx_compiler::expressions::primary::literal::stringa::calc::operator()(int n
       m_value.insert(make_pair(n * sizeof(wchar_typedef),u));
       return n + 1;
     }
+  }
+  else {
+    if (!m_shiftjis_state) {
+      c = (unsigned char)c;
+      if (shift_jis_first(c))
+	m_shiftjis_state = true;
+    }
+    else
+      m_shiftjis_state = false;
+    if (m_jis_state == 0 && jis_state1(c))
+      m_jis_state = 1;
+    else if (m_jis_state == 1 && jis_state2(c))
+      m_jis_state = 2;
+    else if (m_jis_state == 2 && jis_state3(c))
+      m_jis_state = 3;
+    else if (m_jis_state == 3) {
+      if (jis_state5(c))
+	m_jis_state = 5;
+      else
+	m_jis_state = 4;
+    }
+    else if (m_jis_state == 4)
+      m_jis_state = 3;
+    else if (m_jis_state == 5 && jis_state6(c))
+      m_jis_state = 6;
+    else if (m_jis_state == 6 && jis_state0(c))
+      m_jis_state = 0;
   }
   int offset = m_wide ? n * sizeof(wchar_typedef) : n;
   if ( m_escape ){

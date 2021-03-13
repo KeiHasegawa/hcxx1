@@ -1006,20 +1006,6 @@ namespace cxx_compiler {
           sweeper sweeper;
           return tt->instantiate(pv, dots);
         }
-	usr* helper(template_usr* u, vector<scope::tps_t::val2_t*>* pv);
-	inline overload* helper2(overload* ovl, usr* u)
-	{
-	  assert(u->m_flag2 & usr::INSTANTIATE);
-	  ovl->m_candidacy.push_back(u);
-	  return ovl;
-	}
-	inline partial_ordering* helper3(partial_ordering* po, usr* u)
-	{
-	  assert(u->m_flag2 & usr::TEMPLATE);
-	  template_usr* tu = static_cast<template_usr*>(u);
-	  po->m_candidacy.push_back(tu);
-	  return po;
-	}
 	inline void update(scope::tps_t::val2_t* p)
 	{
 	  var* v = p->second;
@@ -1037,59 +1023,8 @@ namespace cxx_compiler {
 	  }
 	  assert(flag2 & usr::PARTIAL_ORDERING);
 	  partial_ordering* po = static_cast<partial_ordering*>(u);
-	  const vector<template_usr*>& c = po->m_candidacy;
-	  if (!templ::specialization::nest.empty()) {
-	    assert(!c.empty());
-	    auto tu = c.back();
-	    return tu->instantiate_explicit(pv);
-	  }
-	  vector<usr*> ins;
-	  for (auto tu : c) {
-	    const vector<string>& order = tu->m_tps.m_order;
-	    if (pv->size() == order.size())
-	      ins.push_back(helper(tu, pv));
-	  }
-	  if (ins.empty()) {
-	    for (auto tu : c) {
-	      const vector<string>& order = tu->m_tps.m_order;
-	      if (pv->size() < order.size())
-		ins.push_back(helper(tu, pv));
-	    }
-	  }
-	  if (pv) {
-	    for (auto p : *pv)
-	      delete p;
-	    delete pv;
-	  }
-	  if (ins.empty())
-	    error::not_implemented();
-	  if (ins.size() == 1)
-	    return ins.back();
-	  usr* i0 = ins[0];
-	  usr* i1 = ins[1];
-	  if (i0->m_flag2 & usr::INSTANTIATE) {
-	    assert(i1->m_flag2 & usr::INSTANTIATE);
-	    overload* ovl = new overload(i0, i1);
-	    return accumulate(begin(ins)+2, end(ins), ovl, helper2);
-	  }
-	  assert(i0->m_flag2 & usr::TEMPLATE);
-	  template_usr* tu0 = static_cast<template_usr*>(i0);
-	  assert(i1->m_flag2 & usr::TEMPLATE);
-	  template_usr* tu1 = static_cast<template_usr*>(i1);
-	  partial_ordering* ret = new partial_ordering(tu0, tu1);
-	  return accumulate(begin(ins)+2, end(ins), ret, helper3);
+	  return new explicit_po(*po, pv);
         }
-	usr* helper(template_usr* tu, vector<scope::tps_t::val2_t*>* pv)
-	{
-	  vector<scope::tps_t::val2_t*>* dup = 0;
-	  if (pv) {
-	    dup = new vector<scope::tps_t::val2_t*>;
-	    for (auto p : *pv) {
-	      dup->push_back(new scope::tps_t::val2_t(*p));
-	    }
-	  }
-	  return usr_action(tu, dup, false);
-	}
 	struct dup_action {
 	  static map<const instantiated_tag*, vector<tag*> > m_table;
 	  template_tag* m_tt;
@@ -3303,9 +3238,10 @@ namespace cxx_compiler {
     {
       typedef const func_type FT;
       const auto& table = tu->m_tps.m_table;
-      template_usr_impl::sweeper_f sweeper_f(table);
       const auto& order = tu->m_tps.m_order;
-      assert(order.size() == key.size());
+      if (order.size() != key.size())
+	return numeric_limits<int>::max();
+      template_usr_impl::sweeper_f sweeper_f(table);
       mismatch(begin(order), end(order), begin(key), set_key(table));
       const type* T = tu->m_type;
       T = T->instantiate();
@@ -3313,21 +3249,22 @@ namespace cxx_compiler {
       FT* ft = static_cast<FT*>(T);
       int cost = 0;
       int n = code.size();
-      var* ret = call_impl::common(ft, tu, arg, &cost, 0, false, 0, true);
-      assert(ret);
+      (void)call_impl::common(ft, tu, arg, &cost, 0, false, 0, true);
       for_each(begin(code)+n, end(code), [](tac* p){ delete p; });
       code.resize(n);
       return cost;
     }
   } // end of namespace less_than_impl
-  int less_than(template_usr* x, const template_usr::KEY& xkey,
-		template_usr* y, const template_usr::KEY& ykey,
-		vector<var*>* arg)
+
+  pair<bool, int>
+  less_than(template_usr* x, const template_usr::KEY& xkey,
+	    template_usr* y, const template_usr::KEY& ykey,
+	    vector<var*>* arg)
   {
     int cx = less_than_impl::calc(x, xkey, arg);
     int cy = less_than_impl::calc(y, ykey, arg);
     if (cx == cy)
-      return 0;
-    return cx < cy ? -1 : 1;
+      return make_pair(cx != numeric_limits<int>::max(), 0);
+    return make_pair(true, cx < cy ? -1 : 1);
   }
 } // end of namespace cxx_compiler

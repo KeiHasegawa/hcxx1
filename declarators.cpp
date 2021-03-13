@@ -94,6 +94,12 @@ function::action(const type* T,
   }
   if (pdc) {
     const type* ret = T;
+    if (!T) {
+      assert(!templ::specialization::nest.empty());
+      usr::flag2_t flag2 = u->m_flag2;
+      assert(flag2 & usr::EXPLICIT_PO);
+      T = backpatch_type::create();
+    }
     if (T->backpatch()) {
       vector<const type*> param;
       transform(begin(*pdc), end(*pdc), back_inserter(param),

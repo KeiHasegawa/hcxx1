@@ -574,7 +574,7 @@ namespace record_impl {
   extern int base_vb(int n, const base* bp);
   void decl(ostream&, string, const tag*, bool);
   void encode(ostream&, const tag*);
-  int complex(const tag*);
+  int complexity(const tag*);
   const tag* instantiate(const tag*);
   namespace template_match_impl {
     bool common(const tag*, const tag*);
@@ -1893,8 +1893,23 @@ struct partial_ordering : usr {
   partial_ordering(template_usr* prev, template_usr* curr);
   partial_ordering(partial_ordering* prev, template_usr* curr);
   var* call(vector<var*>*);
-  template_usr* chose(vector<var*>*);
+  virtual template_usr* chose(vector<var*>*);
+  virtual usr* ins_ch(template_usr* tu, vector<var*>* arg)
+  {
+    return tu->instantiate(arg, 0);
+  }
   static vector<pair<template_usr*, bool> > info;
+};
+
+struct explicit_po : partial_ordering {
+  vector<scope::tps_t::val2_t*>* m_pv;
+  explicit_po(const partial_ordering& po, vector<scope::tps_t::val2_t*>* pv)
+    : partial_ordering(po), m_pv(pv)
+  {
+    m_flag2 = usr::flag2_t(m_flag2 | usr::EXPLICIT_PO);
+  }
+  template_usr* chose(vector<var*>*);
+  usr* ins_ch(template_usr* tu, vector<var*>* arg);
 };
 
 struct partial_special_tag;
@@ -2063,12 +2078,16 @@ extern std::map<scope*, scope*> copied_tps;
 
 instantiated_tag* get_it(tag* ptr);
 
-int less_than(template_usr* x, const template_usr::KEY& xkey,
-	      template_usr* y, const template_usr::KEY& ykey,
-	      vector<var*>* arg);
+pair<bool, int>
+less_than(template_usr* x, const template_usr::KEY& xkey,
+	  template_usr* y, const template_usr::KEY& ykey,
+	  vector<var*>* arg);
+
 namespace sweeper_f_impl {
   extern vector<const map<string, scope::tps_t::value_t>*> tables;
 } // end of namespace sweeper_f_impl
+
+int less_than(template_usr* x, template_usr* y);
 
 } // end of namespace cxx_compiler
 

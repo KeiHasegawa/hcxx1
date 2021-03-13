@@ -1611,9 +1611,9 @@ bool cxx_compiler::incomplete_tagged_type::tmp() const
   return tmp_tbl.find(this) != tmp_tbl.end();
 }
 
-int cxx_compiler::incomplete_tagged_type::complex() const
+int cxx_compiler::incomplete_tagged_type::complexity() const
 {
-  return record_impl::complex(m_tag);
+  return record_impl::complexity(m_tag);
 }
 
 const cxx_compiler::type*
@@ -1747,9 +1747,9 @@ bool cxx_compiler::enum_type::tmp() const
   return tmp_tbl.find(this) != tmp_tbl.end();
 }
 
-int cxx_compiler::enum_type::complex() const
+int cxx_compiler::enum_type::complexity() const
 {
-  return record_impl::complex(m_tag);
+  return record_impl::complexity(m_tag);
 }
 
 const cxx_compiler::type*
@@ -2129,13 +2129,13 @@ void cxx_compiler::varray_type::collect_tmp(std::vector<const type*>& vt)
   table.clear();
 }
 
-int cxx_compiler::pointer_member_type::complex() const
+int cxx_compiler::pointer_member_type::complexity() const
 {
-  int n = m_T->complex();
+  int n = m_T->complexity();
   if (n)
     return n + 1;
   const type* T = m_tag->m_types.first;
-  int m = T->complex();
+  int m = T->complexity();
   return m ? m + 1 : 0;
 }
 
