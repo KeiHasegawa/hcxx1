@@ -46,13 +46,6 @@ namespace cxx_compiler {
           garbage.push_back(ptr);
         code.push_back(new alloce3ac(ptr, sz));
         code.push_back(new invladdr3ac(ptr, expr));
-        if (T->m_id == type::POINTER) {
-          typedef const pointer_type PT;
-          PT* pt = static_cast<PT*>(T);
-          const type* RT = pt->referenced_type();
-          T = const_type::create(RT);
-          T = pointer_type::create(T);
-        }
         code.push_back(new throw3ac(ptr, T));
         var* ret = new var(void_type::create());
         garbage.push_back(ret);

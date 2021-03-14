@@ -970,6 +970,7 @@ cxx_compiler::usr* cxx_compiler::expressions::primary::literal::stringa::new_obj
     ret->m_type = char_type::create();
     name = name.substr(1,name.length()-2);
   }
+  ret->m_type = const_type::create(ret->m_type);
   calc::acc_t acc;
   int size = accumulate(name.begin(),name.end(),0,calc(value,wide,&acc));
   if ( acc.m_hex ){
