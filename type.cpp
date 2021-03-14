@@ -2112,6 +2112,7 @@ bool
 cxx_compiler::varray_type::comp(const type* Ty, int* res) const
 {
   error::not_implemented();
+  return false;
 }
 
 const cxx_compiler::varray_type*
