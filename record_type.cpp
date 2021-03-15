@@ -2891,15 +2891,17 @@ bool cxx_compiler::record_type::tmp() const
 namespace cxx_compiler {
   namespace record_impl {
     namespace complexity_impl {
-      struct help {
-	int operator()(int n, const scope::tps_t::val2_t& v)
-	{
-	  if (const type* T = v.first) {
-	    return n + T->complexity();
-	  }
-	  return n;
+      int help(int n, const scope::tps_t::val2_t& val)
+      {
+	if (const type* T = val.first) {
+	  return n + T->complexity();
 	}
-      };
+	var* v = val.second;
+	assert(v->usr_cast());
+	usr* u = static_cast<usr*>(v);
+	usr::flag2_t flag2 = u->m_flag2;
+	return n + (flag2 & usr::TEMPL_PARAM) ? 1 : 0;
+      }
       const instantiated_tag::SEED* get(const tag* ptr)
       {
 	tag::flag_t flag = ptr->m_flag;
@@ -2919,7 +2921,7 @@ namespace cxx_compiler {
       auto p = complexity_impl::get(ptr);
       if (!p)
 	return 0;
-      int n = accumulate(begin(*p), end(*p), 0, complexity_impl::help());
+      int n = accumulate(begin(*p), end(*p), 0, complexity_impl::help);
       return n ? n + 1 : 0;
     }
   } // end of namespace record_impl
@@ -2952,7 +2954,24 @@ namespace cxx_compiler {
 	  T = T->instantiate();
 	  return declarations::templ::create(scope::tps_t::val2_t(T,0));
 	}
-	error::not_implemented();
+	var* v = val.second;
+	assert(v->usr_cast());
+	usr* u = static_cast<usr*>(v);
+	usr::flag2_t flag2 = u->m_flag2;
+	if (flag2 & usr::TEMPL_PARAM) {
+	  assert(!sweeper_f_impl::tables.empty());
+	  auto bk = sweeper_f_impl::tables.back();
+	  string name = u->m_name;
+	  auto p = bk->find(name);
+	  assert(p != bk->end());
+	  auto& x = p->second;
+	  auto y = x.second;
+	  assert(y);
+	  var* s = y->second;
+	  assert(s);
+	  assert(s->isconstant());
+	  return declarations::templ::create(scope::tps_t::val2_t(0,s));
+	}
 	return declarations::templ::create(val);
       }
     } // end of namespace instantiate_impl

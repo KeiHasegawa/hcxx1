@@ -4,8 +4,6 @@
 #include "yy.h"
 #include "cxx_y.h"
 
-void debug_break(){}
-
 void cxx_compiler::declarations::destroy()
 {
   using namespace std;
@@ -1571,7 +1569,6 @@ namespace cxx_compiler {
       comp_b(usr* curr) : m_curr(curr) {}
       bool operator()(template_usr* x, template_usr* y)
       {
-	debug_break();
 	template_usr::KEY xkey;
 	bool bx = instance_of(x, m_curr, xkey);
 	if (!bx)
