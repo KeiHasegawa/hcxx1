@@ -2707,12 +2707,32 @@ namespace cxx_compiler {
     return false;
   }
   namespace record_impl {
+    inline bool simple(usr* del)
+    {
+      const type* T = del->m_type;
+      assert(T->m_id == type::FUNC);
+      auto ft = static_cast<const func_type*>(T);
+      const auto& param = ft->param();
+      return param.size() == 1;
+    }
+    inline usr* chose(usr* del)
+    {
+      usr::flag_t flag = del->m_flag;
+      if (!(flag & usr::OVERLOAD))
+	return del;
+      auto ovl = static_cast<overload*>(del);
+      const auto& c = ovl->m_candidacy;
+      auto p = find_if(begin(c), end(c), simple);
+      assert(p != end(c));
+      return *p;
+    }
     inline void add_vdel_code(usr* vdtor, usr* del, usr* this_ptr)
     {
       using namespace expressions::primary::literal;
       call_impl::wrapper(vdtor, 0, this_ptr);
       vector<var*> arg;
       arg.push_back(this_ptr);
+      del = chose(del);
       const type* T = del->m_type;
       assert(T->m_id == type::FUNC);
       typedef const func_type FT;
