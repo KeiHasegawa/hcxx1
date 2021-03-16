@@ -306,6 +306,8 @@ decl_specifier_seq
     { $$ = new cxx_compiler::declarations::specifier_seq::info_t($1,$2); }
   | decl_specifier
     { $$ = new cxx_compiler::declarations::specifier_seq::info_t( 0,$1); }
+  | attribute_specifier_seq decl_specifier
+    { $$ = new cxx_compiler::declarations::specifier_seq::info_t( 0,$2); }
   ;
 
 storage_class_specifier
@@ -3792,6 +3794,27 @@ leave_block
 static_assert_declaration
   : STATIC_ASSERT_KW '(' constant_expression ',' string_literal ')' ';'
   | STATIC_ASSERT_KW '(' constant_expression ')' ';'
+  ;
+
+attribute_specifier_seq
+  : attribute_specifier_seq attribute_specifier
+  | attribute_specifier
+  ;
+
+attribute_specifier
+  : '[' '[' attribute_list ']' ']'
+  ;
+
+attribute_list
+  : {
+      using namespace cxx_compiler::parse;
+      identifier::mode = identifier::new_obj;
+    }
+    IDENTIFIER_LEX
+    {
+      using namespace cxx_compiler::parse;
+      identifier::mode = identifier::look;
+    }
   ;
 
 %%
