@@ -807,7 +807,8 @@ namespace cxx_compiler {
 	if (!bx && by)
 	  return true;
 
-	error::not_implemented();
+	if (parse::templ::save_t::nest.empty())
+	  error::not_implemented();
 	return true;
       }
     };

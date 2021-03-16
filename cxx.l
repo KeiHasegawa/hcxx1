@@ -109,7 +109,8 @@ jis-p1                  {jis-kanji-start-old}{jis-2byte}+{jis-ascii-start}
 jis-p2                  {jis-kanji-start}{jis-2byte}+{jis-ascii-start}
 jis-p3                  {jis-kanji-start2}{jis-2byte}+{jis-ascii-start}
 jis-p4                  {jis-roman-start}{jis-2byte}+{jis-ascii-start}
-jis-p5                  {jis-hankaku-kana-start}{jis-2byte}+{jis-ascii-start}
+jis-hankaku-kana        [\x21-\x5f\xa1-\xdf]
+jis-p5           {jis-hankaku-kana-start}{jis-hankaku-kana}+{jis-ascii-start}
 jis-char                {jis-p1}|{jis-p2}|{jis-p3}|{jis-p4}|{jis-p5}
 s-char  [^\"\\\n\r]|{escape-sequence}|{universal-character-name}|{shift-jis-char}|{jis-char}
 

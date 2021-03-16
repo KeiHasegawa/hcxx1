@@ -922,11 +922,11 @@ namespace cxx_compiler { namespace expressions { namespace primary { namespace l
     }
     static inline bool jis_state2(int c)
     {
-      return c == 0x24;
+      return c == 0x24 || c == 0x28;
     }
     static inline bool jis_state3(int c)
     {
-      return c == 0x42 || c == 0x40;
+      return c == 0x42 || c == 0x40 || c == 0x49;
     }
     static inline bool jis_state5(int c)
     {

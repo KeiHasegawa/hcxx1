@@ -717,6 +717,11 @@ cxx_compiler::template_usr::instantiate(std::vector<var*>* arg, KEY* trial)
   if (pxx.first != end(param)) {
     if (trial)
       return 0;
+    if (!partial_ordering::info.empty()) {
+      auto& bk = partial_ordering::info.back();
+      bk.second = true;
+      return 0;
+    }
     error::not_implemented();
   }
 
@@ -3268,3 +3273,22 @@ namespace cxx_compiler {
     return make_pair(true, cx < cy ? -1 : 1);
   }
 } // end of namespace cxx_compiler
+
+// Just called from debugger command line
+void debug_key(const cxx_compiler::template_usr::KEY& key)
+{
+  using namespace std;
+  using namespace cxx_compiler;
+  for (auto p : key) {
+    if (const type* T = p.first)
+      T->decl(cout, "");
+    else {
+      var* v = p.second;
+      usr* u = v->usr_cast();
+      if (u)
+	cout << u->m_name;
+    }
+    cout << ',';
+  }
+  cout << endl;
+}

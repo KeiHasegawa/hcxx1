@@ -2385,3 +2385,11 @@ cxx_compiler::brace_type::create(const vector<const type*>& vt)
     return p->second;
   return m_table[vt] = new brace_type(vt);
 }
+
+// Just called from debugger command line
+void debug_type(const cxx_compiler::type* T)
+{
+  using namespace std;
+  T->decl(cout, "");
+  cout << endl;
+}
