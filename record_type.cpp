@@ -191,13 +191,21 @@ namespace cxx_compiler {
     {
       tag* xtag = xbp->m_tag;
       const type* Tx = xtag->m_types.second;
-      assert(Tx);
+      if (!Tx) {
+	Tx = xtag->m_types.first;
+	assert(Tx->m_id == type::TEMPLATE_PARAM || should_skip(xtag));
+	return;
+      }
       assert(Tx->m_id == type::RECORD);
       typedef const record_type REC;
       REC* xrec = static_cast<REC*>(Tx);
       tag* ytag = ybp->m_tag;
       const type* Ty = ytag->m_types.second;
-      assert(Ty);
+      if (!Ty) {
+	Ty = ytag->m_types.first;
+	assert(Ty->m_id == type::TEMPLATE_PARAM || should_skip(ytag));
+	return;
+      }
       assert(Ty->m_id == type::RECORD);
       typedef const record_type REC;
       REC* yrec = static_cast<REC*>(Ty);
@@ -470,6 +478,11 @@ namespace cxx_compiler {
           return offset;
         tag* ptr = b->m_tag;
         const type* T = ptr->m_types.second;
+	if (!T) {
+	  T = ptr->m_types.first;
+	  assert(T->m_id == type::TEMPLATE_PARAM || should_skip(ptr));
+	  return offset;
+	}
         assert(T->m_id == type::RECORD);
         typedef const record_type REC;
         REC* rec = static_cast<REC*>(T);
@@ -1839,6 +1852,11 @@ namespace cxx_compiler {
         else {
           tag* ptr = bp->m_tag;
           const type* T = ptr->m_types.second;
+	  if (!T) {
+	    T = ptr->m_types.first;
+	    assert(T->m_id == type::TEMPLATE_PARAM || should_skip(ptr));
+	    return;
+	  }
           copy(T, offset);
         }
       }
