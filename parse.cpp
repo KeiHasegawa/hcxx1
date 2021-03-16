@@ -2343,6 +2343,16 @@ namespace cxx_compiler {
 	  cout << name << ' ';
 	  return;
 	}
+      case ORIGINAL_NAMESPACE_NAME_LEX:
+	{
+	  assert(!lval.empty());
+	  void* p = lval.front();
+	  lval.pop_front();
+	  auto ns = (name_space*)p;
+	  string name = ns->m_name;
+	  cout << name << ' ';
+	  return;
+	}
       case COLONCOLON_MK:
 	cout << ":: ";
 	return;

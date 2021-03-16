@@ -736,6 +736,19 @@ namespace cxx_compiler {
       vector<scope::tps_t::val2_t*>* m_pv;
       comp(vector<var*>* arg, vector<scope::tps_t::val2_t*>* pv)
 	: m_arg(arg), m_pv(pv) {}
+      static bool must_caught_error()
+      {
+	if (!parse::templ::save_t::nest.empty())
+	  return false;
+
+	if (instantiate_with_template_param<template_tag>())
+	  return false;
+
+	if (instantiate_with_template_param<template_usr>())
+	  return false;
+
+	return true;
+      }
       bool operator()(template_usr* x, template_usr* y)
       {
         template_usr::KEY xkey, ykey;
@@ -807,7 +820,7 @@ namespace cxx_compiler {
 	if (!bx && by)
 	  return true;
 
-	if (parse::templ::save_t::nest.empty())
+	if (must_caught_error())
 	  error::not_implemented();
 	return true;
       }
