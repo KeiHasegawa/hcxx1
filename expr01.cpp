@@ -587,7 +587,36 @@ namespace cxx_compiler {
       code.resize(n);
       return ret;
     }
-    int chose(const vector<var*>& res, const vector<int>& cost)
+    int copy_or_move_ctor(const vector<int>& cost, int min_cost,
+			  const vector<usr*>& candidacy)
+    {
+      auto p = find(begin(cost), end(cost), min_cost);
+      assert(p != end(cost));
+      auto q = find(p+1, end(cost), min_cost);
+      assert(q != end(cost));
+      int x = p - begin(cost);
+      int y = q - begin(cost);
+      assert(x < candidacy.size());
+      assert(y < candidacy.size());
+      usr* ux = candidacy[x];
+      usr* uy = candidacy[y];
+      if (!(ux->m_flag & usr::CTOR))
+	return -1;
+      assert(uy->m_flag & usr::CTOR);
+      scope* px = ux->m_scope;
+      assert(px->m_id == scope::TAG);
+      auto ptr = static_cast<tag*>(px);
+      bool bx = canbe_copy_ctor(ux, ptr);
+      if (bx) {
+	assert(canbe_move_ctor(uy, ptr));
+	return y;
+      }
+      assert(canbe_copy_ctor(uy, ptr));
+      assert(canbe_move_ctor(ux, ptr));
+      return x;
+    }
+    int chose(const vector<var*>& res, const vector<int>& cost,
+	      const vector<usr*>& candidacy)
     {
       auto ok = [](var* v){ return v; };
       typedef vector<var*>::const_iterator ITx;
@@ -604,6 +633,11 @@ namespace cxx_compiler {
       int min_cost = *r;
       int n = count_if(begin(cost), end(cost),
                        [min_cost](int c){ return c == min_cost; });
+      if (n == 2) {
+	int x = copy_or_move_ctor(cost, min_cost, candidacy);
+	if (x >= 0)
+	  return x;
+      }
       if (n != 1) {
 	bool b1 = !parse::templ::save_t::nest.empty();
 	bool b2 = instantiate_with_template_param<template_usr>();
@@ -643,7 +677,7 @@ cxx_compiler::var* cxx_compiler::overload::call(std::vector<var*>* arg,
   vector<int> cost;
   transform(begin(cand), end(cand), back_inserter(res),
   [arg, obj, &tmp, &cost](usr* u){ return do_trial(u, arg, obj, tmp, cost); });
-  int m = chose(res, cost);
+  int m = chose(res, cost, m_candidacy);
   if (m < 0) {
     using namespace error::expressions::postfix::call;
     overload_not_match(this);

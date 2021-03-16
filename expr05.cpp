@@ -14,6 +14,7 @@ namespace cxx_compiler { namespace var_impl {
       table_t()
       {
         push_back("int");
+        push_back("bool");
       }
     } table;
   } // end of namespace conversion_function_impl
