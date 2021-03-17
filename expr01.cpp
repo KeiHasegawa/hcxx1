@@ -772,24 +772,24 @@ namespace cxx_compiler {
       map<pair<template_usr*, template_usr*>, bool> m_result;
       bool result(template_usr* x, template_usr* y, bool r)
       {
-          return m_result[make_pair(x,y)] = r;
+	return m_result[make_pair(x,y)] = r;
       }
       bool cached(template_usr* x, template_usr* y, bool* r)
       {
-          auto p = m_result.find(make_pair(y, x));
-          if (p == m_result.end())
-              return false;
-          *r = !p->second;
-          return true;
+	auto p = m_result.find(make_pair(y, x));
+	if (p == m_result.end())
+	  return false;
+	*r = !p->second;
+	return true;
       }
 #else // defined(_MSC_VER) && defined(_DEBUG)
       constexpr bool result(template_usr*, template_usr*, bool r)
       {
-          return r;
+	return r;
       }
       constexpr bool cached(template_usr*, template_usr*, bool*)
       {
-          return false;
+	return false;
       }
 #endif // defined(_MSC_VER) && defined(_DEBUG)
       comp(vector<var*>* arg, vector<scope::tps_t::val2_t*>* pv)

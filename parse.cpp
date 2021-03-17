@@ -2301,6 +2301,7 @@ namespace cxx_compiler {
     void output(int n, list<void*>& lval)
     {
       switch (n) {
+      case PEEKED_NAME_LEX:
       case IDENTIFIER_LEX:
       case TYPEDEF_NAME_LEX:
       case INTEGER_LITERAL_LEX:
