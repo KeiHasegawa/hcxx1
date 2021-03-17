@@ -1172,7 +1172,10 @@ namespace expressions {
     struct info_t : base {
       const type* m_type;
       base* m_expr;
-      info_t(const type* type, base* expr) : m_type(type), m_expr(expr) {}
+      enum kind_t { NONE, STATIC, CONST, REINTER, DYNAMIC };
+      kind_t m_kind;
+      info_t(const type* type, base* expr, kind_t kind)
+	: m_type(type), m_expr(expr), m_kind(kind) {}
       var* gen();
       const file_t& file() const;
       ~info_t(){ delete m_expr; }

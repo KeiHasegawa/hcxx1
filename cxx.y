@@ -2932,13 +2932,25 @@ postfix_expression
   | postfix_expression MINUSMINUS_MK
     { $$ = new cxx_compiler::expressions::postfix::ppmm($1,false); }
   | DYNAMIC_CAST_KW '<' type_id '>' '(' expression ')'
-    { cxx_compiler::error::not_implemented(); }
+    {
+      using namespace cxx_compiler::expressions;
+      $$ = new cast::info_t($3,$6,cast::info_t::DYNAMIC);
+    }
   | STATIC_CAST_KW '<' type_id '>' '(' expression ')'
-    { $$ = new cxx_compiler::expressions::cast::info_t($3,$6); }
+    {
+      using namespace cxx_compiler::expressions;
+      $$ = new cast::info_t($3,$6,cast::info_t::STATIC);
+    }
   | REINTERPRET_CAST_KW '<' type_id '>' '(' expression ')'
-    { $$ = new cxx_compiler::expressions::cast::info_t($3,$6); }
+    {
+      using namespace cxx_compiler::expressions;
+      $$ = new cast::info_t($3,$6,cast::info_t::REINTER);
+    }
   | CONST_CAST_KW '<' type_id '>' '(' expression ')'
-    { $$ = new cxx_compiler::expressions::cast::info_t($3,$6); }
+    {
+      using namespace cxx_compiler::expressions;
+      $$ = new cast::info_t($3,$6,cast::info_t::CONST);
+    }
   | TYPEID_KW '(' expression ')'
     { $$ = new cxx_compiler::expressions::postfix::type_ident($3); }
   | TYPEID_KW '(' type_id ')'
@@ -3425,7 +3437,8 @@ cast_expression
     }
     cast_expression
     {
-      $$ = new cxx_compiler::expressions::cast::info_t($2,$5);
+      using namespace cxx_compiler::expressions;
+      $$ = new cast::info_t($2,$5,cast::info_t::NONE);
     }
   | BUILTIN_VA_START '(' cast_expression ',' cast_expression ')'
     { $$ = new cxx_compiler::expressions::_va_start::info_t($3,$5); }
