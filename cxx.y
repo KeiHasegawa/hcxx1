@@ -3720,6 +3720,13 @@ condition
     }
     assignment_expression
     { $$ = cxx_compiler::statements::condition::action($1, $2, $5); }
+  | AUTO_KW declarator '='
+    {
+      using namespace cxx_compiler;
+      parse::identifier::mode = parse::identifier::look;
+    }
+    assignment_expression
+    { $$ = cxx_compiler::statements::condition::action(0, $2, $5); }
   ;
 
 iteration_statement

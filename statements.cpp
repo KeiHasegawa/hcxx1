@@ -1381,13 +1381,23 @@ cxx_compiler::statements::try_block::info_t::~info_t()
 namespace cxx_compiler {
   namespace statements {
     namespace condition {
+      const type* guess(expressions::base* expr)
+      {
+	int n = code.size();
+	var* v = expr->gen();
+	const type* T = v->result_type();
+	for_each(begin(code)+n, end(code), [](tac* ptr){ delete ptr; });
+	code.resize(n);
+	return T;
+      }
       expressions::base* action(declarations::type_specifier_seq::info_t* p,
                 		var* v, expressions::base* right)
       {
         typedef declarations::type_specifier_seq::info_t X;
         auto_ptr<X> sweeper(p);
-        p->update();
-        const type* T = p->m_type;
+	if (p)
+	  p->update();
+        const type* T = p ? p->m_type : guess(right);
         using namespace declarations;
         type_specifier* ts = new type_specifier(T);
         parse::identifier::mode = parse::identifier::look;
