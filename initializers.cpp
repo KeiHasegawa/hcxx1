@@ -1536,3 +1536,14 @@ aggregate(std::map<int, var*>::iterator it, var* x, block* body)
   else
     it->second = zero->cast(char_type::create());
 }
+
+// Just called from debugger command line
+void debug_initbl()
+{
+  using namespace std;
+  using namespace cxx_compiler::declarations::initializers;
+  for (auto p : table) {
+    cout << p.first->m_name << ',';
+  }
+  cout << endl;
+}
