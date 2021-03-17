@@ -1570,6 +1570,9 @@ namespace cxx_compiler {
           !member_have_ctor(member))
         return;
 
+      if (should_skip(ptr))
+	return;
+
       block* pb; usr* this_ptr; scope* param;
       usr* ctor = add_ctor_dtor_common(ptr, &param, &this_ptr, &pb, false);
       if (!ctor)
@@ -1638,6 +1641,9 @@ namespace cxx_compiler {
     {
       if (!member_have_dtor(member) && !bases_have_dtor(ptr))
         return;
+
+      if (should_skip(ptr))
+	return;
       
       block* pb; usr* this_ptr; scope* param;
       usr* dtor = add_ctor_dtor_common(ptr, &param, &this_ptr, &pb, true);
