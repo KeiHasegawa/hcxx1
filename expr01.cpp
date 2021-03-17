@@ -768,6 +768,30 @@ namespace cxx_compiler {
     struct comp {
       vector<var*>* m_arg;
       vector<scope::tps_t::val2_t*>* m_pv;
+#if defined(_MSC_VER) && defined(_DEBUG)
+      map<pair<template_usr*, template_usr*>, bool> m_result;
+      bool result(template_usr* x, template_usr* y, bool r)
+      {
+          return m_result[make_pair(x,y)] = r;
+      }
+      bool cached(template_usr* x, template_usr* y, bool* r)
+      {
+          auto p = m_result.find(make_pair(y, x));
+          if (p == m_result.end())
+              return false;
+          *r = !p->second;
+          return true;
+      }
+#else // defined(_MSC_VER) && defined(_DEBUG)
+      constexpr bool result(template_usr*, template_usr*, bool r)
+      {
+          return r;
+      }
+      constexpr bool cached(template_usr*, template_usr*, bool*)
+      {
+          return false;
+      }
+#endif // defined(_MSC_VER) && defined(_DEBUG)
       comp(vector<var*>* arg, vector<scope::tps_t::val2_t*>* pv)
 	: m_arg(arg), m_pv(pv) {}
       static bool must_caught_error()
@@ -785,12 +809,15 @@ namespace cxx_compiler {
       }
       bool operator()(template_usr* x, template_usr* y)
       {
+          bool res;
+          if (cached(x, y, &res))
+              return res;
         template_usr::KEY xkey, ykey;
 	if (m_pv) {
           if (partial_instantiated* px = help3(x, m_pv)) {
 	    usr* ux = px->instantiate(m_arg, &xkey);
-	    if (!ux)
-	      return false;
+        if (!ux)
+            return result(x,y,false);
           }
 	  else {
 	    transform(begin(*m_pv), end(*m_pv), back_inserter(xkey),
@@ -799,7 +826,7 @@ namespace cxx_compiler {
           if (partial_instantiated* py = help3(y, m_pv)) {
 	    usr* uy = py->instantiate(m_arg, &ykey);
 	    if (!uy)
-	      return true;
+	      return result(x, y, true);
           }
 	  else {
 	    transform(begin(*m_pv), end(*m_pv), back_inserter(ykey),
@@ -809,33 +836,33 @@ namespace cxx_compiler {
 	else {
 	  usr* ux = x->instantiate(m_arg, &xkey);
 	  if (!ux)
-	    return false;
+	    return result(x, y, false);
 	  usr* uy = y->instantiate(m_arg, &ykey);
 	  if (!uy)
-	    return true;
+	    return result(x, y, true);
 	}
 
 	pair<bool, int> ret = less_than(x, xkey, y, ykey, m_arg);
 	if (ret.first) {
 	  if (int n = ret.second)
-	    return n < 0;
+	    return result(x, y, n < 0);
 	}
 	else if (!ret.second)
-	  return false;  // both not match
+	  return result(x, y, false);  // both not match
 
 	if (int n = less_than(x, y))
-	  return n < 0;
+	  return result(x, y, n < 0);
 
         if (xkey.size() < ykey.size())
-          return true;
+          return result(x, y, true);
         if (xkey.size() > ykey.size())
-          return false;
+          return result(x, y, false);
 
 	int n = 0;
 	auto p = mismatch(begin(xkey), end(xkey), begin(ykey), help(&n));
 	if (p.first != end(xkey)) {
 	  assert(n == -1 || n == 1);
-	  return n < 0;
+	  return result(x, y, n < 0);
 	}
 
 	partial_ordering::info.push_back(make_pair(x, false));
@@ -849,14 +876,14 @@ namespace cxx_compiler {
 	partial_ordering::info.pop_back();
 
 	if (bx && !by)
-	  return false;
+	  return result(x, y, false);
 
 	if (!bx && by)
-	  return true;
+	  return result(x, y, true);
 
 	if (must_caught_error())
 	  error::not_implemented();
-	return true;
+	return result(x, y, true);
       }
     };
   } // end of namespace partial_ordering_impl
