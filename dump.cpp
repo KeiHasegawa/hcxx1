@@ -206,6 +206,7 @@ namespace cxx_compiler { namespace dump {
   void unwind_resume(ostream&, const tac*);
   void catch_begin(ostream&, const tac*);
   void catch_end(ostream&, const tac*);
+  void dcast(ostream&, const tac*);
 } } // end of namespace dump and cxx_compiler
 
 cxx_compiler::dump::table_t::table_t()
@@ -251,6 +252,7 @@ cxx_compiler::dump::table_t::table_t()
   (*this)[tac::UNWIND_RESUME] = unwind_resume;
   (*this)[tac::CATCH_BEGIN] = catch_begin;
   (*this)[tac::CATCH_END] = catch_end;
+  (*this)[tac::DCAST] = dcast;
 }
 
 namespace cxx_compiler { namespace dump { namespace names {
@@ -680,6 +682,12 @@ void cxx_compiler::dump::catch_end(std::ostream& os, const tac* ptr)
 {
   using namespace std;
   os << "catch_end";
+}
+
+void cxx_compiler::dump::dcast(std::ostream& os, const tac* ptr)
+{
+  using namespace std;
+  una(os,ptr,"dcast ");
 }
 
 namespace cxx_compiler { namespace dump {

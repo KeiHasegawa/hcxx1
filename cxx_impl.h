@@ -325,6 +325,9 @@ namespace error {
     namespace cast {
       extern void invalid(const file_t&);
       extern void not_scalar(const file_t&);
+      extern void not_polymorphic(const file_t&, const record_type*);
+      extern void not_pointer(const file_t&, bool);
+      extern void not_record(const file_t&, bool);
     } // end of namespace cast
     namespace binary {
       extern void invalid(const file_t&, int, const type*, const type*);

@@ -2326,6 +2326,69 @@ void cxx_compiler::error::expressions::cast::not_scalar(const file_t& file)
   ++counter;
 }
 
+void cxx_compiler::error::expressions::
+cast::not_polymorphic(const file_t& file, const record_type* rec)
+{
+  using namespace std;
+  switch (lang) {
+  case jpn:
+    header(file,"エラー");
+    cerr << "dynamic_cast のソースの型 `";
+    rec->decl(cerr, "");
+    cerr << "' が polymorphic ではありません.\n";
+    break;
+  default:
+    header(file,"error");
+    cerr << "dynamic_cast source type `";
+    rec->decl(cerr, "");
+    cerr << "' is not polymorphic.\n";
+    break;
+  }
+  ++counter;
+}
+
+void cxx_compiler::error::expressions::
+cast::not_pointer(const file_t& file, bool src)
+{
+  using namespace std;
+  switch (lang) {
+  case jpn:
+    header(file,"エラー");
+    cerr << "dynamic_cast の";
+    cerr << (src ? "ソース" : "ターゲット");
+    cerr << "の型がポインタ型ではありません.\n";
+    break;
+  default:
+    header(file,"error");
+    cerr << "dynamic_cast ";
+    cerr << (src ? "source" : "target");
+    cerr << " type is not pointer type.\n";
+    break;
+  }
+  ++counter;
+}
+
+void cxx_compiler::error::expressions::
+cast::not_record(const file_t& file, bool src)
+{
+  using namespace std;
+  switch (lang) {
+  case jpn:
+    header(file,"エラー");
+    cerr << "dynamic_cast の";
+    cerr << (src ? "ソース" : "ターゲット");
+    cerr << "の型が構造体へのポインタ型ではありません.\n";
+    break;
+  default:
+    header(file,"error");
+    cerr << "dynamic_cast ";
+    cerr << (src ? "source" : "target");
+    cerr << " type is not pointer to either struct or class.\n";
+    break;
+  }
+  ++counter;
+}
+
 void cxx_compiler::error::expressions::cast::invalid(const file_t& file)
 {
   using namespace std;
