@@ -394,6 +394,7 @@ struct usr : var {
     HAS_DEFAULT_ARG      = 1 << 25,
     DELETE               = 1 << 26,
     EXPLICIT_PO          = 1 << 27,
+    VFTBL                = 1 << 28,
   };
   flag2_t m_flag2;
   file_t m_file;
@@ -1820,6 +1821,7 @@ class record_type : public type {
   std::vector<const record_type*> m_common;
   std::map<const record_type*, int> m_common_vftbl_offset;
   std::vector<const record_type*> m_direct_common;
+  with_initial* m_vftbl;
   record_type(tag*);
 public:
   void decl(std::ostream&, std::string) const;
@@ -1855,6 +1857,7 @@ public:
   void tor_code(usr* tor, scope* param, var* this_ptr, block* pb,
                 bool is_dtor,
                 const std::vector<const record_type*>& exclude) const;
+  void add_tor() const;
 };
 
 class enum_type : public type {
@@ -2288,7 +2291,7 @@ namespace optimize {
     };
   } // end of namespace basic_block
 } // end of namespace optimize
- 
+
 } // end of namespace cxx_compiler
 
 #endif // _CXX_CORE_H_

@@ -2061,7 +2061,7 @@ namespace cxx_compiler {
 
 cxx_compiler::record_type::record_type(tag* ptr)
   : type(RECORD), m_size(0), m_modifiable(true),
-    m_partially_modifiable(false), m_tag(ptr)
+    m_partially_modifiable(false), m_tag(ptr), m_vftbl(0)
 {
   using namespace std;
   using namespace record_impl;
@@ -2162,15 +2162,15 @@ cxx_compiler::record_type::record_type(tag* ptr)
     nbvf = accumulate(begin(m_common), end(m_common), nbvf, vbase_vf);
   }
 
-  with_initial* vftbl = 0;
   if (nbvf + nvf) {
     const type* T = void_type::create();
     T = pointer_type::create(T);
     T = const_type::create(T);
     T = array_type::create(T, nbvf + nvf);
-    vftbl = new with_initial(vftbl_name, T, file_t());
-    vftbl->m_flag = vtbl_flag;
-    m_tag->m_usrs[vftbl_name].push_back(vftbl);
+    m_vftbl = new with_initial(vftbl_name, T, file_t());
+    m_vftbl->m_flag = vtbl_flag;
+    m_vftbl->m_flag2 = usr::VFTBL;
+    m_tag->m_usrs[vftbl_name].push_back(m_vftbl);
     if (nvf) {
       T = pointer_type::create(T);
       usr* vfptr = new usr(vfptr_name, T, usr::NONE, parse::position,
@@ -2183,7 +2183,7 @@ cxx_compiler::record_type::record_type(tag* ptr)
 
     int offset = 0;
     if (bases) {
-      map<int, var*>& value = vftbl->m_value;
+      map<int, var*>& value = m_vftbl->m_value;
       offset = accumulate(begin(m_common), end(m_common), 0,
                           copy_vbase_vf(value, m_common_vftbl_offset));
       offset = accumulate(begin(*bases), end(*bases), offset,
@@ -2194,7 +2194,7 @@ cxx_compiler::record_type::record_type(tag* ptr)
       for_each(begin(value), end(value),
                bind2nd(ptr_fun(check_override), m_tag));
     }
-    accumulate(begin(order), end(order), offset, own_vf(vftbl->m_value));
+    accumulate(begin(order), end(order), offset, own_vf(m_vftbl->m_value));
   }
 
   copy_if(begin(order),end(order),back_inserter(m_member), isdata);
@@ -2316,12 +2316,17 @@ cxx_compiler::record_type::record_type(tag* ptr)
   if ( int n = m_size % al ) {
     m_size += al - n;
   }
+}
+
+void cxx_compiler::record_type::add_tor() const
+{
+  using namespace record_impl;
   add_ctor(m_tag, m_layout, m_base_offset, m_vbtbl_offset, m_vftbl_offset,
            m_common, m_virt_common_offset, m_direct_common,
            m_common_vftbl_offset, m_member);
 
   add_dtor(m_tag, m_layout, m_member, m_base_offset, m_common,
-           m_virt_common_offset, m_direct_common, vftbl);
+           m_virt_common_offset, m_direct_common, m_vftbl);
 }
 
 int cxx_compiler::record_impl::layouter::operator()(int offset, usr* member)

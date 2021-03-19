@@ -67,7 +67,7 @@ namespace cxx_compiler {
 	go->m_to = to;
 	to->m_goto.push_back(go);
 	code.push_back(go);
-	code.push_back(new dcast3ac(ret, expr, off.first));
+	code.push_back(new dcast3ac(ret, expr));
 	goto3ac* go2 = new goto3ac;
 	to3ac* to2 = new to3ac;
 	go2->m_to = to2;

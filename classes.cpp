@@ -353,8 +353,9 @@ const cxx_compiler::type* cxx_compiler::classes::specifier::action()
     }
   }
 
-  const type* ret = record_type::create(ptr);
+  const record_type* ret = record_type::create(ptr);
   ptr->m_types.second = ret;
+  ret->add_tor();
   handle_copy_ctor(ptr);
 
   auto& tbl = parse::member_function_body::stbl[ptr];
