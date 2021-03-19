@@ -72,6 +72,17 @@ namespace cxx_compiler {
 void cxx_compiler::declarations::initializers::action(var* v, info_t* i)
 {
   using namespace std;
+  if (fundef::current) {
+    usr* fun = fundef::current->m_usr;
+    usr::flag2_t flag2 = fun->m_flag2;
+    if (flag2 & usr::TEMPLATE)
+      return;
+    using namespace declarators::function::definition;
+    auto seed = get_seed(fun);
+    auto p = find_if(begin(seed), end(seed), template_param);
+    if (p != end(seed))
+      return;
+  }
   assert(v->usr_cast());
   usr* u = static_cast<usr*>(v);
   auto_ptr<info_t> sweeper(i);
