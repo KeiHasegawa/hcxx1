@@ -4,9 +4,84 @@
 #include "cxx_impl.h"
 #include "cxx_y.h"
 
-namespace cxx_compiler { namespace expressions { namespace cast {
-  const type* valid(const type*, var*, bool* ctor_conv);
-} } } // end of namespace cast, expressions and cxx_compiler
+void debug_break(){}
+
+namespace cxx_compiler {
+  namespace expressions {
+    namespace cast {
+      const type* valid(const type*, var*, bool* ctor_conv);
+      var* dcast_code(const type* res, var* expr)
+      {
+	using namespace error::expressions::cast;
+	using namespace expressions::primary::literal;
+	if (res->m_id != type::POINTER)
+	  not_pointer(parse::position, false);
+	const type* Ty = expr->m_type;
+	if (Ty->m_id != type::POINTER) {
+	  not_pointer(parse::position, true);
+	  return 0;
+	}
+	if (res->m_id != type::POINTER)
+	  return 0;
+	typedef const pointer_type PT;
+	auto ptx = static_cast<PT*>(res);
+	auto pty = static_cast<PT*>(Ty);
+	const type* Rx = ptx->referenced_type();
+	const type* Ry = pty->referenced_type();
+	Rx = Rx->complete_type();
+	Ry = Ry->complete_type();
+	Rx = Rx->unqualified();
+	Ry = Ry->unqualified();
+	if (Rx->m_id != type::RECORD)
+	  not_record(parse::position, false);
+	if (Ry->m_id != type::RECORD)
+	  not_record(parse::position, true);
+	if (Rx->m_id != type::RECORD)
+	  return 0;
+	typedef const record_type REC;
+	auto xrec = static_cast<REC*>(Rx);
+	auto yrec = static_cast<REC*>(Ry);
+	vector<route_t> dummy;
+	bool ambiguous = false;
+	int offset = calc_offset(yrec, xrec, dummy, &ambiguous);
+	if (ambiguous)
+	  error::not_implemented();
+	if (offset >= 0)
+	  return 0;
+	pair<int, usr*> off = yrec->offset(vfptr_name);
+	if (!off.second) {
+	  not_polymorphic(parse::position, yrec);
+	  return 0;
+	}
+	var* ret = new var(ptx);
+	if (scope::current->m_id == scope::BLOCK) {
+	  auto b = static_cast<block*>(scope::current);
+	  b->m_vars.push_back(ret);
+	}
+	else
+	  garbage.push_back(ret);
+	var* zero = integer::create(0);
+	var* zeroy = zero->cast(pty);
+	goto3ac* go = new goto3ac(goto3ac::EQ, expr, zeroy);
+	to3ac* to = new to3ac;
+	go->m_to = to;
+	to->m_goto.push_back(go);
+	code.push_back(go);
+	code.push_back(new dcast3ac(ret, expr, off.first));
+	goto3ac* go2 = new goto3ac;
+	to3ac* to2 = new to3ac;
+	go2->m_to = to2;
+	to2->m_goto.push_back(go2);
+	code.push_back(go2);
+	code.push_back(to);
+	var* zerox = zero->cast(ptx);
+	code.push_back(new assign3ac(ret, zerox));
+	code.push_back(to2);
+	return ret;
+      }
+    } // end of namespace cast
+  } // end of namespace expressions
+} // end of namespace cxx_compiler
 
 cxx_compiler::var* cxx_compiler::expressions::cast::info_t::gen()
 {
@@ -44,6 +119,12 @@ cxx_compiler::var* cxx_compiler::expressions::cast::info_t::gen()
       res = int_type::create();
     }
   }
+
+  if (m_kind == DYNAMIC) {
+    if (var* ret = dcast_code(res, expr))
+      return ret;
+  }
+
   return res->aggregate() ? aggregate_conv(res, expr, ctor_conv, 0)
     : expr->cast(res);
 }

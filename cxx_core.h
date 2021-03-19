@@ -2006,7 +2006,8 @@ struct tac {
     ASM,
     VASTART, VAARG, VAEND,
     ALLOCE, THROW, RETHROW, TRY_BEGIN, TRY_END, HERE, HERE_REASON, HERE_INFO,
-    THERE, UNWIND_RESUME, CATCH_BEGIN, CATCH_END
+    THERE, UNWIND_RESUME, CATCH_BEGIN, CATCH_END,
+    DCAST
   };
   id_t m_id;
   var* x;
@@ -2236,6 +2237,11 @@ struct catch_begin3ac : tac {
 struct catch_end3ac : tac {
   catch_end3ac() : tac(CATCH_END, 0, 0, 0) {}
   tac* new3ac() { return new catch_end3ac(*this); }
+};
+
+struct dcast3ac : tac {
+  dcast3ac(var* x, var* y) : tac(DCAST, x, y, 0) {}
+  tac* new3ac() { return new dcast3ac(*this); }
 };
 
 namespace generator {

@@ -325,6 +325,9 @@ namespace error {
     namespace cast {
       extern void invalid(const file_t&);
       extern void not_scalar(const file_t&);
+      extern void not_polymorphic(const file_t&, const record_type*);
+      extern void not_pointer(const file_t&, bool);
+      extern void not_record(const file_t&, bool);
     } // end of namespace cast
     namespace binary {
       extern void invalid(const file_t&, int, const type*, const type*);
@@ -1172,7 +1175,10 @@ namespace expressions {
     struct info_t : base {
       const type* m_type;
       base* m_expr;
-      info_t(const type* type, base* expr) : m_type(type), m_expr(expr) {}
+      enum kind_t { NONE, STATIC, CONST, REINTER, DYNAMIC };
+      kind_t m_kind;
+      info_t(const type* type, base* expr, kind_t kind)
+	: m_type(type), m_expr(expr), m_kind(kind) {}
       var* gen();
       const file_t& file() const;
       ~info_t(){ delete m_expr; }
