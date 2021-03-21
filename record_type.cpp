@@ -2414,11 +2414,6 @@ namespace cxx_compiler {
 void cxx_compiler::record_type::add_tor() const
 {
   using namespace record_impl;
-  add_ctor(m_tag, m_layout, m_base_offset, m_vbtbl_offset, m_vtbl_offset,
-           m_common, m_virt_common_offset, m_direct_common,
-           m_common_vtbl_offset, m_member);
-  add_dtor(m_tag, m_layout, m_member, m_base_offset, m_common,
-           m_virt_common_offset, m_direct_common, m_vtbl);
   if (m_vtbl) {
     assert(m_vtbl->m_flag & usr::WITH_INI);
     auto wi = static_cast<with_initial*>(m_vtbl);
@@ -2430,6 +2425,11 @@ void cxx_compiler::record_type::add_tor() const
       }
     }
   }
+  add_ctor(m_tag, m_layout, m_base_offset, m_vbtbl_offset, m_vtbl_offset,
+           m_common, m_virt_common_offset, m_direct_common,
+           m_common_vtbl_offset, m_member);
+  add_dtor(m_tag, m_layout, m_member, m_base_offset, m_common,
+           m_virt_common_offset, m_direct_common, m_vtbl);
 }
 
 int cxx_compiler::record_impl::layouter::operator()(int offset, usr* member)
