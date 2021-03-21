@@ -46,8 +46,7 @@ namespace cxx_compiler {
 	  error::not_implemented();
 	if (offset >= 0)
 	  return 0;
-	pair<int, usr*> off = yrec->offset(vfptr_name);
-	if (!off.second) {
+	if (!is_polymorphic(yrec)) {
 	  not_polymorphic(parse::position, yrec);
 	  return 0;
 	}
@@ -66,8 +65,10 @@ namespace cxx_compiler {
 	to->m_goto.push_back(go);
 	code.push_back(go);
 	offset = calc_offset(xrec, yrec, dummy, &ambiguous);
+	if (offset < 0)
+	  offset = -2;
 	if (ambiguous)
-	  error::not_implemented();
+	  offset = -3;
 	code.push_back(new dcast3ac(ret, expr, offset));
 	goto3ac* go2 = new goto3ac;
 	to3ac* to2 = new to3ac;

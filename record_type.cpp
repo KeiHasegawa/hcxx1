@@ -3740,3 +3740,30 @@ bool cxx_compiler::record_impl::should_skip(const tag* ptr)
   }
   return false;
 }
+
+namespace cxx_compiler {
+  namespace record_impl {
+    bool is_poly(base* b)
+    {
+      tag* ptr = b->m_tag;
+      const type* T = ptr->m_types.second;
+      assert(T->m_id == type::RECORD);
+      auto rec = static_cast<const record_type*>(T); 
+      return is_polymorphic(rec);
+    }
+  } // end of namespace record_impl
+} // end of namespace cxx_compiler
+
+bool cxx_compiler::is_polymorphic(const record_type* rec)
+{
+  pair<int, usr*> off = rec->offset(vfptr_name);
+  if (off.second)
+    return true;
+  tag* ptr = rec->get_tag();
+  auto bases = ptr->m_bases;
+  if (!bases)
+    return false;
+  auto p = find_if(begin(*bases), end(*bases), record_impl::is_poly);
+  return p != end(*bases);
+}
+

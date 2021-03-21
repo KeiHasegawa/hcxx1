@@ -2095,6 +2095,8 @@ namespace sweeper_f_impl {
 
 int less_than(template_usr* x, template_usr* y);
 
+bool is_polymorphic(const record_type*); 
+
 } // end of namespace cxx_compiler
 
 #endif // _CXX_IMPL_H_
