@@ -91,6 +91,17 @@ void cxx_compiler::dump::usrx(const usr* u, int ntab)
   cout << '\n';
 }
 
+// Just called from debugger command line
+void debug_usr(const cxx_compiler::usr* u)
+{
+  using namespace std;
+  if (!u) {
+    cout << "(nullptr)" << endl;
+    return;
+  }
+  cxx_compiler::dump::usrx(u, 0);
+}
+
 std::string cxx_compiler::dump::initial(const std::pair<int,cxx_compiler::var*>& p)
 {
   using namespace std;
@@ -101,6 +112,14 @@ std::string cxx_compiler::dump::initial(const std::pair<int,cxx_compiler::var*>&
   if (addr) {
     os << "addrof(";
     v = addr->m_ref;
+  }
+  if (auto ti = dynamic_cast<type_information*>(v)) {
+    assert(!addr->m_offset);
+    const type* T = ti->m_T;
+    os << "type_info(";
+    T->decl(os, "");
+    os << ")))";
+    return os.str();
   }
   assert(v->usr_cast());
   usr* u = static_cast<usr*>(v);

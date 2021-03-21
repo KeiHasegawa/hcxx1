@@ -401,20 +401,22 @@ namespace cxx_compiler {
     code.push_back(new loff3ac(ret, idx, tmp));
     idx = integer::create(pt->size());
     if (fun->m_flag & usr::VIRTUAL) {
-      const map<string, vector<usr*> >& usrs = ptr->m_usrs;
-      typedef map<string, vector<usr*> >::const_iterator IT;
-      IT p = usrs.find(vftbl_name);
+      const auto& usrs = ptr->m_usrs;
+      auto p = usrs.find(vtbl_name);
       assert(p != usrs.end());
       const vector<usr*>& v = p->second;
       assert(v.size() == 1);
       usr* u = v.back();
       assert(u->m_flag & usr::WITH_INI);
-      with_initial* vftbl = static_cast<with_initial*>(u);
-      map<int, var*>::const_iterator q =
-        find_if(begin(vftbl->m_value), end(vftbl->m_value),
-                bind2nd(ptr_fun(match_vf),fun));
-      assert(q != end(vftbl->m_value));
-      int offset = q->first;
+      auto wi = static_cast<with_initial*>(u);
+      const auto& value = wi->m_value;
+      assert(value.size() > 2);
+      auto q = begin(value);
+      ++q; ++q;
+      auto r = find_if(q, end(value),
+		       bind2nd(ptr_fun(match_vf),fun));
+      assert(r != end(value));
+      int offset = r->first - q->first;
       var* off = integer::create(offset);
       code.push_back(new loff3ac(ret, idx, off));
     }
@@ -1612,20 +1614,21 @@ cxx_compiler::var* cxx_compiler::call_impl::ref_vftbl(usr* vf, var* vp)
     b->m_vars.push_back(res);
   else
     garbage.push_back(res);
-  const map<string, vector<usr*> >& usrs = ptag->m_usrs;
-  typedef map<string, vector<usr*> >::const_iterator IT;
-  IT p = usrs.find(vftbl_name);
+  const auto& usrs = ptag->m_usrs;
+  auto p = usrs.find(vtbl_name);
   assert(p != usrs.end());
   const vector<usr*>& v = p->second;
   assert(v.size() == 1);
   usr* u = v.back();
   assert(u->m_flag & usr::WITH_INI);
-  with_initial* vftbl = static_cast<with_initial*>(u);
-  map<int, var*>::const_iterator q =
-    find_if(begin(vftbl->m_value), end(vftbl->m_value),
-            bind2nd(ptr_fun(match_vf),vf));
-  assert(q != end(vftbl->m_value));
-  int offset = q->first;
+  with_initial* vtbl = static_cast<with_initial*>(u);
+  const auto& value = vtbl->m_value;
+  assert(value.size() > 2);
+  auto start = begin(value);
+  ++start; ++start;
+  auto q = find_if(start, end(value), bind2nd(ptr_fun(match_vf),vf)); 
+  assert(q != end(value));
+  int offset = q->first - start->first;
   if (offset){
     var* t2 = new var(pt);
     if ( b )

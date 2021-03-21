@@ -4,8 +4,6 @@
 #include "cxx_impl.h"
 #include "cxx_y.h"
 
-void debug_break(){}
-
 namespace cxx_compiler {
   namespace expressions {
     namespace cast {
@@ -67,7 +65,10 @@ namespace cxx_compiler {
 	go->m_to = to;
 	to->m_goto.push_back(go);
 	code.push_back(go);
-	code.push_back(new dcast3ac(ret, expr));
+	offset = calc_offset(xrec, yrec, dummy, &ambiguous);
+	if (ambiguous)
+	  error::not_implemented();
+	code.push_back(new dcast3ac(ret, expr, offset));
 	goto3ac* go2 = new goto3ac;
 	to3ac* to2 = new to3ac;
 	go2->m_to = to2;

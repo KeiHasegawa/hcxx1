@@ -394,7 +394,6 @@ struct usr : var {
     HAS_DEFAULT_ARG      = 1 << 25,
     DELETE               = 1 << 26,
     EXPLICIT_PO          = 1 << 27,
-    VFTBL                = 1 << 28,
   };
   flag2_t m_flag2;
   file_t m_file;
@@ -1816,12 +1815,12 @@ class record_type : public type {
   std::map<const record_type*, int> m_virt_common_offset;
 
   std::map<base*, int> m_vbtbl_offset;
-  std::map<base*, int> m_vftbl_offset;
+  std::map<base*, int> m_vtbl_offset;
 
   std::vector<const record_type*> m_common;
-  std::map<const record_type*, int> m_common_vftbl_offset;
+  std::map<const record_type*, int> m_common_vtbl_offset;
   std::vector<const record_type*> m_direct_common;
-  with_initial* m_vftbl;
+  with_initial* m_vtbl;
   record_type(tag*);
 public:
   void decl(std::ostream&, std::string) const;
@@ -1835,7 +1834,7 @@ public:
   std::pair<int, usr*> offset(std::string) const;
   const std::map<base*, int>& base_offset() const { return m_base_offset; }
   const std::map<base*, int>& vbtbl_offset() const { return m_vbtbl_offset; }
-  const std::map<base*, int>& vftbl_offset() const { return m_vftbl_offset; }
+  const std::map<base*, int>& vtbl_offset() const { return m_vtbl_offset; }
   const std::map<const record_type*, int>& virt_common_offset() const
   { return m_virt_common_offset; }
   int position(usr*) const;
@@ -2243,7 +2242,9 @@ struct catch_end3ac : tac {
 };
 
 struct dcast3ac : tac {
-  dcast3ac(var* x, var* y) : tac(DCAST, x, y, 0) {}
+  int m_src2dst;
+  dcast3ac(var* x, var* y, int src2dst)
+   : tac(DCAST, x, y, 0), m_src2dst(src2dst) {}
   tac* new3ac() { return new dcast3ac(*this); }
 };
 
@@ -2291,6 +2292,11 @@ namespace optimize {
     };
   } // end of namespace basic_block
 } // end of namespace optimize
+
+struct type_information : var {
+  const type* m_T;
+  type_information(const type*);
+};
 
 } // end of namespace cxx_compiler
 

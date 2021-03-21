@@ -542,3 +542,8 @@ cxx_compiler::var* cxx_compiler::refbit::size()
   bit_field(parse::position,m_member);
   return refaddr::size();
 }
+
+cxx_compiler::type_information::type_information(const type* T)
+  : var(pointer_type::create(void_type::create())), m_T(T)
+{
+}

@@ -137,7 +137,7 @@ inline bool cmp(const scope* ptr, scope::id_t id)
   return ptr->m_id == id;
 }
 
-const string vftbl_name = ".vftbl";
+const string vtbl_name = ".vtbl";
 const string vfptr_name = ".vfptr";
 const string vbtbl_name = ".vbtbl";
 const string vbptr_name = ".vbptr";
