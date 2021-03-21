@@ -1,0 +1,151 @@
+(*8) 現状明らかにできていないのが test010.cpp で
+
+     A における V のオフセットが可変であるにもかかわらず
+     src2dst に 8 をセットして __dynamic_cast を呼び出している.
+
+(*7) c.cpp
+ "C" int printf(const char*, ...);
+
+struct V {
+  virtual void vf()
+  {
+    printf("V::vf() called\n");
+  }
+};
+
+struct A : virtual V {};
+
+struct B : virtual V {};
+
+struct D : A, B {};
+
+void f(V* pv)
+{
+  D* pd = dynamic_cast<D*>(pv);
+  printf("pv = %x, pd = %x\n", pv, pd);
+}
+
+int main()
+{
+  D d;
+  f(&d);
+  return 0;
+}
+
+を g++ で試してみた.
+
+ _ZN1DC1Ev = D::D()
+
+を 0xbffff748 を第一引数として呼び出している. これは main における
+ローカル変数 d のアドレス.
+
+_ZN1DC1Ev = D::D() では
+
+0xbffff748 を第一引数として _ZN1VC2Ev = V::V() を呼び出している.
+D における V のオフセットが 0 ということなのだろう.
+
+0xbffff748 を第一引数として _ZN1AC2Ev = A::A() を呼び出している.
+D における A のオフセットが 0(?)ということなのだろう.
+
+0xbffff74c を第一引数として _ZN1BC2Ev = B::B() を呼び出している.
+D における B のオフセットが 4 ということなのだろう.
+
+この後 f を呼び出すが
+0xbffff748 が引数. やはり D における V のオフセットが 0 とい
+うことなのだろう.
+
+(*6) test009 も追加. dynamic_cast<D*>(pa), dynamic_cast<D*>(pb)
+     これは __dynamic_cast 内でメモリアクセスエラー.
+
+(*5)
+
+_ZN1D4vtblE:
+	.long	-12           <-- これを 0 から -12 に修正
+	.long	_ZTI1D
+	.long	_ZN1V2vfEv
+	.long	0
+	.long	_ZTI1D
+	.long	_ZN1V2vfEv
+	.long	-4
+	.long	_ZTI1D
+	.long	_ZN1V2vfEv
+
+上の対応をいれても残念ながら __dynamic_cast で 0 が返るため
+メモリアクセスエラーは回避できない.
+(*3) を真似るのは, hcxx1 でこれまで実装してきた vtbl の方式とは異なるので
+単純にはうまくいかない.
+
+(*4)  一応これで逃げていた...
+
+	int dummy = 0;  // WA
+        int n = copy_base_vf_common(offset, ptr, m_value, 0, dummy);
+
+	test008 での D における
+	A のオフセットは 0
+	B のオフセットは 4
+	V のオフセットは 12
+
++-----------------+ 0
+|   A part        |
++-----------------+ 4
+|   B part        |
++-----------------+ 8
+|   D part        |
++-----------------+ 12
+|   V part        |
++-----------------+
+
+(*3)
+
+以下は g++ の生成した D の vtbl
+
+_ZTV1D:
+	.long	0
+	.long	0
+	.long	0
+	.long	_ZTI1D
+	.long	_ZN1V2vfEv
+	.long	-4
+	.long	-4
+	.long	-4
+	.long	_ZTI1D
+	.long	0
+
+少なくとも hcxx1 の vtbl とは異なる. とここで気付いた...
+
+(*2) test007 は PASS することができた. test008 はテストプログラム
+     実行時エラー
+
+     test008 では __dynamic_cast の呼び出しで hcxx1 の生成した
+     プログラムは src2dst に 12 を指定している
+     __dynamic_cast の呼び出し自体は返るが 0 が返っている.
+     src2dst に -1 を指定しても
+     __dynamic_cast の呼び出し自体は返るが 0 が返っている.
+
+    おそらくだが, D の型情報に誤りがあるのではと思われる.
+
+以下は g++ の D の型情報
+
+_ZTI1D:
+	.long	_ZTVN10__cxxabiv121__vmi_class_type_infoE+8
+	.long	_ZTS1D
+	.long	2             ここが 2 になっている
+	.long	2
+	.long	_ZTI1A
+	.long	2
+	.long	_ZTI1B
+	.long	1026
+
+hcxx1.exe で生成された test008.s の上の該当部分を修正し src2dst を -1
+として実行してみたが __dynamic_cast の呼び出しで 0 が返り結果的に
+メモリアクセスエラーが発生してしまう.
+
+(*1) test007, test008 を追加した. test008 は菱形継承. test007 は test008
+     の菱形ではないバージョン.
+
+     g++ では __dynamic_cast を呼び出すときに
+
+     test007 src2dst = -3
+     test008 src2dst = -1
+
+     としている.
