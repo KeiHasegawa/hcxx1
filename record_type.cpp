@@ -288,10 +288,35 @@ namespace cxx_compiler {
     };
     struct add_common {
       map<const record_type*, int>& m_common_offset;
-      add_common(map<const record_type*, int>& common_offset)
-        : m_common_offset(common_offset) {}
+      with_initial* m_vtbl;
+      static bool match(pair<int, var*> x, const record_type* rec)
+      {
+	var* v = x.second;
+	addrof* ao = v->addrof_cast();
+	if (!ao)
+	  return false;
+	v = ao->m_ref;
+	auto ti = dynamic_cast<type_information*>(v);
+	if (!ti)
+	  return false;
+	const type* T = ti->m_T;
+	return compatible(T, rec);
+      }
+      add_common(map<const record_type*, int>& common_offset,
+		 with_initial* vtbl)
+        : m_common_offset(common_offset), m_vtbl(vtbl) {}
       int operator()(int n, const record_type* rec)
       {
+	if (m_vtbl) {
+	  using namespace expressions::primary::literal;
+	  auto& value = m_vtbl->m_value;
+	  auto p = find_if(begin(value), end(value),
+			   bind2nd(ptr_fun(match), rec));
+	  assert(p != end(value));
+	  assert(p != begin(value));
+	  --p;
+	  p->second = integer::create(-n);
+	}
         m_common_offset[rec] = n;
         return add_size(n, rec);
       }
@@ -435,7 +460,7 @@ namespace cxx_compiler {
             if (usr* u = v->usr_cast()) {
               assert(u->isconstant());
               v = integer::create(-m_base_offset);
-          v = v->cast(u->m_type);
+	      v = v->cast(u->m_type);
             }
             m_result[off] = v;
             const type* T = v->m_type;
@@ -547,7 +572,7 @@ namespace cxx_compiler {
       int operator()(int offset, const record_type* rec)
       {
         tag* ptr = rec->get_tag();
-        int dummy = 0;  // WA
+        int dummy = 0;  // After update at `add_common::operator()'
         int n = copy_base_vf_common(offset, ptr, m_value, 0, dummy);
         assert(n != offset);
         m_common_vftbl_offset[rec] = offset;
@@ -2246,7 +2271,6 @@ cxx_compiler::record_type::record_type(tag* ptr)
       m_layout[vfptr_name] = make_pair(vfptr_offset, vfptr);
       m_position[vfptr] = vfptr_offset ? 1 : 0;
     }
-
     int offset = 0;
     if (bases) {
       map<int, var*>& value = m_vtbl->m_value;
@@ -2263,17 +2287,17 @@ cxx_compiler::record_type::record_type(tag* ptr)
     if (nvf) {
       auto& value = m_vtbl->m_value;
       var* zero = integer::create(0);
-      const type* vp = void_type::create();
-      vp = pointer_type::create(vp);
-      zero = zero->cast(vp);
+      const type* ptrdiff = pointer_pointer_impl::result_type();
+      zero = zero->cast(ptrdiff);
       value[offset] = zero;
       offset += zero->m_type->size();
       value[offset] = 0;  // after insert here type_information
+      const type* vp = void_type::create();
+      vp = pointer_type::create(vp);
       offset += vp->size();
       accumulate(begin(order), end(order), offset, own_vf(value));
     }
   }
-
   copy_if(begin(order),end(order),back_inserter(m_member), isdata);
 
   if (!bases && m_member.empty()) {
@@ -2342,7 +2366,7 @@ cxx_compiler::record_type::record_type(tag* ptr)
       }
     }
   }
-  
+
   if (bases) {
     if (m_tag->m_kind != tag::UNION) {
       m_size = accumulate(begin(*bases), end(*bases), m_size,
@@ -2350,7 +2374,7 @@ cxx_compiler::record_type::record_type(tag* ptr)
                                          m_virt_common_offset,
                                          m_direct_common));
       m_size = accumulate(begin(m_common), end(m_common), m_size,
-                          add_common(m_virt_common_offset));
+                          add_common(m_virt_common_offset, m_vtbl));
     }
     else
       error::not_implemented();
