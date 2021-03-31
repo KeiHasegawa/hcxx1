@@ -964,12 +964,14 @@ cxx_compiler::var* cxx_compiler::var_impl::pointer_pointer(var* y, var* z)
   }
   if ( m != -1 ){
     var* s = integer::create(m);
+    s = s->cast(T);
     code.push_back(new sub3ac(t,y,z));
     code.push_back(new rsh3ac(x,t,s));
     return x;
   }
 
-  var* s = integer::create((long)n);
+  var* s = integer::create(n);
+  s = s->cast(T);
   code.push_back(new sub3ac(t,y,z));
   code.push_back(new div3ac(x,t,s));
   return x;
