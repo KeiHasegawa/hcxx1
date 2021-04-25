@@ -45,10 +45,6 @@ namespace ucn {
 namespace parse {
   extern file_t position;
   extern void delete_buffer();
-  struct read_t {
-    list<pair<int,file_t> > m_token;
-    list<void*> m_lval;
-  };
   struct context_t {
     int m_state;
     vector<short> m_stack0;
@@ -1844,13 +1840,6 @@ namespace block_impl {
   extern set<usr*> tried;
 } // end of namespace block_impl
 
-struct templ_base {
-  scope::tps_t m_tps;
-  parse::read_t m_read;
-  templ_base(const scope::tps_t& tps) : m_tps(tps) {}
-  typedef instantiated_tag::SEED KEY;
-};
-
 struct template_usr : usr, templ_base {
   struct info_t {
     template_usr* m_tu;
@@ -1916,37 +1905,6 @@ struct explicit_po : partial_ordering {
   }
   template_usr* chose(vector<var*>*);
   usr* ins_ch(template_usr* tu, vector<var*>* arg);
-};
-
-struct partial_special_tag;
-
-struct template_tag : templ_base, tag {
-  struct info_t {
-    template_tag* m_tt;
-    instantiated_tag* m_it;
-    const type* m_using;
-    KEY m_key;
-    info_t(template_tag* tt, instantiated_tag* it, const KEY& key)
-    : m_tt(tt), m_it(it), m_key(key), m_using(0) {}
-  };
-  static vector<info_t> nest;
-  typedef map<KEY, tag*> table_t;
-  table_t m_table;
-  template_tag* m_prev;
-  vector<partial_special_tag*> m_partial_special;
-  vector<template_usr*> m_static_def;
-  set<usr*> m_static_refed;
-  bool m_created;
-  template_tag(tag& t, const scope::tps_t& tps)
-    : tag(t), templ_base(tps), m_prev(0), m_created(false)
-  { m_flag = TEMPLATE; }
-  tag* common(vector<scope::tps_t::val2_t*>*, bool special_ver, bool dots);
-  tag* instantiate(vector<scope::tps_t::val2_t*>* pv, bool dots)
-  { return common(pv, false, dots); }
-  tag* special_ver(vector<scope::tps_t::val2_t*>* pv, bool dots)
-  { return common(pv, true, dots); }
-  virtual string instantiated_name() const;
-  virtual string encode_name() const { return m_name; }
 };
 
 extern vector<pair<template_usr::info_t*, template_tag::info_t*> > tinfos;

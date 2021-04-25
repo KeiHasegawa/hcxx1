@@ -2298,6 +2298,52 @@ struct type_information : var {
   type_information(const type*);
 };
 
+namespace parse {
+  struct read_t {
+    std::list<std::pair<int,file_t> > m_token;
+    std::list<void*> m_lval;
+  };
+} // end of namespace parse
+
+struct templ_base {
+  scope::tps_t m_tps;
+  parse::read_t m_read;
+  templ_base(const scope::tps_t& tps) : m_tps(tps) {}
+  typedef instantiated_tag::SEED KEY;
+};
+
+struct partial_special_tag;
+
+struct template_tag : templ_base, tag {
+  struct info_t {
+    template_tag* m_tt;
+    instantiated_tag* m_it;
+    const type* m_using;
+    KEY m_key;
+    info_t(template_tag* tt, instantiated_tag* it, const KEY& key)
+    : m_tt(tt), m_it(it), m_key(key), m_using(0) {}
+  };
+  static std::vector<info_t> nest;
+  typedef std::map<KEY, tag*> table_t;
+  table_t m_table;
+  template_tag* m_prev;
+  std::vector<partial_special_tag*> m_partial_special;
+  std::vector<template_usr*> m_static_def;
+  std::set<usr*> m_static_refed;
+  bool m_created;
+  template_tag(tag& t, const scope::tps_t& tps)
+    : tag(t), templ_base(tps), m_prev(0), m_created(false)
+  { m_flag = TEMPLATE; }
+  tag* common(std::vector<scope::tps_t::val2_t*>*, bool special_ver,
+	      bool dots);
+  tag* instantiate(std::vector<scope::tps_t::val2_t*>* pv, bool dots)
+  { return common(pv, false, dots); }
+  tag* special_ver(std::vector<scope::tps_t::val2_t*>* pv, bool dots)
+  { return common(pv, true, dots); }
+  virtual std::string instantiated_name() const;
+  virtual std::string encode_name() const { return m_name; }
+};
+
 } // end of namespace cxx_compiler
 
 #endif // _CXX_CORE_H_
