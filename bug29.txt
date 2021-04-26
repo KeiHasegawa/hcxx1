@@ -1,0 +1,68 @@
+~/lang/43_ISO_IEC_14882/15_Exception_handling/0_Exception_handling/1_ok/test007.cpp
+
+./test007.exe
+
+の実行時にエラーしている. d:/tmp/Project5 に再現環境を準備した.
+エラーが発生している直接の原因は _test_main の呼び出しの前後で RBP の値が
+変更されていること. 例えば
+
+_test_main 呼び出し前 : RBP:0000000157B7FAD0
+_test_main 呼び出し後 : RBP:0000000157B7F7F8
+
+_test_main で保存している RBP がどこかで壊されているのが原因.
+
+_test_main のスタックフレーム
+
++---------------+ RSP(new)
+|               |
+|               |
+|               |
++---------------+ RBP(new)  = RSP(old)
+|      RBX      |
++---------------+
+|      RBP(old) | << ここをこわしている
++---------------+
+
+ウォッチポイントを仕掛けてみると
+
+call	_CxxThrowException
+
+の呼び出しで壊しているらしい
+試しに _test_main を以下のように修正してみた:
+
+	; enter
+	push 	rbp
+	mov 	rbp, rsp
+	push 	rbx
+	sub 	rsp, (24+1024)  ; 24 ではなくて (24+1024)
+
+これだと一応うまくいっている.
+
+似たようなことを g でやってみた:
+
+	; enter
+	push 	rbp
+	mov 	rbp, rsp
+	push 	rbx
+	; parameter registers are saved
+	mov 	DWORD PTR [rbp+16], ecx
+
+	sub 	rsp, (280+1024)   ; 280 より大きく
+
+しかしこれだとバグを回避できていないらしい.
+同じことを f でやってみた:
+
+	; enter
+	push 	rbp
+	push	rdi
+	mov 	rbp, rsp
+	; parameter registers are saved
+	mov 	DWORD PTR [rbp+24], ecx
+
+	sub 	rsp, (328+1024)   ; 328 より大きく
+
+残念ながらこれでも回避できていない.
+MS 版の例外処理は相当苦心して作ったのだが, ここにきてバグが出ている.
+無理に作ったのが原因だろう.
+
+
